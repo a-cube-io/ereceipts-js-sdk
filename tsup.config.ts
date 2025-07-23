@@ -101,6 +101,6 @@ export default defineConfig({
   // Define global constants
   define: {
     'process.env.SDK_VERSION': JSON.stringify('1.0.0'),
-    'process.env.SDK_NAME': JSON.stringify('a-cube-io/ereceipts-js-sdk')
+    'process.env.SDK_NAME': JSON.stringify('@a-cube-io/ereceipts-js-sdk')
   }
 });

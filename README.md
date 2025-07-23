@@ -2,7 +2,7 @@
 
 > **Professional TypeScript SDK for A-Cube e-receipt system integration**
 
-[![npm version](https://badge.fury.io/js/a-cube-io/ereceipts-js-sdk.svg)](https://badge.fury.io/js/a-cube-io/ereceipts-js-sdk)
+[![npm version](https://badge.fury.io/js/primeng.svg)](https://badge.fury.io/js/primeng)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 [![React Native](https://img.shields.io/badge/React%20Native-Ready-green.svg)](https://reactnative.dev/)
 [![Tree Shakeable](https://img.shields.io/badge/Tree%20Shakeable-✅-brightgreen.svg)](https://webpack.js.org/guides/tree-shaking/)
@@ -42,11 +42,11 @@ A comprehensive, cross-platform SDK for integrating the Italian A-Cube e-receipt
 ## 📦 Installation
 
 ```bash
-npm install a-cube-io/ereceipts-js-sdk
+npm install @a-cube-io/ereceipts-js-sdk
 # or
-yarn add a-cube-io/ereceipts-js-sdk
+yarn add @a-cube-io/ereceipts-js-sdk
 # or
-pnpm add a-cube-io/ereceipts-js-sdk
+pnpm add @a-cube-io/ereceipts-js-sdk
 ```
 
 ### Peer Dependencies
@@ -66,7 +66,7 @@ For **React Web** projects:
 ### 1. Initialize the SDK
 
 ```typescript
-import { initSDK } from 'a-cube-io/ereceipts-js-sdk';
+import { initSDK } from '@a-cube-io/ereceipts-js-sdk';
 
 // Initialize SDK (call once at app startup)
 await initSDK({
@@ -80,7 +80,7 @@ await initSDK({
 ### 2. Authentication
 
 ```typescript
-import { loginProvider, loginMerchant, loginCashier } from 'a-cube-io/ereceipts-js-sdk';
+import { loginProvider, loginMerchant, loginCashier } from '@a-cube-io/ereceipts-js-sdk';
 
 // Login as Provider (highest privileges)
 const providerToken = await loginProvider('provider@company.com', 'password123');
@@ -95,7 +95,7 @@ const cashierToken = await loginCashier('cashier@store.com', 'password123');
 ### 3. Create Your First Receipt
 
 ```typescript
-import { createReceipt } from 'a-cube-io/ereceipts-js-sdk';
+import { createReceipt } from '@a-cube-io/ereceipts-js-sdk';
 
 const receipt = await createReceipt({
   items: [
@@ -118,7 +118,7 @@ console.log('Receipt created:', receipt.uuid);
 
 ```typescript
 import React from 'react';
-import { Button, FormInput, useAuth } from 'a-cube-io/ereceipts-js-sdk';
+import { Button, FormInput, useAuth } from '@a-cube-io/ereceipts-js-sdk';
 
 function LoginScreen() {
   const { loginAsMerchant, isLoading, error } = useAuth();
@@ -198,7 +198,7 @@ function LoginScreen() {
 ### Environment Setup
 
 ```typescript
-import { initSDK } from 'a-cube-io/ereceipts-js-sdk';
+import { initSDK } from '@a-cube-io/ereceipts-js-sdk';
 
 await initSDK({
   environment: 'sandbox', // 'sandbox' | 'production'
@@ -231,7 +231,7 @@ await initSDK({
 The SDK includes an advanced cross-platform token storage system with automatic fallbacks and configurable encryption:
 
 ```typescript
-import { SecureTokenStorage } from 'a-cube-io/ereceipts-js-sdk';
+import { SecureTokenStorage } from '@a-cube-io/ereceipts-js-sdk';
 
 // Configure secure storage (call once at app startup)
 SecureTokenStorage.configure({
@@ -281,7 +281,7 @@ console.log(`Token expires in: ${stats.tokenExpiryInfo.expiresInMs}ms`);
 ### Certificate Management
 
 ```typescript
-import { CertificateStorage } from 'a-cube-io/ereceipts-js-sdk';
+import { CertificateStorage } from '@a-cube-io/ereceipts-js-sdk';
 
 // mTLS certificate management for cash registers
 await CertificateStorage.storeMTLSCertificate(uuid, certificate);
@@ -291,7 +291,7 @@ const cert = await CertificateStorage.getMTLSCertificate(uuid);
 ### Offline Support
 
 ```typescript
-import { useRetryQueue } from 'a-cube-io/ereceipts-js-sdk';
+import { useRetryQueue } from '@a-cube-io/ereceipts-js-sdk';
 
 function OfflineIndicator() {
   const { stats, isConnected, processQueue } = useRetryQueue();
@@ -316,7 +316,7 @@ import {
   validatePassword, 
   validateFiscalId,
   validateReceiptItem 
-} from 'a-cube-io/ereceipts-js-sdk';
+} from '@a-cube-io/ereceipts-js-sdk';
 
 // Validate user input
 const emailValidation = validateEmail('user@example.com');
@@ -362,7 +362,7 @@ import type {
   MerchantCreateInput,
   AuthToken,
   ValidationResult 
-} from 'a-cube-io/ereceipts-js-sdk';
+} from '@a-cube-io/ereceipts-js-sdk';
 
 // Full IntelliSense and type checking
 const receiptData: ReceiptInput = {
@@ -436,8 +436,8 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 - 📧 Email: support@acube.it
 - 📖 Documentation: [Full API Documentation](https://docs.acube.it)
-- 🐛 Issues: [GitHub Issues](https://github.com/acube/a-cube-io/ereceipts-js-sdk/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/acube/a-cube-io/ereceipts-js-sdk/discussions)
+- 🐛 Issues: [GitHub Issues](https://github.com/acube/@a-cube-io/ereceipts-js-sdk/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/acube/@a-cube-io/ereceipts-js-sdk/discussions)
 
 ---
 
