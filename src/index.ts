@@ -250,7 +250,7 @@ export type {
 // Version & Metadata
 // =============================================================================
 export const SDK_VERSION = '1.0.0';
-export const SDK_NAME = '@acube/e-receipt';
+export const SDK_NAME = 'a-cube-io/ereceipts-js-sdk';
 
 // =============================================================================
 // Quick Start Helpers

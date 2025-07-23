@@ -273,11 +273,8 @@ class APIClient {
 
     apiLogger.info(`Processing offline queue: ${stats.total} requests`);
 
-    while (true) {
-      const nextRequest = await RequestQueue.getNextRequest();
-      if (!nextRequest) {
-        break;
-      }
+    let nextRequest = await RequestQueue.getNextRequest();
+    while (nextRequest) {
 
       try {
         // Re-add authentication header
@@ -303,6 +300,9 @@ class APIClient {
           apiLogger.warn(`Failed to process queued request, will retry: ${nextRequest.id}`, error);
         }
       }
+      
+      // Get next request for next iteration
+      nextRequest = await RequestQueue.getNextRequest();
     }
 
     // Clean up expired requests

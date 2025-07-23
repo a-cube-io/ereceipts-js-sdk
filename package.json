@@ -1,5 +1,5 @@
 {
-  "name": "@acube/e-receipt",
+  "name": "@a-cube-io/ereceipts-js-sdk",
   "version": "1.0.0",
   "description": "Professional TypeScript SDK for A-Cube e-receipt system integration. Cross-platform support for React, React Native, and PWA applications.",
   "keywords": [
@@ -18,13 +18,13 @@
   ],
   "author": "A-Cube Team",
   "license": "MIT",
-  "homepage": "https://github.com/acube/@acube/e-receipt#readme",
+  "homepage": "https://github.com/a-cube-io/ereceipts-js-sdk/#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/acube/@acube/e-receipt.git"
+    "url": "https://github.com/a-cube-io/ereceipts-js-sdk.git"
   },
   "bugs": {
-    "url": "https://github.com/acube/@acube/e-receipt/issues"
+    "url": "https://github.com/a-cube-io/ereceipts-js-sdk/issues"
   },
   "type": "module",
   "main": "./dist/index.cjs",
@@ -80,7 +80,8 @@
     }
   },
   "dependencies": {
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "idb-keyval": "^6.2.2"
   },
   "optionalDependencies": {
     "@react-native-async-storage/async-storage": "^1.21.0",

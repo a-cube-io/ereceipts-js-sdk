@@ -57,7 +57,7 @@ interface AuthToken {
 
 **Example:**
 ```typescript
-import { loginProvider, AuthenticationError } from '@acube/e-receipt';
+import { loginProvider, AuthenticationError } from 'a-cube-io/ereceipts-js-sdk';
 
 try {
   const token = await loginProvider('admin@company.com', 'SecurePass123!');
@@ -252,7 +252,7 @@ class AuthenticationError extends Error {
 
 ### Error Handling Pattern
 ```typescript
-import { loginProvider, AuthenticationError } from '@acube/e-receipt';
+import { loginProvider, AuthenticationError } from 'a-cube-io/ereceipts-js-sdk';
 
 try {
   await loginProvider(email, password);
@@ -356,7 +356,7 @@ const secureLogout = async () => {
 
 ### React Hook Usage
 ```typescript
-import { useAuth } from '@acube/e-receipt';
+import { useAuth } from 'a-cube-io/ereceipts-js-sdk';
 
 function AuthGuard({ children, requiredRole = 'cashier' }) {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -382,7 +382,7 @@ function AuthGuard({ children, requiredRole = 'cashier' }) {
 
 ### Form Validation
 ```typescript
-import { validateEmail, validatePassword } from '@acube/e-receipt';
+import { validateEmail, validatePassword } from 'a-cube-io/ereceipts-js-sdk';
 
 const validateLoginForm = (email: string, password: string) => {
   const emailValidation = validateEmail(email);

@@ -78,18 +78,20 @@ export const useRetryQueue = (): UseRetryQueueReturn => {
   useEffect(() => {
     let processingTimeout: NodeJS.Timeout;
 
-    const handleNetworkChange = async (state: { isConnected: boolean }) => {
+    const handleNetworkChange = (state: { isConnected: boolean }) => {
       setNetworkConnected(state.isConnected);
       
       if (state.isConnected && !isProcessing) {
         // Wait a bit for network to stabilize before processing
-        processingTimeout = setTimeout(async () => {
-          try {
-            networkLogger.info('Network reconnected, auto-processing queue');
-            await processQueue();
-          } catch (error) {
-            networkLogger.error('Auto queue processing failed', error);
-          }
+        processingTimeout = setTimeout(() => {
+          void (async () => {
+            try {
+              networkLogger.info('Network reconnected, auto-processing queue');
+              await processQueue();
+            } catch (error) {
+              networkLogger.error('Auto queue processing failed', error);
+            }
+          })();
         }, 2000);
       }
     };
@@ -107,19 +109,21 @@ export const useRetryQueue = (): UseRetryQueueReturn => {
   // Refresh stats periodically
   useEffect(() => {
     // Initial load
-    refreshStats();
+    void refreshStats();
 
     // Set up periodic refresh
-    const interval = setInterval(refreshStats, 30000); // Every 30 seconds
+    const interval = setInterval(() => {
+      void refreshStats();
+    }, 30000); // Every 30 seconds
 
     return () => clearInterval(interval);
   }, [refreshStats]);
 
   // Monitor queue changes by polling (could be optimized with events)
   useEffect(() => {
-    const interval = setInterval(async () => {
+    const interval = setInterval(() => {
       if (!isProcessing) {
-        await refreshStats();
+        void refreshStats();
       }
     }, 10000); // Every 10 seconds
 
