@@ -1,0 +1,162 @@
+name: 🏷️ Tag-Based Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: 🏷️ Extract version from tag
+        id: version
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          
+          # Extract version (remove 'v' prefix if present)
+          VERSION=${TAG_NAME#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION from tag: $TAG_NAME"
+          
+          # Validate version format (basic semver check)
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "❌ Invalid version format: $VERSION"
+            echo "Expected format: x.y.z or x.y.z-prerelease"
+            exit 1
+          fi
+          
+          echo "✅ Valid version format: $VERSION"
+
+      - name: 🔄 Update package.json version
+        run: |
+          echo "Updating package.json version to ${{ steps.version.outputs.version }}"
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+          
+          # Verify the version was updated correctly
+          UPDATED_VERSION=$(node -p "require('./package.json').version")
+          if [ "$UPDATED_VERSION" != "${{ steps.version.outputs.version }}" ]; then
+            echo "❌ Version update failed. Expected: ${{ steps.version.outputs.version }}, Got: $UPDATED_VERSION"
+            exit 1
+          fi
+          
+          echo "✅ Package version updated to: $UPDATED_VERSION"
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🧪 Run tests
+        run: npm run test
+
+      - name: 🔍 Lint code
+        run: npm run lint:check
+
+      - name: 🏗️ Type check
+        run: npm run type-check
+
+      - name: 📋 Build package
+        run: npm run build
+
+      - name: 🔍 Check NPM registry
+        id: npm-check
+        run: |
+          if npm view @a-cube-io/ereceipts-js-sdk@${{ steps.version.outputs.version }} version 2>/dev/null; then
+            echo "❌ Version ${{ steps.version.outputs.version }} already exists on NPM"
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "✅ Version ${{ steps.version.outputs.version }} is new, proceeding with publish"
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📡 Publish to NPM
+        if: steps.npm-check.outputs.should_publish == 'true'
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 📝 Generate changelog
+        id: changelog
+        run: |
+          echo "Generating changelog for ${{ steps.version.outputs.tag }}"
+          
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 ${{ steps.version.outputs.tag }}^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            echo "No previous tag found, including all commits"
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges --reverse)
+          else
+            echo "Previous tag: $PREV_TAG"
+            CHANGELOG=$(git log ${PREV_TAG}..${{ steps.version.outputs.tag }} --pretty=format:"- %s (%h)" --no-merges --reverse)
+          fi
+          
+          # Handle empty changelog
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="- No changes in this release"
+          fi
+          
+          # Escape special characters for GitHub output
+          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+          CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
+          
+          echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "prev_tag=$PREV_TAG" >> $GITHUB_OUTPUT
+
+      - name: 🎉 Create GitHub release
+        run: |
+          echo "Creating GitHub release for ${{ steps.version.outputs.tag }}"
+          
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "🚀 Release ${{ steps.version.outputs.tag }}" \
+            --notes "## 📋 Changes
+
+          ${{ steps.changelog.outputs.changelog }}
+
+          ## 📦 Release Information
+          - **Version**: ${{ steps.version.outputs.version }}
+          - **Tag**: ${{ steps.version.outputs.tag }}
+          - **Previous**: ${{ steps.changelog.outputs.prev_tag || 'Initial release' }}
+          - **Commit**: ${{ github.sha }}
+
+          ## 📥 Installation
+          \`\`\`bash
+          npm install @a-cube-io/ereceipts-js-sdk@${{ steps.version.outputs.version }}
+          \`\`\`
+
+          ## 🔗 Links
+          - [NPM Package](https://www.npmjs.com/package/@a-cube-io/ereceipts-js-sdk)
+          - [Documentation](https://github.com/${{ github.repository }}#readme)
+          - [Changelog](https://github.com/${{ github.repository }}/releases)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📋 Release summary
+        run: |
+          echo "## 🎉 Release Published Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Release Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag**: ${{ steps.version.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **NPM Package**: [@a-cube-io/ereceipts-js-sdk@${{ steps.version.outputs.version }}](https://www.npmjs.com/package/@a-cube-io/ereceipts-js-sdk)" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Release**: [${{ steps.version.outputs.tag }}](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📝 Changes" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.changelog.outputs.changelog }}" | sed 's/%0A/\n/g' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🎯 **Installation**: \`npm install @a-cube-io/ereceipts-js-sdk@${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
