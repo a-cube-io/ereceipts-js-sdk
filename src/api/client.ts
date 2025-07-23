@@ -9,10 +9,11 @@ import { apiLogger } from '../utils/logger';
 interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
   _queued?: boolean;
 }
-import { Environment, getBaseURL } from '../constants/endpoints';
+import { BaseURLMode, Environment, getBasePath } from '../constants/endpoints';
 
 export interface SDKConfig {
   environment: Environment;
+  baseURLMode?: BaseURLMode;
   baseURL?: string;
   timeout?: number;
   enableRetry?: boolean;
@@ -24,6 +25,7 @@ export interface SDKConfig {
 
 export const DEFAULT_CONFIG: SDKConfig = {
   environment: 'sandbox',
+  baseURLMode: 'api',
   timeout: 30000,
   enableRetry: true,
   enableOfflineQueue: true,
@@ -35,6 +37,7 @@ export const DEFAULT_CONFIG: SDKConfig = {
 class APIClient {
   private axiosInstance: AxiosInstance;
   private config: SDKConfig;
+  
 
   constructor(config: Partial<SDKConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -43,7 +46,10 @@ class APIClient {
   }
 
   private createAxiosInstance(): AxiosInstance {
-    const baseURL = this.config.baseURL ?? getBaseURL(this.config.environment);
+    const baseURL = this.config.baseURL ?? getBasePath(
+      this.config.baseURLMode ?? 'api',
+      this.config.environment
+    );
     
     return axios.create({
       baseURL,
@@ -190,8 +196,8 @@ class APIClient {
   public updateConfig(config: Partial<SDKConfig>): void {
     this.config = { ...this.config, ...config };
     
-    // Recreate axios instance if base URL changed
-    if (config.baseURL ?? config.environment) {
+    // Recreate axios instance if base URL related configs changed
+    if (config.baseURL ?? config.environment ?? config.baseURLMode) {
       this.axiosInstance = this.createAxiosInstance();
       this.setupInterceptors();
     }
@@ -320,6 +326,22 @@ class APIClient {
     await RequestQueue.clearQueue();
     apiLogger.info('Offline queue cleared');
   }
+
+  // Create a new client instance with auth mode
+  public createAuthClient(): APIClient {
+    return new APIClient({
+      ...this.config,
+      baseURLMode: 'auth',
+    });
+  }
+
+  // Create a new client instance with specific base URL mode
+  public createModeClient(mode: BaseURLMode): APIClient {
+    return new APIClient({
+      ...this.config,
+      baseURLMode: mode,
+    });
+  }
 }
 
 // Global API client instance
@@ -342,6 +364,11 @@ export const getAPIClient = (): APIClient => {
 // Configure SDK
 export const configureSDK = (config: Partial<SDKConfig>): void => {
   getAPIClient().updateConfig(config);
+};
+
+// Get auth client instance (for authentication endpoints)
+export const getAuthClient = (): APIClient => {
+  return getAPIClient().createAuthClient();
 };
 
 export { APIClient };

@@ -3,6 +3,11 @@
 ## Overview
 Authentication system supporting three user roles with JWT tokens and secure storage.
 
+**🔗 Base URL**: Uses Auth Mode endpoints automatically
+- **Sandbox**: `https://common-sandbox.api.acubeapi.com`
+- **Production**: `https://common.api.acubeapi.com`
+- **Development**: `https://common-sandbox.api.acubeapi.com`
+
 ## Methods
 
 ### `loginProvider(email: string, password: string): Promise<AuthToken>`
