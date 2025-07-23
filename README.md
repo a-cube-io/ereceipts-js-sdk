@@ -595,19 +595,26 @@ const receiptData: ReceiptInput = {
 
 ## 🐛 Troubleshooting
 
-### React Native Issues
+### React Native/Expo Issues
 
-1. **Keychain errors on iOS**:
+1. **Node.js module imports error (Fixed in v1.0.5+)**:
+   ```
+   The package attempted to import the Node standard library module "url".
+   It failed because the native React runtime does not include the Node standard library.
+   ```
+   **Solution**: Update to SDK version 1.0.5 or higher - we've fixed React Native/Expo compatibility by properly externalizing axios and preventing Node.js module bundling.
+
+2. **Keychain errors on iOS**:
    ```bash
    cd ios && pod install
    ```
 
-2. **AsyncStorage warnings**:
+3. **AsyncStorage warnings**:
    ```bash
    npm install @react-native-async-storage/async-storage
    ```
 
-3. **Network detection issues**:
+4. **Network detection issues**:
    ```bash
    npm install @react-native-community/netinfo
    ```

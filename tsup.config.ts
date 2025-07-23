@@ -26,17 +26,17 @@ export default defineConfig({
   minify: false,
   
   // External dependencies (not bundled)
+  // Keep axios external for React Native compatibility 
+  // (axios includes Node.js modules that aren't available in RN/Expo)
   external: [
     'react',
     'react-native',
     'react-dom',
     '@react-native-async-storage/async-storage',
     'react-native-keychain',
-    '@react-native-community/netinfo'
+    '@react-native-community/netinfo',
+    'axios' // Keep axios external to avoid Node.js module bundling
   ],
-  
-  // Bundle axios as it's a direct dependency
-  noExternal: ['axios'],
   
   // Target environment
   target: 'es2020',
@@ -50,8 +50,8 @@ export default defineConfig({
   // Skip node_modules bundling (except noExternal)
   bundle: true,
   
-  // Platform specific options
-  platform: 'neutral',
+  // Platform specific options - use browser to avoid Node.js modules
+  platform: 'browser',
   
   // Banner for generated files
   banner: {
@@ -76,6 +76,9 @@ export default defineConfig({
     
     // Resolve extensions
     options.resolveExtensions = ['.ts', '.tsx', '.js', '.jsx', '.json'];
+    
+    // React Native/Expo compatibility: prevent Node.js module resolution
+    options.conditions = ['react-native', 'browser', 'module', 'import'];
   },
   
   // Output filename customization
@@ -84,8 +87,8 @@ export default defineConfig({
     dts: format === 'esm' ? '.d.ts' : '.d.cts'
   }),
   
-  // Shims for Node.js globals in browser
-  shims: true,
+  // No Node.js shims for React Native compatibility
+  shims: false,
   
   // Skip type checking (rely on separate tsc command)
   skipNodeModulesBundle: true,
