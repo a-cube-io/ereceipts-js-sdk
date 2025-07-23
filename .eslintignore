@@ -1,0 +1,7 @@
+dist/
+node_modules/
+coverage/
+*.generated.ts
+*.d.ts
+.eslintrc.js
+jest.config.js

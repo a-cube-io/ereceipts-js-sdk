@@ -1,0 +1,101 @@
+# Source files
+src/
+tsup.config.ts
+tsconfig.json
+
+# Development files
+.eslintrc.js
+.eslintignore
+jest.config.js
+babel.config.js
+metro.config.js
+
+# Tests
+**/*.test.*
+**/*.spec.*
+**/__tests__/**
+**/__mocks__/**
+coverage/
+
+# Development dependencies
+node_modules/
+.npm/
+.yarn/
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+*.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Build artifacts (keep only dist/)
+*.tsbuildinfo
+.cache/
+.parcel-cache/
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# Documentation source (keep README.md)
+docs/
+*.md
+!README.md
+
+# Configuration files
+.env*
+.npmrc
+.yarnrc
+.huskyrc*
+.lintstagedrc*
+.prettierrc*
+.editorconfig
+
+# Miscellaneous
+*.orig
+*.rej
+.nyc_output/
+.coverage/
+.sass-cache/
+connect.lock
+typings/
+
+# React Native specific
+android/
+ios/
+.expo/
+.expo-shared/
+
+# Storybook
+.storybook/
+storybook-static/
+
+# Backup files
+*.backup
+*.bak
+*.old
