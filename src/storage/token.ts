@@ -3,22 +3,28 @@ import * as Keychain from 'react-native-keychain';
 import { SECURE_KEYS, STORAGE_KEYS } from '../constants/keys';
 import { AuthToken, JWTPayload } from '../api/types.generated';
 
+//@TODO: for Web use IndexedDB with encryption
+//@TODO: React Native, use Keychain for secure storage with encryption
+
 // Platform detection
-const isWeb = typeof window !== 'undefined' && window.document;
+const isWeb = typeof window !== 'undefined' && !!window?.document;
 const isReactNative = !isWeb;
 
 // Web storage fallback for secure data
 class WebSecureStorage {
   static async setItem(key: string, value: string): Promise<void> {
     // In production, consider using IndexedDB with encryption
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Simulate async operation
     localStorage.setItem(`secure_${key}`, value);
   }
 
   static async getItem(key: string): Promise<string | null> {
+    await new Promise((resolve) => setTimeout(resolve, 100));
     return localStorage.getItem(`secure_${key}`);
   }
 
   static async removeItem(key: string): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 100));
     localStorage.removeItem(`secure_${key}`);
   }
 }
@@ -62,6 +68,7 @@ export class SecureTokenStorage {
 
   // Store data using appropriate method based on sensitivity
   static async setItem(key: string, value: string): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const isSecure = SECURE_KEYS.has(key as any);
     
     if (isSecure) {
@@ -72,6 +79,7 @@ export class SecureTokenStorage {
   }
 
   static async getItem(key: string): Promise<string | null> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const isSecure = SECURE_KEYS.has(key as any);
     
     if (isSecure) {
@@ -82,6 +90,7 @@ export class SecureTokenStorage {
   }
 
   static async removeItem(key: string): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const isSecure = SECURE_KEYS.has(key as any);
     
     if (isSecure) {

@@ -146,6 +146,7 @@ export const getReceiptDetails = async (
 
 export const voidReceipt = async (data: {
   pem_id?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   items: any[];
   document_number: string;
   document_date?: string;
@@ -156,6 +157,7 @@ export const voidReceipt = async (data: {
 };
 
 export const voidReceiptWithProof = async (data: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   items: any[];
   proof: 'POS' | 'VR' | 'ND';
   document_datetime: string;
@@ -166,6 +168,7 @@ export const voidReceiptWithProof = async (data: {
 
 export const returnReceiptItems = async (data: {
   pem_id?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   items: any[];
   document_number: string;
   document_date?: string;
@@ -177,6 +180,7 @@ export const returnReceiptItems = async (data: {
 };
 
 export const returnReceiptItemsWithProof = async (data: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   items: any[];
   proof: 'POS' | 'VR' | 'ND';
   document_datetime: string;

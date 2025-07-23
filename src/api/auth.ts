@@ -1,7 +1,7 @@
 import { getAPIClient } from './client';
 import { SecureTokenStorage } from '../storage/token';
 import { MF1_PATHS } from '../constants/endpoints';
-import { AuthToken, LoginRequest } from './types.generated';
+import { AuthToken } from './types.generated';
 import { ValidationResult, validateEmail, validatePassword } from '../utils/validation';
 import { authLogger } from '../utils/logger';
 
@@ -76,6 +76,7 @@ export const loginProvider = async (email: string, password: string): Promise<Au
 
     authLogger.authSuccess('provider', { email });
     return tokenData;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     const authError = new AuthenticationError(
       error.response?.data?.detail || 'Login failed',
@@ -129,6 +130,7 @@ export const loginMerchant = async (email: string, password: string): Promise<Au
 
     authLogger.authSuccess('merchant', { email });
     return tokenData;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     const authError = new AuthenticationError(
       error.response?.data?.detail || 'Login failed',
@@ -182,6 +184,7 @@ export const loginCashier = async (email: string, password: string): Promise<Aut
 
     authLogger.authSuccess('cashier', { email });
     return tokenData;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     const authError = new AuthenticationError(
       error.response?.data?.detail || 'Login failed',

@@ -101,7 +101,7 @@ export const validatePassword = (password: string): ValidationResult => {
   }
   
   // Must contain special character
-  if (!/[!@#$%\^&\*]/.test(password)) {
+  if (!/[!@#$%^&*]/.test(password)) {
     errors.push({
       field: 'password',
       message: 'Password must contain at least one special character (!@#$%^&*)',
@@ -365,6 +365,7 @@ export const combineValidationResults = (...results: ValidationResult[]): Valida
 /**
  * Generic field validation
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const validateRequired = (value: any, fieldName: string): ValidationResult => {
   if (value === null || value === undefined || value === '') {
     return {

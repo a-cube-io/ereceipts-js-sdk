@@ -309,6 +309,7 @@ export const isSDKReady = async (): Promise<boolean> => {
 // =============================================================================
 declare const __DEV__: boolean | undefined;
 declare const process: { env?: { NODE_ENV?: string } } | undefined;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const global: any;
 
 if ((typeof __DEV__ !== 'undefined' && __DEV__) || 

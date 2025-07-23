@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Cross-platform logging utility with different levels and debugging support
 
 export enum LogLevel {

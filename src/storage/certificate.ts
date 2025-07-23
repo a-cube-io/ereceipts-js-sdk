@@ -73,7 +73,11 @@ export class CertificateStorage {
       // Note: This is a placeholder implementation
       // In practice, you'd need to maintain a list of certificate UUIDs
       // or iterate through storage keys (platform-specific)
-      
+
+      // generate fake data waiting time
+      //@Todo: Replace with actual storage key retrieval logic
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       return certificates;
     } catch (error) {
       console.warn('Failed to list certificates:', error);

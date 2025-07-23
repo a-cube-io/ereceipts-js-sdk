@@ -43,7 +43,7 @@ class APIClient {
   }
 
   private createAxiosInstance(): AxiosInstance {
-    const baseURL = this.config.baseURL || getBaseURL(this.config.environment);
+    const baseURL = this.config.baseURL ?? getBaseURL(this.config.environment);
     
     return axios.create({
       baseURL,
@@ -68,8 +68,8 @@ class APIClient {
         // Log request if enabled
         if (this.config.enableLogging) {
           apiLogger.apiRequest(
-            config.url || '',
-            config.method?.toUpperCase() || 'GET',
+            config.url ?? '',
+            config.method?.toUpperCase() ?? 'GET',
             config.data
           );
         }
@@ -88,7 +88,7 @@ class APIClient {
         // Log successful response
         if (this.config.enableLogging) {
           apiLogger.apiResponse(
-            response.config.url || '',
+            response.config.url ?? '',
             response.status,
             response.data
           );
@@ -104,7 +104,7 @@ class APIClient {
 
         // Log error
         if (this.config.enableLogging) {
-          apiLogger.apiError(originalRequest?.url || '', error);
+          apiLogger.apiError(originalRequest?.url ?? '', error);
         }
 
         // Handle authentication errors
@@ -126,10 +126,15 @@ class APIClient {
     // Setup retry interceptor if enabled
     if (this.config.enableRetry) {
       AxiosRetryInterceptor.setupInterceptors(this.axiosInstance, {
-        retries: this.config.maxRetries || 3,
-        retryDelay: this.config.retryDelay || 1000,
+        retries: this.config.maxRetries ?? 3,
+        retryDelay: this.config.retryDelay ?? 1000,
         onRetry: (retryCount, error) => {
-          apiLogger.retryAttempt(retryCount, this.config.maxRetries || 3, this.config.retryDelay || 1000);
+          apiLogger.warn(`Retrying request (${retryCount})`, {
+            url: error.config?.url,
+            method: error.config?.method,
+            status: error.response?.status,
+          });
+          apiLogger.retryAttempt(retryCount, this.config.maxRetries ?? 3, this.config.retryDelay ?? 1000);
         },
       });
     }
@@ -143,7 +148,7 @@ class APIClient {
 
   private async handleOfflineRequest(
     originalRequest?: ExtendedAxiosRequestConfig,
-    error?: AxiosError
+    _error?: AxiosError
   ): Promise<void> {
     if (!originalRequest || originalRequest._queued) {
       return;
@@ -165,7 +170,7 @@ class APIClient {
   }
 
   private determinePriority(request: AxiosRequestConfig): 'high' | 'medium' | 'low' {
-    const url = request.url || '';
+    const url = request.url ?? '';
     
     // High priority for critical operations
     if (url.includes('/receipts') || url.includes('/activation')) {
@@ -186,7 +191,7 @@ class APIClient {
     this.config = { ...this.config, ...config };
     
     // Recreate axios instance if base URL changed
-    if (config.baseURL || config.environment) {
+    if (config.baseURL ?? config.environment) {
       this.axiosInstance = this.createAxiosInstance();
       this.setupInterceptors();
     }
@@ -197,39 +202,45 @@ class APIClient {
   }
 
   // HTTP methods
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     return this.axiosInstance.get<T>(url, config);
   }
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async post<T = any>(
     url: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data?: any,
     config?: AxiosRequestConfig
   ): Promise<AxiosResponse<T>> {
     return this.axiosInstance.post<T>(url, data, config);
   }
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async put<T = any>(
     url: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data?: any,
     config?: AxiosRequestConfig
   ): Promise<AxiosResponse<T>> {
     return this.axiosInstance.put<T>(url, data, config);
   }
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async patch<T = any>(
     url: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data?: any,
     config?: AxiosRequestConfig
   ): Promise<AxiosResponse<T>> {
     return this.axiosInstance.patch<T>(url, data, config);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     return this.axiosInstance.delete<T>(url, config);
   }
 
   // Advanced methods
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async request<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     return this.axiosInstance.request<T>(config);
   }

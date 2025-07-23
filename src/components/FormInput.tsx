@@ -44,7 +44,7 @@ export const FormInput = forwardRef<TextInput, FormInputProps>(({
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  const isPassword = secureTextEntry || showPasswordToggle;
+  const isPassword = secureTextEntry ?? showPasswordToggle;
   const actualSecureTextEntry = isPassword ? !isPasswordVisible : false;
 
   const handleTogglePassword = () => {
@@ -60,7 +60,7 @@ export const FormInput = forwardRef<TextInput, FormInputProps>(({
   const textInputStyle = [
     styles.input,
     leftIcon && styles.inputWithLeftIcon,
-    (rightIcon || showPasswordToggle) && styles.inputWithRightIcon,
+    (rightIcon ?? showPasswordToggle) && styles.inputWithRightIcon,
     inputStyle,
   ].filter(Boolean);
 
@@ -75,7 +75,7 @@ export const FormInput = forwardRef<TextInput, FormInputProps>(({
         </View>
       )}
       
-      <View style={inputContainerStyle as any}>
+      <View style={inputContainerStyle as ViewStyle}>
         {leftIcon && (
           <View style={styles.leftIconContainer}>
             {leftIcon}
@@ -84,7 +84,7 @@ export const FormInput = forwardRef<TextInput, FormInputProps>(({
         
         <TextInput
           ref={ref}
-          style={textInputStyle as any}
+          style={textInputStyle as TextStyle}
           secureTextEntry={actualSecureTextEntry}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
@@ -92,7 +92,7 @@ export const FormInput = forwardRef<TextInput, FormInputProps>(({
           {...textInputProps}
         />
         
-        {(rightIcon || showPasswordToggle) && (
+        {(rightIcon ?? showPasswordToggle) && (
           <View style={styles.rightIconContainer}>
             {showPasswordToggle ? (
               <TouchableOpacity

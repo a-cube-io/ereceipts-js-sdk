@@ -31,7 +31,7 @@ export class RequestQueue {
         config: {
           ...config,
           // Remove sensitive headers that might have expired
-          headers: this.sanitizeHeaders(config.headers || {}),
+          headers: this.sanitizeHeaders(config.headers ?? {}),
         },
         timestamp: Date.now(),
         retryCount: 0,
@@ -219,6 +219,8 @@ export class RequestQueue {
   /**
    * Sanitize headers to remove potentially expired tokens
    */
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private static sanitizeHeaders(headers: Record<string, any>): Record<string, any> {
     const sanitized = { ...headers };
     
@@ -233,6 +235,7 @@ export class RequestQueue {
   /**
    * Check if a request should be retried based on error type
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static shouldRetryRequest(error: any): boolean {
     // Don't retry client errors (4xx) except for 401 (unauthorized)
     if (error.response?.status >= 400 && error.response?.status < 500) {

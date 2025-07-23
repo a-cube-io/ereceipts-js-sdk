@@ -54,6 +54,7 @@ export async function retryAsync<T>(
   config: Partial<RetryConfig> = {}
 ): Promise<T> {
   const finalConfig = { ...DEFAULT_RETRY_CONFIG, ...config };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let lastError: any;
 
   for (let attempt = 0; attempt <= finalConfig.retries; attempt++) {
@@ -105,6 +106,7 @@ export async function retryAsync<T>(
  * Axios-specific retry interceptor
  */
 export class AxiosRetryInterceptor {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static setupInterceptors(axiosInstance: any, config: Partial<RetryConfig> = {}): void {
     const finalConfig = { ...DEFAULT_RETRY_CONFIG, ...config };
 
@@ -205,6 +207,7 @@ export const isRetryableError = (error: AxiosError): boolean => {
 /**
  * Create a retry wrapper for API calls
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const withRetry = <T extends (...args: any[]) => Promise<any>>(
   fn: T,
   config?: Partial<RetryConfig>

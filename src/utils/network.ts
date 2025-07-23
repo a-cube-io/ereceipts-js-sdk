@@ -3,7 +3,7 @@
 // For web, use browser APIs
 
 // Platform detection
-const isWeb = typeof window !== 'undefined' && window.document;
+const isWeb = typeof window !== 'undefined' && !!window.document;
 
 // Network status types
 export interface NetworkState {
@@ -20,7 +20,7 @@ class NetworkManager {
   private webEventListener?: () => void;
 
   constructor() {
-    this.initializeNetworkMonitoring();
+    void this.initializeNetworkMonitoring();
   }
 
   private async initializeNetworkMonitoring(): Promise<void> {
@@ -67,6 +67,7 @@ class NetworkManager {
       };
 
       // Subscribe to network state changes
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       NetInfo.default.addEventListener((state: any) => {
         const newState: NetworkState = {
           isConnected: state.isConnected ?? false,

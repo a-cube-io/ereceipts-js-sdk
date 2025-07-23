@@ -44,14 +44,15 @@ export const useProviderFlow = (): UseProviderFlowReturn => {
     const { merchantData, currentStep } = state;
     
     switch (currentStep) {
-      case 1: // Account info
-        const emailValidation = validateEmail(merchantData.email || '');
-        const fiscalIdValidation = validateFiscalId(merchantData.fiscal_id || '');
-        
+      case 1: { // Account info
+        const emailValidation = validateEmail(merchantData.email ?? '');
+        const fiscalIdValidation = validateFiscalId(merchantData.fiscal_id ?? '');
+
         return {
           isValid: emailValidation.isValid && fiscalIdValidation.isValid,
           errors: [...emailValidation.errors, ...fiscalIdValidation.errors],
         };
+      }
         
       case 2: // Business info
         if (!merchantData.name || merchantData.name.trim() === '') {
@@ -91,6 +92,7 @@ export const useProviderFlow = (): UseProviderFlowReturn => {
       }));
       
       return merchant;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || 'Failed to create merchant';
       setError(errorMessage);

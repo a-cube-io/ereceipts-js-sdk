@@ -33,11 +33,11 @@ export const hasPermission = (
   return permissions.includes(permission);
 };
 
-export const isProvider = (role: string): boolean => 
+export const isProvider = (role: UserRole): boolean => 
   role === UserRole.PROVIDER;
 
-export const isMerchant = (role: string): boolean => 
+export const isMerchant = (role: UserRole): boolean => 
   role === UserRole.MERCHANT;
 
-export const isCashier = (role: string): boolean => 
+export const isCashier = (role: UserRole): boolean => 
   role === UserRole.CASHIER;

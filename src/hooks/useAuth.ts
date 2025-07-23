@@ -8,8 +8,6 @@ import {
   loginProvider,
   logout 
 } from '../api/auth';
-import { AuthToken } from '../api/types.generated';
-import { UserRole } from '../constants/roles';
 
 export interface AuthState {
   isAuthenticated: boolean;
@@ -206,7 +204,7 @@ export const useAuth = (): UseAuthReturn => {
 
   // Check authentication status on mount
   useEffect(() => {
-    checkAuthStatus();
+    void checkAuthStatus();
   }, [checkAuthStatus]);
 
   return {
