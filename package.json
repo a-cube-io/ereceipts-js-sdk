@@ -1,6 +1,6 @@
 {
   "name": "@a-cube-io/ereceipts-js-sdk",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Professional TypeScript SDK for A-Cube e-receipt system integration. Cross-platform support for React, React Native, and PWA applications.",
   "keywords": [
     "acube",
