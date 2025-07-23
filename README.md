@@ -2,7 +2,7 @@
 
 > **Professional TypeScript SDK for A-Cube e-receipt system integration**
 
-[![npm version](https://badge.fury.io/js/a-cube-io/ereceipts-js-sdk.svg)](https://badge.fury.io/js/a-cube-io/ereceipts-js-sdk)
+[![npm version](https://badge.fury.io/js/primeng.svg)](https://badge.fury.io/js/primeng)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 [![React Native](https://img.shields.io/badge/React%20Native-Ready-green.svg)](https://reactnative.dev/)
 [![Tree Shakeable](https://img.shields.io/badge/Tree%20Shakeable-✅-brightgreen.svg)](https://webpack.js.org/guides/tree-shaking/)
