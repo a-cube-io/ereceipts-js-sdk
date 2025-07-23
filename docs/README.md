@@ -37,9 +37,9 @@ Professional TypeScript SDK for integrating the A-Cube e-receipt system into web
 ## Installation
 
 ```bash
-npm install a-cube-io/ereceipts-js-sdk
+npm install @a-cube-io/ereceipts-js-sdk
 # or
-yarn add a-cube-io/ereceipts-js-sdk
+yarn add @a-cube-io/ereceipts-js-sdk
 ```
 
 ### Peer Dependencies
@@ -53,7 +53,7 @@ npm install react react-native @react-native-async-storage/async-storage react-n
 ### 1. Initialize the SDK
 
 ```typescript
-import { initSDK, configureSDK } from 'a-cube-io/ereceipts-js-sdk';
+import { initSDK, configureSDK } from '@a-cube-io/ereceipts-js-sdk';
 
 // Initialize with default settings
 await initSDK();
@@ -70,7 +70,7 @@ await initSDK({
 ### 2. Authentication
 
 ```typescript
-import { useAuth } from 'a-cube-io/ereceipts-js-sdk';
+import { useAuth } from '@a-cube-io/ereceipts-js-sdk';
 
 function LoginScreen() {
   const { loginAsProvider, isAuthenticated, user, error } = useAuth();
@@ -95,7 +95,7 @@ function LoginScreen() {
 ### 3. Create a Merchant
 
 ```typescript
-import { createMerchant } from 'a-cube-io/ereceipts-js-sdk';
+import { createMerchant } from '@a-cube-io/ereceipts-js-sdk';
 
 const merchantData = {
   fiscal_id: '12345678901',
@@ -826,7 +826,7 @@ interface ButtonProps {
 
 **Example:**
 ```typescript
-import { Button } from 'a-cube-io/ereceipts-js-sdk';
+import { Button } from '@a-cube-io/ereceipts-js-sdk';
 
 function ActionButtons() {
   return (
@@ -877,7 +877,7 @@ interface FormInputProps extends TextInputProps {
 
 **Example:**
 ```typescript
-import { FormInput } from 'a-cube-io/ereceipts-js-sdk';
+import { FormInput } from '@a-cube-io/ereceipts-js-sdk';
 
 function LoginForm() {
   const [email, setEmail] = useState('');
@@ -944,7 +944,7 @@ Gets the email of the currently stored user.
 
 **Example:**
 ```typescript
-import { SecureTokenStorage } from 'a-cube-io/ereceipts-js-sdk';
+import { SecureTokenStorage } from '@a-cube-io/ereceipts-js-sdk';
 
 // Manual token management (usually handled automatically by SDK)
 const token = { access_token: 'jwt-token-here', token_type: 'Bearer' };
@@ -977,7 +977,7 @@ Validates stored certificate (expiry, format, etc.).
 
 **Example:**
 ```typescript
-import { CertificateStorage } from 'a-cube-io/ereceipts-js-sdk';
+import { CertificateStorage } from '@a-cube-io/ereceipts-js-sdk';
 
 // Certificates are usually managed automatically by createCashRegister()
 const cert = await CertificateStorage.getMTLSCertificate('cash-register-uuid');
@@ -1011,7 +1011,7 @@ Clears entire queue.
 
 **Example:**
 ```typescript
-import { RequestQueue, getAPIClient } from 'a-cube-io/ereceipts-js-sdk';
+import { RequestQueue, getAPIClient } from '@a-cube-io/ereceipts-js-sdk';
 
 // Usually handled automatically, but can be used manually
 const client = getAPIClient();
@@ -1050,7 +1050,7 @@ Waits for network connection with timeout.
 
 **Example:**
 ```typescript
-import { isConnected, addNetworkListener, waitForConnection } from 'a-cube-io/ereceipts-js-sdk';
+import { isConnected, addNetworkListener, waitForConnection } from '@a-cube-io/ereceipts-js-sdk';
 
 // Check connection
 if (isConnected()) {
@@ -1105,7 +1105,7 @@ interface ValidationError {
 
 **Example:**
 ```typescript
-import { validateEmail, validatePassword, combineValidationResults } from 'a-cube-io/ereceipts-js-sdk';
+import { validateEmail, validatePassword, combineValidationResults } from '@a-cube-io/ereceipts-js-sdk';
 
 function validateLoginForm(email: string, password: string) {
   const emailValidation = validateEmail(email);
@@ -1137,7 +1137,7 @@ Checks if error should trigger retry.
 
 **Example:**
 ```typescript
-import { retryAsync, withRetry } from 'a-cube-io/ereceipts-js-sdk';
+import { retryAsync, withRetry } from '@a-cube-io/ereceipts-js-sdk';
 
 // Retry with custom config
 const result = await retryAsync(
@@ -1177,7 +1177,7 @@ Logs debug message.
 
 **Example:**
 ```typescript
-import { logInfo, apiLogger, authLogger } from 'a-cube-io/ereceipts-js-sdk';
+import { logInfo, apiLogger, authLogger } from '@a-cube-io/ereceipts-js-sdk';
 
 // General logging
 logInfo('Application started', { version: '1.0.0' });
@@ -1202,7 +1202,7 @@ Thrown when authentication operations fail.
 
 **Example:**
 ```typescript
-import { loginProvider, AuthenticationError } from 'a-cube-io/ereceipts-js-sdk';
+import { loginProvider, AuthenticationError } from '@a-cube-io/ereceipts-js-sdk';
 
 try {
   await loginProvider('invalid@email.com', 'wrongpassword');
@@ -1227,7 +1227,7 @@ try {
 All API functions can throw various errors:
 
 ```typescript
-import { createReceipt } from 'a-cube-io/ereceipts-js-sdk';
+import { createReceipt } from '@a-cube-io/ereceipts-js-sdk';
 
 try {
   const receipt = await createReceipt(receiptData);
@@ -1260,7 +1260,7 @@ The SDK automatically handles offline scenarios:
 ### Manual Control:
 
 ```typescript
-import { useRetryQueue, getAPIClient } from 'a-cube-io/ereceipts-js-sdk';
+import { useRetryQueue, getAPIClient } from '@a-cube-io/ereceipts-js-sdk';
 
 function OfflineManager() {
   const { stats, processQueue, clearQueue, isConnected } = useRetryQueue();
@@ -1298,7 +1298,7 @@ import type {
   PEMPublic,
   ReceiptItem,
   Address
-} from 'a-cube-io/ereceipts-js-sdk';
+} from '@a-cube-io/ereceipts-js-sdk';
 ```
 
 ### API Response Types:
@@ -1308,7 +1308,7 @@ import type {
   PaginatedResponse,
   AuthToken,
   ValidationResult
-} from 'a-cube-io/ereceipts-js-sdk';
+} from '@a-cube-io/ereceipts-js-sdk';
 ```
 
 ### Configuration Types:
@@ -1318,7 +1318,7 @@ import type {
   Environment,
   NetworkState,
   RetryConfig
-} from 'a-cube-io/ereceipts-js-sdk';
+} from '@a-cube-io/ereceipts-js-sdk';
 ```
 
 ---
@@ -1335,7 +1335,7 @@ import {
   Button,
   FormInput,
   validateReceiptItem
-} from 'a-cube-io/ereceipts-js-sdk';
+} from '@a-cube-io/ereceipts-js-sdk';
 
 function ReceiptCreationApp() {
   const { isAuthenticated, user } = useAuth();
@@ -1511,7 +1511,7 @@ import {
   getMerchants,
   Button,
   FormInput
-} from 'a-cube-io/ereceipts-js-sdk';
+} from '@a-cube-io/ereceipts-js-sdk';
 
 function ProviderDashboard() {
   const { user, logout } = useAuth();

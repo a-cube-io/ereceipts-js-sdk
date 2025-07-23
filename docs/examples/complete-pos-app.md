@@ -41,7 +41,7 @@ pos-app/
 ```typescript
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useAuth, useRetryQueue } from 'a-cube-io/ereceipts-js-sdk';
+import { useAuth, useRetryQueue } from '@a-cube-io/ereceipts-js-sdk';
 import { initializeACubeSDK } from './services/acube';
 import { AuthGuard } from './components/auth/AuthGuard';
 import { LoadingScreen } from './components/common/LoadingScreen';
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
 
 ### services/acube.ts
 ```typescript
-import { initSDK, configureSDK } from 'a-cube-io/ereceipts-js-sdk';
+import { initSDK, configureSDK } from '@a-cube-io/ereceipts-js-sdk';
 
 export const initializeACubeSDK = async () => {
   try {
@@ -141,7 +141,7 @@ export const switchEnvironment = (environment: 'sandbox' | 'production') => {
 ```typescript
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
-import { useAuth, Button, FormInput, validateEmail, validatePassword } from 'a-cube-io/ereceipts-js-sdk';
+import { useAuth, Button, FormInput, validateEmail, validatePassword } from '@a-cube-io/ereceipts-js-sdk';
 
 interface LoginForm {
   email: string;
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
 ### components/auth/AuthGuard.tsx
 ```typescript
 import React from 'react';
-import { useAuth } from 'a-cube-io/ereceipts-js-sdk';
+import { useAuth } from '@a-cube-io/ereceipts-js-sdk';
 import { LoginScreen } from './LoginScreen';
 import { LoadingScreen } from '../common/LoadingScreen';
 
@@ -416,8 +416,8 @@ import {
   FormInput, 
   validateReceiptItem,
   useAuth
-} from 'a-cube-io/ereceipts-js-sdk';
-import type { ReceiptItem, ReceiptInput } from 'a-cube-io/ereceipts-js-sdk';
+} from '@a-cube-io/ereceipts-js-sdk';
+import type { ReceiptItem, ReceiptInput } from '@a-cube-io/ereceipts-js-sdk';
 import { ProductSelector } from './ProductSelector';
 import { useProducts } from '../../hooks/useProducts';
 
@@ -921,7 +921,7 @@ const styles = StyleSheet.create({
 ```typescript
 import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { useRetryQueue, Button } from 'a-cube-io/ereceipts-js-sdk';
+import { useRetryQueue, Button } from '@a-cube-io/ereceipts-js-sdk';
 
 export const OfflineIndicator: React.FC = () => {
   const { stats, isProcessing, isConnected, processQueue } = useRetryQueue();
