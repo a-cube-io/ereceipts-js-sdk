@@ -73,6 +73,8 @@ npm run release:minor
 npm run release:major
 ```
 
+> 💡 **Note**: The scripts automatically handle git synchronization and work with any branch (master, develop, main, etc.)
+
 **Option 2: Manual Git Tags**
 ```bash
 # Standard release
@@ -153,6 +155,16 @@ git commit -m "docs: update README [skip ci]"
 - Check Node.js version compatibility (CI tests Node 16, 18, 20)
 - Verify all dependencies are in `package.json` (not just locally installed)
 - Check for environment-specific issues
+
+**❌ Git push fails during release**
+- Ensure your local branch is up to date: `git pull origin <branch>`
+- The release scripts now automatically handle git synchronization
+- If you get conflicts, resolve them before running release command
+
+**❌ Release script fails with "non-fast-forward" error**
+- Your local branch is behind remote - this is now automatically handled
+- The updated scripts pull latest changes before creating version bump
+- Works with any branch (master, develop, main, feature branches)
 
 ### Manual Publishing
 If automatic publishing fails, you can publish manually:
