@@ -178,9 +178,11 @@ export type {
 // =============================================================================
 export {
   API_ENDPOINTS,
+  API_AUTH_ENDPOINTS,
   MF1_PATHS,
   MF2_PATHS,
   getBaseURL,
+  getAuthBaseURL,
   STORAGE_KEYS,
   SECURE_KEYS,
   getMTLSCertificateKey,
@@ -253,48 +255,201 @@ export const SDK_VERSION = '1.0.0';
 export const SDK_NAME = '@a-cube-io/ereceipts-js-sdk';
 
 // =============================================================================
-// Quick Start Helpers
+// React Provider
+// =============================================================================
+export {
+  EReceiptsProvider,
+  useEReceipts,
+  withEReceipts,
+} from './providers';
+
+export type {
+  EReceiptsProviderConfig,
+  EReceiptsProviderProps,
+  EReceiptsContextState,
+} from './providers';
+
+// =============================================================================
+// Quick Start Helpers - User-Friendly API
 // =============================================================================
 
 /**
- * Initialize the A-Cube SDK with configuration
+ * Initialize the E-Receipts SDK with configuration
  * Call this once at the start of your application
+ * 
+ * @example
+ * ```typescript
+ * import { initializeEReceipts } from '@a-cube-io/ereceipts-js-sdk';
+ * 
+ * await initializeEReceipts({
+ *   environment: 'sandbox',
+ *   enableLogging: true
+ * });
+ * ```
  */
-export const initSDK = async (config?: Partial<import('./api/client').SDKConfig>) => {
+export const initializeEReceipts = async (config?: Partial<import('./api/client').SDKConfig>) => {
   const { initializeAPIClient } = await import('./api/client');
   return initializeAPIClient(config);
 };
 
+// Keep backward compatibility
+export const initSDK = initializeEReceipts;
+
 /**
- * Quick login helper for providers
+ * Login as Provider with user-friendly error handling
+ * 
+ * @example
+ * ```typescript
+ * const result = await loginAsProvider('provider@company.com', 'password');
+ * if (result.success) {
+ *   console.log('Logged in:', result.token);
+ * } else {
+ *   console.error('Login failed:', result.error);
+ * }
+ * ```
  */
-export const quickLoginProvider = async (email: string, password: string) => {
+export const loginAsProvider = async (email: string, password: string) => {
   try {
     const { loginProvider } = await import('./api/auth');
     const token = await loginProvider(email, password);
-    return { success: true, token };
+    return { success: true as const, token, error: null };
   } catch (error) {
-    return { success: false, error };
+    return { 
+      success: false as const, 
+      token: null, 
+      error: error instanceof Error ? error : new Error('Login failed') 
+    };
   }
 };
 
 /**
- * Quick login helper for merchants
+ * Login as Merchant with user-friendly error handling
+ * 
+ * @example
+ * ```typescript
+ * const result = await loginAsMerchant('merchant@restaurant.com', 'password');
+ * if (result.success) {
+ *   console.log('Logged in:', result.token);
+ * } else {
+ *   console.error('Login failed:', result.error);
+ * }
+ * ```
  */
-export const quickLoginMerchant = async (email: string, password: string) => {
+export const loginAsMerchant = async (email: string, password: string) => {
   try {
     const { loginMerchant } = await import('./api/auth');
     const token = await loginMerchant(email, password);
-    return { success: true, token };
+    return { success: true as const, token, error: null };
   } catch (error) {
-    return { success: false, error };
+    return { 
+      success: false as const, 
+      token: null, 
+      error: error instanceof Error ? error : new Error('Login failed') 
+    };
   }
 };
 
 /**
- * Check if SDK is properly configured
+ * Login as Cashier with user-friendly error handling
+ * 
+ * @example
+ * ```typescript
+ * const result = await loginAsCashier('cashier@store.com', 'password');
+ * if (result.success) {
+ *   console.log('Logged in:', result.token);
+ * } else {
+ *   console.error('Login failed:', result.error);
+ * }
+ * ```
  */
-export const isSDKReady = async (): Promise<boolean> => {
+export const loginAsCashier = async (email: string, password: string) => {
+  try {
+    const { loginCashier } = await import('./api/auth');
+    const token = await loginCashier(email, password);
+    return { success: true as const, token, error: null };
+  } catch (error) {
+    return { 
+      success: false as const, 
+      token: null, 
+      error: error instanceof Error ? error : new Error('Login failed') 
+    };
+  }
+};
+
+/**
+ * Logout current user
+ * 
+ * @example
+ * ```typescript
+ * const result = await logoutUser();
+ * if (result.success) {
+ *   console.log('Logged out successfully');
+ * }
+ * ```
+ */
+export const logoutUser = async () => {
+  try {
+    const { logout } = await import('./api/auth');
+    await logout();
+    return { success: true as const, error: null };
+  } catch (error) {
+    return { 
+      success: false as const, 
+      error: error instanceof Error ? error : new Error('Logout failed') 
+    };
+  }
+};
+
+/**
+ * Check if user is currently authenticated
+ * 
+ * @example
+ * ```typescript
+ * const isLoggedIn = await checkAuthentication();
+ * console.log('User authenticated:', isLoggedIn);
+ * ```
+ */
+export const checkAuthentication = async (): Promise<boolean> => {
+  try {
+    const { isAuthenticated } = await import('./api/auth');
+    return await isAuthenticated();
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Get current user information
+ * 
+ * @example
+ * ```typescript
+ * const user = await getCurrentUserInfo();
+ * if (user) {
+ *   console.log('User:', user.email, 'Role:', user.role);
+ * }
+ * ```
+ */
+export const getCurrentUserInfo = async () => {
+  try {
+    const { getCurrentUser } = await import('./api/auth');
+    return await getCurrentUser();
+  } catch (error) {
+    return null;
+  }
+};
+
+/**
+ * Check if SDK is properly configured and ready to use
+ * 
+ * @example
+ * ```typescript
+ * const ready = await checkSDKStatus();
+ * if (ready) {
+ *   console.log('SDK is ready to use!');
+ * }
+ * ```
+ */
+export const checkSDKStatus = async (): Promise<boolean> => {
   try {
     const { getAPIClient } = await import('./api/client');
     const client = getAPIClient();
@@ -303,6 +458,11 @@ export const isSDKReady = async (): Promise<boolean> => {
     return false;
   }
 };
+
+// Keep backward compatibility
+export const isSDKReady = checkSDKStatus;
+export const quickLoginProvider = loginAsProvider;
+export const quickLoginMerchant = loginAsMerchant;
 
 // =============================================================================
 // Development Helpers (only available in development)

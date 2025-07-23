@@ -1,4 +1,4 @@
-import { getAPIClient } from './client';
+import { getAPIClient, getAuthClient } from './client';
 import { SecureTokenStorage } from '../storage/token';
 import { MF1_PATHS } from '../constants/endpoints';
 import { AuthToken } from './types.generated';
@@ -53,7 +53,7 @@ export const loginProvider = async (email: string, password: string): Promise<Au
   }
 
   try {
-    const client = getAPIClient();
+    const client = getAuthClient();
     const response = await client.post<LoginResponse>(MF1_PATHS.LOGIN, {
       username: email, // OAuth2 password flow uses 'username' field
       password,
@@ -107,7 +107,7 @@ export const loginMerchant = async (email: string, password: string): Promise<Au
   }
 
   try {
-    const client = getAPIClient();
+    const client = getAuthClient();
     const response = await client.post<LoginResponse>(MF1_PATHS.LOGIN, {
       username: email, // OAuth2 password flow uses 'username' field
       password,
@@ -161,7 +161,7 @@ export const loginCashier = async (email: string, password: string): Promise<Aut
   }
 
   try {
-    const client = getAPIClient();
+    const client = getAuthClient();
     const response = await client.post<LoginResponse>(MF1_PATHS.LOGIN, {
       username: email, // OAuth2 password flow uses 'username' field
       password,

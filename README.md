@@ -31,7 +31,7 @@ A comprehensive, cross-platform SDK for integrating the Italian A-Cube e-receipt
 | Section | Description | Links |
 |---------|-------------|-------|
 | **🔧 API Reference** | Core SDK functionality | [Authentication](docs/api/auth.md) • [Receipts](docs/api/receipts.md) • [Merchants](docs/api/merchants.md) |
-| **📚 Guides** | Step-by-step tutorials | [Getting Started](docs/guides/getting-started.md) • [Authentication Flow](docs/guides/auth-flow.md) • [Receipt Management](docs/guides/receipt-management.md) |
+| **📚 Guides** | Step-by-step tutorials | [Getting Started](docs/guides/getting-started.md) • [React Provider](docs/guides/react-provider.md) • [Authentication Flow](docs/guides/auth-flow.md) • [Receipt Management](docs/guides/receipt-management.md) |
 | **💡 Examples** | Code samples | [React Examples](examples/react/) • [React Native Examples](examples/react-native/) • [Advanced Usage](USAGE_EXAMPLE.md) |
 | **🔒 Security** | Token & certificate management | [Secure Storage](#-secure-token-storage) • [mTLS Certificates](docs/security/mtls.md) |
 | **🛠️ Development** | SDK development & contribution | [Building](docs/development/building.md) • [Testing](docs/development/testing.md) • [Contributing](CONTRIBUTING.md) |
@@ -63,33 +63,85 @@ For **React Web** projects:
 
 ## 🚀 Quick Start
 
-### 1. Initialize the SDK
+### Option 1: React Provider (Recommended for React Apps)
+
+```tsx
+import React from 'react';
+import { EReceiptsProvider, useEReceipts, loginAsMerchant } from '@a-cube-io/ereceipts-js-sdk';
+
+function App() {
+  return (
+    <EReceiptsProvider
+      config={{
+        environment: 'sandbox',
+        enableLogging: true,
+        onInitialized: () => console.log('✅ SDK Ready!'),
+        onAuthChange: (isAuth) => console.log('🔐 Auth:', isAuth)
+      }}
+    >
+      <AppContent />
+    </EReceiptsProvider>
+  );
+}
+
+function AppContent() {
+  const { isInitialized, isAuthenticated, currentUser } = useEReceipts();
+
+  const handleLogin = async () => {
+    const result = await loginAsMerchant('merchant@example.com', 'password');
+    if (result.success) {
+      console.log('✅ Logged in!', result.token);
+    } else {
+      console.error('❌ Login failed:', result.error?.message);
+    }
+  };
+
+  if (!isInitialized) return <div>🔄 Loading SDK...</div>;
+
+  return (
+    <div>
+      {isAuthenticated ? (
+        <p>👋 Welcome, {currentUser?.email}!</p>
+      ) : (
+        <button onClick={handleLogin}>Login</button>
+      )}
+    </div>
+  );
+}
+```
+
+### Option 2: Manual Initialization
 
 ```typescript
-import { initSDK } from '@a-cube-io/ereceipts-js-sdk';
+import { initializeEReceipts } from '@a-cube-io/ereceipts-js-sdk';
 
 // Initialize SDK (call once at app startup)
-await initSDK({
-  environment: 'sandbox', // or 'production'
+await initializeEReceipts({
+  environment: 'sandbox', // 'sandbox' | 'production' | 'development'
   enableLogging: true,
   enableRetry: true,
   enableOfflineQueue: true
 });
 ```
 
-### 2. Authentication
+### 2. Authentication (User-Friendly)
 
 ```typescript
-import { loginProvider, loginMerchant, loginCashier } from '@a-cube-io/ereceipts-js-sdk';
+import { loginAsProvider, loginAsMerchant, loginAsCashier } from '@a-cube-io/ereceipts-js-sdk';
 
 // Login as Provider (highest privileges)
-const providerToken = await loginProvider('provider@company.com', 'password123');
+const providerResult = await loginAsProvider('provider@company.com', 'password123');
+if (providerResult.success) {
+  console.log('✅ Provider logged in:', providerResult.token);
+} else {
+  console.error('❌ Login failed:', providerResult.error?.message);
+}
 
 // Login as Merchant (business owner)
-const merchantToken = await loginMerchant('merchant@restaurant.com', 'password123');
+const merchantResult = await loginAsMerchant('merchant@restaurant.com', 'password123');
 
 // Login as Cashier (operational level)
-const cashierToken = await loginCashier('cashier@store.com', 'password123');
+const cashierResult = await loginAsCashier('cashier@store.com', 'password123');
 ```
 
 ### 3. Create Your First Receipt
@@ -114,63 +166,179 @@ const receipt = await createReceipt({
 console.log('Receipt created:', receipt.uuid);
 ```
 
-### 4. Using React Components
+### 4. Complete App Example
 
-```typescript
-import React from 'react';
-import { Button, FormInput, useAuth } from '@a-cube-io/ereceipts-js-sdk';
+```tsx
+import React, { useState } from 'react';
+import { 
+  EReceiptsProvider, 
+  useEReceipts, 
+  loginAsMerchant, 
+  logoutUser,
+  createReceipt,
+  Button, 
+  FormInput 
+} from '@a-cube-io/ereceipts-js-sdk';
 
-function LoginScreen() {
-  const { loginAsMerchant, isLoading, error } = useAuth();
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
+// App with Provider
+function App() {
+  return (
+    <EReceiptsProvider
+      config={{
+        environment: 'sandbox',
+        enableLogging: true,
+        onInitialized: () => console.log('🚀 E-Receipts SDK Ready!'),
+        onAuthChange: (isAuth) => console.log('🔐 Auth Status:', isAuth ? 'Logged In' : 'Logged Out')
+      }}
+    >
+      <AppContent />
+    </EReceiptsProvider>
+  );
+}
+
+// Main app content
+function AppContent() {
+  const { isInitialized, isLoading, isAuthenticated, currentUser, error } = useEReceipts();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
 
   const handleLogin = async () => {
-    await loginAsMerchant(email, password);
+    setLoginLoading(true);
+    const result = await loginAsMerchant(email, password);
+    if (result.success) {
+      console.log('✅ Login successful!');
+      // Provider automatically updates auth state
+    } else {
+      alert(`❌ Login failed: ${result.error?.message}`);
+    }
+    setLoginLoading(false);
   };
 
+  const handleLogout = async () => {
+    const result = await logoutUser();
+    if (result.success) {
+      console.log('✅ Logged out successfully');
+    }
+  };
+
+  const handleCreateReceipt = async () => {
+    const receipt = await createReceipt({
+      items: [{
+        description: 'Test Product',
+        quantity: '1.00',
+        unit_price: '10.00',
+        good_or_service: 'B',
+        vat_rate_code: '22'
+      }],
+      cash_payment_amount: '10.00'
+    });
+    console.log('📄 Receipt created:', receipt.uuid);
+  };
+
+  // Loading state
+  if (isLoading) {
+    return <div>🔄 Initializing E-Receipts SDK...</div>;
+  }
+
+  // Error state
+  if (error) {
+    return <div>❌ SDK Error: {error.message}</div>;
+  }
+
+  // Not initialized
+  if (!isInitialized) {
+    return <div>⏳ SDK not ready...</div>;
+  }
+
+  // Login screen
+  if (!isAuthenticated) {
+    return (
+      <div style={{ padding: '20px', maxWidth: '400px' }}>
+        <h2>🔐 Login to E-Receipts</h2>
+        
+        <FormInput
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          required
+        />
+        
+        <FormInput
+          label="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          showPasswordToggle
+          required
+        />
+        
+        <Button
+          title="Login as Merchant"
+          onPress={handleLogin}
+          loading={loginLoading}
+          disabled={!email || !password}
+        />
+      </div>
+    );
+  }
+
+  // Authenticated dashboard
   return (
-    <div>
-      <FormInput
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        required
-      />
+    <div style={{ padding: '20px' }}>
+      <h1>📱 E-Receipts Dashboard</h1>
       
-      <FormInput
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        showPasswordToggle
-        required
-      />
-      
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      
-      <Button
-        title="Login"
-        onPress={handleLogin}
-        loading={isLoading}
-        disabled={!email || !password}
-      />
+      <div style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#f0f0f0' }}>
+        <p>👋 Welcome, <strong>{currentUser?.email}</strong></p>
+        <p>🏷️ Role: <strong>{currentUser?.role}</strong></p>
+      </div>
+
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <Button
+          title="📄 Create Test Receipt"
+          onPress={handleCreateReceipt}
+        />
+        
+        <Button
+          title="🚪 Logout"
+          onPress={handleLogout}
+          variant="secondary"
+        />
+      </div>
     </div>
   );
 }
+
+export default App;
 ```
 
 ## 📚 API Reference
 
-### Authentication
-- `initSDK(config)` - Initialize the SDK
-- `loginProvider(email, password)` - Provider authentication
-- `loginMerchant(email, password)` - Merchant authentication  
-- `loginCashier(email, password)` - Cashier authentication
-- `logout()` - Logout current user
-- `isAuthenticated()` - Check authentication status
-- `getCurrentUser()` - Get current user info
+### SDK Initialization
+- `initializeEReceipts(config)` - Initialize the E-Receipts SDK
+- `checkSDKStatus()` - Check if SDK is ready to use
+
+### React Provider
+- `<EReceiptsProvider>` - React Provider for automatic SDK setup
+- `useEReceipts()` - Hook to access SDK state and methods
+- `withEReceipts(Component)` - Higher-order component wrapper
+
+### Authentication (User-Friendly)
+- `loginAsProvider(email, password)` - Provider authentication with error handling
+- `loginAsMerchant(email, password)` - Merchant authentication with error handling
+- `loginAsCashier(email, password)` - Cashier authentication with error handling
+- `logoutUser()` - Logout current user with error handling
+- `checkAuthentication()` - Check if user is authenticated
+- `getCurrentUserInfo()` - Get current user information
+
+### Legacy Authentication (Backward Compatibility)
+- `loginProvider(email, password)` - Direct provider authentication
+- `loginMerchant(email, password)` - Direct merchant authentication  
+- `loginCashier(email, password)` - Direct cashier authentication
+- `logout()` - Direct logout
+- `isAuthenticated()` - Direct authentication check
+- `getCurrentUser()` - Direct user info retrieval
 
 ### Receipt Management
 - `createReceipt(data)` - Create new receipt
@@ -201,7 +369,7 @@ function LoginScreen() {
 import { initSDK } from '@a-cube-io/ereceipts-js-sdk';
 
 await initSDK({
-  environment: 'sandbox', // 'sandbox' | 'production'
+  environment: 'sandbox', // 'sandbox' | 'production' | 'development'
   enableLogging: true,    // Enable debug logging
   enableRetry: true,      // Enable automatic retries
   maxRetries: 3,          // Maximum retry attempts
@@ -210,6 +378,31 @@ await initSDK({
   timeout: 30000          // Request timeout (ms)
 });
 ```
+
+### API Architecture
+
+The SDK automatically handles different API endpoints:
+
+| Mode | Purpose | Default Environment | Base URL |
+|------|---------|-------------------|-----------|
+| **API Mode** | E-receipt operations (receipts, POS, merchants) | `sandbox` | `ereceipts-it-sandbox.acubeapi.com` |
+| **Auth Mode** | Authentication endpoints | `sandbox` | `common-sandbox.api.acubeapi.com` |
+
+```typescript
+// API mode is used by default for most operations
+import { getAPIClient } from '@a-cube-io/ereceipts-js-sdk';
+
+// Auth mode is automatically used for authentication
+import { loginMerchant } from '@a-cube-io/ereceipts-js-sdk';
+```
+
+### Environment Configuration
+
+| Environment | API Endpoint | Auth Endpoint | Usage |
+|-------------|-------------|---------------|--------|
+| **`sandbox`** (default) | `ereceipts-it-sandbox.acubeapi.com` | `common-sandbox.api.acubeapi.com` | Development & testing |
+| **`production`** | `ereceipts-it.acubeapi.com` | `common.api.acubeapi.com` | Production deployment |
+| **`development`** | `ereceipts-it.dev.acubeapi.com` | `common-sandbox.api.acubeapi.com` | Local development |
 
 ### Platform-Specific Configuration
 

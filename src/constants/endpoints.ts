@@ -1,6 +1,13 @@
 export const API_ENDPOINTS = {
-  SANDBOX: 'https://api-sandbox.acube.it',
-  PRODUCTION: 'https://api.acube.it',
+  SANDBOX: 'https://ereceipts-it-sandbox.acubeapi.com',
+  PRODUCTION: 'https://ereceipts-it.acubeapi.com',
+  DEVELOPMENT: 'https://ereceipts-it.dev.acubeapi.com',
+} as const;
+
+export const API_AUTH_ENDPOINTS = {
+  SANDBOX: 'https://common-sandbox.api.acubeapi.com',
+  PRODUCTION: 'https://common.api.acubeapi.com',
+  DEVELOPMENT: 'https://common-sandbox.api.acubeapi.com',
 } as const;
 
 export const MF1_PATHS = {
@@ -40,10 +47,37 @@ export const MF2_PATHS = {
   MERCHANT_BY_UUID: (uuid: string) => `/mf2/merchants/${uuid}`,
 } as const;
 
-export type Environment = 'sandbox' | 'production';
+export type Environment = 'sandbox' | 'production' | 'development';
+
+export type BaseURLMode = 'auth' | 'api';
+
+export const getBasePath = (mode: BaseURLMode, environment: Environment = 'sandbox'): string => {
+  if (mode === 'auth') {
+    return getAuthBaseURL(environment);
+  }
+  return getBaseURL(environment);
+};
 
 export const getBaseURL = (environment: Environment = 'sandbox'): string => {
-  return environment === 'production' 
-    ? API_ENDPOINTS.PRODUCTION 
-    : API_ENDPOINTS.SANDBOX;
+  switch (environment) {
+    case 'production':
+      return API_ENDPOINTS.PRODUCTION;
+    case 'development':
+      return API_ENDPOINTS.DEVELOPMENT;
+    case 'sandbox':
+    default:
+      return API_ENDPOINTS.SANDBOX;
+  }
+};
+
+export const getAuthBaseURL = (environment: Environment = 'sandbox'): string => {
+  switch (environment) {
+    case 'production':
+      return API_AUTH_ENDPOINTS.PRODUCTION;
+    case 'development':
+      return API_AUTH_ENDPOINTS.DEVELOPMENT;
+    case 'sandbox':
+    default:
+      return API_AUTH_ENDPOINTS.SANDBOX;
+  }
 };
