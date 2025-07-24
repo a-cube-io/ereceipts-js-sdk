@@ -111,6 +111,7 @@ module.exports = {
         'prefer-const': 'off',
         'sort-imports': 'off',
         'testing-library/prefer-screen-queries': 'off',
+        'testing-library/await-async-events': 'off',
         'no-duplicate-imports': 'off',
       },
     },

@@ -5,11 +5,54 @@ on:
     branches: [master]
   workflow_dispatch:
 
+env:
+  NODE_ENV: production
+  CI: true
+
 jobs:
+  # Cache dependencies and run quality checks
+  quality-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: 🧪 Run tests
+        run: npm run test:silent
+
+      - name: 🔍 Lint code
+        run: npm run lint:check
+
+      - name: 🏗️ Type check
+        run: npm run type-check
+
+      - name: 📋 Build package
+        run: npm run build
+
+      - name: 📦 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+          retention-days: 1
+
+  # Version check and publish
   publish:
     runs-on: ubuntu-latest
+    needs: quality-checks
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
-    
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -25,19 +68,13 @@ jobs:
           cache: 'npm'
 
       - name: 🔧 Install dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps
 
-      - name: 🧪 Run tests
-        run: npm run test
-
-      - name: 🔍 Lint code
-        run: npm run lint:check
-
-      - name: 🏗️ Type check
-        run: npm run type-check
-
-      - name: 📋 Build package
-        run: npm run build
+      - name: 📦 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
 
       - name: 🏷️ Check if version changed and not already released
         id: version-check
@@ -66,8 +103,28 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+  # Create GitHub release
+  release:
+    runs-on: ubuntu-latest
+    needs: [quality-checks, publish]
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') && needs.publish.result == 'success' }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci --legacy-peer-deps
+
       - name: 🏷️ Create GitHub release (if not exists)
-        if: steps.version-check.outputs.version_changed == 'true'
         run: |
           VERSION=$(node -p "require('./package.json').version")
           
@@ -99,3 +156,28 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Final status check
+  status:
+    runs-on: ubuntu-latest
+    needs: [quality-checks, publish, release]
+    if: always()
+    steps:
+      - name: ✅ Check all jobs completed
+        run: |
+          if [[ "${{ needs.quality-checks.result }}" == "success" ]]; then
+            if [[ "${{ needs.publish.result }}" == "success" || "${{ needs.publish.result }}" == "skipped" ]]; then
+              echo "🎉 All checks passed!"
+              if [[ "${{ needs.publish.result }}" == "success" ]]; then
+                echo "📦 Package published successfully!"
+              else
+                echo "⏭️ No publish needed (version unchanged or already published)"
+              fi
+            else
+              echo "❌ Publish failed"
+              exit 1
+            fi
+          else
+            echo "❌ Quality checks failed"
+            exit 1
+          fi

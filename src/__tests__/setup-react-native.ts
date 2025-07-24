@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom';
 import '@testing-library/react-native';
 
+// Polyfill structuredClone for Node.js < 17
+if (typeof global.structuredClone === 'undefined') {
+  (global as any).structuredClone = (obj: any) => JSON.parse(JSON.stringify(obj));
+}
+
 // Define __DEV__ for React Native compatibility
 (global as any).__DEV__ = process.env.NODE_ENV === 'development';
 
