@@ -1,5 +1,5 @@
-export { Button } from './Button';
-export { FormInput } from './FormInput';
+export { Button } from './react-native/Button';
+export { FormInput } from './react-native/FormInput';
 
-export type { ButtonProps } from './Button';
-export type { FormInputProps } from './FormInput';
+export type { ButtonProps } from './react-native/Button';
+export type { FormInputProps } from './react-native/FormInput';

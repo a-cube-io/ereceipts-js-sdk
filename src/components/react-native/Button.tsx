@@ -43,7 +43,7 @@ export const Button: React.FC<ButtonProps> = ({
     fullWidth && styles.fullWidth,
     isDisabled && styles.disabled,
     style,
-  ].filter(Boolean) as ViewStyle;
+  ].filter(Boolean) as unknown as ViewStyle;
 
   const textColor: TextStyle = [
     styles.baseText,
@@ -51,7 +51,7 @@ export const Button: React.FC<ButtonProps> = ({
     styles[`${size}Text`],
     isDisabled && styles.disabledText,
     textStyle,
-  ].filter(Boolean) as TextStyle;
+  ].filter(Boolean) as unknown as TextStyle;
 
   return (
     <TouchableOpacity

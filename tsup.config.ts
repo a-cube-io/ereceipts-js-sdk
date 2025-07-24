@@ -10,8 +10,8 @@ export default defineConfig({
   // Output directory
   outDir: 'dist',
   
-  // Code splitting
-  splitting: true,
+  // Code splitting disabled for React Native compatibility
+  splitting: false,
   
   // Source maps
   sourcemap: true,
@@ -26,17 +26,26 @@ export default defineConfig({
   minify: false,
   
   // External dependencies (not bundled)
+  // Keep axios external for React Native compatibility 
+  // (axios includes Node.js modules that aren't available in RN/Expo)
   external: [
     'react',
     'react-native',
     'react-dom',
     '@react-native-async-storage/async-storage',
     'react-native-keychain',
-    '@react-native-community/netinfo'
+    '@react-native-community/netinfo',
+    'axios', // Keep axios external to avoid Node.js module bundling
+    // Node.js built-ins that should never be bundled
+    'url',
+    'http',
+    'https',
+    'stream',
+    'util',
+    'crypto',
+    'fs',
+    'path'
   ],
-  
-  // Bundle axios as it's a direct dependency
-  noExternal: ['axios'],
   
   // Target environment
   target: 'es2020',
@@ -50,8 +59,8 @@ export default defineConfig({
   // Skip node_modules bundling (except noExternal)
   bundle: true,
   
-  // Platform specific options
-  platform: 'neutral',
+  // Platform specific options - use browser to avoid Node.js modules
+  platform: 'browser',
   
   // Banner for generated files
   banner: {
@@ -76,6 +85,22 @@ export default defineConfig({
     
     // Resolve extensions
     options.resolveExtensions = ['.ts', '.tsx', '.js', '.jsx', '.json'];
+    
+    // React Native/Expo compatibility: prevent Node.js module resolution
+    options.conditions = ['react-native', 'browser', 'module', 'import'];
+    
+    // Explicitly alias Node.js modules to throw error if imported
+    options.alias = {
+      ...options.alias,
+      'url': 'esbuild-stub:url',
+      'http': 'esbuild-stub:http',
+      'https': 'esbuild-stub:https', 
+      'stream': 'esbuild-stub:stream',
+      'util': 'esbuild-stub:util',
+      'crypto': 'esbuild-stub:crypto',
+      'fs': 'esbuild-stub:fs',
+      'path': 'esbuild-stub:path'
+    };
   },
   
   // Output filename customization
@@ -84,8 +109,8 @@ export default defineConfig({
     dts: format === 'esm' ? '.d.ts' : '.d.cts'
   }),
   
-  // Shims for Node.js globals in browser
-  shims: true,
+  // No Node.js shims for React Native compatibility
+  shims: false,
   
   // Skip type checking (rely on separate tsc command)
   skipNodeModulesBundle: true,

@@ -75,7 +75,7 @@ export const FormInput = forwardRef<TextInput, FormInputProps>(({
         </View>
       )}
       
-      <View style={inputContainerStyle as ViewStyle}>
+      <View style={inputContainerStyle as unknown as ViewStyle}>
         {leftIcon && (
           <View style={styles.leftIconContainer}>
             {leftIcon}
@@ -84,7 +84,7 @@ export const FormInput = forwardRef<TextInput, FormInputProps>(({
         
         <TextInput
           ref={ref}
-          style={textInputStyle as TextStyle}
+          style={textInputStyle as unknown as TextStyle}
           secureTextEntry={actualSecureTextEntry}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}

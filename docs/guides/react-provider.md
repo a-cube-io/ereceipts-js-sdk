@@ -471,6 +471,17 @@ function NetworkAwareProvider({ children }) {
 
 ## Troubleshooting
 
+### React Native/Expo Compatibility Issues
+
+#### Node.js Module Error (Fixed in v1.0.5+)
+- **Error**: `The package attempted to import the Node standard library module "url"`
+- **Cause**: Older SDK versions bundled Node.js dependencies incompatible with React Native
+- **Solution**: Update to SDK version 1.0.5+ which properly externalizes axios and prevents Node.js module bundling
+
+```bash
+npm install @a-cube-io/ereceipts-js-sdk@latest
+```
+
 ### Provider Not Found Error
 - **Error**: `useEReceipts must be used within an EReceiptsProvider`
 - **Solution**: Ensure your component is wrapped by `<EReceiptsProvider>`
