@@ -10,8 +10,8 @@ export default defineConfig({
   // Output directory
   outDir: 'dist',
   
-  // Code splitting
-  splitting: true,
+  // Code splitting disabled for React Native compatibility
+  splitting: false,
   
   // Source maps
   sourcemap: true,
@@ -35,7 +35,16 @@ export default defineConfig({
     '@react-native-async-storage/async-storage',
     'react-native-keychain',
     '@react-native-community/netinfo',
-    'axios' // Keep axios external to avoid Node.js module bundling
+    'axios', // Keep axios external to avoid Node.js module bundling
+    // Node.js built-ins that should never be bundled
+    'url',
+    'http',
+    'https',
+    'stream',
+    'util',
+    'crypto',
+    'fs',
+    'path'
   ],
   
   // Target environment
@@ -79,6 +88,19 @@ export default defineConfig({
     
     // React Native/Expo compatibility: prevent Node.js module resolution
     options.conditions = ['react-native', 'browser', 'module', 'import'];
+    
+    // Explicitly alias Node.js modules to throw error if imported
+    options.alias = {
+      ...options.alias,
+      'url': 'esbuild-stub:url',
+      'http': 'esbuild-stub:http',
+      'https': 'esbuild-stub:https', 
+      'stream': 'esbuild-stub:stream',
+      'util': 'esbuild-stub:util',
+      'crypto': 'esbuild-stub:crypto',
+      'fs': 'esbuild-stub:fs',
+      'path': 'esbuild-stub:path'
+    };
   },
   
   // Output filename customization

@@ -1,5 +1,8 @@
 # A-Cube SDK
 
+![Coverage](https://img.shields.io/badge/coverage-16%25-red?style=flat-square)
+
+
 > **Professional TypeScript SDK for A-Cube e-receipt system integration**
 
 [![npm version](https://badge.fury.io/js/primeng.svg)](https://badge.fury.io/js/primeng)
