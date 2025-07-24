@@ -28,6 +28,16 @@ permissions:
   discussions: write      # GitHub releases
 ```
 
+### **🔧 Configurazione Permessi GitHub Releases:**
+
+Per abilitare la creazione automatica di GitHub releases, configura i permessi del repository:
+
+1. **Repository Settings** → **Actions** → **General**
+2. **Workflow permissions** → **"Read and write permissions"**
+3. **Save** le modifiche
+
+**Alternativa:** Crea un Personal Access Token con scope `repo` e aggiungilo come secret `GH_TOKEN`.
+
 ## 🏗️ Struttura dei Jobs
 
 ### **1. Setup** 
@@ -104,12 +114,24 @@ fi
 HTTP 403: Resource not accessible by integration
 ```
 
-**Causa:** Il workflow non ha i permessi per creare GitHub releases.
+**Causa:** Il `GITHUB_TOKEN` di default non ha i permessi per creare releases.
 
-**Soluzione:**
-1. **Aggiunti permessi**: `issues: write`, `discussions: write`
-2. **Fallback graceful**: Se il release fallisce, il workflow continua
-3. **Messaggio informativo**: Link per creazione manuale release
+**Soluzioni:**
+
+#### **Opzione 1: Configurazione Repository (Raccomandato)**
+1. Vai su **Settings** > **Actions** > **General**
+2. In **Workflow permissions** seleziona **"Read and write permissions"**
+3. Salva le modifiche
+
+#### **Opzione 2: Personal Access Token**
+1. Crea un Personal Access Token con scope `repo`
+2. Aggiungi il token come secret `GH_TOKEN` nel repository
+3. Il workflow userà automaticamente il token con permessi espansi
+
+#### **Opzione 3: Fallback Graceful (Attuale)**
+- Se il release fallisce, il workflow continua
+- Messaggio informativo con link per creazione manuale
+- Package pubblicato su NPM con successo
 
 ### **Problema: Artifact Not Found**
 ```
@@ -185,6 +207,9 @@ npm run lint:check
 
 # Type check
 npm run type-check
+
+# Test GitHub token permissions
+npm run test:github-token
 ```
 
 ## 🎯 Flusso di Lavoro

@@ -70,6 +70,7 @@
     "test:coverage:ci": "jest --coverage --passWithNoTests --ci --coverageReporters=text --coverageReporters=lcov",
     "test:coverage:html": "jest --coverage --passWithNoTests --coverageReporters=html",
     "coverage:badge": "node scripts/generate-coverage-badge.js",
+    "test:github-token": "node scripts/test-github-token.js",
     "prepare": "npm run build",
     "prepublishOnly": "npm run lint:check && npm run type-check && npm run test:silent && npm run build",
     "release:patch": "git pull origin $(git branch --show-current) && npm version patch && git push origin $(git branch --show-current) --follow-tags",
