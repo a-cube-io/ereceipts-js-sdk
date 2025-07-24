@@ -1,6 +1,6 @@
 export { useAuth } from './useAuth';
 export { useRetryQueue } from './useRetryQueue';
-export { useProviderFlow } from './useProviderFlow';
+export { useOnboardingFlow } from './useOnboardingFlow';
 
 export type { 
   AuthState, 
@@ -13,7 +13,15 @@ export type {
   UseRetryQueueReturn 
 } from './useRetryQueue';
 
-export type { 
-  ProviderFlowState, 
-  UseProviderFlowReturn 
-} from './useProviderFlow';
+
+export type {
+  OnboardingState,
+  OnboardingStep,
+  OnboardingRole,
+  OnboardingCredentials,
+  OnboardingMerchantInfo,
+  OnboardingPOSInfo,
+  OnboardingResult,
+  UseOnboardingFlowInput,
+  UseOnboardingFlowReturn
+} from '../types/entities';

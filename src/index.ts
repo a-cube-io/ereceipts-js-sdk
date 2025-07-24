@@ -79,7 +79,7 @@ export {
 export {
   useAuth,
   useRetryQueue,
-  useProviderFlow,
+  useOnboardingFlow,
 } from './hooks';
 
 export type {
@@ -88,8 +88,15 @@ export type {
   UseAuthReturn,
   QueueStats,
   UseRetryQueueReturn,
-  ProviderFlowState,
-  UseProviderFlowReturn,
+  OnboardingState,
+  OnboardingStep,
+  OnboardingRole,
+  OnboardingCredentials,
+  OnboardingMerchantInfo,
+  OnboardingPOSInfo,
+  OnboardingResult,
+  UseOnboardingFlowInput,
+  UseOnboardingFlowReturn,
 } from './hooks';
 
 // =============================================================================

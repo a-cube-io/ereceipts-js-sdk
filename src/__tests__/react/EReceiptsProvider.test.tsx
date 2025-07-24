@@ -6,6 +6,7 @@ import {
 } from './test-utils';
 import {  useEReceipts } from '../../providers/EReceiptsProvider';
 import { render as originalRender } from '@testing-library/react';
+import '@testing-library/jest-dom';
 
 // Test component that uses the EReceipts context
 const TestComponent = () => {

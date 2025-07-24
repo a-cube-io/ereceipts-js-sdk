@@ -50,3 +50,64 @@ export interface ReceiptItemInfo {
   vatRateCode?: string;
   discount?: string;
 }
+
+// Onboarding Flow Types
+export interface OnboardingCredentials {
+  email: string;
+  password: string;
+}
+
+export interface OnboardingMerchantInfo {
+  fiscalId: string;
+  name: string;
+  email: string;
+  address: AddressInfo;
+}
+
+export interface OnboardingPOSInfo {
+  address: AddressInfo;
+}
+
+export interface OnboardingResult {
+  merchantUuid?: string;
+  posSerialNumber?: string;
+  registrationKey?: string;
+  cashRegisterId?: string;
+  mtlsCertificate?: string;
+}
+
+export type OnboardingRole = 'provider' | 'merchant';
+
+export type OnboardingStep = 
+  | 'authentication'
+  | 'merchant_check'
+  | 'merchant_creation'
+  | 'pos_creation'
+  | 'pos_activation'
+  | 'cash_register_creation'
+  | 'completed'
+  | 'error';
+
+export interface OnboardingState {
+  loading: boolean;
+  step: OnboardingStep;
+  error: string | null;
+  progress: number;
+  result: OnboardingResult;
+}
+
+export interface UseOnboardingFlowInput {
+  role: OnboardingRole;
+  step: OnboardingStep;
+  credentials?: OnboardingCredentials;
+  merchantInfo?: OnboardingMerchantInfo;
+  posInfo?: OnboardingPOSInfo;
+  registrationKey?: string;
+}
+
+export interface UseOnboardingFlowReturn {
+  state: OnboardingState;
+  compute: () => Promise<void>;
+  reset: () => void;
+  clearError: () => void;
+}
