@@ -7,13 +7,15 @@ on:
     branches: [develop, feature/*, master]
 
 permissions:
-  contents: read
-  actions: write
-  pull-requests: write
+  contents: write        # indispensabile per creare tag e release
+  actions: write         # per operazioni su workflow, non sempre necessarie
+  pull-requests: write   # se commenti PR o simili
   packages: write
   id-token: write
   issues: write
   discussions: write
+  statuses: write        # consigliato per completare
+  attestations: write 
 
 env:
   NODE_ENV: test
@@ -40,7 +42,7 @@ jobs:
               echo "node-versions=[18]" >> $GITHUB_OUTPUT
               echo "should-publish=true" >> $GITHUB_OUTPUT
             else
-              echo "node-versions=[16,18,20]" >> $GITHUB_OUTPUT
+              echo "node-versions=[18,20]" >> $GITHUB_OUTPUT
               echo "should-publish=false" >> $GITHUB_OUTPUT
             fi
           fi
@@ -130,7 +132,7 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: 🧪 Run tests
-        run: npm run test:silent
+        run: npm run test
 
       - name: 📊 Upload coverage reports
         if: matrix.node-version == 18
@@ -286,6 +288,9 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: 🏷️ Create GitHub release
+        # Note: To enable GitHub releases, configure repository settings:
+        # Settings > Actions > General > Workflow permissions > "Read and write permissions"
+        # Or create a Personal Access Token with 'repo' scope and use it as GH_TOKEN secret
         run: |
           VERSION=$(node -p "require('./package.json').version")
           
@@ -323,6 +328,8 @@ jobs:
             fi
           fi
         env:
+          NODE_ENV: test
+          CI: true
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Final status check

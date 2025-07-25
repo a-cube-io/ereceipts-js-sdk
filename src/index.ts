@@ -79,7 +79,7 @@ export {
 export {
   useAuth,
   useRetryQueue,
-  useProviderFlow,
+  useOnboardingFlow,
 } from './hooks';
 
 export type {
@@ -88,8 +88,15 @@ export type {
   UseAuthReturn,
   QueueStats,
   UseRetryQueueReturn,
-  ProviderFlowState,
-  UseProviderFlowReturn,
+  OnboardingState,
+  OnboardingStep,
+  OnboardingRole,
+  OnboardingCredentials,
+  OnboardingMerchantInfo,
+  OnboardingPOSInfo,
+  OnboardingResult,
+  UseOnboardingFlowInput,
+  UseOnboardingFlowReturn,
 } from './hooks';
 
 // =============================================================================
@@ -117,6 +124,7 @@ export {
 export type {
   MTLSCertificate,
   QueuedRequest,
+  SecureStorageConfig,
 } from './storage';
 
 // =============================================================================
@@ -233,7 +241,7 @@ export type {
   AuthToken,
   JWTPayload,
   LoginRequest,
-} from './api/types.generated';
+} from './api/types.convenience';
 
 // SDK-specific types
 export type {
@@ -283,11 +291,15 @@ export type {
  * 
  * await initializeEReceipts({
  *   environment: 'sandbox',
+ *   storage: {
+ *     encryptionKeyId: 'myapp-v1',
+ *     storeNamespace: 'myapp-secure'
+ *   },
  *   enableLogging: true
  * });
  * ```
  */
-export const initializeEReceipts = async (config?: Partial<import('./api/client').SDKConfig>) => {
+export const initializeEReceipts = async (config: import('./api/client').SDKConfig) => {
   const { initializeAPIClient } = await import('./api/client');
   return initializeAPIClient(config);
 };

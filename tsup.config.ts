@@ -6,6 +6,8 @@ export default defineConfig({
   
   // Output formats
   format: ['esm', 'cjs'],
+
+  
   
   // Output directory
   outDir: 'dist',
@@ -23,8 +25,8 @@ export default defineConfig({
   dts: true,
   
   // Minification (disabled for better debugging)
-  minify: false,
-  
+  minify: process.env.NODE_ENV === 'production',
+
   // External dependencies (not bundled)
   // Keep axios external for React Native compatibility 
   // (axios includes Node.js modules that aren't available in RN/Expo)

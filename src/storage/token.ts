@@ -2,8 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import { createStore, del, get, set } from 'idb-keyval';
 import { SECURE_KEYS, STORAGE_KEYS } from '../constants/keys';
-import { AuthToken, JWTPayload } from '../api/types.generated';
+import { AuthToken, JWTPayload } from '../api/types.convenience';
 import { apiLogger } from '../utils/logger';
+import { EncryptionService } from '../utils/encryption';
 
 // Platform detection
 const isWeb = typeof window !== 'undefined' && !!window?.document;
@@ -11,18 +12,21 @@ const isReactNative = !isWeb;
 
 // Configuration interface
 export interface SecureStorageConfig {
-  encryptionKeyId?: string;
-  storeNamespace?: string;
+  encryptionKeyId: string;
+  storeNamespace: string;
 }
 
-// Default configuration
-const DEFAULT_CONFIG: Required<SecureStorageConfig> = {
-  encryptionKeyId: 'acube-default-key',
-  storeNamespace: 'acube-secure-store',
-};
+// Global configuration - must be initialized
+let currentConfig: SecureStorageConfig | null = null;
 
-// Global configuration
-let currentConfig: Required<SecureStorageConfig> = { ...DEFAULT_CONFIG };
+
+// Helper function to check if a key requires secure storage
+const isSecureKey = (key: string): boolean => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return SECURE_KEYS.has(key as any) || 
+         key.startsWith(STORAGE_KEYS.MTLS_CERTIFICATE_PREFIX) ||
+         key.startsWith(STORAGE_KEYS.MTLS_PRIVATE_KEY_PREFIX);
+};
 
 // Web secure storage with IndexedDB and localStorage fallback
 class WebSecureStorage {
@@ -30,7 +34,7 @@ class WebSecureStorage {
   private static isIndexedDBAvailable = true;
 
   private static getStore() {
-    if (!this.customStore) {
+    if (!this.customStore && currentConfig) {
       try {
         this.customStore = createStore(currentConfig.storeNamespace, 'secure-data');
       } catch (error) {
@@ -43,14 +47,21 @@ class WebSecureStorage {
   }
 
   static async setItem(key: string, value: string): Promise<void> {
+    if (!currentConfig) {
+      throw new Error('SecureStorageConfig must be initialized before use. Call SecureTokenStorage.configure() first.');
+    }
+    
     const secureKey = `${currentConfig.encryptionKeyId}_${key}`;
+    
+    // Encrypt sensitive data using key-specific encryption
+    const isSensitive = isSecureKey(key);
+    const finalValue = isSensitive ? await this.encrypt(value, currentConfig.encryptionKeyId) : value;
     
     if (this.isIndexedDBAvailable) {
       try {
         const store = this.getStore();
         if (store) {
-          await set(secureKey, value, store);
-          // @TODO: Add encryption here using encryptionKeyId
+          await set(secureKey, finalValue, store);
           return;
         }
       } catch (error) {
@@ -64,8 +75,7 @@ class WebSecureStorage {
 
     // Fallback to localStorage
     try {
-      // @TODO: Add encryption here using encryptionKeyId
-      localStorage.setItem(`secure_${secureKey}`, value);
+      localStorage.setItem(`secure_${secureKey}`, finalValue);
     } catch (error) {
       apiLogger.error('Failed to store secure item in localStorage', {
         key: secureKey,
@@ -76,15 +86,18 @@ class WebSecureStorage {
   }
 
   static async getItem(key: string): Promise<string | null> {
+    if (!currentConfig) {
+      throw new Error('SecureStorageConfig must be initialized before use. Call SecureTokenStorage.configure() first.');
+    }
+    
     const secureKey = `${currentConfig.encryptionKeyId}_${key}`;
+    let storedValue: string | null = null;
     
     if (this.isIndexedDBAvailable) {
       try {
         const store = this.getStore();
         if (store) {
-          const value = await get(secureKey, store);
-          // @TODO: Add decryption here using encryptionKeyId
-          return value ?? null;
+          storedValue = await get(secureKey, store) ?? null;
         }
       } catch (error) {
         apiLogger.warn('IndexedDB read failed, trying localStorage', {
@@ -95,21 +108,33 @@ class WebSecureStorage {
       }
     }
 
-    // Fallback to localStorage
-    try {
-      const value = localStorage.getItem(`secure_${secureKey}`);
-      // @TODO: Add decryption here using encryptionKeyId
-      return value;
-    } catch (error) {
-      apiLogger.error('Failed to get secure item from localStorage', {
-        key: secureKey,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+    // Fallback to localStorage if IndexedDB failed or is unavailable
+    if (storedValue === null) {
+      try {
+        storedValue = localStorage.getItem(`secure_${secureKey}`);
+      } catch (error) {
+        apiLogger.error('Failed to get secure item from localStorage', {
+          key: secureKey,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        return null;
+      }
+    }
+
+    if (!storedValue) {
       return null;
     }
+
+    // Decrypt sensitive data using key-specific decryption
+    const isSensitive = isSecureKey(key);
+    return isSensitive ? await this.decrypt(storedValue, currentConfig.encryptionKeyId) : storedValue;
   }
 
   static async removeItem(key: string): Promise<void> {
+    if (!currentConfig) {
+      throw new Error('SecureStorageConfig must be initialized before use');
+    }
+    
     const secureKey = `${currentConfig.encryptionKeyId}_${key}`;
     
     if (this.isIndexedDBAvailable) {
@@ -142,6 +167,54 @@ class WebSecureStorage {
     this.isIndexedDBAvailable = true;
     this.customStore = null;
   }
+
+  /**
+   * Encrypt data using the configured encryption key
+   * @param data - Plain text data to encrypt
+   * @param keyId - Encryption key identifier
+   * @returns Encrypted data as string
+   */
+  private static async encrypt(data: string, keyId: string): Promise<string> {
+    try {
+      // Use EncryptionService with key-specific context
+      const contextualData = `${keyId}:${data}`;
+      return await EncryptionService.encrypt(contextualData);
+    } catch (error) {
+      apiLogger.error('Failed to encrypt data', {
+        keyId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw new Error('Encryption failed');
+    }
+  }
+
+  /**
+   * Decrypt data using the configured encryption key
+   * @param encryptedData - Encrypted data string
+   * @param keyId - Encryption key identifier used during encryption
+   * @returns Decrypted plain text data
+   */
+  private static async decrypt(encryptedData: string, keyId: string): Promise<string> {
+    try {
+      // Use EncryptionService to decrypt
+      const decryptedContextualData = await EncryptionService.decrypt(encryptedData);
+      
+      // Extract original data by removing key context
+      const prefix = `${keyId}:`;
+      if (decryptedContextualData.startsWith(prefix)) {
+        return decryptedContextualData.slice(prefix.length);
+      }
+      
+      // Fallback for data encrypted without key context (backward compatibility)
+      return decryptedContextualData;
+    } catch (error) {
+      apiLogger.error('Failed to decrypt data', {
+        keyId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw new Error('Decryption failed');
+    }
+  }
 }
 
 // Cross-platform storage utilities
@@ -149,10 +222,7 @@ export class SecureTokenStorage {
   
   // Configuration method
   static configure(config: SecureStorageConfig): void {
-    currentConfig = {
-      ...DEFAULT_CONFIG,
-      ...config,
-    };
+    currentConfig = config;
     
     // Reset web storage to use new configuration
     if (isWeb) {
@@ -160,32 +230,55 @@ export class SecureTokenStorage {
     }
     
     apiLogger.info('SecureTokenStorage configured', {
-      encryptionKeyId: currentConfig.encryptionKeyId,
-      storeNamespace: currentConfig.storeNamespace,
+      encryptionKeyId: config.encryptionKeyId,
+      storeNamespace: config.storeNamespace,
     });
   }
   
+  // Ensure configuration is initialized - throws error if not
+  static ensureInitialized(): void {
+    if (!currentConfig) {
+      throw new Error('SecureTokenStorage must be configured before use. Call SecureTokenStorage.configure() first.');
+    }
+  }
+  
   // Get current configuration
-  static getConfig(): Required<SecureStorageConfig> {
+  static getConfig(): SecureStorageConfig {
+    this.ensureInitialized();
+    if (!currentConfig) {
+      throw new Error('Configuration not initialized');
+    }
     return { ...currentConfig };
   }
   // Store data securely based on platform
   private static async setSecureItem(key: string, value: string): Promise<void> {
+    // Encrypt sensitive data
+    const encryptedValue = await EncryptionService.encrypt(value);
+    
     if (isReactNative) {
-      await Keychain.setInternetCredentials(key, key, value);
+      await Keychain.setInternetCredentials(key, key, encryptedValue);
     } else {
-      await WebSecureStorage.setItem(key, value);
+      await WebSecureStorage.setItem(key, encryptedValue);
     }
   }
 
   private static async getSecureItem(key: string): Promise<string | null> {
     try {
+      let encryptedValue: string | null = null;
+      
       if (isReactNative) {
         const credentials = await Keychain.getInternetCredentials(key);
-        return credentials ? credentials.password : null;
+        encryptedValue = credentials ? credentials.password : null;
       } else {
-        return await WebSecureStorage.getItem(key);
+        encryptedValue = await WebSecureStorage.getItem(key);
       }
+      
+      if (!encryptedValue) {
+        return null;
+      }
+      
+      // Decrypt the value
+      return await EncryptionService.decrypt(encryptedValue);
     } catch (error) {
       apiLogger.warn('Failed to get secure item', {
         key,
@@ -214,8 +307,7 @@ export class SecureTokenStorage {
 
   // Store data using appropriate method based on sensitivity
   static async setItem(key: string, value: string): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const isSecure = SECURE_KEYS.has(key as any);
+    const isSecure = isSecureKey(key);
     
     if (isSecure) {
       await this.setSecureItem(key, value);
@@ -225,8 +317,7 @@ export class SecureTokenStorage {
   }
 
   static async getItem(key: string): Promise<string | null> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const isSecure = SECURE_KEYS.has(key as any);
+    const isSecure = isSecureKey(key);
     
     if (isSecure) {
       return await this.getSecureItem(key);
@@ -236,8 +327,7 @@ export class SecureTokenStorage {
   }
 
   static async removeItem(key: string): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const isSecure = SECURE_KEYS.has(key as any);
+    const isSecure = isSecureKey(key);
     
     if (isSecure) {
       await this.removeSecureItem(key);
@@ -418,12 +508,14 @@ export class SecureTokenStorage {
       this.getTokenExpiryInfo(),
     ]);
 
+    const config = this.getConfig();
+
     return {
       hasToken: !!token,
       hasUserInfo: !!(userRole ?? userEmail),
       tokenExpiryInfo,
-      configuredNamespace: currentConfig.storeNamespace,
-      encryptionKeyId: currentConfig.encryptionKeyId,
+      configuredNamespace: config.storeNamespace,
+      encryptionKeyId: config.encryptionKeyId,
     };
   }
 

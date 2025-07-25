@@ -45,6 +45,10 @@ export const MF2_PATHS = {
   // Merchants
   MERCHANTS: '/mf2/merchants',
   MERCHANT_BY_UUID: (uuid: string) => `/mf2/merchants/${uuid}`,
+
+  // Point of Sales (PEMs)
+  POINT_OF_SALES: '/mf2/point-of-sales',
+  PEM_CERTIFICATES: (id: string) => `/mf2/point-of-sales/${id}/certificates`,
 } as const;
 
 export type Environment = 'sandbox' | 'production' | 'development';

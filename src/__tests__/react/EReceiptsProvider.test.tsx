@@ -6,6 +6,7 @@ import {
 } from './test-utils';
 import {  useEReceipts } from '../../providers/EReceiptsProvider';
 import { render as originalRender } from '@testing-library/react';
+import '@testing-library/jest-dom';
 
 // Test component that uses the EReceipts context
 const TestComponent = () => {
@@ -42,6 +43,10 @@ describe('EReceiptsProvider - React Tests', () => {
       onError: jest.fn(),
       onLoadingChange: jest.fn(),
       onAuthChange: jest.fn(),
+      storage: {
+        encryptionKeyId: 'acube-default-key-v1',
+        storeNamespace: 'acube-secure-store',
+      },
     };
 
     renderReact(<TestComponent />, { ereceiptsConfig: testConfig });

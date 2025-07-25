@@ -1,10 +1,25 @@
 import React, { ReactElement } from 'react';
-import { render, RenderOptions, within, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { 
+  render,
+  RenderOptions,
+  within,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+  renderHook,
+} from '@testing-library/react-native';
 import { EReceiptsProvider, EReceiptsProviderConfig } from '../../providers/EReceiptsProvider';
+import { SecureTokenStorage } from '../../storage/token';
+import { STORAGE_KEYS } from '../../constants/keys';
 
 // Default E-Receipts provider config for testing
 const defaultTestConfig: EReceiptsProviderConfig = {
   environment: 'sandbox',
+  storage: {
+    encryptionKeyId: 'test-key-v1',
+    storeNamespace: 'test-store'
+  },
   enableLogging: false,
   skipTokenValidation: true,
   onInitialized: jest.fn(),
@@ -47,6 +62,34 @@ const customRender = (
   });
 };
 
+// Test utilities for onboarding state management
+export const mockNoPersistedState = () => {
+  const mockSecureTokenStorage = SecureTokenStorage as jest.Mocked<typeof SecureTokenStorage>;
+  mockSecureTokenStorage.getItem.mockImplementation(async (key) => {
+    // Explicitly return null for all onboarding-related keys
+    if (key === STORAGE_KEYS.ONBOARDING_STEP) return null;
+    if (key === STORAGE_KEYS.MERCHANT_UUID) return null;
+    if (key === STORAGE_KEYS.CURRENT_POS_SERIAL) return null;
+    return null;
+  });
+};
+
+export const mockPersistedState = (step: string, merchantUuid?: string, posSerial?: string) => {
+  const mockSecureTokenStorage = SecureTokenStorage as jest.Mocked<typeof SecureTokenStorage>;
+  mockSecureTokenStorage.getItem.mockImplementation(async (key) => {
+    if (key === STORAGE_KEYS.ONBOARDING_STEP) return step;
+    if (key === STORAGE_KEYS.MERCHANT_UUID) return merchantUuid || null;
+    if (key === STORAGE_KEYS.CURRENT_POS_SERIAL) return posSerial || null;
+    return null;
+  });
+};
+
+export const clearOnboardingStorage = () => {
+  const mockSecureTokenStorage = SecureTokenStorage as jest.Mocked<typeof SecureTokenStorage>;
+  mockSecureTokenStorage.setItem.mockResolvedValue(undefined);
+  mockSecureTokenStorage.removeToken.mockResolvedValue(undefined);
+};
+
 // Re-export everything from React Native Testing Library
 export * from '@testing-library/react-native';
 
@@ -59,4 +102,6 @@ export {
   within as withinReactNative,
   fireEvent as fireEventReactNative,
   waitFor as waitForReactNative,
+  renderHook as renderHookReactNative,
+  act as actReactNative,
 }; 

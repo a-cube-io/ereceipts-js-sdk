@@ -4,7 +4,7 @@ import { SecureTokenStorage } from '../storage/token';
 import { apiLogger } from '../utils/logger';
 
 // Configuration interface for the provider
-export interface EReceiptsProviderConfig extends Partial<SDKConfig> {
+export interface EReceiptsProviderConfig extends SDKConfig {
   /** 
    * Custom initialization callback
    * Called after SDK is initialized successfully
@@ -90,6 +90,10 @@ export interface EReceiptsProviderProps {
  *     <EReceiptsProvider
  *       config={{
  *         environment: 'sandbox',
+ *         storage: {
+ *           encryptionKeyId: 'myapp-v1',
+ *           storeNamespace: 'myapp-secure'
+ *         },
  *         enableLogging: true,
  *         onInitialized: () => console.log('SDK Ready!'),
  *         onAuthChange: (isAuth) => console.log('Auth status:', isAuth)
@@ -118,6 +122,11 @@ export const EReceiptsProvider: React.FC<EReceiptsProviderProps> = ({
       setIsLoading(true);
       setError(null);
       
+      // Validate required storage configuration
+      if (!initConfig.storage) {
+        throw new Error('EReceiptsProviderConfig.storage is required. Please provide SecureStorageConfig.');
+      }
+      
       // Call loading change callback
       if (initConfig.onLoadingChange) {
         initConfig.onLoadingChange(true);
@@ -126,10 +135,21 @@ export const EReceiptsProvider: React.FC<EReceiptsProviderProps> = ({
       apiLogger.info('Initializing E-Receipts SDK via React Provider', {
         environment: initConfig.environment,
         enableLogging: initConfig.enableLogging,
+        storageKeyId: initConfig.storage.encryptionKeyId,
+        storageNamespace: initConfig.storage.storeNamespace,
       });
 
-      // Initialize the API client
-      initializeAPIClient(initConfig);
+      // Initialize the API client (now requires full SDKConfig)
+      const sdkConfig: SDKConfig = {
+        environment: initConfig.environment,
+        storage: initConfig.storage,
+        enableRetry: initConfig.enableRetry,
+        enableOfflineQueue: initConfig.enableOfflineQueue,
+        maxRetries: initConfig.maxRetries,
+        retryDelay: initConfig.retryDelay,
+        enableLogging: initConfig.enableLogging,
+      };
+      initializeAPIClient(sdkConfig);
       
       // Validate token if not skipped
       if (!initConfig.skipTokenValidation) {
