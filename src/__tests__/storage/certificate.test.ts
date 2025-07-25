@@ -104,7 +104,7 @@ describe('CertificateStorage', () => {
           mockCertificate.uuid,
           mockCertificate.certificate
         )
-      ).rejects.toThrow('Storage error');
+      ).rejects.toThrow('Failed to securely store certificate');
     });
 
     it('should handle empty certificate data', async () => {
@@ -114,8 +114,8 @@ describe('CertificateStorage', () => {
         (mockSecureTokenStorage.setItem as jest.Mock).mock.calls[0][1]
       );
       
-      expect(storedData.certificate).toBe('');
-      expect(storedData.privateKey).toBe('');
+      expect(storedData.certificate).toBe("");
+      expect(storedData.privateKey).toBe(undefined);
     });
 
     it('should handle special characters in certificate data', async () => {
@@ -606,7 +606,7 @@ MIIEpDCCA4ygAwIBAgIJANJZQkz9tqhNMA0GCSqGSIb3DQEBCwUAMIGLMQswCQYD
       // All operations should handle errors gracefully
       await expect(
         CertificateStorage.storeMTLSCertificate('test-uuid', 'cert-data')
-      ).rejects.toThrow('Storage failed');
+      ).rejects.toThrow('Failed to securely store certificate');
 
       await expect(
         CertificateStorage.getMTLSCertificate('test-uuid')

@@ -917,15 +917,32 @@ function LoginForm() {
 
 ### `SecureTokenStorage`
 
-Cross-platform secure storage for authentication tokens and sensitive data.
+Cross-platform secure storage system with automatic encryption for sensitive data. 
 
-#### Methods:
+**⚠️ IMPORTANT: Must be configured before first use:**
+
+```typescript
+import { SecureTokenStorage } from '@a-cube-io/ereceipts-js-sdk';
+
+// Configure secure storage (required before any operations)
+SecureTokenStorage.configure({
+  encryptionKeyId: 'your-app-encryption-key-v1',
+  storeNamespace: 'your-app-secure-store'
+});
+```
+
+**📚 [Complete Secure Storage Documentation](./secure-storage.md)**
+
+#### Core Methods:
+
+##### `configure(config: SecureStorageConfig): void`
+**REQUIRED** - Initializes secure storage with encryption settings.
 
 ##### `storeToken(token: AuthToken): Promise<void>`
-Stores authentication token securely.
+Stores authentication token securely (automatically encrypted).
 
 ##### `getToken(): Promise<string | null>`
-Retrieves stored authentication token.
+Retrieves stored authentication token (automatically decrypted).
 
 ##### `isTokenValid(): Promise<boolean>`
 Checks if stored token is still valid (not expired).
@@ -946,7 +963,13 @@ Gets the email of the currently stored user.
 ```typescript
 import { SecureTokenStorage } from '@a-cube-io/ereceipts-js-sdk';
 
-// Manual token management (usually handled automatically by SDK)
+// 1. Configure first (required)
+SecureTokenStorage.configure({
+  encryptionKeyId: 'myapp-v1',
+  storeNamespace: 'myapp-store'
+});
+
+// 2. Use storage (tokens are automatically encrypted)
 const token = { access_token: 'jwt-token-here', token_type: 'Bearer' };
 await SecureTokenStorage.storeToken(token);
 
@@ -956,6 +979,13 @@ if (!isValid) {
   // Redirect to login
 }
 ```
+
+#### Security Features:
+- **🔐 AES-GCM Encryption**: 256-bit encryption for sensitive keys
+- **🔑 PBKDF2 Key Derivation**: 100,000 iterations with SHA-256  
+- **📱 Platform-Specific Storage**: Keychain (iOS), Keystore (Android), IndexedDB (Web)
+- **🔄 Automatic Detection**: Sensitive keys are encrypted automatically
+- **⬆️ Backward Compatible**: Handles existing plain-text data gracefully
 
 ### `CertificateStorage`
 

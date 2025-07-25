@@ -44,6 +44,7 @@ jest.mock('../../api/mf1', () => ({
 
 jest.mock('../../storage/token', () => ({
   SecureTokenStorage: {
+    configure: jest.fn(),
     getItem: jest.fn(),
     setItem: jest.fn(),
     getToken: jest.fn(),

@@ -70,12 +70,8 @@ describe('SecureTokenStorage', () => {
   });
 
   describe('Configuration', () => {
-    it('should have default configuration', () => {
-      const config = SecureTokenStorage.getConfig();
-      expect(config).toEqual({
-        encryptionKeyId: 'acube-default-key',
-        storeNamespace: 'acube-secure-store',
-      });
+    it('should require configuration before use', () => {
+      expect(() => SecureTokenStorage.getConfig()).toThrow('SecureTokenStorage must be configured before use. Call SecureTokenStorage.configure() first.');
     });
 
     it('should configure with custom settings', () => {
@@ -94,20 +90,41 @@ describe('SecureTokenStorage', () => {
       });
     });
 
-    it('should merge partial configuration with defaults', () => {
-      const partialConfig: SecureStorageConfig = {
-        encryptionKeyId: 'partial-key',
+    it('should require complete configuration', () => {
+      const completeConfig: SecureStorageConfig = {
+        encryptionKeyId: 'test-key',
+        storeNamespace: 'test-store',
       };
-
-      SecureTokenStorage.configure(partialConfig);
+      
+      SecureTokenStorage.configure(completeConfig);
       const config = SecureTokenStorage.getConfig();
       
-      expect(config.encryptionKeyId).toBe('partial-key');
-      expect(config.storeNamespace).toBe('acube-secure-store'); // Default value
+      expect(config).toEqual(completeConfig);
+    });
+
+    it('should work with valid complete configuration', () => {
+      const completeConfig: SecureStorageConfig = {
+        encryptionKeyId: 'test-key-v1',
+        storeNamespace: 'test-store',
+      };
+
+      SecureTokenStorage.configure(completeConfig);
+      const config = SecureTokenStorage.getConfig();
+      
+      expect(config.encryptionKeyId).toBe('test-key-v1');
+      expect(config.storeNamespace).toBe('test-store');
     });
   });
 
   describe('Storage Operations', () => {
+    beforeEach(() => {
+      // Configure storage for all storage operation tests
+      SecureTokenStorage.configure({
+        encryptionKeyId: 'test-key-v1',
+        storeNamespace: 'test-store'
+      });
+    });
+    
     describe('setItem', () => {
       it('should store secure items using secure storage', async () => {
         await SecureTokenStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, 'secure-value');
@@ -529,8 +546,11 @@ describe('SecureTokenStorage', () => {
 
     describe('getStorageStats', () => {
       it('should return storage statistics', async () => {
-        // Reset to default config first
-        SecureTokenStorage.configure({});
+        // Configure storage with test config
+        SecureTokenStorage.configure({
+          encryptionKeyId: 'test-key-v1',
+          storeNamespace: 'test-store'
+        });
         
         mockKeychain.getInternetCredentials.mockResolvedValue({
           username: STORAGE_KEYS.ACCESS_TOKEN,
@@ -549,8 +569,8 @@ describe('SecureTokenStorage', () => {
         expect(result.hasToken).toBe(true);
         expect(result.hasUserInfo).toBe(true);
         expect(result.tokenExpiryInfo).toBeDefined();
-        expect(result.configuredNamespace).toBe('acube-secure-store');
-        expect(result.encryptionKeyId).toBe('acube-default-key');
+        expect(result.configuredNamespace).toBe('test-store');
+        expect(result.encryptionKeyId).toBe('test-key-v1');
       });
 
       it('should handle missing data in statistics', async () => {

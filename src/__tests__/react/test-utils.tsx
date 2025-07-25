@@ -16,6 +16,10 @@ import { STORAGE_KEYS } from '../../constants/keys';
 // Default E-Receipts provider config for testing
 const defaultTestConfig: EReceiptsProviderConfig = {
   environment: 'sandbox',
+  storage: {
+    encryptionKeyId: 'test-key-v1',
+    storeNamespace: 'test-store'
+  },
   enableLogging: false,
   skipTokenValidation: true,
   onInitialized: jest.fn(),

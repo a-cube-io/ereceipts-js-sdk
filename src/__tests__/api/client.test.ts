@@ -5,7 +5,6 @@ import {
   getAPIClient,
   configureSDK,
   getAuthClient,
-  DEFAULT_CONFIG,
   SDKConfig,
 } from '../../api/client';
 import { SecureTokenStorage } from '../../storage/token';
@@ -38,6 +37,20 @@ describe('APIClient', () => {
   let mockAxiosInstance: jest.Mocked<AxiosInstance>;
   let apiClient: APIClient;
 
+  // Test configuration with required storage
+  const testConfig: SDKConfig = {
+    environment: 'sandbox',
+    storage: {
+      encryptionKeyId: 'test-key-v1',
+      storeNamespace: 'test-store'
+    },
+    enableLogging: false,
+    enableRetry: true,
+    enableOfflineQueue: true,
+    maxRetries: 3,
+    retryDelay: 1000,
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -65,11 +78,12 @@ describe('APIClient', () => {
     // Setup default mocks
     mockSecureTokenStorage.getToken.mockResolvedValue('test-token');
     mockSecureTokenStorage.isTokenValid.mockResolvedValue(true);
+    mockSecureTokenStorage.configure.mockReturnValue(undefined);
     mockIsConnected.mockReturnValue(true);
     mockRequestQueue.getQueueStats.mockResolvedValue({ total: 0, byPriority: { high: 0, medium: 0, low: 0 } });
 
-    // Create API client instance
-    apiClient = new APIClient();
+    // Create API client instance with required storage config
+    apiClient = new APIClient(testConfig);
   });
 
   describe('Constructor and Configuration', () => {
@@ -85,9 +99,12 @@ describe('APIClient', () => {
     });
 
     it('should create APIClient with custom configuration', () => {
-      const customConfig: Partial<SDKConfig> = {
+      const customConfig: SDKConfig = {
         environment: 'production',
-        timeout: 60000,
+        storage: {
+          encryptionKeyId: 'prod-key-v1',
+          storeNamespace: 'prod-store'
+        },
         enableRetry: false,
         enableLogging: false,
       };
@@ -95,11 +112,7 @@ describe('APIClient', () => {
       new APIClient(customConfig);
 
       expect(mockGetBasePath).toHaveBeenCalledWith('api', 'production');
-      expect(mockAxios.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          timeout: 60000,
-        })
-      );
+      expect(mockSecureTokenStorage.configure).toHaveBeenCalledWith(customConfig.storage);
     });
 
     it('should setup interceptors on creation', () => {
@@ -173,7 +186,7 @@ describe('APIClient', () => {
     it('should return configuration copy', () => {
       const config = apiClient.getConfig();
       
-      expect(config).toEqual(DEFAULT_CONFIG);
+      expect(config).toEqual(testConfig);
       expect(config).not.toBe(apiClient.getConfig()); // Should be different objects
     });
   });
@@ -229,12 +242,7 @@ describe('APIClient', () => {
       expect(mockGetBasePath).toHaveBeenCalledWith('auth', 'sandbox');
     });
 
-    it('should create mode client', () => {
-      const modeClient = apiClient.createModeClient('api');
-      
-      expect(modeClient).toBeInstanceOf(APIClient);
-      expect(mockGetBasePath).toHaveBeenCalledWith('api', 'sandbox');
-    });
+    // Note: createModeClient method was removed in favor of automatic mode management
   });
 
   describe('Global API Client Management', () => {
@@ -244,7 +252,14 @@ describe('APIClient', () => {
     });
 
     it('should initialize API client', () => {
-      const client = initializeAPIClient({ environment: 'production' });
+      const config: SDKConfig = {
+        environment: 'production',
+        storage: {
+          encryptionKeyId: 'init-key-v1',
+          storeNamespace: 'init-store'
+        }
+      };
+      const client = initializeAPIClient(config);
       
       expect(client).toBeInstanceOf(APIClient);
       expect(mockGetBasePath).toHaveBeenCalledWith('api', 'production');
@@ -257,22 +272,51 @@ describe('APIClient', () => {
       expect(client1).toBe(client2);
     });
 
-    it('should create new API client if none exists', () => {
-      const client = getAPIClient();
+    it('should work with properly initialized API client', () => {
+      // Ensure we have a client initialized from previous tests
+      const config: SDKConfig = {
+        environment: 'sandbox',
+        storage: {
+          encryptionKeyId: 'health-key-v1',
+          storeNamespace: 'health-store'
+        }
+      };
+      initializeAPIClient(config);
       
-      expect(client).toBeInstanceOf(APIClient);
+      expect(() => getAPIClient()).not.toThrow();
+      expect(getAPIClient()).toBeInstanceOf(APIClient);
     });
 
     it('should configure SDK', () => {
-      const config = { timeout: 60000 };
+      // First ensure we have an initialized client
+      const initConfig: SDKConfig = {
+        environment: 'sandbox',
+        storage: {
+          encryptionKeyId: 'config-key-v1',
+          storeNamespace: 'config-store'
+        }
+      };
+      initializeAPIClient(initConfig);
+      
+      const config = { enableLogging: false };
       
       configureSDK(config);
       
-      // The configureSDK calls getAPIClient which creates a new instance
+      // The configureSDK calls updateConfig on existing client
       expect(mockAxios.create).toHaveBeenCalled();
     });
 
     it('should get auth client instance', () => {
+      // First ensure we have an initialized client
+      const config: SDKConfig = {
+        environment: 'sandbox',
+        storage: {
+          encryptionKeyId: 'auth-key-v1',
+          storeNamespace: 'auth-store'
+        }
+      };
+      initializeAPIClient(config);
+      
       const authClient = getAuthClient();
       
       expect(authClient).toBeInstanceOf(APIClient);
@@ -283,7 +327,7 @@ describe('APIClient', () => {
 
   describe('Priority Determination', () => {
     it('should assign high priority to receipt and activation endpoints', () => {
-      const client = new APIClient();
+      const client = new APIClient(testConfig);
       const request = { url: '/receipts/123' };
       
       // Access private method through any
@@ -294,7 +338,7 @@ describe('APIClient', () => {
     });
 
     it('should assign medium priority to merchant and cash-register endpoints', () => {
-      const client = new APIClient();
+      const client = new APIClient(testConfig);
       const request = { url: '/merchants/456' };
       
       const determinePriority = (client as any).determinePriority;
@@ -304,7 +348,7 @@ describe('APIClient', () => {
     });
 
     it('should assign low priority to other endpoints', () => {
-      const client = new APIClient();
+      const client = new APIClient(testConfig);
       const request = { url: '/other/endpoint' };
       
       const determinePriority = (client as any).determinePriority;
@@ -321,7 +365,8 @@ describe('APIClient', () => {
     });
 
     it('should setup retry interceptor when enabled', () => {
-      new APIClient({ enableRetry: true });
+      const configWithRetry = { ...testConfig, enableRetry: true };
+      new APIClient(configWithRetry);
 
       expect(mockAxiosRetryInterceptor.setupInterceptors).toHaveBeenCalledWith(
         mockAxiosInstance,
@@ -336,7 +381,8 @@ describe('APIClient', () => {
       // Clear previous calls
       jest.clearAllMocks();
       
-      new APIClient({ enableRetry: false });
+      const configWithoutRetry = { ...testConfig, enableRetry: false };
+      new APIClient(configWithoutRetry);
 
       expect(mockAxiosRetryInterceptor.setupInterceptors).not.toHaveBeenCalled();
     });
@@ -361,20 +407,25 @@ describe('APIClient', () => {
       expect(mockAxios.create).toHaveBeenCalledTimes(1); // Only in constructor
     });
 
-    it('should recreate instance when baseURL is provided', () => {
-      const newConfig = { baseURL: 'https://custom-api.example.com' };
+    it('should configure storage when storage config is updated', () => {
+      const newStorageConfig = {
+        encryptionKeyId: 'new-key-v2',
+        storeNamespace: 'new-store'
+      };
+      const newConfig = { storage: newStorageConfig };
       
       apiClient.updateConfig(newConfig);
       
-      expect(mockAxios.create).toHaveBeenCalledTimes(2);
+      expect(mockSecureTokenStorage.configure).toHaveBeenCalledWith(newStorageConfig);
     });
 
-    it('should recreate instance when baseURLMode is provided', () => {
-      const newConfig = { baseURLMode: 'auth' as const };
+    it('should not recreate instance when non-environment configs change', () => {
+      const initialCreateCallCount = mockAxios.create.mock.calls.length;
+      const newConfig = { enableLogging: false };
       
       apiClient.updateConfig(newConfig);
       
-      expect(mockAxios.create).toHaveBeenCalledTimes(2);
+      expect(mockAxios.create).toHaveBeenCalledTimes(initialCreateCallCount); // No additional calls
     });
   });
 
@@ -424,7 +475,7 @@ describe('APIClient', () => {
         throw new Error('Axios creation failed');
       });
 
-      expect(() => new APIClient()).toThrow('Axios creation failed');
+      expect(() => new APIClient(testConfig)).toThrow('Axios creation failed');
     });
 
 

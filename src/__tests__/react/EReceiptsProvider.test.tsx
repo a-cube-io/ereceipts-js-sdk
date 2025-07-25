@@ -43,6 +43,10 @@ describe('EReceiptsProvider - React Tests', () => {
       onError: jest.fn(),
       onLoadingChange: jest.fn(),
       onAuthChange: jest.fn(),
+      storage: {
+        encryptionKeyId: 'acube-default-key-v1',
+        storeNamespace: 'acube-secure-store',
+      },
     };
 
     renderReact(<TestComponent />, { ereceiptsConfig: testConfig });

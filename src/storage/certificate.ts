@@ -1,5 +1,6 @@
 import { SecureTokenStorage } from './token';
 import { getMTLSCertificateKey, getMTLSPrivateKeyKey } from '../constants/keys';
+import { EncryptionService } from '../utils/encryption';
 
 export interface MTLSCertificate {
   uuid: string;
@@ -18,15 +19,24 @@ export class CertificateStorage {
     certificate: string,
     privateKey?: string
   ): Promise<void> {
-    const certData: MTLSCertificate = {
-      uuid,
-      certificate,
-      privateKey,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      // Encrypt the certificate data
+      const encryptedCertificate = await EncryptionService.encrypt(certificate);
+      const encryptedPrivateKey = privateKey ? await EncryptionService.encrypt(privateKey) : undefined;
+      
+      const certData: MTLSCertificate = {
+        uuid,
+        certificate: encryptedCertificate,
+        privateKey: encryptedPrivateKey,
+        createdAt: new Date().toISOString(),
+      };
 
-    const certKey = getMTLSCertificateKey(uuid);
-    await SecureTokenStorage.setItem(certKey, JSON.stringify(certData));
+      const certKey = getMTLSCertificateKey(uuid);
+      await SecureTokenStorage.setItem(certKey, JSON.stringify(certData));
+    } catch (error) {
+      console.error('Failed to store MTLS certificate:', error);
+      throw new Error('Failed to securely store certificate');
+    }
   }
 
   /**
@@ -41,7 +51,19 @@ export class CertificateStorage {
         return null;
       }
 
-      return JSON.parse(certDataStr) as MTLSCertificate;
+      const encryptedCertData = JSON.parse(certDataStr) as MTLSCertificate;
+      
+      // Decrypt the certificate data
+      const decryptedCertificate = await EncryptionService.decrypt(encryptedCertData.certificate);
+      const decryptedPrivateKey = encryptedCertData.privateKey 
+        ? await EncryptionService.decrypt(encryptedCertData.privateKey) 
+        : undefined;
+
+      return {
+        ...encryptedCertData,
+        certificate: decryptedCertificate,
+        privateKey: decryptedPrivateKey,
+      };
     } catch (error) {
       console.warn(`Failed to retrieve certificate for ${uuid}:`, error);
       return null;

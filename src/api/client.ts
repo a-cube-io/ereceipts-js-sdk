@@ -1,21 +1,19 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import { SecureTokenStorage } from '../storage/token';
+import { SecureStorageConfig, SecureTokenStorage } from '../storage/token';
 import { RequestQueue } from '../storage/queue';
 import { AxiosRetryInterceptor } from '../utils/retry';
 import { isConnected } from '../utils/network';
 import { apiLogger } from '../utils/logger';
+import { BaseURLMode, Environment, getBasePath } from '../constants/endpoints';
 
 // Extend AxiosRequestConfig to include our custom properties
 interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
   _queued?: boolean;
 }
-import { BaseURLMode, Environment, getBasePath } from '../constants/endpoints';
 
 export interface SDKConfig {
   environment: Environment;
-  baseURLMode?: BaseURLMode;
-  baseURL?: string;
-  timeout?: number;
+  storage: SecureStorageConfig;
   enableRetry?: boolean;
   enableOfflineQueue?: boolean;
   maxRetries?: number;
@@ -23,10 +21,15 @@ export interface SDKConfig {
   enableLogging?: boolean;
 }
 
-export const DEFAULT_CONFIG: SDKConfig = {
-  environment: 'sandbox',
-  baseURLMode: 'api',
-  timeout: 30000,
+// Internal config interface that includes automatic network settings
+interface InternalSDKConfig extends SDKConfig {
+  baseURLMode: BaseURLMode;
+  baseURL: string;
+  timeout: number;
+}
+
+// Default user-facing config (storage must be provided)
+const DEFAULT_USER_CONFIG = {
   enableRetry: true,
   enableOfflineQueue: true,
   maxRetries: 3,
@@ -34,22 +37,50 @@ export const DEFAULT_CONFIG: SDKConfig = {
   enableLogging: true,
 };
 
+// Get automatic network settings based on environment and operation type
+const getNetworkConfig = (environment: Environment, isAuthOperation = false): { baseURLMode: BaseURLMode; baseURL: string; timeout: number } => {
+  const baseURLMode: BaseURLMode = isAuthOperation ? 'auth' : 'api';
+  const baseURL = getBasePath(baseURLMode, environment);
+  
+  // Set timeouts based on operation type
+  const timeout = isAuthOperation ? 15000 : // Auth operations: 15s
+                  baseURLMode === 'api' ? 30000 : // API operations: 30s  
+                  30000; // Default: 30s
+  
+  return { baseURLMode, baseURL, timeout };
+};
+
 class APIClient {
   private axiosInstance: AxiosInstance;
-  private config: SDKConfig;
+  private config: InternalSDKConfig;
+  private userConfig: SDKConfig;
   
 
   constructor(config: Partial<SDKConfig> = {}) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    // Validate that storage config is provided
+    if (!config.storage) {
+      throw new Error('SDKConfig.storage is required. Please provide SecureStorageConfig.');
+    }
+    
+    // Merge user config with defaults
+    this.userConfig = { ...DEFAULT_USER_CONFIG, ...config } as SDKConfig;
+    
+    // Configure SecureTokenStorage automatically
+    SecureTokenStorage.configure(this.userConfig.storage);
+    
+    // Create internal config with automatic network settings
+    const networkConfig = getNetworkConfig(this.userConfig.environment, false);
+    this.config = {
+      ...this.userConfig,
+      ...networkConfig,
+    };
+    
     this.axiosInstance = this.createAxiosInstance();
     this.setupInterceptors();
   }
 
   private createAxiosInstance(): AxiosInstance {
-    const baseURL = this.config.baseURL ?? getBasePath(
-      this.config.baseURLMode ?? 'api',
-      this.config.environment
-    );
+    const baseURL = this.config.baseURL;
     
     return axios.create({
       baseURL,
@@ -194,17 +225,30 @@ class APIClient {
 
   // Public API methods
   public updateConfig(config: Partial<SDKConfig>): void {
-    this.config = { ...this.config, ...config };
+    // Update user config
+    this.userConfig = { ...this.userConfig, ...config };
     
-    // Recreate axios instance if base URL related configs changed
-    if (config.baseURL ?? config.environment ?? config.baseURLMode) {
+    // Reconfigure SecureTokenStorage if storage config changed
+    if (config.storage) {
+      SecureTokenStorage.configure(config.storage);
+    }
+    
+    // Update internal config with new automatic settings
+    const networkConfig = getNetworkConfig(this.userConfig.environment, false);
+    this.config = {
+      ...this.userConfig,
+      ...networkConfig,
+    };
+    
+    // Recreate axios instance if environment changed
+    if (config.environment) {
       this.axiosInstance = this.createAxiosInstance();
       this.setupInterceptors();
     }
   }
 
   public getConfig(): SDKConfig {
-    return { ...this.config };
+    return { ...this.userConfig };
   }
 
   // HTTP methods
@@ -329,18 +373,21 @@ class APIClient {
 
   // Create a new client instance with auth mode
   public createAuthClient(): APIClient {
-    return new APIClient({
-      ...this.config,
-      baseURLMode: 'auth',
-    });
-  }
-
-  // Create a new client instance with specific base URL mode
-  public createModeClient(mode: BaseURLMode): APIClient {
-    return new APIClient({
-      ...this.config,
-      baseURLMode: mode,
-    });
+    // Create a new instance with auth-specific network settings
+    const authNetworkConfig = getNetworkConfig(this.userConfig.environment, true);
+    const authClient = Object.create(APIClient.prototype);
+    
+    // Copy user config and apply auth network settings
+    authClient.userConfig = { ...this.userConfig };
+    authClient.config = {
+      ...this.userConfig,
+      ...authNetworkConfig,
+    };
+    
+    authClient.axiosInstance = authClient.createAxiosInstance();
+    authClient.setupInterceptors();
+    
+    return authClient;
   }
 }
 
@@ -348,7 +395,10 @@ class APIClient {
 let apiClient: APIClient;
 
 // Initialize API client
-export const initializeAPIClient = (config?: Partial<SDKConfig>): APIClient => {
+export const initializeAPIClient = (config: SDKConfig): APIClient => {
+  if (!config.storage) {
+    throw new Error('SDKConfig.storage is required for API client initialization. Please provide SecureStorageConfig.');
+  }
   apiClient = new APIClient(config);
   return apiClient;
 };
@@ -356,12 +406,12 @@ export const initializeAPIClient = (config?: Partial<SDKConfig>): APIClient => {
 // Get current API client instance
 export const getAPIClient = (): APIClient => {
   if (!apiClient) {
-    apiClient = new APIClient();
+    throw new Error('API client not initialized. Call initializeAPIClient() first with storage configuration.');
   }
   return apiClient;
 };
 
-// Configure SDK
+// Configure SDK (for updates after initialization)
 export const configureSDK = (config: Partial<SDKConfig>): void => {
   getAPIClient().updateConfig(config);
 };

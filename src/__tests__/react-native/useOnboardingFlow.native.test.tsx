@@ -40,6 +40,7 @@ jest.mock('../../api/mf1', () => ({
 // Mock React Native specific storage
 jest.mock('../../storage/token', () => ({
   SecureTokenStorage: {
+    configure: jest.fn(),
     setItem: jest.fn(),
     getItem: jest.fn(),
     removeToken: jest.fn(),
