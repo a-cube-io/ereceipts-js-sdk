@@ -1,4 +1,4 @@
-export interface MerchantInfo {
+export type MerchantInfo = {
   uuid: string;
   fiscalId: string;
   name: string;
@@ -8,14 +8,14 @@ export interface MerchantInfo {
   updatedAt: string;
 }
 
-export interface AddressInfo {
+export type AddressInfo = {
   streetAddress: string;
   zipCode: string;
   city: string;
   province: string;
 }
 
-export interface PointOfSaleInfo {
+export type PointOfSaleInfo = {
   serialNumber: string;
   status: 'NEW' | 'REGISTERED' | 'ACTIVE' | 'ONLINE' | 'OFFLINE' | 'DISCARDED';
   address: AddressInfo;
@@ -23,7 +23,7 @@ export interface PointOfSaleInfo {
   activatedAt?: string;
 }
 
-export interface CashRegisterInfo {
+export type CashRegisterInfo = {
   id: string;
   pemSerialNumber: string;
   name: string;
@@ -31,7 +31,7 @@ export interface CashRegisterInfo {
   createdAt: string;
 }
 
-export interface ReceiptInfo {
+export type ReceiptInfo = {
   uuid: string;
   type: 'sale' | 'return' | 'void';
   totalAmount: string;
@@ -42,7 +42,7 @@ export interface ReceiptInfo {
   items: ReceiptItemInfo[];
 }
 
-export interface ReceiptItemInfo {
+export type ReceiptItemInfo = {
   quantity: string;
   description: string;
   unitPrice: string;
@@ -52,28 +52,33 @@ export interface ReceiptItemInfo {
 }
 
 // Onboarding Flow Types
-export interface OnboardingCredentials {
+export type OnboardingCredentials = {
   email: string;
   password: string;
 }
 
-export interface OnboardingMerchantInfo {
+export type OnboardingMerchantInfo = {
   fiscalId: string;
   name: string;
   email: string;
   address: AddressInfo;
+  password: string;
 }
 
-export interface OnboardingPOSInfo {
+export type OnboardingPOSInfo = {
   address: AddressInfo;
 }
 
-export interface OnboardingResult {
+export type OnboardingResult = {
   merchantUuid?: string;
   posSerialNumber?: string;
   registrationKey?: string;
   cashRegisterId?: string;
   mtlsCertificate?: string;
+  existingMerchants?: MerchantInfo[];
+  existingActivePOS?: PointOfSaleInfo[];
+  flowCompleted?: boolean;
+  skipReason?: string;
 }
 
 export type OnboardingRole = 'provider' | 'merchant';
@@ -88,24 +93,51 @@ export type OnboardingStep =
   | 'completed'
   | 'error';
 
-export interface OnboardingState {
+export type OnboardingState = {
   loading: boolean;
   step: OnboardingStep;
+  nextStep?: OnboardingStep | null;
   error: string | null;
   progress: number;
   result: OnboardingResult;
+  canSkipToCompletion?: boolean;
 }
 
-export interface UseOnboardingFlowInput {
+export type OnboardingCashRegisterInfo = {
+  pemSerialNumber: string;
+  name: string;
+}
+
+export type OnboardingPosActivationInfo = {
+  registrationKey: string;
+  posSerialNumber: string;
+}
+
+export type UseOnboardingFlowInput = {
   role: OnboardingRole;
-  step: OnboardingStep;
-  credentials?: OnboardingCredentials;
-  merchantInfo?: OnboardingMerchantInfo;
-  posInfo?: OnboardingPOSInfo;
-  registrationKey?: string;
-}
+} & (
+  {
+    step: 'authentication';
+    credentials: OnboardingCredentials;
+  } | {
+    step: 'merchant_creation';
+    merchantInfo: OnboardingMerchantInfo;
+  } | {
+    step: 'pos_creation';
+    posInfo?: OnboardingPOSInfo;
+  } | {
+    step: 'cash_register_creation';
+    cashRegisterInfo: OnboardingCashRegisterInfo
+  } | {
+    step: 'pos_activation';
+    posActivationInfo: OnboardingPosActivationInfo;
+  }
+  | {
+    step: Exclude<OnboardingStep, 'authentication' | 'pos_activation' | 'merchant_creation' | 'pos_creation' | 'cash_register_creation'>;
+  }
+)
 
-export interface UseOnboardingFlowReturn {
+export type UseOnboardingFlowReturn = {
   state: OnboardingState;
   compute: () => Promise<void>;
   reset: () => void;

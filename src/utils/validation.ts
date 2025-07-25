@@ -1,4 +1,4 @@
-// Input validation utilities for A-Cube SDK
+import { ZodIssue, z } from 'zod';
 
 export interface ValidationError {
   field: string;
@@ -11,372 +11,156 @@ export interface ValidationResult {
   errors: ValidationError[];
 }
 
-/**
- * Email validation
- */
-export const validateEmail = (email: string): ValidationResult => {
-  const errors: ValidationError[] = [];
-  
-  if (!email || email.trim() === '') {
-    errors.push({
-      field: 'email',
-      message: 'Email is required',
-      code: 'EMAIL_REQUIRED'
-    });
-  } else {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      errors.push({
-        field: 'email',
-        message: 'Invalid email format',
-        code: 'EMAIL_INVALID'
+function mapIssuesToValidationResult(issues: ZodIssue[]): ValidationResult {
+  const errors = issues.map(issue => {
+    const path = issue.path.join('.') || issue.path[0]?.toString() || '';
+    const code = issue.message; // usiamo il messaggio come codice univoco
+    const message = humanReadable(issue.message, path);
+    return { field: path, message, code };
+  });
+  return { isValid: errors.length === 0, errors };
+}
+
+function humanReadable(code: string, field: string): string {
+  const messages: Record<string, string> = {
+    EMAIL_REQUIRED: 'Email is required',
+    EMAIL_INVALID: 'Invalid email format',
+    PASSWORD_REQUIRED: 'Password is required',
+    PASSWORD_TOO_SHORT: 'Password must be at least 8 characters',
+    PASSWORD_TOO_LONG: 'Password must not exceed 40 characters',
+    PASSWORD_NO_UPPERCASE: 'Password must contain uppercase letter',
+    PASSWORD_NO_LOWERCASE: 'Password must contain lowercase letter',
+    PASSWORD_NO_DIGIT: 'Password must contain a digit',
+    PASSWORD_NO_SPECIAL: 'Password must contain a special character',
+    FISCAL_ID_REQUIRED: 'Fiscal ID is required',
+    FISCAL_ID_INVALID: 'Fiscal ID must be exactly 11 digits',
+    ZIP_CODE_REQUIRED: 'ZIP code is required',
+    ZIP_CODE_INVALID: 'ZIP code must be 5 digits',
+    PROVINCE_REQUIRED: 'Province code is required',
+    PROVINCE_INVALID: 'Province code must be 2 letters',
+    STREET_ADDRESS_REQUIRED: 'Street address is required',
+    CITY_REQUIRED: 'City is required',
+    QUANTITY_REQUIRED: 'Quantity is required',
+    QUANTITY_INVALID_FORMAT: 'Quantity must be format X.XX',
+    DESCRIPTION_REQUIRED: 'Description is required',
+    DESCRIPTION_TOO_LONG: 'Description must not exceed 1000 characters',
+    UNIT_PRICE_REQUIRED: 'Unit price is required',
+    UNIT_PRICE_INVALID_FORMAT: 'Unit price invalid format',
+  };
+  return messages[code] || `${field || 'Field'} invalid`;
+}
+
+// SCHEMI Zod con message come codice
+const emailSchema = z.string({ error: 'EMAIL_REQUIRED' })
+  .email({ message: 'EMAIL_INVALID' });
+
+const passwordSchema = z.string({ error: 'PASSWORD_REQUIRED' })
+  .min(8, { error: 'PASSWORD_TOO_SHORT' })
+  .max(40, { error: 'PASSWORD_TOO_LONG' })
+  .refine(p => /[A-Z]/.test(p), { error: 'PASSWORD_NO_UPPERCASE' })
+  .refine(p => /[a-z]/.test(p), { error: 'PASSWORD_NO_LOWERCASE' })
+  .refine(p => /[0-9]/.test(p), { error: 'PASSWORD_NO_DIGIT' })
+  .refine(p => /[!@#$%^&*]/.test(p), { error: 'PASSWORD_NO_SPECIAL' });
+
+const fiscalIdSchema = z.string({ error: 'FISCAL_ID_REQUIRED' })
+  .regex(/^\d{11}$/, { error: 'FISCAL_ID_INVALID' });
+
+const zipSchema = z.string({ error: 'ZIP_CODE_REQUIRED' })
+  .regex(/^\d{5}$/, { error: 'ZIP_CODE_INVALID' });
+
+const provinceSchema = z.string({ error: 'PROVINCE_REQUIRED' })
+  .regex(/^[A-Z]{2}$/, { error: 'PROVINCE_INVALID' });
+
+const addressSchema = z.object({
+  street_address: z.string({ error: 'STREET_ADDRESS_REQUIRED' }).min(1, { error: 'STREET_ADDRESS_REQUIRED' }),
+  city: z.string({ error: 'CITY_REQUIRED' }).min(1, { error: 'CITY_REQUIRED' }),
+  zip_code: zipSchema,
+  province: provinceSchema
+});
+
+const receiptItemSchema = z.object({
+  quantity: z.string({ error: 'QUANTITY_REQUIRED' }).min(1, { error: 'QUANTITY_REQUIRED' })
+    .regex(/^\d+\.\d{2}$/, { error: 'QUANTITY_INVALID_FORMAT' }),
+  description: z.string({ error: 'DESCRIPTION_REQUIRED' }).min(1, { error: 'DESCRIPTION_REQUIRED' })
+    .max(1000, { error: 'DESCRIPTION_TOO_LONG' }),
+  unit_price: z.string({ error: 'UNIT_PRICE_REQUIRED' }).min(1, { error: 'UNIT_PRICE_REQUIRED' })
+    .regex(/^\d+(\.\d{1,8})?$/, { error: 'UNIT_PRICE_INVALID_FORMAT' }),
+});
+
+const moneyAmountSchema = (fieldName: string, required: boolean) => {
+  const fname = fieldName.toUpperCase();
+  return required
+    ? z.string({ error: `${fname}_REQUIRED` }).min(1, { error: `${fname}_REQUIRED` })
+        .regex(/^\d+(\.\d{2,8})?$/, { error: `${fname}_INVALID_FORMAT` })
+    : z.string().optional().refine(v => v === undefined || v === '' || /^\d+(\.\d{2,8})?$/.test(v), {
+        error: `${fname}_INVALID_FORMAT`
       });
-    }
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
 };
 
-/**
- * Password validation (A-Cube requirements)
- */
-export const validatePassword = (password: string): ValidationResult => {
-  const errors: ValidationError[] = [];
-  
-  if (!password) {
-    errors.push({
-      field: 'password',
-      message: 'Password is required',
-      code: 'PASSWORD_REQUIRED'
-    });
-    return { isValid: false, errors };
-  }
-  
-  // Minimum length
-  if (password.length < 8) {
-    errors.push({
-      field: 'password',
-      message: 'Password must be at least 8 characters long',
-      code: 'PASSWORD_TOO_SHORT'
-    });
-  }
-  
-  // Maximum length
-  if (password.length > 40) {
-    errors.push({
-      field: 'password',
-      message: 'Password must not exceed 40 characters',
-      code: 'PASSWORD_TOO_LONG'
-    });
-  }
-  
-  // Must contain uppercase letter
-  if (!/[A-Z]/.test(password)) {
-    errors.push({
-      field: 'password',
-      message: 'Password must contain at least one uppercase letter',
-      code: 'PASSWORD_NO_UPPERCASE'
-    });
-  }
-  
-  // Must contain lowercase letter
-  if (!/[a-z]/.test(password)) {
-    errors.push({
-      field: 'password',
-      message: 'Password must contain at least one lowercase letter',
-      code: 'PASSWORD_NO_LOWERCASE'
-    });
-  }
-  
-  // Must contain digit
-  if (!/[0-9]/.test(password)) {
-    errors.push({
-      field: 'password',
-      message: 'Password must contain at least one digit',
-      code: 'PASSWORD_NO_DIGIT'
-    });
-  }
-  
-  // Must contain special character
-  if (!/[!@#$%^&*]/.test(password)) {
-    errors.push({
-      field: 'password',
-      message: 'Password must contain at least one special character (!@#$%^&*)',
-      code: 'PASSWORD_NO_SPECIAL'
-    });
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-};
+// VALIDATORI
+export function validateEmail(email: string): ValidationResult {
+  const r = emailSchema.safeParse(email);
+  return r.success ? { isValid: true, errors: [] } : mapIssuesToValidationResult(r.error.issues);
+}
 
-/**
- * Italian fiscal ID validation (Partita IVA)
- */
-export const validateFiscalId = (fiscalId: string): ValidationResult => {
-  const errors: ValidationError[] = [];
-  
-  if (!fiscalId || fiscalId.trim() === '') {
-    errors.push({
-      field: 'fiscal_id',
-      message: 'Fiscal ID is required',
-      code: 'FISCAL_ID_REQUIRED'
-    });
-  } else {
-    // Must be exactly 11 digits
-    const fiscalIdRegex = /^\d{11}$/;
-    if (!fiscalIdRegex.test(fiscalId)) {
-      errors.push({
-        field: 'fiscal_id',
-        message: 'Fiscal ID must be exactly 11 digits',
-        code: 'FISCAL_ID_INVALID'
-      });
-    }
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-};
+export function validatePassword(password: string): ValidationResult {
+  const r = passwordSchema.safeParse(password);
+  return r.success ? { isValid: true, errors: [] } : mapIssuesToValidationResult(r.error.issues);
+}
 
-/**
- * Italian postal code validation
- */
-export const validateZipCode = (zipCode: string): ValidationResult => {
-  const errors: ValidationError[] = [];
-  
-  if (!zipCode || zipCode.trim() === '') {
-    errors.push({
-      field: 'zip_code',
-      message: 'ZIP code is required',
-      code: 'ZIP_CODE_REQUIRED'
-    });
-  } else {
-    // Must be exactly 5 digits
-    const zipCodeRegex = /^\d{5}$/;
-    if (!zipCodeRegex.test(zipCode)) {
-      errors.push({
-        field: 'zip_code',
-        message: 'ZIP code must be exactly 5 digits',
-        code: 'ZIP_CODE_INVALID'
-      });
-    }
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-};
+export function validateFiscalId(fiscalId: string): ValidationResult {
+  const r = fiscalIdSchema.safeParse(fiscalId);
+  return r.success ? { isValid: true, errors: [] } : mapIssuesToValidationResult(r.error.issues);
+}
 
-/**
- * Italian province code validation
- */
-export const validateProvinceCode = (province: string): ValidationResult => {
-  const errors: ValidationError[] = [];
-  
-  if (!province || province.trim() === '') {
-    errors.push({
-      field: 'province',
-      message: 'Province code is required',
-      code: 'PROVINCE_REQUIRED'
-    });
-  } else {
-    // Must be exactly 2 letters
-    const provinceRegex = /^[A-Z]{2}$/;
-    if (!provinceRegex.test(province.toUpperCase())) {
-      errors.push({
-        field: 'province',
-        message: 'Province code must be exactly 2 letters',
-        code: 'PROVINCE_INVALID'
-      });
-    }
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-};
+export function validateZipCode(zip: string): ValidationResult {
+  const r = zipSchema.safeParse(zip);
+  return r.success ? { isValid: true, errors: [] } : mapIssuesToValidationResult(r.error.issues);
+}
 
-/**
- * Address validation
- */
-export const validateAddress = (address: {
+export function validateProvinceCode(province: string): ValidationResult {
+  const r = provinceSchema.safeParse(province.toUpperCase());
+  return r.success ? { isValid: true, errors: [] } : mapIssuesToValidationResult(r.error.issues);
+}
+
+export function validateAddress(address: {
   street_address: string;
-  zip_code: string;
   city: string;
+  zip_code: string;
   province: string;
-}): ValidationResult => {
-  const errors: ValidationError[] = [];
-  
-  // Street address
-  if (!address.street_address || address.street_address.trim() === '') {
-    errors.push({
-      field: 'street_address',
-      message: 'Street address is required',
-      code: 'STREET_ADDRESS_REQUIRED'
-    });
-  }
-  
-  // City
-  if (!address.city || address.city.trim() === '') {
-    errors.push({
-      field: 'city',
-      message: 'City is required',
-      code: 'CITY_REQUIRED'
-    });
-  }
-  
-  // ZIP code
-  const zipValidation = validateZipCode(address.zip_code);
-  errors.push(...zipValidation.errors);
-  
-  // Province
-  const provinceValidation = validateProvinceCode(address.province);
-  errors.push(...provinceValidation.errors);
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-};
+}): ValidationResult {
+  const r = addressSchema.safeParse(address);
+  return r.success ? { isValid: true, errors: [] } : mapIssuesToValidationResult(r.error.issues);
+}
 
-/**
- * Receipt item validation
- */
-export const validateReceiptItem = (item: {
+export function validateReceiptItem(item: {
   quantity: string;
   description: string;
   unit_price: string;
-}): ValidationResult => {
-  const errors: ValidationError[] = [];
-  
-  // Quantity validation
-  if (!item.quantity) {
-    errors.push({
-      field: 'quantity',
-      message: 'Quantity is required',
-      code: 'QUANTITY_REQUIRED'
-    });
-  } else {
-    const quantityRegex = /^\d+\.\d{2}$/;
-    if (!quantityRegex.test(item.quantity)) {
-      errors.push({
-        field: 'quantity',
-        message: 'Quantity must be in format X.XX (e.g., 1.00, 2.50)',
-        code: 'QUANTITY_INVALID_FORMAT'
-      });
-    }
-  }
-  
-  // Description validation
-  if (!item.description || item.description.trim() === '') {
-    errors.push({
-      field: 'description',
-      message: 'Description is required',
-      code: 'DESCRIPTION_REQUIRED'
-    });
-  } else if (item.description.length > 1000) {
-    errors.push({
-      field: 'description',
-      message: 'Description must not exceed 1000 characters',
-      code: 'DESCRIPTION_TOO_LONG'
-    });
-  }
-  
-  // Unit price validation
-  if (!item.unit_price) {
-    errors.push({
-      field: 'unit_price',
-      message: 'Unit price is required',
-      code: 'UNIT_PRICE_REQUIRED'
-    });
-  } else {
-    const priceRegex = /^\d+(\.\d{1,8})?$/;
-    if (!priceRegex.test(item.unit_price)) {
-      errors.push({
-        field: 'unit_price',
-        message: 'Unit price must be a valid decimal number with up to 8 decimal places',
-        code: 'UNIT_PRICE_INVALID_FORMAT'
-      });
-    }
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-};
+}): ValidationResult {
+  const r = receiptItemSchema.safeParse(item);
+  return r.success ? { isValid: true, errors: [] } : mapIssuesToValidationResult(r.error.issues);
+}
 
-/**
- * Money amount validation (for payments, discounts, etc.)
- */
-export const validateMoneyAmount = (
+export function validateMoneyAmount(
   amount: string,
   fieldName: string,
-  required: boolean = false
-): ValidationResult => {
-  const errors: ValidationError[] = [];
-  
-  if (!amount || amount.trim() === '') {
-    if (required) {
-      errors.push({
-        field: fieldName,
-        message: `${fieldName} is required`,
-        code: `${fieldName.toUpperCase()}_REQUIRED`
-      });
-    }
-  } else {
-    const amountRegex = /^\d+(\.\d{2,8})?$/;
-    if (!amountRegex.test(amount)) {
-      errors.push({
-        field: fieldName,
-        message: `${fieldName} must be a valid decimal number with 2-8 decimal places`,
-        code: `${fieldName.toUpperCase()}_INVALID_FORMAT`
-      });
-    }
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-};
+  required = false
+): ValidationResult {
+  const schema = moneyAmountSchema(fieldName, required);
+  const r = schema.safeParse(amount);
+  return r.success ? { isValid: true, errors: [] } : mapIssuesToValidationResult(r.error.issues);
+}
 
-/**
- * Combine multiple validation results
- */
-export const combineValidationResults = (...results: ValidationResult[]): ValidationResult => {
-  const allErrors = results.flatMap(result => result.errors);
-  
-  return {
-    isValid: allErrors.length === 0,
-    errors: allErrors
-  };
-};
+export function combineValidationResults(...results: ValidationResult[]): ValidationResult {
+  const allErrors = results.flatMap(r => r.errors);
+  return { isValid: allErrors.length === 0, errors: allErrors };
+}
 
-/**
- * Generic field validation
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const validateRequired = (value: any, fieldName: string): ValidationResult => {
-  if (value === null || value === undefined || value === '') {
-    return {
-      isValid: false,
-      errors: [{
-        field: fieldName,
-        message: `${fieldName} is required`,
-        code: `${fieldName.toUpperCase()}_REQUIRED`
-      }]
-    };
-  }
-  
-  return { isValid: true, errors: [] };
-};
+export function validateRequired(value: unknown, _fieldName: string): ValidationResult {
+  const schema = z.any().refine(v => v !== null && v !== undefined && v !== '', {
+    error: 'FIELD_REQUIRED'
+  });
+  const r = schema.safeParse(value);
+  return r.success ? { isValid: true, errors: [] } : mapIssuesToValidationResult(r.error.issues);
+}

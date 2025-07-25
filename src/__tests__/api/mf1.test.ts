@@ -35,7 +35,9 @@ import {
   ReceiptDetailsOutput,
   ReceiptInput,
   ReceiptOutput,
-} from '../../api/types.generated';
+  ReceiptReturnOrVoidViaPEMInput,
+  ReceiptReturnOrVoidWithProofInput,
+} from '../../api/types.convenience';
 
 // Mock dependencies
 jest.mock('../../api/client');
@@ -61,23 +63,41 @@ describe('MF1 API', () => {
     mockGetAPIClient.mockReturnValue(mockAPIClient);
 
     // Setup default MF1_PATHS mocks
+    // @ts-ignore
     mockMF1_PATHS.CASHIERS = '/cashiers';
+    // @ts-ignore
     mockMF1_PATHS.CASHIER_BY_ID = jest.fn((id: number) => `/cashiers/${id}`);
+    // @ts-ignore
     mockMF1_PATHS.CASHIER_ME = '/cashiers/me';
+    // @ts-ignore
     mockMF1_PATHS.POINT_OF_SALES = '/point-of-sales';
+    // @ts-ignore
     mockMF1_PATHS.POINT_OF_SALE_BY_SERIAL = jest.fn((serial: string) => `/point-of-sales/${serial}`);
+    // @ts-ignore
     mockMF1_PATHS.POINT_OF_SALE_ACTIVATION = jest.fn((serial: string) => `/point-of-sales/${serial}/activation`);
+    // @ts-ignore
     mockMF1_PATHS.POINT_OF_SALE_INACTIVITY = jest.fn((serial: string) => `/point-of-sales/${serial}/inactivity`);
+    // @ts-ignore
     mockMF1_PATHS.POINT_OF_SALE_OFFLINE = jest.fn((serial: string) => `/point-of-sales/${serial}/offline`);
+    // @ts-ignore
     mockMF1_PATHS.CLOSE_JOURNAL = '/close-journal';
+    // @ts-ignore
     mockMF1_PATHS.RECEIPTS = '/receipts';
+    // @ts-ignore
     mockMF1_PATHS.RECEIPT_BY_UUID = jest.fn((uuid: string) => `/receipts/${uuid}`);
+    // @ts-ignore
     mockMF1_PATHS.RECEIPT_DETAILS = jest.fn((uuid: string) => `/receipts/${uuid}/details`);
+    // @ts-ignore
     mockMF1_PATHS.RECEIPT_VOID_WITH_PROOF = '/receipts/void-with-proof';
+    // @ts-ignore
     mockMF1_PATHS.RECEIPT_RETURN = '/receipts/return';
+    // @ts-ignore
     mockMF1_PATHS.RECEIPT_RETURN_WITH_PROOF = '/receipts/return-with-proof';
+    // @ts-ignore
     mockMF1_PATHS.CASH_REGISTER = '/cash-register';
+    // @ts-ignore
     mockMF1_PATHS.CASH_REGISTER_BY_ID = jest.fn((id: string) => `/cash-register/${id}`);
+    // @ts-ignore
     mockMF1_PATHS.CASH_REGISTER_MTLS_CERT = jest.fn((id: string) => `/cash-register/${id}/mtls-cert`);
   });
 
@@ -261,7 +281,7 @@ describe('MF1 API', () => {
       it('should activate point of sale', async () => {
         mockAPIClient.post.mockResolvedValue({});
 
-        await activatePointOfSale('PEM123456', 'registration-key-123');
+        await activatePointOfSale('PEM123456', { registration_key: 'registration-key-123' });
 
         expect(mockAPIClient.post).toHaveBeenCalledWith(
           mockMF1_PATHS.POINT_OF_SALE_ACTIVATION('PEM123456'),
@@ -288,7 +308,10 @@ describe('MF1 API', () => {
       it('should set point of sale offline', async () => {
         mockAPIClient.post.mockResolvedValue({});
 
-        await setPointOfSaleOffline('PEM123456', '2023-01-01T10:00:00Z', 'Maintenance');
+          await setPointOfSaleOffline('PEM123456', {
+          timestamp: '2023-01-01T10:00:00Z',
+          reason: 'Maintenance',
+        });
 
         expect(mockAPIClient.post).toHaveBeenCalledWith(
           mockMF1_PATHS.POINT_OF_SALE_OFFLINE('PEM123456'),
@@ -480,9 +503,9 @@ describe('MF1 API', () => {
       it('should void receipt', async () => {
         mockAPIClient.delete.mockResolvedValue({});
 
-        const voidData = {
+        const voidData: ReceiptReturnOrVoidViaPEMInput = {
           pem_id: 'pem-123',
-          items: [{ id: 1, quantity: '1' }],
+          items: [{ good_or_service: 'B', quantity: '1', description: 'Test Item', unit_price: '10.00' }],
           document_number: 'DOC001',
           document_date: '2023-01-01',
           lottery_code: 'LOT123',
@@ -501,9 +524,9 @@ describe('MF1 API', () => {
       it('should void receipt with proof', async () => {
         mockAPIClient.delete.mockResolvedValue({});
 
-        const voidData = {
-          items: [{ id: 1, quantity: '1' }],
-          proof: 'POS' as const,
+        const voidData: ReceiptReturnOrVoidWithProofInput = {
+          items: [{ good_or_service: 'B', quantity: '1', description: 'Test Item', unit_price: '10.00' }],
+          proof: 'POS',
           document_datetime: '2023-01-01T10:00:00Z',
         };
 
@@ -522,9 +545,9 @@ describe('MF1 API', () => {
           data: mockReceiptOutput,
         });
 
-        const returnData = {
+        const returnData: ReceiptReturnOrVoidViaPEMInput = {
           pem_id: 'pem-123',
-          items: [{ id: 1, quantity: '1' }],
+          items: [{ good_or_service: 'B', quantity: '1', description: 'Test Item', unit_price: '10.00' }],
           document_number: 'DOC001',
           document_date: '2023-01-01',
           lottery_code: 'LOT123',
@@ -546,9 +569,9 @@ describe('MF1 API', () => {
           data: mockReceiptOutput,
         });
 
-        const returnData = {
-          items: [{ id: 1, quantity: '1' }],
-          proof: 'VR' as const,
+        const returnData: ReceiptReturnOrVoidWithProofInput = {
+          items: [{ good_or_service: 'B', quantity: '1', description: 'Test Item', unit_price: '10.00' }],
+          proof: 'VR',
           document_datetime: '2023-01-01T10:00:00Z',
         };
 
@@ -574,6 +597,7 @@ describe('MF1 API', () => {
       pem_serial_number: 'PEM123456',
       name: 'Test Cash Register',
       mtls_certificate: '-----BEGIN CERTIFICATE-----...',
+      private_key: '-----BEGIN PRIVATE KEY-----...',
     };
 
     describe('createCashRegister', () => {
@@ -763,7 +787,7 @@ describe('MF1 API', () => {
       const pos = await getPointOfSaleBySerial('PEM789');
       expect(pos).toEqual(pemPublic);
 
-      await activatePointOfSale('PEM789', 'activation-key-456');
+      await activatePointOfSale('PEM789', { registration_key: 'activation-key-456' });
       expect(mockAPIClient.post).toHaveBeenCalledWith(
         mockMF1_PATHS.POINT_OF_SALE_ACTIVATION('PEM789'),
         { registration_key: 'activation-key-456' }

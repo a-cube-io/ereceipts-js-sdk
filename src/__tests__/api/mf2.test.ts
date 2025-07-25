@@ -10,7 +10,7 @@ import {
   MerchantCreateInput,
   MerchantOutput,
   MerchantUpdateInput,
-} from '../../api/types.generated';
+} from '../../api/types.convenience';
 
 // Mock dependencies
 jest.mock('../../api/client');
@@ -36,8 +36,10 @@ describe('MF2 API', () => {
     mockGetAPIClient.mockReturnValue(mockAPIClient);
 
     // Setup default MF2_PATHS mocks
+    // @ts-ignore
     mockMF2_PATHS.MERCHANTS = '/merchants';
-    mockMF2_PATHS.MERCHANT_BY_UUID = jest.fn((uuid: string) => `/merchants/${uuid}`);
+    // @ts-ignore
+    mockMF2_PATHS.MERCHANT_BY_UUID = jest.fn((uuid: string) => `/merchants/${uuid}`) as any;
   });
 
   describe('Merchant Management', () => {

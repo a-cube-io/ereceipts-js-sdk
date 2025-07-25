@@ -1,6 +1,14 @@
 import React from 'react';
 import { useOnboardingFlow } from '../../hooks/useOnboardingFlow';
-import { OnboardingRole, UseOnboardingFlowInput } from '../../types/entities';
+import { 
+  OnboardingCredentials,
+  OnboardingMerchantInfo,
+  OnboardingPOSInfo,
+  OnboardingCashRegisterInfo,
+  OnboardingPosActivationInfo,
+  OnboardingRole, 
+  UseOnboardingFlowInput 
+} from '../../types/entities';
 import { 
   AllTheProvidersReactNative,
   mockNoPersistedState,
@@ -18,6 +26,7 @@ jest.mock('../../api/auth', () => ({
 
 jest.mock('../../api/mf2', () => ({
   createMerchant: jest.fn(),
+  createPem: jest.fn(),
   getMerchants: jest.fn(),
 }));
 
@@ -25,6 +34,7 @@ jest.mock('../../api/mf1', () => ({
   activatePointOfSale: jest.fn(),
   createCashRegister: jest.fn(),
   getPointOfSales: jest.fn(),
+  getPointOfSaleBySerial: jest.fn(),
 }));
 
 // Mock React Native specific storage
@@ -75,8 +85,8 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 // Import mocked functions with proper typing
 import { isAuthenticated, loginProvider, loginMerchant } from '../../api/auth';
-import { createMerchant, getMerchants } from '../../api/mf2';
-import { activatePointOfSale, createCashRegister, getPointOfSales } from '../../api/mf1';
+import { createMerchant, createPem, getMerchants } from '../../api/mf2';
+import { activatePointOfSale, createCashRegister, getPointOfSales, getPointOfSaleBySerial } from '../../api/mf1';
 import { SecureTokenStorage } from '../../storage/token';
 import { isConnected } from '../../utils/network';
 
@@ -84,10 +94,12 @@ const mockIsAuthenticated = isAuthenticated as jest.MockedFunction<typeof isAuth
 const mockLoginProvider = loginProvider as jest.MockedFunction<typeof loginProvider>;
 const mockLoginMerchant = loginMerchant as jest.MockedFunction<typeof loginMerchant>;
 const mockCreateMerchant = createMerchant as jest.MockedFunction<typeof createMerchant>;
+const mockCreatePem = createPem as jest.MockedFunction<typeof createPem>;
 const mockGetMerchants = getMerchants as jest.MockedFunction<typeof getMerchants>;
 const mockActivatePointOfSale = activatePointOfSale as jest.MockedFunction<typeof activatePointOfSale>;
 const mockCreateCashRegister = createCashRegister as jest.MockedFunction<typeof createCashRegister>;
 const mockGetPointOfSales = getPointOfSales as jest.MockedFunction<typeof getPointOfSales>;
+const mockGetPointOfSaleBySerial = getPointOfSaleBySerial as jest.MockedFunction<typeof getPointOfSaleBySerial>;
 const mockSecureTokenStorage = SecureTokenStorage as jest.Mocked<typeof SecureTokenStorage>;
 const mockIsConnected = isConnected as jest.MockedFunction<typeof isConnected>;
 
@@ -98,70 +110,56 @@ const RNTestWrapper = ({ children }: { children: React.ReactNode }) => (
   </AllTheProvidersReactNative>
 );
 
-const mockGenerators = {
-  merchant: (overrides: any = {}) => ({
-    uuid: 'test-merchant-uuid',
-    name: 'Test Merchant',
-    email: 'test@test.com',
+
+describe('useOnboardingFlow - React Native', () => {
+  // Common test data for React Native environment
+  const mockCredentials: OnboardingCredentials = {
+    email: 'provider@example.com',
+    password: 'password123'
+  };
+  
+  const mockMerchantInfo: OnboardingMerchantInfo = {
     fiscalId: '12345678901',
+    name: 'Test Store Mobile',
+    email: 'store@example.com',
+    password: 'merchantpass123',
     address: {
       streetAddress: 'Via Roma 1',
       zipCode: '00100',
       city: 'Roma',
-      province: 'RM',
-    },
-    ...overrides,
-  }),
-  token: (overrides: any = {}) => ({
-    access_token: 'test-access-token',
-    refresh_token: 'test-refresh-token',
-    expires_in: 3600,
-    token_type: 'Bearer',
-    ...overrides,
-  }),
-  pointOfSale: (overrides: any = {}) => ({
-    serial_number: 'TEST-POS-123',
-    status: 'NEW' as const,
+      province: 'RM'
+    }
+  };
+  
+  const mockPosInfo: OnboardingPOSInfo = {
     address: {
-      street_address: 'Via Roma 1',
-      zip_code: '00100',
-      city: 'Roma',
-      province: 'RM',
-    },
-    ...overrides,
-  }),
-};
+      streetAddress: 'Via Milano 5',
+      zipCode: '20100',
+      city: 'Milano',
+      province: 'MI'
+    }
+  };
+  
+  const mockCashRegisterInfo: OnboardingCashRegisterInfo = {
+    pemSerialNumber: 'POS-123',
+    name: 'Main Register'
+  };
+  
+  const mockPosActivationInfo: OnboardingPosActivationInfo = {
+    registrationKey: 'REG-KEY-123',
+    posSerialNumber: 'POS-SERIAL-456'
+  };
 
-describe('useOnboardingFlow - React Native', () => {
-  // Common test data for React Native environment
   const providerInput: UseOnboardingFlowInput = {
-    role: 'provider' as OnboardingRole,
+    role: 'provider',
     step: 'authentication',
-    credentials: {
-      email: 'provider@example.com',
-      password: 'password123',
-    },
-    merchantInfo: {
-      fiscalId: '12345678901',
-      name: 'Test Store Mobile',
-      email: 'store@example.com',
-      address: {
-        streetAddress: 'Via Roma 1',
-        zipCode: '00100',
-        city: 'Roma',
-        province: 'RM',
-      },
-    },
+    credentials: mockCredentials
   };
 
   const merchantInput: UseOnboardingFlowInput = {
-    role: 'merchant' as OnboardingRole,
+    role: 'merchant',
     step: 'authentication',
-    credentials: {
-      email: 'merchant@example.com',
-      password: 'password123',
-    },
-    registrationKey: 'mobile-registration-key',
+    credentials: mockCredentials
   };
 
   beforeEach(() => {
@@ -179,7 +177,11 @@ describe('useOnboardingFlow - React Native', () => {
   describe('React Native Specific Features', () => {
     it('should handle React Native secure storage correctly', async () => {
       mockIsAuthenticated.mockResolvedValue(false);
-      mockLoginProvider.mockResolvedValue(mockGenerators.token());
+      mockLoginProvider.mockResolvedValue({
+        access_token: 'test-access-token',
+        token_type: 'Bearer',
+        expires_in: 3600
+      });
 
       const { result } = renderHook(() => useOnboardingFlow(providerInput), {
         wrapper: RNTestWrapper,
@@ -209,7 +211,11 @@ describe('useOnboardingFlow - React Native', () => {
       // Start with network connected
       mockIsConnected.mockReturnValueOnce(true);
       mockIsAuthenticated.mockResolvedValue(false);
-      mockLoginProvider.mockResolvedValue(mockGenerators.token());
+      mockLoginProvider.mockResolvedValue({
+        access_token: 'test-access-token',
+        token_type: 'Bearer',
+        expires_in: 3600
+      });
 
       const { result } = renderHook(() => useOnboardingFlow(providerInput), {
         wrapper: RNTestWrapper,
@@ -229,14 +235,18 @@ describe('useOnboardingFlow - React Native', () => {
       });
 
       expect(mockLoginProvider).toHaveBeenCalledWith(
-        providerInput.credentials?.email,
-        providerInput.credentials?.password
+        'provider@example.com',
+        'password123'
       );
     });
 
     it('should handle React Native app backgrounding and foregrounding', async () => {
       mockIsAuthenticated.mockResolvedValue(false);
-      mockLoginProvider.mockResolvedValue(mockGenerators.token());
+      mockLoginProvider.mockResolvedValue({
+        access_token: 'test-access-token',
+        token_type: 'Bearer',
+        expires_in: 3600
+      });
 
       const { result } = renderHook(() => useOnboardingFlow(providerInput), {
         wrapper: RNTestWrapper,
@@ -263,9 +273,11 @@ describe('useOnboardingFlow - React Native', () => {
   describe('React Native Provider Flow', () => {
     it('should execute authentication step successfully', async () => {
       mockIsAuthenticated.mockResolvedValue(false);
-      mockLoginProvider.mockResolvedValue(mockGenerators.token({
-        access_token: 'rn-access-token-123'
-      }));
+      mockLoginProvider.mockResolvedValue({
+        access_token: 'rn-access-token-123',
+        token_type: 'Bearer',
+        expires_in: 3600
+      });
 
       const { result } = renderHook(() => useOnboardingFlow(providerInput), {
         wrapper: RNTestWrapper,
@@ -285,22 +297,25 @@ describe('useOnboardingFlow - React Native', () => {
 
       // Verify React Native specific login was called
       expect(mockLoginProvider).toHaveBeenCalledWith(
-        providerInput.credentials?.email,
-        providerInput.credentials?.password
+        'provider@example.com',
+        'password123'
       );
     });
 
     it('should execute merchant creation step successfully', async () => {
-      const merchantCreationInput = {
-        ...providerInput,
-        step: 'merchant_creation' as const,
+      const merchantCreationInput: UseOnboardingFlowInput = {
+        role: 'provider',
+        step: 'merchant_creation',
+        merchantInfo: mockMerchantInfo
       };
 
       mockIsAuthenticated.mockResolvedValue(true);
-      mockCreateMerchant.mockResolvedValue(mockGenerators.merchant({
+      mockCreateMerchant.mockResolvedValue({
         uuid: 'rn-merchant-456',
-        name: 'React Native Store'
-      }));
+        fiscal_id: '12345678901',
+        name: 'React Native Store',
+        email: 'store@example.com'
+      });
 
       const { result } = renderHook(() => useOnboardingFlow(merchantCreationInput), {
         wrapper: RNTestWrapper,
@@ -322,9 +337,10 @@ describe('useOnboardingFlow - React Native', () => {
     });
 
     it('should handle React Native specific merchant creation errors', async () => {
-      const merchantCreationInput = {
-        ...providerInput,
-        step: 'merchant_creation' as const,
+      const merchantCreationInput: UseOnboardingFlowInput = {
+        role: 'provider',
+        step: 'merchant_creation',
+        merchantInfo: mockMerchantInfo
       };
 
       mockIsAuthenticated.mockResolvedValue(true);
@@ -352,24 +368,14 @@ describe('useOnboardingFlow - React Native', () => {
 
   describe('React Native Merchant Flow', () => {
     it('should execute POS activation step successfully', async () => {
-      const posActivationInput = {
-        ...merchantInput,
-        step: 'pos_activation' as const,
+      const posActivationInput: UseOnboardingFlowInput = {
+        role: 'merchant',
+        step: 'pos_activation',
+        posActivationInfo: mockPosActivationInfo
       };
 
       mockIsAuthenticated.mockResolvedValue(true);
-      
-      // Mock empty responses for active and registered POS, then provide NEW POS for activation
-      mockGetPointOfSales
-        .mockResolvedValueOnce({ members: [] }) // No active POS
-        .mockResolvedValueOnce({ members: [] }) // No registered POS  
-        .mockResolvedValueOnce({ 
-          members: [mockGenerators.pointOfSale({ serial_number: 'RN-POS456' })],
-          total: 1,
-          page: 1,
-          size: 10,
-        }); // NEW POS available
-      mockActivatePointOfSale.mockResolvedValue();
+      mockActivatePointOfSale.mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useOnboardingFlow(posActivationInput), {
         wrapper: RNTestWrapper,
@@ -387,31 +393,30 @@ describe('useOnboardingFlow - React Native', () => {
         expect(result.current.state.error).toBeNull();
       });
 
-      expect(result.current.state.result.posSerialNumber).toBe('RN-POS456');
-      expect(mockActivatePointOfSale).toHaveBeenCalledWith('RN-POS456', 'mobile-registration-key');
+      expect(result.current.state.result.posSerialNumber).toBe('POS-SERIAL-456');
+      expect(mockActivatePointOfSale).toHaveBeenCalledWith('POS-SERIAL-456', {
+        registration_key: 'REG-KEY-123'
+      });
     });
 
     it('should execute cash register creation step successfully', async () => {
-      const cashRegisterInput = {
-        ...merchantInput,
-        step: 'cash_register_creation' as const,
+      const cashRegisterInput: UseOnboardingFlowInput = {
+        role: 'merchant',
+        step: 'cash_register_creation',
+        cashRegisterInfo: mockCashRegisterInfo
       };
 
       mockIsAuthenticated.mockResolvedValue(true);
       
-      // Mock the POS serial number that should be retrieved from storage
-      mockSecureTokenStorage.getItem
-        .mockResolvedValueOnce(null) // ONBOARDING_STEP - no persisted state
-        .mockResolvedValueOnce(null) // MERCHANT_UUID - no persisted state  
-        .mockResolvedValueOnce('RN-STORED-POS123'); // CURRENT_POS_SERIAL - for cash register creation
-      
       const rnCashRegister = {
         id: 'rn-cash-reg-789',
-        pem_serial_number: 'RN-STORED-POS123',
-        name: 'Cash Register - RN-STORED-POS123',
+        pem_serial_number: 'POS-123',
+        name: 'Main Register',
         mtls_certificate: 'rn-certificate-data-base64',
+        private_key: 'private-key-data'
       };
       mockCreateCashRegister.mockResolvedValue(rnCashRegister);
+      mockGetPointOfSaleBySerial.mockResolvedValue({ status: 'ACTIVE' } as any);
 
       const { result } = renderHook(() => useOnboardingFlow(cashRegisterInput), {
         wrapper: RNTestWrapper,
@@ -431,29 +436,19 @@ describe('useOnboardingFlow - React Native', () => {
 
       expect(result.current.state.result.cashRegisterId).toBe('rn-cash-reg-789');
       expect(mockCreateCashRegister).toHaveBeenCalledWith({
-        pem_serial_number: 'RN-STORED-POS123',
-        name: 'Cash Register - RN-STORED-POS123'
+        pem_serial_number: 'POS-123',
+        name: 'Main Register'
       });
     });
 
     it('should handle React Native specific POS activation errors', async () => {
-      const posActivationInput = {
-        ...merchantInput,
-        step: 'pos_activation' as const,
+      const posActivationInput: UseOnboardingFlowInput = {
+        role: 'merchant',
+        step: 'pos_activation',
+        posActivationInfo: mockPosActivationInfo
       };
 
       mockIsAuthenticated.mockResolvedValue(true);
-      
-      // Mock empty responses for active and registered POS, then provide NEW POS for activation
-      mockGetPointOfSales
-        .mockResolvedValueOnce({ members: [] }) // No active POS
-        .mockResolvedValueOnce({ members: [] }) // No registered POS  
-        .mockResolvedValueOnce({ 
-          members: [mockGenerators.pointOfSale({ serial_number: 'RN-ERROR-POS' })],
-          total: 1,
-          page: 1,
-          size: 1,
-        }); // NEW POS available
       
       // Mock React Native specific activation error (e.g., hardware issue)
       mockActivatePointOfSale.mockRejectedValue(new Error('Device hardware not responding'));
@@ -506,16 +501,19 @@ describe('useOnboardingFlow - React Native', () => {
       expect(result.current.state).toEqual({
         loading: false,
         step: 'authentication',
+        nextStep: 'merchant_check',
         error: null,
         progress: 20, // 20% for authentication step
         result: {},
+        canSkipToCompletion: false
       });
     });
 
     it('should handle React Native memory warnings during onboarding', async () => {
-      const merchantCreationInput = {
-        ...providerInput,
-        step: 'merchant_creation' as const,
+      const merchantCreationInput: UseOnboardingFlowInput = {
+        role: 'provider',
+        step: 'merchant_creation',
+        merchantInfo: mockMerchantInfo
       };
 
       mockIsAuthenticated.mockResolvedValue(true);
@@ -544,7 +542,11 @@ describe('useOnboardingFlow - React Native', () => {
   describe('React Native Integration with EReceiptsProvider', () => {
     it('should work correctly with React Native specific provider initialization', async () => {
       mockIsAuthenticated.mockResolvedValue(false);
-      mockLoginProvider.mockResolvedValue(mockGenerators.token());
+      mockLoginProvider.mockResolvedValue({
+        access_token: 'test-access-token',
+        token_type: 'Bearer',
+        expires_in: 3600
+      });
 
       const { result } = renderHook(() => useOnboardingFlow(providerInput), {
         wrapper: RNTestWrapper,
@@ -571,14 +573,23 @@ describe('useOnboardingFlow - React Native', () => {
 
   describe('React Native Performance Considerations', () => {
     it('should handle large data sets efficiently in React Native', async () => {
-      const merchantCheckInput = {
-        ...providerInput,
-        step: 'merchant_check' as const,
+      const merchantCheckInput: UseOnboardingFlowInput = {
+        role: 'provider',
+        step: 'merchant_check'
       };
 
-      const largeMerchantList = Array.from({ length: 100 }, (_, i) => 
-        mockGenerators.merchant({ uuid: `merchant-${i}` })
-      );
+      const largeMerchantList = Array.from({ length: 100 }, (_, i) => ({
+        uuid: `merchant-${i}`,
+        fiscal_id: `12345678${i.toString().padStart(3, '0')}`,
+        name: `Merchant ${i}`,
+        email: `merchant${i}@test.com`,
+        address: {
+          street_address: 'Via Roma 1',
+          zip_code: '00100',
+          city: 'Roma',
+          province: 'RM'
+        }
+      }));
 
       mockIsAuthenticated.mockResolvedValue(true);
       mockGetMerchants.mockResolvedValue(largeMerchantList);
@@ -592,7 +603,7 @@ describe('useOnboardingFlow - React Native', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.state.step).toBe('merchant_check');
+        expect(result.current.state.step).toBe('completed');
       });
 
       await waitFor(() => {
@@ -608,7 +619,11 @@ describe('useOnboardingFlow - React Native', () => {
       
       // Mock delayed responses to simulate React Native bridge delays
       mockLoginProvider.mockImplementation(() => 
-        new Promise(resolve => setTimeout(() => resolve(mockGenerators.token()), 100))
+        new Promise(resolve => setTimeout(() => resolve({
+          access_token: 'delayed-token',
+          token_type: 'Bearer',
+          expires_in: 3600
+        }), 100))
       );
 
       const { result } = renderHook(() => useOnboardingFlow(providerInput), {

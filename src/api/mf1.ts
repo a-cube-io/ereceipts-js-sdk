@@ -2,16 +2,24 @@
 import { getAPIClient } from './client';
 import { MF1_PATHS } from '../constants/endpoints';
 import {
+  ActivationRequest,
   CashRegisterCreate,
-  CashRegisterOutput,
+  CashRegisterDetailedOutput,
   CashierCreateInput,
   CashierOutput,
-  PEMPublic,
-  PaginatedResponse,
+  PEMDetailed,
+  PEMStatus,
+  PEMStatusOfflineRequest,
+  PageCashRegisterBasicOutput,
+  PageCashierOutput,
+  PagePointOfSaleOutput,
+  PageReceiptOutput,
   ReceiptDetailsOutput,
   ReceiptInput,
   ReceiptOutput,
-} from './types.generated';
+  ReceiptReturnOrVoidViaPEMInput,
+  ReceiptReturnOrVoidWithProofInput,
+} from './types.convenience';
 
 /**
  * Cashier Management
@@ -22,9 +30,9 @@ export const createCashier = async (data: CashierCreateInput): Promise<CashierOu
   return response.data;
 };
 
-export const getCashiers = async (page: number = 1, size: number = 30): Promise<PaginatedResponse<CashierOutput>> => {
+export const getCashiers = async (page: number = 1, size: number = 30): Promise<PageCashierOutput> => {
   const client = getAPIClient();
-  const response = await client.get<PaginatedResponse<CashierOutput>>(
+  const response = await client.get<PageCashierOutput>(
     `${MF1_PATHS.CASHIERS}?page=${page}&size=${size}`
   );
   return response.data;
@@ -51,33 +59,31 @@ export const deleteCashier = async (id: number): Promise<void> => {
  * Point of Sale Management
  */
 export const getPointOfSales = async (
-  status?: string,
+  status?: PEMStatus,
   page: number = 1,
   size: number = 30
-): Promise<PaginatedResponse<PEMPublic>> => {
+): Promise<PagePointOfSaleOutput> => {
   const client = getAPIClient();
   let url = `${MF1_PATHS.POINT_OF_SALES}?page=${page}&size=${size}`;
   if (status) {
     url += `&status=${status}`;
   }
-  const response = await client.get<PaginatedResponse<PEMPublic>>(url);
+  const response = await client.get<PagePointOfSaleOutput>(url);
   return response.data;
 };
 
-export const getPointOfSaleBySerial = async (serialNumber: string): Promise<PEMPublic> => {
+export const getPointOfSaleBySerial = async (serialNumber: string): Promise<PEMDetailed> => {
   const client = getAPIClient();
-  const response = await client.get<PEMPublic>(MF1_PATHS.POINT_OF_SALE_BY_SERIAL(serialNumber));
+  const response = await client.get<PEMDetailed>(MF1_PATHS.POINT_OF_SALE_BY_SERIAL(serialNumber));
   return response.data;
 };
 
 export const activatePointOfSale = async (
   serialNumber: string,
-  registrationKey: string
+  data: ActivationRequest
 ): Promise<void> => {
   const client = getAPIClient();
-  await client.post(MF1_PATHS.POINT_OF_SALE_ACTIVATION(serialNumber), {
-    registration_key: registrationKey,
-  });
+  await client.post(MF1_PATHS.POINT_OF_SALE_ACTIVATION(serialNumber), data);
 };
 
 export const createInactivityPeriod = async (serialNumber: string): Promise<void> => {
@@ -87,14 +93,10 @@ export const createInactivityPeriod = async (serialNumber: string): Promise<void
 
 export const setPointOfSaleOffline = async (
   serialNumber: string,
-  timestamp: string,
-  reason: string
+  data: PEMStatusOfflineRequest
 ): Promise<void> => {
   const client = getAPIClient();
-  await client.post(MF1_PATHS.POINT_OF_SALE_OFFLINE(serialNumber), {
-    timestamp,
-    reason,
-  });
+  await client.post(MF1_PATHS.POINT_OF_SALE_OFFLINE(serialNumber), data);
 };
 
 export const closeJournal = async (): Promise<void> => {
@@ -114,9 +116,9 @@ export const createReceipt = async (data: ReceiptInput): Promise<ReceiptOutput> 
 export const getReceipts = async (
   page: number = 1,
   size: number = 30
-): Promise<PaginatedResponse<ReceiptOutput>> => {
+): Promise<PageReceiptOutput> => {
   const client = getAPIClient();
-  const response = await client.get<PaginatedResponse<ReceiptOutput>>(
+  const response = await client.get<PageReceiptOutput>(
     `${MF1_PATHS.RECEIPTS}?page=${page}&size=${size}`
   );
   return response.data;
@@ -144,47 +146,23 @@ export const getReceiptDetails = async (
   return response.data as ReceiptDetailsOutput;
 };
 
-export const voidReceipt = async (data: {
-  pem_id?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  items: any[];
-  document_number: string;
-  document_date?: string;
-  lottery_code?: string;
-}): Promise<void> => {
+export const voidReceipt = async (data: ReceiptReturnOrVoidViaPEMInput): Promise<void> => {
   const client = getAPIClient();
   await client.delete(MF1_PATHS.RECEIPTS, { data });
 };
 
-export const voidReceiptWithProof = async (data: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  items: any[];
-  proof: 'POS' | 'VR' | 'ND';
-  document_datetime: string;
-}): Promise<void> => {
+export const voidReceiptWithProof = async (data: ReceiptReturnOrVoidWithProofInput): Promise<void> => {
   const client = getAPIClient();
   await client.delete(MF1_PATHS.RECEIPT_VOID_WITH_PROOF, { data });
 };
 
-export const returnReceiptItems = async (data: {
-  pem_id?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  items: any[];
-  document_number: string;
-  document_date?: string;
-  lottery_code?: string;
-}): Promise<ReceiptOutput> => {
+export const returnReceiptItems = async (data: ReceiptReturnOrVoidViaPEMInput): Promise<ReceiptOutput> => {
   const client = getAPIClient();
   const response = await client.post<ReceiptOutput>(MF1_PATHS.RECEIPT_RETURN, data);
   return response.data;
 };
 
-export const returnReceiptItemsWithProof = async (data: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  items: any[];
-  proof: 'POS' | 'VR' | 'ND';
-  document_datetime: string;
-}): Promise<ReceiptOutput> => {
+export const returnReceiptItemsWithProof = async (data: ReceiptReturnOrVoidWithProofInput): Promise<ReceiptOutput> => {
   const client = getAPIClient();
   const response = await client.post<ReceiptOutput>(MF1_PATHS.RECEIPT_RETURN_WITH_PROOF, data);
   return response.data;
@@ -193,29 +171,31 @@ export const returnReceiptItemsWithProof = async (data: {
 /**
  * Cash Register Management
  */
-export const createCashRegister = async (data: CashRegisterCreate): Promise<CashRegisterOutput> => {
+export const createCashRegister = async (data: CashRegisterCreate): Promise<CashRegisterDetailedOutput> => {
   const client = getAPIClient();
-  const response = await client.post<CashRegisterOutput>(MF1_PATHS.CASH_REGISTER, data);
+  const response = await client.post<CashRegisterDetailedOutput>(MF1_PATHS.CASH_REGISTER, data);
   return response.data;
 };
 
 export const getCashRegisters = async (
   page: number = 1,
   size: number = 30
-): Promise<PaginatedResponse<CashRegisterOutput>> => {
+): Promise<PageCashRegisterBasicOutput> => {
   const client = getAPIClient();
-  const response = await client.get<PaginatedResponse<CashRegisterOutput>>(
+  const response = await client.get<PageCashRegisterBasicOutput>(
     `${MF1_PATHS.CASH_REGISTER}?page=${page}&size=${size}`
   );
   return response.data;
 };
 
-export const getCashRegisterById = async (id: string): Promise<CashRegisterOutput> => {
+export const getCashRegisterById = async (id: string): Promise<CashRegisterDetailedOutput> => {
   const client = getAPIClient();
-  const response = await client.get<CashRegisterOutput>(MF1_PATHS.CASH_REGISTER_BY_ID(id));
+  const response = await client.get<CashRegisterDetailedOutput>(MF1_PATHS.CASH_REGISTER_BY_ID(id));
   return response.data;
 };
 
+// Note: MTLS Certificate endpoint is not in the OpenAPI spec
+// This function is kept for backward compatibility but may need verification
 export const getMTLSCertificate = async (id: string): Promise<string> => {
   const client = getAPIClient();
   const response = await client.get<string>(MF1_PATHS.CASH_REGISTER_MTLS_CERT(id));

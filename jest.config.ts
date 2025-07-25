@@ -1,8 +1,43 @@
 import type { Config } from '@jest/types';
 
 const config: Config.InitialOptions = {
-  // Use projects to separate React and React Native tests
+  // Use projects to separate different test environments
   projects: [
+    {
+      displayName: 'API & Utils Tests',
+      testEnvironment: 'node',
+      testMatch: [
+        '<rootDir>/src/__tests__/api/**/*.{test,spec}.{js,jsx,ts,tsx}',
+        '<rootDir>/src/__tests__/utils/**/*.{test,spec}.{js,jsx,ts,tsx}',
+        '<rootDir>/src/__tests__/constants/**/*.{test,spec}.{js,jsx,ts,tsx}',
+        '<rootDir>/src/__tests__/storage/**/*.{test,spec}.{js,jsx,ts,tsx}',
+      ],
+      setupFilesAfterEnv: [
+        '<rootDir>/src/__tests__/setup-api.ts',
+      ],
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1',
+      },
+      transform: {
+        '^.+\\.(ts|tsx)$': ['ts-jest', {
+          tsconfig: 'tsconfig.json',
+        }],
+        '^.+\\.(js|jsx)$': 'babel-jest',
+      },
+      transformIgnorePatterns: [
+        'node_modules/(?!(axios|zod)/)',
+      ],
+      coverageDirectory: 'coverage/api',
+      collectCoverageFrom: [
+        'src/api/**/*.{js,jsx,ts,tsx}',
+        'src/storage/**/*.{js,jsx,ts,tsx}',
+        'src/utils/**/*.{js,jsx,ts,tsx}',
+        'src/constants/**/*.{js,jsx,ts,tsx}',
+        '!src/**/*.d.ts',
+        '!src/__tests__/**',
+        '!src/api/types.generated.ts',
+      ],
+    },
     {
       displayName: 'React Tests',
       testEnvironment: 'jsdom',
@@ -25,7 +60,6 @@ const config: Config.InitialOptions = {
       transformIgnorePatterns: [
         'node_modules/(?!(react|react-dom)/)',
       ],
-      collectCoverage: false, // Disable coverage for individual projects to avoid conflicts
       coverageDirectory: 'coverage/react',
       collectCoverageFrom: [
         'src/**/*.{js,jsx,ts,tsx}',
@@ -34,8 +68,8 @@ const config: Config.InitialOptions = {
         '!src/**/*.test.{js,jsx,ts,tsx}',
         '!src/**/*.spec.{js,jsx,ts,tsx}',
         '!src/api/types.generated.ts',
+        '!src/components/**/*.react-native.{js,jsx,ts,tsx}', // Exclude React Native components
       ],
-      testTimeout: 10000,
     },
     {
       displayName: 'React Native Tests',
@@ -59,7 +93,6 @@ const config: Config.InitialOptions = {
       transformIgnorePatterns: [
         'node_modules/(?!(react-native|@react-native|@react-native-community|@react-native-async-storage|react-native-keychain|@testing-library)/)',
       ],
-      collectCoverage: false, // Disable coverage for individual projects to avoid conflicts
       coverageDirectory: 'coverage/react-native',
       collectCoverageFrom: [
         'src/**/*.{js,jsx,ts,tsx}',
@@ -68,8 +101,8 @@ const config: Config.InitialOptions = {
         '!src/**/*.test.{js,jsx,ts,tsx}',
         '!src/**/*.spec.{js,jsx,ts,tsx}',
         '!src/api/types.generated.ts',
+        '!src/components/**/*.react.{js,jsx,ts,tsx}', // Exclude React-only components
       ],
-      testTimeout: 10000,
     },
   ],
 
@@ -126,6 +159,12 @@ const config: Config.InitialOptions = {
     '/dist/',
     '/src/__tests__/',
   ],
+  testTimeout: 10000,
+  maxWorkers: '50%',
+  clearMocks: true,
+  restoreMocks: true,
+  verbose: true,
+  errorOnDeprecated: true,
 };
 
 export default config; 

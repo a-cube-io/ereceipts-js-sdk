@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import { createStore, del, get, set } from 'idb-keyval';
 import { SECURE_KEYS, STORAGE_KEYS } from '../constants/keys';
-import { AuthToken, JWTPayload } from '../api/types.generated';
+import { AuthToken, JWTPayload } from '../api/types.convenience';
 import { apiLogger } from '../utils/logger';
 
 // Platform detection

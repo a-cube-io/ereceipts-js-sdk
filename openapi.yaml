@@ -17,13 +17,15 @@ tags:
     x-displayName: Cash Register
   - name: Merchant
     x-displayName: Merchant
+  - name: Pem
+    x-displayName: Pem
 paths:
-  /mf1/cashiers/:
+  /mf1/cashiers:
     get:
       tags:
         - Cashier
       summary: Read Cashiers
-      operationId: read_cashiers_mf1_cashiers__get
+      operationId: read_cashiers_mf1_cashiers_get
       security:
         - E-Receipt_IT_API_OAuth2PasswordBearer: []
       parameters:
@@ -74,7 +76,7 @@ paths:
       tags:
         - Cashier
       summary: Create Cashier
-      operationId: create_cashier_mf1_cashiers__post
+      operationId: create_cashier_mf1_cashiers_post
       security:
         - E-Receipt_IT_API_OAuth2PasswordBearer: []
       requestBody:
@@ -213,13 +215,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
-  /mf1/point-of-sales/:
+  /mf1/point-of-sales:
     get:
       tags:
         - Point of Sale
       summary: Read Point Of Sales
       description: Retrieve PEMs.
-      operationId: read_point_of_sales_mf1_point_of_sales__get
+      operationId: read_point_of_sales_mf1_point_of_sales_get
       security:
         - E-Receipt_IT_API_OAuth2PasswordBearer: []
       parameters:
@@ -255,7 +257,7 @@ paths:
             application/json:
               schema:
                 $ref: >-
-                  #/components/schemas/E-Receipt_IT_API_Page__T_Customized_PEMPublic_
+                  #/components/schemas/E-Receipt_IT_API_Page__T_Customized_PointOfSaleOutput_
         '403':
           content:
             application/json:
@@ -297,7 +299,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/E-Receipt_IT_API_PEMPublic'
+                $ref: >-
+                  #/components/schemas/E-Receipt_IT_API_PointOfSaleDetailedOutput
         '403':
           content:
             application/json:
@@ -505,12 +508,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
-  /mf1/receipts/:
+  /mf1/receipts:
     post:
       tags:
         - Receipt
       summary: Create a new electronic receipt
-      operationId: create_receipt_mf1_receipts__post
+      operationId: create_receipt_mf1_receipts_post
       security:
         - E-Receipt_IT_API_OAuth2PasswordBearer: []
       requestBody:
@@ -548,7 +551,7 @@ paths:
       tags:
         - Receipt
       summary: Get a list of electronic receipts
-      operationId: get_receipts_mf1_receipts__get
+      operationId: get_receipts_mf1_receipts_get
       security:
         - E-Receipt_IT_API_OAuth2PasswordBearer: []
       parameters:
@@ -599,7 +602,7 @@ paths:
       tags:
         - Receipt
       summary: Void an electronic receipt
-      operationId: void_receipt_mf1_receipts__delete
+      operationId: void_receipt_mf1_receipts_delete
       security:
         - E-Receipt_IT_API_OAuth2PasswordBearer: []
       requestBody:
@@ -846,13 +849,13 @@ paths:
                 $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
       security:
         - E-Receipt_IT_API_OAuth2PasswordBearer: []
-  /mf1/cash-register/:
+  /mf1/cash-register:
     post:
       tags:
         - Cash Register
       summary: Create Cash Register
       description: Create a new point of sale.
-      operationId: create_cash_register_mf1_cash_register__post
+      operationId: create_cash_register_mf1_cash_register_post
       security:
         - E-Receipt_IT_API_OAuth2PasswordBearer: []
       requestBody:
@@ -892,7 +895,7 @@ paths:
         - Cash Register
       summary: Get Cash Registers
       description: Get all point of sales for the current merchant.
-      operationId: get_cash_registers_mf1_cash_register__get
+      operationId: get_cash_registers_mf1_cash_register_get
       security:
         - E-Receipt_IT_API_OAuth2PasswordBearer: []
       parameters:
@@ -965,53 +968,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/E-Receipt_IT_API_CashRegisterBasicOutput'
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
-          description: Forbidden
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
-          description: Not Found
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
-  /mf1/cash-register/{id}/mtls-certificate:
-    get:
-      tags:
-        - Cash Register
-      summary: Get Mtls Certificate
-      description: Get the mtls certificate for a point of sale.
-      operationId: get_mtls_certificate_mf1_cash_register__id__mtls_certificate_get
-      security:
-        - E-Receipt_IT_API_OAuth2PasswordBearer: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-            description: ID of the cash register
-            title: Id
-          description: ID of the cash register
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: string
-                title: >-
-                  Response Get Mtls Certificate Mf1 Cash Register  Id  Mtls
-                  Certificate Get
         '403':
           content:
             application/json:
@@ -1140,7 +1096,7 @@ paths:
           allowReserved: false
       deprecated: false
       x-apiplatform-tag:
-        - customer
+        - mf2
       security: []
     post:
       operationId: api_merchants_post
@@ -1218,7 +1174,7 @@ paths:
         required: true
       deprecated: false
       x-apiplatform-tag:
-        - customer
+        - mf2
       security: []
   /mf2/merchants/{uuid}:
     get:
@@ -1279,7 +1235,7 @@ paths:
           allowReserved: false
       deprecated: false
       x-apiplatform-tag:
-        - customer
+        - mf2
       security: []
     put:
       operationId: api_merchants_uuid_put
@@ -1381,7 +1337,147 @@ paths:
         required: true
       deprecated: false
       x-apiplatform-tag:
-        - customer
+        - mf2
+      security: []
+  /mf2/point-of-sales:
+    post:
+      operationId: api_point-of-sales_post
+      tags:
+        - Pem
+      responses:
+        '201':
+          description: Pem resource created
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateOutput
+            application/ld+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateOutput.jsonld
+          links: {}
+        '400':
+          description: Invalid input
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+        '422':
+          description: An error occurred
+          content:
+            application/ld+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_ConstraintViolation.jsonld-jsonld
+            application/problem+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json
+          links: {}
+      summary: Creates a new PEM.
+      description: Creates a Pem resource.
+      parameters: []
+      requestBody:
+        description: The new Pem resource
+        content:
+          application/json:
+            schema:
+              $ref: >-
+                #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateInput
+          application/ld+json:
+            schema:
+              $ref: >-
+                #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateInput.jsonld
+        required: true
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2
+      security: []
+  /mf2/point-of-sales/{id}/certificates:
+    get:
+      operationId: api_point-of-sales_idcertificates_get
+      tags:
+        - Pem
+      responses:
+        '200':
+          description: Pem resource
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Pem.PemCertificatesOutput
+            application/ld+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Pem.PemCertificatesOutput.jsonld
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+        '404':
+          description: Not found
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+      summary: Returns the mTLS and signing certificates
+      description: Retrieves a Pem resource.
+      parameters:
+        - name: id
+          in: path
+          description: Pem identifier
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2
       security: []
 webhooks: {}
 components:
@@ -1470,12 +1566,16 @@ components:
         mtls_certificate:
           type: string
           title: Mtls Certificate
+        private_key:
+          type: string
+          title: Private Key
       type: object
       required:
         - id
         - pem_serial_number
         - name
         - mtls_certificate
+        - private_key
       title: CashRegisterDetailedOutput
     E-Receipt_IT_API_CashierCreateInput:
       properties:
@@ -1641,21 +1741,6 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
-    E-Receipt_IT_API_PEMPublic:
-      properties:
-        serial_number:
-          type: string
-          title: Serial Number
-        status:
-          $ref: '#/components/schemas/E-Receipt_IT_API_PEMStatus'
-        address:
-          $ref: '#/components/schemas/E-Receipt_IT_API_Address'
-      type: object
-      required:
-        - serial_number
-        - status
-        - address
-      title: PEMPublic
     E-Receipt_IT_API_PEMStatus:
       type: string
       enum:
@@ -1754,11 +1839,11 @@ components:
         - page
         - size
       title: Page[~T]Customized[CashierOutput]
-    E-Receipt_IT_API_Page__T_Customized_PEMPublic_:
+    E-Receipt_IT_API_Page__T_Customized_PointOfSaleOutput_:
       properties:
         members:
           items:
-            $ref: '#/components/schemas/E-Receipt_IT_API_PEMPublic'
+            $ref: '#/components/schemas/E-Receipt_IT_API_PointOfSaleOutput'
           type: array
           title: Members
         total:
@@ -1790,7 +1875,7 @@ components:
         - members
         - page
         - size
-      title: Page[~T]Customized[PEMPublic]
+      title: Page[~T]Customized[PointOfSaleOutput]
     E-Receipt_IT_API_Page__T_Customized_ReceiptOutput_:
       properties:
         members:
@@ -1828,6 +1913,42 @@ components:
         - page
         - size
       title: Page[~T]Customized[ReceiptOutput]
+    E-Receipt_IT_API_PointOfSaleDetailedOutput:
+      properties:
+        serial_number:
+          type: string
+          title: Serial Number
+        status:
+          $ref: '#/components/schemas/E-Receipt_IT_API_PEMStatus'
+        address:
+          $ref: '#/components/schemas/E-Receipt_IT_API_Address'
+        registration_key:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Registration Key
+      type: object
+      required:
+        - serial_number
+        - status
+        - address
+        - registration_key
+      title: PointOfSaleDetailedOutput
+    E-Receipt_IT_API_PointOfSaleOutput:
+      properties:
+        serial_number:
+          type: string
+          title: Serial Number
+        status:
+          $ref: '#/components/schemas/E-Receipt_IT_API_PEMStatus'
+        address:
+          $ref: '#/components/schemas/E-Receipt_IT_API_Address'
+      type: object
+      required:
+        - serial_number
+        - status
+        - address
+      title: PointOfSaleOutput
     E-Receipt_IT_API_ReceiptDetailsOutput:
       properties:
         uuid:
@@ -2708,6 +2829,172 @@ components:
           anyOf:
             - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Address.jsonld'
             - type: 'null'
+    A-Cube_GOV-IT_PEL_Platform_Pem.PemCertificatesOutput:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        mtls_certificate:
+          type: string
+        activation_xml_response:
+          type:
+            - string
+            - 'null'
+    A-Cube_GOV-IT_PEL_Platform_Pem.PemCertificatesOutput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            - type: string
+            - type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum:
+                    - http://www.w3.org/ns/hydra/core#
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        mtls_certificate:
+          type: string
+        activation_xml_response:
+          type:
+            - string
+            - 'null'
+    A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateInput:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - merchant_uuid
+      properties:
+        merchant_uuid:
+          format: uuid
+          description: The merchant UUID.
+          externalDocs:
+            url: https://schema.org/identifier
+          type: string
+        address:
+          description: The address. Leave empty to use the default merchant address.
+          anyOf:
+            - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Address'
+            - type: 'null'
+        external_pem_data:
+          description: 'The external PEM configuration. '
+          anyOf:
+            - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_PemData'
+            - type: 'null'
+    A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateInput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - merchant_uuid
+      properties:
+        merchant_uuid:
+          format: uuid
+          description: The merchant UUID.
+          externalDocs:
+            url: https://schema.org/identifier
+          type: string
+        address:
+          description: The address. Leave empty to use the default merchant address.
+          anyOf:
+            - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Address.jsonld'
+            - type: 'null'
+        external_pem_data:
+          description: 'The external PEM configuration. '
+          anyOf:
+            - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_PemData.jsonld'
+            - type: 'null'
+    A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateOutput:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        serial_number:
+          type: string
+        registration_key:
+          type: string
+    A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateOutput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            - type: string
+            - type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum:
+                    - http://www.w3.org/ns/hydra/core#
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        serial_number:
+          type: string
+        registration_key:
+          type: string
+    A-Cube_GOV-IT_PEL_Platform_PemData:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - version
+        - type
+      properties:
+        version:
+          pattern: ^(\d+\.\d+\.\d+)$
+          type: string
+        type:
+          type: string
+          enum:
+            - AP
+            - SP
+            - TM
+            - PV
+    A-Cube_GOV-IT_PEL_Platform_PemData.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - version
+        - type
+      properties:
+        version:
+          pattern: ^(\d+\.\d+\.\d+)$
+          type: string
+        type:
+          type: string
+          enum:
+            - AP
+            - SP
+            - TM
+            - PV
   securitySchemes:
     E-Receipt_IT_API_OAuth2PasswordBearer:
       type: oauth2
@@ -2730,3 +3017,5 @@ x-tagGroups:
   - name: A-Cube GOV-IT PEL Platform
     tags:
       - Merchant
+      - Pem
+# Test comment

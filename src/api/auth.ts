@@ -1,7 +1,7 @@
 import { getAPIClient, getAuthClient } from './client';
 import { SecureTokenStorage } from '../storage/token';
 import { MF1_PATHS } from '../constants/endpoints';
-import { AuthToken } from './types.generated';
+import { AuthToken } from './types.convenience';
 import { ValidationResult, validateEmail, validatePassword } from '../utils/validation';
 import { authLogger } from '../utils/logger';
 

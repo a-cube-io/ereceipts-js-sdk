@@ -42,7 +42,7 @@ jobs:
               echo "node-versions=[18]" >> $GITHUB_OUTPUT
               echo "should-publish=true" >> $GITHUB_OUTPUT
             else
-              echo "node-versions=[16,18,20]" >> $GITHUB_OUTPUT
+              echo "node-versions=[18,20]" >> $GITHUB_OUTPUT
               echo "should-publish=false" >> $GITHUB_OUTPUT
             fi
           fi
@@ -132,7 +132,7 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: 🧪 Run tests
-        run: npm run test:silent
+        run: npm run test
 
       - name: 📊 Upload coverage reports
         if: matrix.node-version == 18

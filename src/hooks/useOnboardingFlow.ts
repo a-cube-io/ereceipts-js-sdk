@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { 
+  OnboardingResult,
+  OnboardingRole,
   OnboardingState,
-  OnboardingStep, 
+  OnboardingStep,
   UseOnboardingFlowInput, 
   UseOnboardingFlowReturn
 } from '../types/entities';
 // API imports
 import { isAuthenticated, loginMerchant, loginProvider } from '../api/auth';
-import { createMerchant, getMerchants } from '../api/mf2';
-import { activatePointOfSale, createCashRegister, getPointOfSales } from '../api/mf1';
+import { createMerchant, createPem, getMerchants } from '../api/mf2';
+import { activatePointOfSale, createCashRegister, getPointOfSaleBySerial } from '../api/mf1';
 // Storage and utilities
 import { SecureTokenStorage } from '../storage/token';
 import { isConnected } from '../utils/network';
@@ -83,13 +85,15 @@ import { STORAGE_KEYS } from '../constants/keys';
  * ```
  */
 export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingFlowReturn => {
-  // Initialize state with default values
+  // Initialize state with default values - nextStep will be calculated after calculateNextStep is defined
   const [state, setState] = useState<OnboardingState>({
     loading: false,
     step: input.step,
+    nextStep: null,
     error: null,
     progress: 0,
-    result: {}
+    result: {},
+    canSkipToCompletion: false
   });
 
   // Get EReceipts context for auth state integration
@@ -123,6 +127,48 @@ export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingF
     return progressMap[role]?.[step] ?? 0;
   }, []);
 
+  // Calculate next step based on current state and role
+  const calculateNextStep = useCallback((currentStep: OnboardingStep, role: OnboardingRole, result: OnboardingResult): OnboardingStep | null => {
+    if (role === 'provider') {
+      switch (currentStep) {
+        case 'authentication':
+          return 'merchant_check';
+        case 'merchant_check':
+          // If existing merchants found, skip to completion
+          if (result.existingMerchants && result.existingMerchants.length > 0) {
+            return 'completed';
+          }
+          return 'merchant_creation';
+        case 'merchant_creation':
+          return 'pos_creation';
+        case 'pos_creation':
+          return 'completed';
+        case 'completed':
+          return null;
+        default:
+          return null;
+      }
+    } else if (role === 'merchant') {
+      switch (currentStep) {
+        case 'authentication':
+          return 'pos_activation';
+        case 'pos_activation':
+          // If existing active POS found, skip to completion
+          if (result.existingActivePOS && result.existingActivePOS.length > 0) {
+            return 'completed';
+          }
+          return 'cash_register_creation';
+        case 'cash_register_creation':
+          return 'completed';
+        case 'completed':
+          return null;
+        default:
+          return null;
+      }
+    }
+    return null;
+  }, []);
+
   // Update state helper function
   const updateState = useCallback((updates: Partial<OnboardingState>) => {
     setState(prev => {
@@ -131,20 +177,40 @@ export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingF
       if (updates.step && updates.step !== prev.step) {
         newState.progress = calculateProgress(updates.step, input.role);
       }
+      // Auto-calculate next step if step or result changed
+      if (updates.step ?? updates.result) {
+        const currentStep = updates.step ?? prev.step;
+        const currentResult = { ...prev.result, ...updates.result };
+        newState.nextStep = calculateNextStep(currentStep, input.role, currentResult);
+        
+        // Check if we can skip to completion
+        if (input.role === 'provider' && currentResult.existingMerchants && currentResult.existingMerchants.length > 0) {
+          newState.canSkipToCompletion = true;
+        }
+        if (input.role === 'merchant' && currentResult.existingActivePOS && currentResult.existingActivePOS.length > 0) {
+          newState.canSkipToCompletion = true;
+        }
+      }
       return newState;
     });
-  }, [calculateProgress, input.role]);
+  }, [calculateProgress, calculateNextStep, input.role]);
 
   // Step execution functions
   const executeAuthenticationStep = useCallback(async (): Promise<void> => {
-    apiLogger.info('Executing authentication step', { 
-      role: input.role, 
-      email: input.credentials?.email 
-    });
+    if (input.step !== 'authentication') {
+      apiLogger.error('Authentication step is only available for authentication step', { step: input.step });
+      throw new Error(`Authentication step is only available for authentication step, got ${input.step} instead`);
+    }
 
     if (!input.credentials) {
-      throw new Error('Credentials are required for authentication step');
+      apiLogger.error('Credentials are required for authentication step', { step: input.step });
+      throw new Error(`Credentials are required for authentication step, got ${input.credentials} instead`);
     }
+
+    apiLogger.info('Executing authentication step', { 
+      role: input.role, 
+      email: input.credentials.email 
+    });
 
     const isAuth = await isAuthenticated();
     if (isAuth) {
@@ -159,75 +225,97 @@ export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingF
     } else if (input.role === 'merchant') {
       await loginMerchant(input.credentials.email, input.credentials.password);
     } else {
+      apiLogger.error('Unsupported role for authentication', { role: input.role });
       throw new Error(`Unsupported role for authentication: ${input.role}`);
     }
 
     await refreshAuthStatus(); // Update provider context
     apiLogger.info('Authentication successful', { role: input.role });
-  }, [input.role, input.credentials, refreshAuthStatus]);
+    
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input.role, refreshAuthStatus, input]);
 
   const executeMerchantCheckStep = useCallback(async (): Promise<void> => {
     apiLogger.info('Executing merchant check step');
 
     if (input.role !== 'provider') {
-      throw new Error('Merchant check step is only available for provider role');
+      apiLogger.error('Merchant check step is only available for provider role', { role: input.role });
+      throw new Error(`Merchant check step is only available for provider role, got ${input.role} instead`);
+    }
+
+    if (input.step !== 'merchant_check') {
+      apiLogger.error('Merchant check step is only available for merchant check step', { step: input.step });
+      throw new Error(`Merchant check step is only available for merchant check step, got ${input.step} instead`);
     }
 
     const existingMerchants = await getMerchants(1);
     
     if (existingMerchants && existingMerchants.length > 0) {
-      apiLogger.info('Existing merchants found', { 
+      apiLogger.info('Existing merchants found - provider onboarding complete', { 
         merchantCount: existingMerchants.length,
         firstMerchantUuid: existingMerchants[0].uuid
       });
       
       const firstMerchant = existingMerchants[0];
+      
+      // For providers, if merchants exist, onboarding is complete
       updateState({ 
+        step: 'completed',
         result: { 
           ...state.result, 
-          merchantUuid: firstMerchant.uuid 
-        } 
+          merchantUuid: firstMerchant.uuid,
+          existingMerchants: existingMerchants.map(m => ({
+            uuid: m.uuid ?? '',
+            fiscalId: m.fiscal_id ?? '',
+            name: m.name ?? '',
+            email: m.email ?? '',
+            address: m.address ? {
+              streetAddress: m.address.street_address ?? '',
+              zipCode: m.address.zip_code ?? '',
+              city: m.address.city ?? '',
+              province: m.address.province ?? ''
+            } : undefined,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          })),
+          flowCompleted: true,
+          skipReason: 'Provider already has existing merchants'
+        }
       });
       
       // Store merchant UUID for persistence
-      await SecureTokenStorage.setItem(STORAGE_KEYS.MERCHANT_UUID, firstMerchant.uuid);
+      await SecureTokenStorage.setItem(STORAGE_KEYS.MERCHANT_UUID, firstMerchant.uuid ?? '');
+      await SecureTokenStorage.setItem(STORAGE_KEYS.ONBOARDING_STEP, 'completed');
       
-      // Skip to POS creation since merchant already exists
-      apiLogger.info('Merchant already exists, proceeding to POS creation');
+      apiLogger.info('Provider onboarding completed - existing merchants found');
     } else {
       apiLogger.info('No existing merchants found, merchant creation will be required');
-      // Don't update state here - let the merchant creation step handle it
+      updateState({ 
+        result: { 
+          ...state.result, 
+          existingMerchants: [],
+          flowCompleted: false
+        }
+      });
     }
-  }, [input.role, state.result, updateState]);
+  }, [input.role, input.step, state.result, updateState]);
 
   const executeMerchantCreationStep = useCallback(async (): Promise<void> => {
     apiLogger.info('Executing merchant creation step');
 
     if (input.role !== 'provider') {
-      throw new Error('Merchant creation step is only available for provider role');
+      apiLogger.error('Merchant creation step is only available for provider role', { role: input.role });
+      throw new Error(`Merchant creation step is only available for provider role, got ${input.role} instead`);
     }
 
-    if (!input.credentials || !input.merchantInfo) {
-      throw new Error('Credentials and merchant info are required for merchant creation step');
+    if (input.step !== 'merchant_creation') {
+      apiLogger.error('Merchant creation step is only available for merchant creation step', { step: input.step });
+      throw new Error(`Merchant creation step is only available for merchant creation step, got ${input.step} instead`);
     }
 
-    // Check if merchant already exists before creating
-    const existingMerchants = await getMerchants(1);
-    if (existingMerchants && existingMerchants.length > 0) {
-      const existingMerchant = existingMerchants[0];
-      apiLogger.info('Merchant already exists, skipping creation', { 
-        merchantUuid: existingMerchant.uuid 
-      });
-      
-      updateState({ 
-        result: { 
-          ...state.result, 
-          merchantUuid: existingMerchant.uuid 
-        } 
-      });
-
-      await SecureTokenStorage.setItem(STORAGE_KEYS.MERCHANT_UUID, existingMerchant.uuid);
-      return;
+    if (!input.merchantInfo) {
+      apiLogger.error('Merchant info is required for merchant creation step', { step: input.step });
+      throw new Error(`Merchant info is required for merchant creation step, got ${input.merchantInfo} instead`);
     }
 
     try {
@@ -235,7 +323,7 @@ export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingF
         fiscal_id: input.merchantInfo.fiscalId,
         name: input.merchantInfo.name,
         email: input.merchantInfo.email,
-        password: input.credentials.password, // Password is required for merchant creation
+        password: input.merchantInfo.password, // Password is required for merchant creation
         address: {
           street_address: input.merchantInfo.address.streetAddress,
           zip_code: input.merchantInfo.address.zipCode,
@@ -254,9 +342,12 @@ export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingF
       });
 
       // Store merchant UUID for persistence
-      await SecureTokenStorage.setItem(STORAGE_KEYS.MERCHANT_UUID, newMerchant.uuid);
+      await SecureTokenStorage.setItem(STORAGE_KEYS.MERCHANT_UUID, newMerchant.uuid ?? '');
     } catch (error) {
       if (error instanceof Error && error.message.includes('already exists')) {
+        apiLogger.info('Merchant already exists, skipping creation', { 
+          fiscalId: input.merchantInfo.fiscalId 
+        });
         throw new Error(
           `A merchant with fiscal ID ${input.merchantInfo.fiscalId} already exists. ` +
           'Please use a different fiscal ID or contact support if you believe this is an error.'
@@ -264,190 +355,176 @@ export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingF
       }
       throw error;
     }
-  }, [input.role, input.credentials, input.merchantInfo, state.result, updateState]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input, state.result, updateState]);
 
   const executePOSCreationStep = useCallback(async (): Promise<void> => {
     apiLogger.info('Executing POS creation step');
 
-    if (input.role !== 'provider') {
-      throw new Error('POS creation step is only available for provider role');
+    // provider and merchant can create a POS
+    if (!['provider', 'merchant'].includes(input.role)) {
+      apiLogger.error('POS creation step is only available for provider and merchant roles', { role: input.role });
+      throw new Error(`POS creation step is only available for provider and merchant roles, got ${input.role} instead`);
     }
 
-    // Check if there are existing POS devices
-    const existingPOS = await getPointOfSales('NEW', 1, 10);
+    if (input.step !== 'pos_creation') {
+      apiLogger.error('POS creation step is only available for POS creation step', { step: input.step });
+      throw new Error(`POS creation step is only available for POS creation step, got ${input.step} instead`);
+    }
+
+    if (!input.posInfo) {
+      apiLogger.error('POS info is required for POS creation step', { step: input.step });
+      throw new Error(`POS info is required for POS creation step, got ${input.posInfo} instead`);
+    }
+
     
-    if (existingPOS.members && existingPOS.members.length > 0) {
-      // Use the first available NEW POS device
-      const availablePOS = existingPOS.members[0];
-      apiLogger.info('Using existing available POS device', { 
-        serialNumber: availablePOS.serial_number 
+    try {
+      // No POS devices available - this is a business logic error
+      // LET'S CREATE A NEW POS
+      apiLogger.error('No POS devices available for registration', { 
+        step: input.step 
       });
-      
+
+      // get merchant uuid from state if not in storage
+      const merchantUuid = state.result.merchantUuid ?? await SecureTokenStorage.getItem(STORAGE_KEYS.MERCHANT_UUID);
+      if (!merchantUuid) {
+        apiLogger.error('Merchant UUID is required for POS creation', { 
+          step: input.step 
+        });
+        throw new Error('Merchant UUID is required for POS creation');
+      }
+
+      const newPem = await createPem({
+        merchant_uuid: merchantUuid,
+        address: {
+          street_address: input.posInfo.address.streetAddress,
+          zip_code: input.posInfo.address.zipCode,
+          city: input.posInfo.address.city,
+          province: input.posInfo.address.province
+        }
+      });
+
+      apiLogger.info('New PEM created successfully', { 
+        pemUuid: newPem.serial_number 
+      });
+
       updateState({ 
         result: { 
           ...state.result, 
-          posSerialNumber: availablePOS.serial_number,
-          registrationKey: 'generated-registration-key' // This would come from POS creation
+          posSerialNumber: newPem.serial_number,
+          registrationKey: newPem.registration_key ?? undefined
         } 
       });
 
-      // Store POS information for persistence
-      await SecureTokenStorage.setItem(STORAGE_KEYS.CURRENT_POS_SERIAL, availablePOS.serial_number);
-      
-    } else {
-      // Check for REGISTERED POS devices that might be available
-      const registeredPOS = await getPointOfSales('REGISTERED', 1, 10);
-      
-      if (registeredPOS.members && registeredPOS.members.length > 0) {
-        const registeredDevice = registeredPOS.members[0];
-        apiLogger.info('Using existing registered POS device', { 
-          serialNumber: registeredDevice.serial_number 
-        });
-        
-        updateState({ 
-          result: { 
-            ...state.result, 
-            posSerialNumber: registeredDevice.serial_number,
-            registrationKey: 'existing-registration-key'
-          } 
-        });
-
-        await SecureTokenStorage.setItem(STORAGE_KEYS.CURRENT_POS_SERIAL, registeredDevice.serial_number);
-      } else {
-        // No POS devices available - this is a business logic error
-        throw new Error(
-          'No POS devices available for registration. ' +
-          'Please contact your system administrator to provision a new POS device ' +
-          'or check if there are any pending device registrations.'
-        );
-      }
+      await SecureTokenStorage.setItem(STORAGE_KEYS.CURRENT_POS_SERIAL, newPem.serial_number ?? '');
+    } catch (error) {
+      apiLogger.error('Failed to create POS', { error: error instanceof Error ? error.message : 'Unknown error' });
+      updateState({
+        error: error instanceof Error ? error.message : 'Unknown error',
+        step: 'error',
+        loading: false
+      });
+      throw error;
     }
-  }, [input.role, state.result, updateState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input.role, input.step, state.result, updateState]);
 
   const executePOSActivationStep = useCallback(async (): Promise<void> => {
     apiLogger.info('Executing POS activation step');
 
+    //merchant can activate a POS
     if (input.role !== 'merchant') {
-      throw new Error('POS activation step is only available for merchant role');
+      apiLogger.error('POS activation step is only available for merchant role', { role: input.role });
+      throw new Error(`POS activation step is only available for merchant role, got ${input.role} instead`);
     }
 
-    if (!input.registrationKey) {
-      throw new Error('Registration key is required for POS activation step');
+    if (input.step !== 'pos_activation') {
+      apiLogger.error('POS activation step is only available for POS activation step', { step: input.step });
+      throw new Error(`POS activation step is only available for POS activation step, got ${input.step} instead`);
     }
 
-    // First, check if we have a POS serial number from storage or input
-    let posSerialNumber: string | null = await SecureTokenStorage.getItem(STORAGE_KEYS.CURRENT_POS_SERIAL);
-    
-    if (!posSerialNumber) {
-      // Check for existing ACTIVE POS devices first
-      const activePOS = await getPointOfSales('ACTIVE', 1, 1);
-      if (activePOS.members && activePOS.members.length > 0) {
-        posSerialNumber = activePOS.members[0].serial_number;
-        apiLogger.info('Found existing active POS device', { serialNumber: posSerialNumber });
+    if (!input.posActivationInfo) {
+      apiLogger.error('POS activation info is required for POS activation step', { step: input.step });
+      throw new Error(`POS activation info is required for POS activation step, got ${input.posActivationInfo} instead`);
+    }
         
-        // POS is already active, no need to activate
-        updateState({ 
-          result: { 
-            ...state.result, 
-            posSerialNumber,
-            registrationKey: input.registrationKey 
-          } 
-        });
-
-        await SecureTokenStorage.setItem(STORAGE_KEYS.CURRENT_POS_SERIAL, posSerialNumber);
-        return;
-      }
-
-      // Check for REGISTERED POS devices
-      const registeredPOS = await getPointOfSales('REGISTERED', 1, 1);
-      if (registeredPOS.members && registeredPOS.members.length > 0) {
-        posSerialNumber = registeredPOS.members[0].serial_number;
-        apiLogger.info('Found registered POS device for activation', { serialNumber: posSerialNumber });
-      } else {
-        // Try to find an available NEW POS device to activate
-        const availablePOS = await getPointOfSales('NEW', 1, 1);
-        if (availablePOS.members && availablePOS.members.length > 0) {
-          posSerialNumber = availablePOS.members[0].serial_number;
-          apiLogger.info('Found available NEW POS device for activation', { serialNumber: posSerialNumber });
-        } else {
-          throw new Error(
-            'No POS device available for activation. ' +
-            'Please ensure a POS device has been provisioned and is in NEW or REGISTERED status. ' +
-            'Contact your system administrator if no devices are available.'
-          );
-        }
-      }
-    }
-
-    // Activate the POS device
-    if (!posSerialNumber) {
-      throw new Error('No POS serial number available for activation');
-    }
-
     try {
-      await activatePointOfSale(posSerialNumber, input.registrationKey);
-      apiLogger.info('POS activation successful', { serialNumber: posSerialNumber });
+      await activatePointOfSale(input.posActivationInfo.posSerialNumber, { registration_key: input.posActivationInfo.registrationKey });
+      apiLogger.info('POS activation successful', { serialNumber: input.posActivationInfo.posSerialNumber });
       
       updateState({ 
         result: { 
           ...state.result, 
-          posSerialNumber,
-          registrationKey: input.registrationKey 
+          posSerialNumber: input.posActivationInfo.posSerialNumber,
+          registrationKey: input.posActivationInfo.registrationKey,
+          existingActivePOS: []
         } 
       });
 
       // Store activated POS information
-      await SecureTokenStorage.setItem(STORAGE_KEYS.CURRENT_POS_SERIAL, posSerialNumber);
+      await SecureTokenStorage.setItem(STORAGE_KEYS.CURRENT_POS_SERIAL, input.posActivationInfo.posSerialNumber);
     } catch (error) {
       if (error instanceof Error && error.message.includes('already activated')) {
-        apiLogger.info('POS device already activated', { serialNumber: posSerialNumber });
+        apiLogger.info('POS device already activated', { 
+          serialNumber: input.posActivationInfo.posSerialNumber,
+          registrationKey: input.posActivationInfo.registrationKey
+        });
         
         updateState({ 
           result: { 
             ...state.result, 
-            posSerialNumber,
-            registrationKey: input.registrationKey 
+            posSerialNumber: input.posActivationInfo.posSerialNumber,
+            registrationKey: input.posActivationInfo.registrationKey,
+            existingActivePOS: []
           } 
         });
 
-        await SecureTokenStorage.setItem(STORAGE_KEYS.CURRENT_POS_SERIAL, posSerialNumber);
+        await SecureTokenStorage.setItem(STORAGE_KEYS.CURRENT_POS_SERIAL, input.posActivationInfo.posSerialNumber);
       } else {
+        apiLogger.error('Failed to activate POS device', { 
+          serialNumber: input.posActivationInfo.posSerialNumber,
+          registrationKey: input.posActivationInfo.registrationKey,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
         throw new Error(
-          `Failed to activate POS device ${posSerialNumber}: ${error instanceof Error ? error.message : 'Unknown error'}`
+          `Failed to activate POS device ${input.posActivationInfo.posSerialNumber}: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
       }
     }
-  }, [input.role, input.registrationKey, state.result, updateState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input, state.result, updateState]);
 
   const executeCashRegisterCreationStep = useCallback(async (): Promise<void> => {
     apiLogger.info('Executing cash register creation step');
 
     if (input.role !== 'merchant') {
-      throw new Error('Cash register creation step is only available for merchant role');
+      apiLogger.error('Cash register creation step is only available for merchant role', { role: input.role });
+      throw new Error(`Cash register creation step is only available for merchant role, got ${input.role} instead`);
     }
 
-    // Get POS serial number from state or storage
-    let posSerialNumber = state.result.posSerialNumber;
-    if (!posSerialNumber) {
-      const storedPosSerial = await SecureTokenStorage.getItem(STORAGE_KEYS.CURRENT_POS_SERIAL);
-      posSerialNumber = storedPosSerial ? storedPosSerial : undefined;
+    if (input.step !== 'cash_register_creation') {
+      apiLogger.error('Cash register creation step is only available for cash register creation step', { step: input.step });
+      throw new Error(`Cash register creation step is only available for cash register creation step, got ${input.step} instead`);
     }
 
-    if (!posSerialNumber) {
-      throw new Error(
-        'POS serial number is required for cash register creation. ' +
-        'Please ensure POS activation step has been completed successfully.'
-      );
+    if (!input.cashRegisterInfo) {
+      apiLogger.error('Cash register info is required for cash register creation step', { step: input.step });
+      throw new Error(`Cash register info is required for cash register creation step, got ${input.cashRegisterInfo} instead`);
     }
+
 
     // Verify POS is active before creating cash register
     try {
-      const posDevices = await getPointOfSales('ACTIVE', 1, 10);
-      const isPOSActive = posDevices.members?.some(pos => pos.serial_number === posSerialNumber);
+      const pos = await getPointOfSaleBySerial(input.cashRegisterInfo.pemSerialNumber);
+      const isPOSActive = pos.status === 'ACTIVE';
       
       if (!isPOSActive) {
+        apiLogger.error('POS device is not active', { 
+          posSerialNumber: input.cashRegisterInfo.pemSerialNumber 
+        });
         throw new Error(
-          `POS device ${posSerialNumber} is not active. ` +
+          `POS device ${input.cashRegisterInfo.pemSerialNumber} is not active. ` +
           'Please ensure POS activation step has been completed successfully before creating cash register.'
         );
       }
@@ -457,14 +534,14 @@ export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingF
       }
       // If we can't verify POS status, continue with creation but log warning
       apiLogger.warn('Could not verify POS status, proceeding with cash register creation', { 
-        posSerialNumber 
+        posSerialNumber: input.cashRegisterInfo.pemSerialNumber
       });
     }
 
     try {
       const cashRegister = await createCashRegister({
-        pem_serial_number: posSerialNumber,
-        name: `Cash Register - ${posSerialNumber}`
+        pem_serial_number: input.cashRegisterInfo.pemSerialNumber,
+        name: input.cashRegisterInfo.name
       });
 
       apiLogger.info('Cash register created successfully', { 
@@ -481,16 +558,26 @@ export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingF
       });
     } catch (error) {
       if (error instanceof Error && error.message.includes('already exists')) {
+        apiLogger.error('Cash register already exists', { 
+          pemSerialNumber: input.cashRegisterInfo.pemSerialNumber,
+          name: input.cashRegisterInfo.name
+        });
         throw new Error(
-          `A cash register for POS ${posSerialNumber} already exists. ` +
+          `A cash register for POS ${input.cashRegisterInfo.pemSerialNumber} already exists. ` +
           'Please use a different POS device or contact support if you believe this is an error.'
         );
       }
+      apiLogger.error('Failed to create cash register', { 
+        pemSerialNumber: input.cashRegisterInfo.pemSerialNumber,
+        name: input.cashRegisterInfo.name,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       throw new Error(
-        `Failed to create cash register for POS ${posSerialNumber}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Failed to create cash register for POS ${input.cashRegisterInfo.pemSerialNumber}: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
-  }, [input.role, state.result, updateState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input, state.result, updateState]);
 
   const executeCompletedStep = useCallback(async (): Promise<void> => {
     apiLogger.info('Executing completed step');
@@ -502,12 +589,13 @@ export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingF
       role: input.role,
       result: state.result
     });
-  }, [input.role, state.result]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input, state.result]);
 
   // Main compute function that executes the current step
   const compute = useCallback(async (): Promise<void> => {
     // Check network connectivity before starting
-    if (!await isConnected()) {
+    if (!isConnected()) {
       const errorMessage = 'No internet connection available. Please check your network connection and try again.';
       apiLogger.error(errorMessage);
       updateState({ error: errorMessage, step: 'error', loading: false });
@@ -548,11 +636,13 @@ export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingF
           break;
           
         case 'error':
+          // TODO: handle error step
           // Error step doesn't execute anything
           break;
           
         default:
-          throw new Error(`Unsupported step: ${input.step}. Valid steps are: authentication, merchant_check, merchant_creation, pos_creation, pos_activation, cash_register_creation, completed`);
+          apiLogger.error('Unsupported step', { step: input });
+          throw new Error(`Unsupported step: ${input}. Valid steps are: authentication, merchant_check, merchant_creation, pos_creation, pos_activation, cash_register_creation, completed`);
       }
 
       // Persist current step
@@ -624,17 +714,7 @@ export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingF
       apiLogger.error(`Failed to execute step: ${input.step}`, error);
       updateState({ error: errorMessage, step: 'error', loading: false });
     }
-  }, [
-    input.step,
-    executeAuthenticationStep,
-    executeMerchantCheckStep,
-    executeMerchantCreationStep,
-    executePOSCreationStep,
-    executePOSActivationStep,
-    executeCashRegisterCreationStep,
-    executeCompletedStep,
-    updateState
-  ]);
+  }, [updateState, input, executeAuthenticationStep, executeMerchantCheckStep, executeMerchantCreationStep, executePOSCreationStep, executePOSActivationStep, executeCashRegisterCreationStep, executeCompletedStep]);
 
   // Reset function to clear state and start over
   const reset = useCallback((): void => {
@@ -642,11 +722,13 @@ export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingF
     setState({
       loading: false,
       step: input.step,
+      nextStep: calculateNextStep(input.step, input.role, {}),
       error: null,
       progress: calculateProgress(input.step, input.role),
-      result: {}
+      result: {},
+      canSkipToCompletion: false
     });
-  }, [input.step, input.role, calculateProgress]);
+  }, [input.step, input.role, calculateProgress, calculateNextStep]);
 
   // Clear error function
   const clearError = useCallback((): void => {
@@ -689,6 +771,16 @@ export const useOnboardingFlow = (input: UseOnboardingFlowInput): UseOnboardingF
   useEffect(() => {
     updateState({ step: input.step });
   }, [input.step, updateState]);
+
+  // Calculate initial nextStep on mount
+  useEffect(() => {
+    const initialNextStep = calculateNextStep(input.step, input.role, {});
+    setState(prev => ({
+      ...prev,
+      nextStep: initialNextStep,
+      progress: calculateProgress(input.step, input.role)
+    }));
+  }, [calculateNextStep, calculateProgress, input.step, input.role]);
 
   return {
     state,

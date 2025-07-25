@@ -240,7 +240,7 @@ export type {
   AuthToken,
   JWTPayload,
   LoginRequest,
-} from './api/types.generated';
+} from './api/types.convenience';
 
 // SDK-specific types
 export type {
