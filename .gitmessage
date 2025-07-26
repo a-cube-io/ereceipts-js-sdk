@@ -1,0 +1,47 @@
+# <type>(<scope>): <subject> (max 50 char)
+# |<----  Using a Maximum Of 50 Characters  ---->|
+
+# Explain why this change is being made
+# |<----   Try To Limit Each Line to a Maximum Of 72 Characters   ---->|
+
+# Provide links or keys to any relevant tickets, articles or other resources
+# Example: Closes #123, Implements #456
+
+# --- COMMIT END ---
+# Type can be:
+#    feat     (new feature)
+#    fix      (bug fix)
+#    refactor (refactoring production code)
+#    style    (formatting, missing semi colons, etc; no code change)
+#    docs     (changes to documentation)
+#    test     (adding or refactoring tests; no production code change)
+#    chore    (updating grunt tasks etc; no production code change)
+#    start    (starting new task)
+#    complete (completing task)
+#    setup    (project setup and configuration)
+#
+# Scope can be:
+#    phase-1, phase-2, phase-3, phase-4, phase-5, phase-6
+#    core, http, types, cli, docs, security, plugins, performance, tests
+#    sdk, resource, auth, receipts, cashiers, merchants, pos
+#
+# Remember to:
+#   - Capitalize the subject line
+#   - Use the imperative mood in the subject line
+#   - Do not end the subject line with a period
+#   - Separate subject from body with a blank line
+#   - Use the body to explain what and why vs. how
+#   - Reference issues and pull requests liberally after the first line
+#
+# Enterprise SDK Transformation - Commit Guidelines:
+#   - Always include task ID when working on specific tasks
+#   - Use conventional commit format for automation
+#   - Be descriptive about the business impact
+#   - Include relevant links to documentation
+#
+# Examples:
+#   feat(core): implement ACubeSDK main class with lazy loading
+#   fix(http): resolve circuit breaker timeout issues
+#   docs(phase-1): update resource architecture documentation
+#   test(sdk): add comprehensive unit tests for core functionality
+#   setup(ci): configure automated quality gates
