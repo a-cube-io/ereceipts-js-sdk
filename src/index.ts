@@ -1,505 +1,319 @@
-// A-Cube SDK - Main Entry Point
-// Professional TypeScript SDK for A-Cube e-receipt system integration
+/**
+ * A-Cube E-Receipts SDK - Main Entry Point
+ * Enterprise-grade TypeScript SDK for A-Cube e-receipt system integration
+ */
 
-// =============================================================================
-// API Client & Configuration
-// =============================================================================
+// Core SDK
+export { ACubeSDK, createACubeSDK, type ACubeSDKConfig, DEFAULT_SDK_CONFIG } from './core/sdk';
+import { ACubeSDK, createACubeSDK, type ACubeSDKConfig } from './core/sdk';
+
+// HTTP Client and Configuration
+export { 
+  HttpClient, 
+  type HttpClientConfig, 
+  type RequestOptions, 
+  type HttpResponse,
+  DEFAULT_HTTP_CONFIG,
+  AUTH_HTTP_CONFIG 
+} from './http/client';
+
+
+// OpenAPI Endpoints
+export { 
+  CashierEndpoints,
+  ReceiptEndpoints,
+  CashRegisterEndpoints,
+  MerchantEndpoints,
+  PEMEndpoints,
+  PointOfSalesEndpoints,
+  type EndpointDefinition,
+} from './generated/endpoints';
+
+// OpenAPI Resources
 export {
-  initializeAPIClient,
-  getAPIClient,
-  configureSDK,
-  APIClient,
-} from './api/client';
-export type { SDKConfig } from './api/client';
+  CashiersResource,
+  Cashiers,
+} from './resources/cashiers';
 
-// =============================================================================
-// Authentication
-// =============================================================================
 export {
-  loginProvider,
-  loginMerchant,
-  loginCashier,
-  logout,
-  isAuthenticated,
-  getCurrentUser,
-  refreshToken,
-  hasRole,
-  AuthenticationError,
-} from './api/auth';
+  ReceiptsResource,
+  Receipts,
+} from './resources/receipts';
 
-// =============================================================================
-// API Endpoints
-// =============================================================================
-
-// MF1 - Core e-receipt functionality
 export {
-  // Cashiers
-  createCashier,
-  getCashiers,
-  getCashierById,
-  getCurrentCashier,
-  deleteCashier,
-  
-  // Point of Sales
-  getPointOfSales,
-  getPointOfSaleBySerial,
-  activatePointOfSale,
-  createInactivityPeriod,
-  setPointOfSaleOffline,
-  closeJournal,
-  
-  // Receipts
-  createReceipt,
-  getReceipts,
-  getReceiptById,
-  getReceiptDetails,
-  voidReceipt,
-  voidReceiptWithProof,
-  returnReceiptItems,
-  returnReceiptItemsWithProof,
-  
-  // Cash Registers
-  createCashRegister,
-  getCashRegisters,
-  getCashRegisterById,
-  getMTLSCertificate,
-} from './api/mf1';
+  CashRegistersResource,
+  CashRegisters,
+} from './resources/cash-registers';
 
-// MF2 - Merchant management
 export {
-  createMerchant,
-  getMerchants,
-  getMerchantById,
-  updateMerchant,
-} from './api/mf2';
+  MerchantsResource,
+  Merchants,
+} from './resources/merchants';
 
-// =============================================================================
-// React Hooks
-// =============================================================================
 export {
-  useAuth,
-  useRetryQueue,
-  useOnboardingFlow,
-} from './hooks';
+  PEMsResource,
+  PEMs,
+} from './resources/pems';
 
-export type {
-  AuthState,
-  AuthActions,
-  UseAuthReturn,
-  QueueStats,
-  UseRetryQueueReturn,
-  OnboardingState,
-  OnboardingStep,
-  OnboardingRole,
-  OnboardingCredentials,
-  OnboardingMerchantInfo,
-  OnboardingPOSInfo,
-  OnboardingResult,
-  UseOnboardingFlowInput,
-  UseOnboardingFlowReturn,
-} from './hooks';
-
-// =============================================================================
-// UI Components (Cross-platform React/React Native)
-// =============================================================================
 export {
-  Button,
-  FormInput,
-} from './components';
+  PointOfSalesResource,
+  PointOfSales,
+} from './resources/point-of-sales';
 
-export type {
-  ButtonProps,
-  FormInputProps,
-} from './components';
-
-// =============================================================================
-// Storage & Security
-// =============================================================================
+// Base OpenAPI Resource
 export {
-  SecureTokenStorage,
-  CertificateStorage,
-  RequestQueue,
-} from './storage';
+  BaseOpenAPIResource,
+  type BaseResourceConfig,
+  type RequestOptions as OpenAPIRequestOptions,
+  type ValidationContext,
+} from './resources/base-openapi';
 
-export type {
-  MTLSCertificate,
-  QueuedRequest,
-  SecureStorageConfig,
-} from './storage';
-
-// =============================================================================
-// Utilities
-// =============================================================================
-export {
-  // Network
-  getNetworkState,
-  isConnected,
-  addNetworkListener,
-  removeNetworkListener,
-  checkInternetConnectivity,
-  waitForConnection,
-  
-  // Retry
-  retryAsync,
-  withRetry,
-  AxiosRetryInterceptor,
-  isRetryableError,
-  calculateRetryDelay,
-  calculateJitteredDelay,
-  
-  // Validation
-  validateEmail,
-  validatePassword,
-  validateFiscalId,
-  validateZipCode,
-  validateProvinceCode,
-  validateAddress,
-  validateReceiptItem,
-  validateMoneyAmount,
-  combineValidationResults,
-  validateRequired,
-  
-  // Logging
-  logError,
-  logWarn,
-  logInfo,
-  logDebug,
-  apiLogger,
-  authLogger,
-  storageLogger,
-  networkLogger,
-  uiLogger,
-} from './utils';
-
-export type {
-  NetworkState,
-  NetworkStateChangeHandler,
-  RetryConfig,
-  ValidationError,
-  ValidationResult,
-  LogLevel,
-  LogEntry,
-} from './utils';
-
-// =============================================================================
-// Constants & Configuration
-// =============================================================================
-export {
-  API_ENDPOINTS,
-  API_AUTH_ENDPOINTS,
-  MF1_PATHS,
-  MF2_PATHS,
-  getBaseURL,
-  getAuthBaseURL,
-  STORAGE_KEYS,
-  SECURE_KEYS,
-  getMTLSCertificateKey,
-  getMTLSPrivateKeyKey,
-  UserRole,
-  ROLE_PERMISSIONS,
-  hasPermission,
-  isProvider,
-  isMerchant,
-  isCashier,
-} from './constants';
-
-export type {
-  Environment,
-  StorageKey,
-  SecurityLevel,
-} from './constants';
-
-// =============================================================================
 // Types
-// =============================================================================
+export * from './types/branded';
+export * from './types/events';
 
-// Generated API types
-export type {
-  // Core entities
-  Address,
-  MerchantCreateInput,
-  MerchantOutput,
-  MerchantUpdateInput,
-  CashRegisterCreate,
-  CashRegisterOutput,
-  CashierCreateInput,
-  CashierOutput,
-  ReceiptInput,
-  ReceiptOutput,
-  ReceiptDetailsOutput,
-  ReceiptItem,
-  PEMPublic,
-  
-  // Enums
-  PEMStatus,
-  ReceiptType,
-  GoodOrService,
-  
-  // API responses
-  ApiResponse,
-  PaginatedResponse,
-  AuthToken,
-  JWTPayload,
-  LoginRequest,
-} from './api/types.convenience';
-
-// SDK-specific types
-export type {
-  LoginCredentials,
-  TokenInfo,
-  UserProfile,
-  MerchantInfo,
-  AddressInfo,
-  PointOfSaleInfo,
-  CashRegisterInfo,
-  ReceiptInfo,
-  ReceiptItemInfo,
-} from './types';
-
-// =============================================================================
-// Version & Metadata
-// =============================================================================
-export const SDK_VERSION = '1.0.0';
-export const SDK_NAME = '@a-cube-io/ereceipts-js-sdk';
-
-// =============================================================================
-// React Provider
-// =============================================================================
+// Storage Layer
 export {
-  EReceiptsProvider,
-  useEReceipts,
-  withEReceipts,
-} from './providers';
+  // Unified Storage Interface
+  type UnifiedStorage,
+  type StorageAdapter,
+  type StorageKey,
+  type StorageValue,
+  type StorageEntry,
+  type StorageOptions,
+  type QueryOptions,
+  type StorageTransaction,
+  type StorageStats,
+  createStorageKey,
+  STORAGE_NAMESPACES,
+  
+  // Storage Errors
+  StorageError,
+  StorageConnectionError,
+  StorageCapacityError,
+  StorageEncryptionError,
+  StorageTransactionError,
+} from './storage/unified-storage';
 
-export type {
-  EReceiptsProviderConfig,
-  EReceiptsProviderProps,
-  EReceiptsContextState,
-} from './providers';
+export {
+  // Platform Detection
+  type PlatformType,
+  type PlatformCapabilities,
+  type EnvironmentInfo,
+  platformDetector,
+  getPlatform,
+  getEnvironmentInfo,
+  hasCapability,
+  getRecommendedStorageAdapter,
+  getPerformanceTier,
+} from './storage/platform-detector';
 
-// =============================================================================
-// Quick Start Helpers - User-Friendly API
-// =============================================================================
+export {
+  // Storage Adapters
+  IndexedDBAdapter,
+} from './storage/adapters/indexeddb-adapter';
+
+export {
+  LocalStorageAdapter,
+} from './storage/adapters/localstorage-adapter';
+
+export {
+  // Encryption Service
+  type StorageEncryptionConfig,
+  type EncryptionMetadata,
+  type EncryptionKeyManager,
+  StorageEncryptionService,
+  createEncryptionService,
+  createSecureEncryptionService,
+  createMinimalEncryptionService,
+} from './storage/encryption-service';
+
+export {
+  // Storage Factory
+  type StorageFactoryConfig,
+  StorageFactory,
+  storageFactory,
+  createStorage,
+  createSecureStorage,
+  createHighPerformanceStorage,
+  createCompatibilityStorage,
+} from './storage/storage-factory';
+
+// Offline System Components
+export {
+  // Queue Management
+  type QueueItem,
+  type QueueOperationType,
+  type QueuePriority,
+  type QueueStats,
+  type ConflictResolutionStrategy,
+  type QueueConfig,
+  type BatchOperation,
+  EnterpriseQueueManager,
+  RetryManager,
+  ConflictResolverManager,
+  BatchProcessor,
+  PriorityQueue,
+  QueueAnalytics,
+} from './storage/queue/index';
+
+export {
+  // Enhanced Offline Hook
+  type EnhancedOfflineOptions,
+  type EnhancedOfflineResult,
+  useEnhancedACubeOffline,
+} from './storage/queue/enhanced-offline-hook';
+
+export {
+  // Sync System
+  type SyncResult,
+  type SyncOptions,
+  type SyncConflict,
+  type ConnectionInfo,
+} from './sync/types';
+
+export {
+  // React Hooks for Offline
+  useACubeOffline,
+  useACubeQuery,
+  useACubeMutation,
+  useACubeCache,
+  useACubeSubscription,
+} from './hooks/react/index';
+
+export {
+  // Compliance and Security
+  type AccessControlConfig,
+  type Role,
+  type Permission,
+  type User,
+  type GDPRConfig,
+  type FiscalConfig,
+  AccessControlManager,
+  GDPRComplianceManager,
+  FiscalAuditManager,
+} from './compliance/index';
+
+export {
+  // Security Services
+  type EncryptionConfig,
+  type KeyRotationConfig,
+  type SignatureConfig,
+} from './security/index';
+
+export {
+  // Plugin System
+  type PluginConfig,
+  type PluginContext,
+  type BasePlugin,
+  PluginManager,
+  AnalyticsPlugin,
+  AuditPlugin,
+  CachePlugin,
+  DebugPlugin,
+  PerformancePlugin,
+} from './plugins/index';
+
+export {
+  // Quality Gates
+  type DependencyConfig,
+  QualityManager,
+  DependencyManager,
+} from './quality/index';
+
+export {
+  // Validation System
+  type ValidationConfig,
+  type ValidationResult,
+  type ValidationIssue,
+} from './validation/index';
+
+// Error Handling
+export {
+  ACubeSDKError,
+  NetworkError,
+  AuthenticationError,
+  AuthorizationError,
+  ValidationError,
+  FiscalError,
+  RateLimitError,
+  ConfigurationError,
+  NotFoundError,
+  CircuitBreakerError,
+  createErrorFromResponse,
+  type AuditInfo,
+  type ValidationViolation,
+} from './errors/index';
+
+// Circuit Breaker
+export {
+  CircuitBreaker,
+  type CircuitBreakerConfig,
+  type CircuitBreakerState,
+  type CircuitBreakerMetrics,
+} from './http/circuit-breaker';
+
+// Retry Handler
+export {
+  RetryHandler,
+  type RetryConfig,
+  type RetryAttempt,
+  type RetryMetrics,
+  DEFAULT_RETRY_CONFIG,
+  AGGRESSIVE_RETRY_CONFIG,
+  CONSERVATIVE_RETRY_CONFIG,
+} from './http/retry';
+
+// Middleware
+export {
+  MiddlewareStack,
+  type Middleware,
+  type RequestContext,
+  type ResponseContext,
+  AuthenticationMiddleware,
+  RequestIdMiddleware,
+  UserAgentMiddleware,
+  ContentTypeMiddleware,
+  LoggingMiddleware,
+  RateLimitingMiddleware,
+  PerformanceMiddleware,
+} from './http/middleware';
+
+// Convenience functions for quick setup
 
 /**
- * Initialize the E-Receipts SDK with configuration
- * Call this once at the start of your application
- * 
- * @example
- * ```typescript
- * import { initializeEReceipts } from '@a-cube-io/ereceipts-js-sdk';
- * 
- * await initializeEReceipts({
- *   environment: 'sandbox',
- *   storage: {
- *     encryptionKeyId: 'myapp-v1',
- *     storeNamespace: 'myapp-secure'
- *   },
- *   enableLogging: true
- * });
- * ```
+ * Initialize SDK with sandbox configuration
  */
-export const initializeEReceipts = async (config: import('./api/client').SDKConfig) => {
-  const { initializeAPIClient } = await import('./api/client');
-  return initializeAPIClient(config);
-};
-
-// Keep backward compatibility
-export const initSDK = initializeEReceipts;
-
-/**
- * Login as Provider with user-friendly error handling
- * 
- * @example
- * ```typescript
- * const result = await loginAsProvider('provider@company.com', 'password');
- * if (result.success) {
- *   console.log('Logged in:', result.token);
- * } else {
- *   console.error('Login failed:', result.error);
- * }
- * ```
- */
-export const loginAsProvider = async (email: string, password: string) => {
-  try {
-    const { loginProvider } = await import('./api/auth');
-    const token = await loginProvider(email, password);
-    return { success: true as const, token, error: null };
-  } catch (error) {
-    return { 
-      success: false as const, 
-      token: null, 
-      error: error instanceof Error ? error : new Error('Login failed') 
-    };
-  }
-};
-
-/**
- * Login as Merchant with user-friendly error handling
- * 
- * @example
- * ```typescript
- * const result = await loginAsMerchant('merchant@restaurant.com', 'password');
- * if (result.success) {
- *   console.log('Logged in:', result.token);
- * } else {
- *   console.error('Login failed:', result.error);
- * }
- * ```
- */
-export const loginAsMerchant = async (email: string, password: string) => {
-  try {
-    const { loginMerchant } = await import('./api/auth');
-    const token = await loginMerchant(email, password);
-    return { success: true as const, token, error: null };
-  } catch (error) {
-    return { 
-      success: false as const, 
-      token: null, 
-      error: error instanceof Error ? error : new Error('Login failed') 
-    };
-  }
-};
-
-/**
- * Login as Cashier with user-friendly error handling
- * 
- * @example
- * ```typescript
- * const result = await loginAsCashier('cashier@store.com', 'password');
- * if (result.success) {
- *   console.log('Logged in:', result.token);
- * } else {
- *   console.error('Login failed:', result.error);
- * }
- * ```
- */
-export const loginAsCashier = async (email: string, password: string) => {
-  try {
-    const { loginCashier } = await import('./api/auth');
-    const token = await loginCashier(email, password);
-    return { success: true as const, token, error: null };
-  } catch (error) {
-    return { 
-      success: false as const, 
-      token: null, 
-      error: error instanceof Error ? error : new Error('Login failed') 
-    };
-  }
-};
-
-/**
- * Logout current user
- * 
- * @example
- * ```typescript
- * const result = await logoutUser();
- * if (result.success) {
- *   console.log('Logged out successfully');
- * }
- * ```
- */
-export const logoutUser = async () => {
-  try {
-    const { logout } = await import('./api/auth');
-    await logout();
-    return { success: true as const, error: null };
-  } catch (error) {
-    return { 
-      success: false as const, 
-      error: error instanceof Error ? error : new Error('Logout failed') 
-    };
-  }
-};
-
-/**
- * Check if user is currently authenticated
- * 
- * @example
- * ```typescript
- * const isLoggedIn = await checkAuthentication();
- * console.log('User authenticated:', isLoggedIn);
- * ```
- */
-export const checkAuthentication = async (): Promise<boolean> => {
-  try {
-    const { isAuthenticated } = await import('./api/auth');
-    return await isAuthenticated();
-  } catch {
-    return false;
-  }
-};
-
-/**
- * Get current user information
- * 
- * @example
- * ```typescript
- * const user = await getCurrentUserInfo();
- * if (user) {
- *   console.log('User:', user.email, 'Role:', user.role);
- * }
- * ```
- */
-export const getCurrentUserInfo = async () => {
-  try {
-    const { getCurrentUser } = await import('./api/auth');
-    return await getCurrentUser();
-  } catch (error) {
-    return null;
-  }
-};
-
-/**
- * Check if SDK is properly configured and ready to use
- * 
- * @example
- * ```typescript
- * const ready = await checkSDKStatus();
- * if (ready) {
- *   console.log('SDK is ready to use!');
- * }
- * ```
- */
-export const checkSDKStatus = async (): Promise<boolean> => {
-  try {
-    const { getAPIClient } = await import('./api/client');
-    const client = getAPIClient();
-    return client !== null;
-  } catch {
-    return false;
-  }
-};
-
-// Keep backward compatibility
-export const isSDKReady = checkSDKStatus;
-export const quickLoginProvider = loginAsProvider;
-export const quickLoginMerchant = loginAsMerchant;
-
-// =============================================================================
-// Development Helpers (only available in development)
-// =============================================================================
-declare const __DEV__: boolean | undefined;
-declare const process: { env?: { NODE_ENV?: string } } | undefined;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const global: any;
-
-if ((typeof __DEV__ !== 'undefined' && __DEV__) || 
-    (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development')) {
-  // Export additional debugging utilities
-  if (typeof global !== 'undefined') {
-    (global).__ACUBE_SDK__ = {
-      getAPIClient: async () => {
-        const { getAPIClient } = await import('./api/client');
-        return getAPIClient();
-      },
-      version: SDK_VERSION,
-      clearAllData: async () => {
-        const { SecureTokenStorage } = await import('./storage/token');
-        const { RequestQueue } = await import('./storage/queue');
-        await SecureTokenStorage.clearAll();
-        await RequestQueue.clearQueue();
-      },
-    };
-  }
+export function initializeSandboxSDK(config: Partial<ACubeSDKConfig> = {}): ACubeSDK {
+  return createACubeSDK({
+    environment: 'sandbox',
+    ...config,
+  });
 }
+
+/**
+ * Initialize SDK with production configuration
+ */
+export function initializeProductionSDK(config: Partial<ACubeSDKConfig> = {}): ACubeSDK {
+  return createACubeSDK({
+    environment: 'production',
+    ...config,
+  });
+}
+
+/**
+ * Initialize SDK with development configuration
+ */
+export function initializeDevelopmentSDK(config: Partial<ACubeSDKConfig> = {}): ACubeSDK {
+  return createACubeSDK({
+    environment: 'development',
+    ...config,
+  });
+}
+
+// Version information
+export const SDK_VERSION = '2.0.0';
+export const API_VERSION = '1.0.0';
+
+// Default export
+export default ACubeSDK;

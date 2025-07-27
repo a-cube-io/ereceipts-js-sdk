@@ -1,145 +1,89 @@
 {
-  "name": "@a-cube-io/ereceipts-js-sdk",
-  "version": "1.0.8",
-  "description": "Professional TypeScript SDK for A-Cube e-receipt system integration. Cross-platform support for React, React Native, and PWA applications.",
+  "name": "@a-cube-io/cli",
+  "version": "1.0.0",
+  "description": "CLI tool for A-Cube e-receipt SDK development",
   "keywords": [
     "acube",
+    "cli",
     "e-receipt",
-    "typescript",
-    "react",
-    "react-native",
-    "sdk",
-    "italian-taxes",
-    "pos",
-    "cross-platform",
-    "tree-shakeable",
-    "esm",
-    "cjs"
+    "developer-tools",
+    "scaffolding",
+    "webhook",
+    "typescript"
   ],
   "author": "A-Cube Team",
   "license": "MIT",
-  "homepage": "https://github.com/a-cube-io/ereceipts-js-sdk.git/#readme",
+  "homepage": "https://github.com/a-cube-io/ereceipts-js-sdk/tree/main/packages/cli",
   "repository": {
     "type": "git",
-    "url": "https://github.com/a-cube-io/ereceipts-js-sdk.git"
+    "url": "https://github.com/a-cube-io/ereceipts-js-sdk.git",
+    "directory": "packages/cli"
   },
   "bugs": {
-    "url": "https://github.com/a-cube-io/ereceipts-js-sdk.git/issues"
+    "url": "https://github.com/a-cube-io/ereceipts-js-sdk/issues"
   },
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
-    },
-    "./package.json": "./package.json"
+  "bin": {
+    "acube": "./dist/cli.js",
+    "acube-cli": "./dist/cli.js"
   },
   "files": [
-    "dist/**/*",
-    "README.md",
-    "LICENSE",
-    "openapi.yaml"
+    "dist",
+    "templates",
+    "README.md"
   ],
-  "sideEffects": false,
-  "engines": {
-    "node": ">=16.0.0"
-  },
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "dev": "tsup --watch",
-    "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit",
-    "generate-types": "node scripts/generate-types.js",
-    "lint": "eslint src --ext .ts,.tsx --fix",
-    "lint:check": "eslint src --ext .ts,.tsx",
-    "test": "jest --config jest.config.ts --passWithNoTests",
-    "test:silent": "jest --config jest.config.ts --passWithNoTests --silent",
-    "test:watch": "jest --config jest.config.ts --watch",
-    "test:coverage": "jest --config jest.config.ts --coverage --passWithNoTests",
-    "test:coverage:watch": "jest --config jest.config.ts --coverage --watch --passWithNoTests",
-    "test:coverage:ci": "jest --config jest.config.ts --coverage --passWithNoTests --ci --coverageReporters=text --coverageReporters=lcov",
-    "test:coverage:html": "jest --config jest.config.ts --coverage --passWithNoTests --coverageReporters=html",
-    "test:api": "jest --config jest.config.ts --testPathPattern=api --passWithNoTests",
-    "test:api:watch": "jest --config jest.config.ts --testPathPattern=api --watch",
-    "test:api:coverage": "jest --config jest.config.ts --testPathPattern=api --coverage --passWithNoTests",
-    "coverage:badge": "node scripts/generate-coverage-badge.js",
-    "test:github-token": "node scripts/test-github-token.js",
-    "prepare": "npm run build",
-    "prepublishOnly": "npm run lint:check && npm run type-check && npm run test && npm run build",
-    "release:patch": "git pull origin $(git branch --show-current) && npm version patch && git push origin $(git branch --show-current) --follow-tags",
-    "release:minor": "git pull origin $(git branch --show-current) && npm version minor && git push origin $(git branch --show-current) --follow-tags",
-    "release:major": "git pull origin $(git branch --show-current) && npm version major && git push origin $(git branch --show-current) --follow-tags"
-  },
-  "peerDependencies": {
-    "react": ">=18.3.23",
-    "react-native": ">=0.70.0"
-  },
-  "peerDependenciesMeta": {
-    "react-native": {
-      "optional": true
-    }
+    "dev": "tsx watch src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "prepublishOnly": "npm run build && npm run test && npm run lint"
   },
   "dependencies": {
-    "axios": "^1.6.0",
-    "idb-keyval": "^6.2.2",
-    "zod": "^4.0.10"
-  },
-  "optionalDependencies": {
-    "@react-native-async-storage/async-storage": "^1.21.0",
-    "@react-native-community/netinfo": "^11.3.0",
-    "react-native-keychain": "^8.1.0"
+    "@a-cube-io/ereceipts-js-sdk": "workspace:*",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "inquirer": "^9.2.12",
+    "ora": "^7.0.1",
+    "fs-extra": "^11.2.0",
+    "globby": "^14.0.0",
+    "dotenv": "^16.3.1",
+    "keytar": "^7.9.0",
+    "open": "^10.0.0",
+    "ws": "^8.16.0",
+    "express": "^4.18.2",
+    "ngrok": "^5.0.0-beta.2",
+    "cli-table3": "^0.6.3",
+    "boxen": "^7.1.1",
+    "update-notifier": "^7.0.0",
+    "conf": "^12.0.0",
+    "execa": "^8.0.1"
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.28.0",
-    "@babel/preset-react": "^7.27.1",
-    "@jest/types": "^30.0.5",
-    "@swc/core": "^1.13.2",
-    "@testing-library/dom": "^10.4.0",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/react-native": "^13.2.0",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/jest": "^30.0.0",
-    "@types/react": "^18.3.23",
-    "@types/react-dom": "^19.1.6",
-    "@types/react-native": "^0.72.0",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "babel-jest": "^30.0.5",
-    "eslint": "^8.0.0",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-native": "^5.0.0",
-    "eslint-plugin-testing-library": "^7.6.1",
-    "jest": "^29.0.0",
-    "jest-environment-jsdom": "^30.0.5",
-    "openapi-typescript": "^6.7.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-native": "^0.80.1",
-    "react-test-renderer": "^19.1.0",
-    "ts-jest": "^29.4.0",
-    "ts-node": "^10.9.2",
-    "tsup": "^8.5.0",
-    "typescript": "^5.0.0"
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.7",
+    "@types/ws": "^8.5.10",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.5",
+    "@types/update-notifier": "^6.0.8",
+    "tsx": "^4.6.2",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "@types/jest": "^29.5.11"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
-  },
-  "react-native": {
-    "crypto": false,
-    "stream": false,
-    "fs": false
   }
 }

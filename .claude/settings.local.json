@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(npm test)",
+      "Bash(npm install)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run generate-types:*)",
+      "Bash(grep:*)",
+      "Bash(yq eval:*)",
+      "Bash(sed:*)",
+      "Bash(rm:*)",
+      "Bash(ls:*)",
+      "Bash(mv:*)",
+      "Bash(mkdir:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm install:*)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(npx madge:*)",
+      "Bash(cat:*)",
+      "Bash(touch:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:*)"
+    ],
+    "deny": []
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /Users/anders/Desktop/works/acube/acube-ereceipt/.claude/hooks/type_check.py"
+          }
+        ]
+      }
+    ]
+  }
+}

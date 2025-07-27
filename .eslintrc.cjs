@@ -1,153 +1,131 @@
 module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint'],
+  extends: [
+    'eslint:recommended',
+    '@typescript-eslint/recommended',
+    '@typescript-eslint/recommended-requiring-type-checking',
+  ],
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
-    ecmaFeatures: {
-      jsx: true,
-    },
     project: './tsconfig.json',
   },
-  plugins: ['@typescript-eslint', 'react', 'react-hooks', 'react-native'],
-  extends: [
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
-  ],
   env: {
-    browser: true,
     node: true,
+    browser: true,
     es2022: true,
-  },
-  settings: {
-    react: {
-      version: 'detect',
-    },
   },
   rules: {
     // TypeScript specific rules
-    '@typescript-eslint/no-unused-vars': [
-      'error', 
-      { 
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        ignoreRestSiblings: true 
-      }
-    ],
-    '@typescript-eslint/no-explicit-any': 'warn',
-    '@typescript-eslint/explicit-function-return-type': 'off',
-    '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-non-null-assertion': 'warn',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/explicit-function-return-type': ['warn', { allowExpressions: true }],
     '@typescript-eslint/prefer-nullish-coalescing': 'error',
     '@typescript-eslint/prefer-optional-chain': 'error',
-    '@typescript-eslint/ban-ts-comment': 'warn',
-    '@typescript-eslint/no-empty-function': 'off',
+    '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+    '@typescript-eslint/no-floating-promises': 'error',
+    '@typescript-eslint/await-thenable': 'error',
+    '@typescript-eslint/no-misused-promises': 'error',
+    '@typescript-eslint/require-await': 'error',
+    '@typescript-eslint/prefer-as-const': 'error',
+    '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+    '@typescript-eslint/consistent-type-exports': ['error', { fixMixedExportsWithInlineTypeSpecifier: true }],
     
-    // Disable problematic rules for SDK development
-    '@typescript-eslint/no-unsafe-assignment': 'off',
-    '@typescript-eslint/no-unsafe-member-access': 'off',
-    '@typescript-eslint/no-unsafe-call': 'off',
-    '@typescript-eslint/no-unsafe-return': 'off',
-    '@typescript-eslint/no-unsafe-argument': 'off',
-    '@typescript-eslint/restrict-template-expressions': 'off',
-    '@typescript-eslint/restrict-plus-operands': 'off',
-    
-    // General rules
-    'no-console': 'off', // Allow console in SDK for debugging
-    'prefer-const': 'error',
+    // General code quality rules
+    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    'no-debugger': 'error',
+    'no-alert': 'error',
     'no-var': 'error',
-    'object-shorthand': 'error',
+    'prefer-const': 'error',
     'prefer-template': 'error',
+    'object-shorthand': 'error',
+    'arrow-body-style': ['error', 'as-needed'],
+    'prefer-arrow-callback': 'error',
     'no-duplicate-imports': 'error',
-    'sort-imports': ['error', { ignoreDeclarationSort: true }],
+    'no-useless-rename': 'error',
+    'no-useless-computed-key': 'error',
+    'no-useless-constructor': 'error',
+    'no-useless-return': 'error',
     
-    // Allow necessary patterns for SDK
-    '@typescript-eslint/no-var-requires': 'off',
-    'no-undef': 'off', // TypeScript handles this
+    // Security rules
+    'no-eval': 'error',
+    'no-implied-eval': 'error',
+    'no-new-func': 'error',
+    'no-script-url': 'error',
     
-    // React/React Native rules
-    'react/prop-types': 'off', // Using TypeScript
-    'react-hooks/rules-of-hooks': 'error',
-    'react-hooks/exhaustive-deps': 'warn',
+    // Best practices
+    'eqeqeq': ['error', 'always', { null: 'ignore' }],
+    'curly': ['error', 'all'],
+    'default-case': 'error',
+    'no-empty-function': ['error', { allow: ['constructors'] }],
+    'no-empty': ['error', { allowEmptyCatch: true }],
+    'no-magic-numbers': ['warn', { 
+      ignore: [-1, 0, 1, 2, 100, 200, 400, 401, 403, 404, 422, 429, 500, 502, 503, 504],
+      ignoreArrayIndexes: true,
+      ignoreDefaultValues: true,
+    }],
+    'prefer-promise-reject-errors': 'error',
+    'require-atomic-updates': 'error',
+    
+    // Formatting (handled by prettier, but enforce consistency)
+    'quotes': ['error', 'single', { avoidEscape: true, allowTemplateLiterals: true }],
+    'semi': ['error', 'always'],
+    'comma-dangle': ['error', 'always-multiline'],
+    'object-curly-spacing': ['error', 'always'],
+    'array-bracket-spacing': ['error', 'never'],
+    'computed-property-spacing': ['error', 'never'],
+    'space-before-function-paren': ['error', {
+      anonymous: 'always',
+      named: 'never',
+      asyncArrow: 'always',
+    }],
+    'keyword-spacing': 'error',
+    'space-infix-ops': 'error',
+    'eol-last': 'error',
+    'no-trailing-spaces': 'error',
+    'no-multiple-empty-lines': ['error', { max: 2, maxEOF: 1, maxBOF: 0 }],
+    
+    // Import/export rules
+    'import/order': 'off', // Handled by TypeScript
+    'sort-imports': ['error', {
+      ignoreCase: false,
+      ignoreDeclarationSort: true,
+      ignoreMemberSort: false,
+      memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
+    }],
   },
   overrides: [
     {
-      // Test files configuration following Jest best practices
-      files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx', 'src/__tests__/**/*'],
+      files: ['*.test.ts', '*.test.tsx', '*.spec.ts', '*.spec.tsx'],
       env: {
-        node: true,
-      },
-      extends: [
-        'eslint:recommended',
-        'plugin:@typescript-eslint/recommended',
-        'plugin:testing-library/react',
-      ],
-      parserOptions: {
-        project: null, // Disable TypeScript project for test files to avoid issues
+        jest: true,
       },
       rules: {
-        // Relax rules for test files following Jest best practices
-        '@typescript-eslint/no-explicit-any': 'off',
-        '@typescript-eslint/no-unused-vars': 'off',
-        '@typescript-eslint/no-var-requires': 'off',
-        '@typescript-eslint/prefer-nullish-coalescing': 'off',
-        '@typescript-eslint/prefer-optional-chain': 'off',
-        '@typescript-eslint/ban-ts-comment': 'off',
+        // Relax some rules for tests
+        '@typescript-eslint/no-explicit-any': 'warn',
+        '@typescript-eslint/no-non-null-assertion': 'off',
         '@typescript-eslint/no-empty-function': 'off',
-        '@typescript-eslint/no-unsafe-assignment': 'off',
-        '@typescript-eslint/no-unsafe-member-access': 'off',
-        '@typescript-eslint/no-unsafe-call': 'off',
-        '@typescript-eslint/no-unsafe-return': 'off',
-        '@typescript-eslint/no-unsafe-argument': 'off',
-        '@typescript-eslint/restrict-template-expressions': 'off',
-        '@typescript-eslint/restrict-plus-operands': 'off',
-        '@typescript-eslint/unbound-method': 'off',
-        
-        // Allow console in tests
-        'no-console': 'off',
-        
-        // Allow common test patterns
-        'no-undef': 'off',
-        'prefer-const': 'off',
-        'sort-imports': 'off',
-        'testing-library/prefer-screen-queries': 'off',
-        'testing-library/await-async-events': 'off',
-        'no-duplicate-imports': 'off',
+        'no-magic-numbers': 'off',
       },
     },
     {
-      // Configuration files
-      files: ['**/*.config.ts', '**/*.config.js', '**/*.config.cjs'],
-      env: {
-        node: true,
-      },
-      parserOptions: {
-        project: null, // Disable TypeScript project for config files
-      },
+      files: ['*.config.ts', '*.config.js', '*.config.cjs'],
       rules: {
+        // Config files can be more lenient
         '@typescript-eslint/no-var-requires': 'off',
-        'no-console': 'off',
-      },
-    },
-    {
-      // Generated files
-      files: ['src/api/types.generated.ts'],
-      rules: {
-        '@typescript-eslint/no-unused-vars': 'off',
-        '@typescript-eslint/ban-types': 'off',
-        '@typescript-eslint/no-explicit-any': 'off',
+        'no-magic-numbers': 'off',
       },
     },
   ],
   ignorePatterns: [
     'dist/',
     'node_modules/',
-    '*.generated.ts',
     'coverage/',
-    '.eslintrc.cjs',
-    'metro.config.*',
-    'babel.config.*',
-    'tsup.config.ts',
-    'scripts/',
+    '*.d.ts',
+    '*.js',
+    '*.mjs',
+    '*.cjs',
   ],
 };
