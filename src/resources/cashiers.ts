@@ -10,11 +10,13 @@
  * - Email management and formatting
  */
 
-import { BaseOpenAPIResource } from '@/resources/base-openapi';
+import { BaseOpenAPIResource, type RequestOptions } from '@/resources/base-openapi';
 import { CashierEndpoints } from '@/generated/endpoints';
 import type { HttpClient } from '@/http/client';
 import type { CashierId } from '@/types/branded';
 import type { components } from '@/types/generated';
+import type { UnifiedStorage } from '@/storage/unified-storage';
+import type { EnterpriseQueueManager } from '@/storage/queue/queue-manager';
 import { ValidationError } from '@/errors/index';
 
 // Extract types from OpenAPI generated types
@@ -36,11 +38,15 @@ export interface CashierValidationOptions {
 /**
  * Cashiers Resource Class - OpenAPI Based
  * Manages cashier user accounts with full OpenAPI compliance
+ * Enhanced with offline-first capabilities
  */
 export class CashiersResource extends BaseOpenAPIResource {
-  constructor(client: HttpClient) {
+  constructor(client: HttpClient, storage?: UnifiedStorage | undefined, queueManager?: EnterpriseQueueManager | undefined) {
     super({
       client,
+      storage: storage || undefined,
+      queueManager: queueManager || undefined,
+      offlineEnabled: Boolean(storage || queueManager),
       endpoints: {
         list: CashierEndpoints.LIST,
         create: CashierEndpoints.CREATE,
@@ -53,50 +59,69 @@ export class CashiersResource extends BaseOpenAPIResource {
 
   /**
    * Get a list of cashiers with pagination
+   * Enhanced with offline-first capabilities
    * 
    * @param params - Pagination parameters
+   * @param options - Request options including offline preferences
    * @returns Promise resolving to paginated cashier list
    */
-  async list(params?: CashierListParams): Promise<CashierPage> {
+  async list(params?: CashierListParams, options: Partial<RequestOptions> = {}): Promise<CashierPage> {
     return this.executeRequest<void, CashierPage>('list', undefined, {
       ...(params && { queryParams: params as Record<string, unknown> }),
+      cacheTTL: 600, // Cache for 10 minutes
+      queueIfOffline: false,
+      ...options,
       metadata: {
         operation: 'list_cashiers',
+        ...options.metadata,
       }
     });
   }
 
   /**
    * Create a new cashier
+   * Enhanced with offline queuing and optimistic updates
    * 
    * @param data - Cashier creation input data
-   * @param options - Validation options
+   * @param validationOptions - Validation options
+   * @param requestOptions - Request options including offline preferences
    * @returns Promise resolving to created cashier
    */
   async create(
     data: CashierCreateInput, 
-    options: CashierValidationOptions = {}
+    validationOptions: CashierValidationOptions = {},
+    requestOptions: Partial<RequestOptions> = {}
   ): Promise<CashierOutput> {
     // Validate input with custom business rules
-    await this.validateCashierInput(data, options);
+    await this.validateCashierInput(data, validationOptions);
 
     return this.executeRequest<CashierCreateInput, CashierOutput>('create', data, {
+      queueIfOffline: true,
+      optimistic: true,
+      ...requestOptions,
       metadata: {
         operation: 'create_cashier',
         email: data.email,
+        ...requestOptions.metadata,
       }
     });
   }
 
   /**
    * Get current cashier information
+   * Enhanced with intelligent caching
    * 
+   * @param options - Request options including offline preferences
    * @returns Promise resolving to current cashier details
    */
-  async me(): Promise<CashierOutput> {
+  async me(options: Partial<RequestOptions> = {}): Promise<CashierOutput> {
     return this.executeRequest<void, CashierOutput>('me', undefined, {
+      cacheTTL: 300, // Cache for 5 minutes
+      queueIfOffline: false,
+      ...options,
       metadata: {
         operation: 'get_current_cashier',
+        ...options.metadata,
       }
     });
   }

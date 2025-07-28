@@ -14,13 +14,27 @@ import type { HttpClient, RequestOptions as HttpRequestOptions } from '@/http/cl
 import type { EndpointDefinition, HttpMethod } from '@/generated/endpoints';
 import { EndpointUtils } from '@/generated/endpoints';
 import { ValidationError, type ACubeSDKError } from '@/errors/index';
+import type { UnifiedStorage } from '@/storage/unified-storage';
+import type { EnterpriseQueueManager, QueueItem } from '@/storage/queue/queue-manager';
+import { createQueueItemId } from '@/storage/queue/types';
 
 export interface BaseResourceConfig {
   client: HttpClient;
   endpoints: Record<string, EndpointDefinition>;
+  storage?: UnifiedStorage | undefined;
+  queueManager?: EnterpriseQueueManager | undefined;
+  offlineEnabled?: boolean;
 }
 
-export interface RequestOptions {
+export interface OfflineRequestOptions {
+  preferOffline?: boolean;
+  queueIfOffline?: boolean;
+  skipCache?: boolean;
+  cacheTTL?: number; // seconds
+  optimistic?: boolean;
+}
+
+export interface RequestOptions extends OfflineRequestOptions {
   pathParams?: Record<string, string | number>;
   queryParams?: Record<string, unknown>;
   headers?: Record<string, string>;
@@ -41,24 +55,32 @@ export interface ValidationContext {
 /**
  * Abstract base class for all OpenAPI-based resources
  * Provides type-safe operations with comprehensive error handling and validation
+ * Enhanced with offline-first capabilities
  */
 export abstract class BaseOpenAPIResource {
   protected readonly client: HttpClient;
   protected readonly endpoints: Record<string, EndpointDefinition>;
+  protected readonly storage?: UnifiedStorage | undefined;
+  protected readonly queueManager?: EnterpriseQueueManager | undefined;
+  protected readonly offlineEnabled: boolean;
 
   constructor(config: BaseResourceConfig) {
     this.client = config.client;
     this.endpoints = config.endpoints;
+    this.storage = config.storage || undefined;
+    this.queueManager = config.queueManager || undefined;
+    this.offlineEnabled = config.offlineEnabled ?? false;
   }
 
   /**
    * Execute a type-safe API request based on OpenAPI endpoint definition
+   * Enhanced with offline-first capabilities
    * 
    * @template TRequest - Type of request data
    * @template TResponse - Type of response data
    * @param endpointKey - Key to identify the endpoint in the endpoints map
    * @param data - Request body data (for POST/PUT/PATCH requests)
-   * @param options - Additional request options
+   * @param options - Additional request options including offline preferences
    * @returns Promise resolving to typed response data
    */
   protected async executeRequest<TRequest = unknown, TResponse = unknown>(
@@ -77,6 +99,83 @@ export abstract class BaseOpenAPIResource {
 
     // Validate the request before execution
     this.validateRequest({ endpoint, operation: endpointKey, data, ...options });
+
+    // Offline-first execution logic
+    if (this.offlineEnabled && this.storage) {
+      return this.executeOfflineFirstRequest<TRequest, TResponse>(endpoint, endpointKey, data, options);
+    }
+
+    // Fallback to standard online execution
+    return this.executeOnlineRequest<TRequest, TResponse>(endpoint, endpointKey, data, options);
+  }
+
+  /**
+   * Execute offline-first request with intelligent fallback
+   */
+  private async executeOfflineFirstRequest<TRequest = unknown, TResponse = unknown>(
+    endpoint: EndpointDefinition,
+    endpointKey: string,
+    data?: TRequest,
+    options: RequestOptions = {}
+  ): Promise<TResponse> {
+    const cacheKey = this.buildCacheKey(endpoint, options.pathParams, options.queryParams);
+    const isReadOperation = endpoint.method === 'GET';
+    const isWriteOperation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(endpoint.method);
+
+    try {
+      // For read operations, try cache first unless explicitly skipped
+      if (isReadOperation && !options.skipCache && !options.preferOffline) {
+        const cachedResult = await this.getCachedResponse<TResponse>(cacheKey);
+        if (cachedResult) {
+          return cachedResult;
+        }
+      }
+
+      // If prefer offline is set, try offline storage first
+      if (options.preferOffline && isReadOperation) {
+        const offlineResult = await this.getOfflineData<TResponse>(cacheKey);
+        if (offlineResult) {
+          return offlineResult;
+        }
+      }
+
+      // Attempt online execution
+      const result = await this.executeOnlineRequest<TRequest, TResponse>(endpoint, endpointKey, data, options);
+      
+      // Cache successful read responses
+      if (isReadOperation && result) {
+        await this.cacheResponse(cacheKey, result, options.cacheTTL);
+      }
+
+      return result;
+
+    } catch (error) {
+      // Handle offline scenarios for write operations
+      if (isWriteOperation && options.queueIfOffline && this.queueManager) {
+        return this.queueWriteOperation<TRequest, TResponse>(endpoint, endpointKey, data, options, error as Error);
+      }
+
+      // For read operations, try offline data as fallback
+      if (isReadOperation) {
+        const offlineResult = await this.getOfflineData<TResponse>(cacheKey);
+        if (offlineResult) {
+          return offlineResult;
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Execute standard online request (original implementation)
+   */
+  private async executeOnlineRequest<TRequest = unknown, TResponse = unknown>(
+    endpoint: EndpointDefinition,
+    endpointKey: string,
+    data?: TRequest,
+    options: RequestOptions = {}
+  ): Promise<TResponse> {
 
     // Build the complete URL with path parameters
     const url = this.buildRequestUrl(endpoint, options.pathParams);
@@ -122,6 +221,216 @@ export abstract class BaseOpenAPIResource {
       // Enhanced error handling with OpenAPI context
       throw this.enhanceError(error as ACubeSDKError, endpoint, endpointKey, options);
     }
+  }
+
+  /**
+   * Cache response data with TTL
+   */
+  private async cacheResponse<TResponse>(cacheKey: string, data: TResponse, ttl?: number): Promise<void> {
+    if (!this.storage) return;
+
+    try {
+      const ttlSeconds = ttl || 3600; // Default 1 hour
+      const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+      
+      await this.storage.set(cacheKey as any, {
+        data,
+        timestamp: new Date(),
+        expiresAt,
+      });
+    } catch (error) {
+      // Cache failures should not break the main operation
+      console.warn('Failed to cache response:', error);
+    }
+  }
+
+  /**
+   * Get cached response if valid
+   */
+  private async getCachedResponse<TResponse>(cacheKey: string): Promise<TResponse | null> {
+    if (!this.storage) return null;
+
+    try {
+      const cached = await this.storage.get<{
+        data: TResponse;
+        timestamp: Date;
+        expiresAt: Date;
+      }>(cacheKey as any);
+
+      if (cached && cached.data && 'expiresAt' in cached.data && new Date() < new Date(cached.data.expiresAt)) {
+        return cached.data.data;
+      }
+
+      // Remove expired cache entry
+      if (cached) {
+        await this.storage.delete(cacheKey as any);
+      }
+
+      return null;
+    } catch (error) {
+      console.warn('Failed to get cached response:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get offline data (persistent storage)
+   */
+  private async getOfflineData<TResponse>(cacheKey: string): Promise<TResponse | null> {
+    if (!this.storage) return null;
+
+    try {
+      const offlineKey = `offline:${cacheKey}`;
+      const offlineEntry = await this.storage.get(offlineKey as any);
+      return (offlineEntry?.data as TResponse) || null;
+    } catch (error) {
+      console.warn('Failed to get offline data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Queue write operation for later execution
+   */
+  private async queueWriteOperation<TRequest = unknown, TResponse = unknown>(
+    endpoint: EndpointDefinition,
+    endpointKey: string,
+    data?: TRequest,
+    options: RequestOptions = {},
+    networkError?: Error
+  ): Promise<TResponse> {
+    if (!this.queueManager) {
+      throw networkError || new Error('Network unavailable and queue not configured');
+    }
+
+    // Create queue item
+    const queueItem: QueueItem = {
+      id: createQueueItemId(`${endpointKey}_${Date.now()}_${Math.random().toString(36).substring(2)}`),
+      operation: this.mapHttpMethodToQueueOperation(endpoint.method),
+      resource: 'receipts', // Default resource type - should be passed as parameter
+      data: {
+        endpoint: endpointKey,
+        requestData: data,
+        pathParams: options.pathParams,
+        queryParams: options.queryParams,
+        headers: options.headers,
+      },
+      priority: this.determinePriority(endpoint),
+      status: 'pending' as const,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      retryCount: 0,
+      maxRetries: 3,
+      retryStrategy: 'exponential' as const,
+      conflictResolution: 'client-wins' as const,
+      ...(options.metadata && { metadata: options.metadata }),
+    };
+
+    // Add to queue
+    await this.queueManager.add(queueItem);
+
+    // For optimistic updates, return a placeholder response
+    if (options.optimistic) {
+      return this.createOptimisticResponse<TResponse>(endpoint, data, options);
+    }
+
+    // For non-optimistic updates, throw to indicate operation was queued
+    throw new ValidationError(
+      'Operation queued for later execution',
+      'queued_operation',
+      [{ field: 'network', message: 'Operation will be executed when network is available', code: 'QUEUED' }]
+    );
+  }
+
+  /**
+   * Build cache key for request
+   */
+  private buildCacheKey(
+    endpoint: EndpointDefinition,
+    pathParams?: Record<string, string | number>,
+    queryParams?: Record<string, unknown>
+  ): string {
+    let key = `${endpoint.method}:${endpoint.path}`;
+    
+    // Add path parameters to key
+    if (pathParams) {
+      const sortedParams = Object.keys(pathParams).sort();
+      const pathParamString = sortedParams.map(key => `${key}=${pathParams[key]}`).join('&');
+      key += `?path=${pathParamString}`;
+    }
+
+    // Add query parameters to key
+    if (queryParams) {
+      const sortedParams = Object.keys(queryParams).sort();
+      const queryParamString = sortedParams.map(key => `${key}=${queryParams[key]}`).join('&');
+      key += `&query=${queryParamString}`;
+    }
+
+    return `api_cache:${key}`;
+  }
+
+  /**
+   * Map HTTP method to queue operation type
+   */
+  private mapHttpMethodToQueueOperation(method: string): QueueItem['operation'] {
+    switch (method.toUpperCase()) {
+      case 'POST': return 'create';
+      case 'PUT': 
+      case 'PATCH': return 'update';
+      case 'DELETE': return 'delete';
+      default: return 'custom'; // For GET and others
+    }
+  }
+
+  /**
+   * Determine queue priority based on endpoint
+   */
+  private determinePriority(endpoint: EndpointDefinition): QueueItem['priority'] {
+    // Higher priority for receipts and critical operations
+    if (endpoint.path.includes('/receipts') || endpoint.path.includes('/cashiers')) {
+      return 'high';
+    }
+    return 'normal';
+  }
+
+  /**
+   * Create optimistic response for write operations
+   */
+  private createOptimisticResponse<TResponse>(
+    endpoint: EndpointDefinition,
+    data: unknown,
+    _options: RequestOptions
+  ): TResponse {
+    // For POST operations, assume creation succeeded
+    if (endpoint.method === 'POST') {
+      return {
+        ...(data && typeof data === 'object' ? data : {}),
+        id: `temp_${Date.now()}`,
+        _optimistic: true,
+      } as TResponse;
+    }
+
+    // For PUT/PATCH, return the updated data
+    if (endpoint.method === 'PUT' || endpoint.method === 'PATCH') {
+      return {
+        ...(data && typeof data === 'object' ? data : {}),
+        _optimistic: true,
+      } as TResponse;
+    }
+
+    // For DELETE, return success indication
+    if (endpoint.method === 'DELETE') {
+      return {
+        success: true,
+        _optimistic: true,
+      } as TResponse;
+    }
+
+    // Default optimistic response
+    return {
+      success: true,
+      _optimistic: true,
+    } as TResponse;
   }
 
   /**
@@ -385,6 +694,111 @@ export abstract class BaseOpenAPIResource {
     delay += (Math.random() * 2 - 1) * jitter;
     
     return Math.floor(delay);
+  }
+
+  // Offline utility methods
+
+  /**
+   * Check if offline capabilities are enabled for this resource
+   */
+  protected isOfflineEnabled(): boolean {
+    return this.offlineEnabled && Boolean(this.storage);
+  }
+
+  /**
+   * Check if queue capabilities are enabled for this resource
+   */
+  protected isQueueEnabled(): boolean {
+    return this.offlineEnabled && Boolean(this.queueManager);
+  }
+
+  /**
+   * Store data for offline use (persistent across sessions)
+   */
+  protected async storeOfflineData(key: string, data: any): Promise<void> {
+    if (!this.storage) return;
+
+    try {
+      const offlineKey = `offline:${key}`;
+      await this.storage.set(offlineKey as any, data);
+    } catch (error) {
+      console.warn('Failed to store offline data:', error);
+    }
+  }
+
+  /**
+   * Clear cached data for a specific key pattern
+   */
+  protected async clearCache(keyPattern?: string): Promise<void> {
+    if (!this.storage) return;
+
+    try {
+      if (keyPattern) {
+        // Use query to find matching keys
+        const results = await this.storage.query({ keyPrefix: `api_cache:${keyPattern}` }) as Array<{ key: any; value: any }>;
+        for (const entry of results) {
+          await this.storage.delete(entry.key);
+        }
+      } else {
+        // Clear all cache entries for this resource
+        const results = await this.storage.query({ keyPrefix: 'api_cache:' }) as Array<{ key: any; value: any }>;
+        for (const entry of results) {
+          await this.storage.delete(entry.key);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to clear cache:', error);
+    }
+  }
+
+  /**
+   * Get offline queue statistics for this resource
+   */
+  protected async getOfflineStats(): Promise<{
+    queuedOperations: number;
+    cachedEntries: number;
+    offlineEntries: number;
+  }> {
+    const stats = {
+      queuedOperations: 0,
+      cachedEntries: 0,
+      offlineEntries: 0,
+    };
+
+    try {
+      if (this.queueManager) {
+        const queueStats = this.queueManager.getStats();
+        stats.queuedOperations = queueStats.totalItems;
+      }
+
+      if (this.storage) {
+        // Count cache entries
+        const cacheEntries = await this.storage.query({ keyPrefix: 'api_cache:' }) as Array<{ key: any; value: any }>;
+        stats.cachedEntries = cacheEntries.length;
+
+        // Count offline entries
+        const offlineEntries = await this.storage.query({ keyPrefix: 'offline:' }) as Array<{ key: any; value: any }>;
+        stats.offlineEntries = offlineEntries.length;
+      }
+    } catch (error) {
+      console.warn('Failed to get offline stats:', error);
+    }
+
+    return stats;
+  }
+
+  /**
+   * Force sync of queued operations for this resource
+   */
+  protected async syncQueuedOperations(): Promise<void> {
+    if (!this.queueManager) return;
+
+    try {
+      await this.queueManager.processAll();
+    } catch (error) {
+      console.warn('Failed to sync queued operations:', error);
+      throw error;
+    }
   }
 }
 

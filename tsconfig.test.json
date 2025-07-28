@@ -3,7 +3,9 @@
   "compilerOptions": {
     "outDir": "./dist-test",
     "noEmit": true,
-    "types": ["jest", "node"]
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": false,
+    "types": ["jest", "node", "@types/jest", "@testing-library/jest-dom"]
   },
   "include": [
     "src/**/*",

@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useACube } from './ACubeProvider';
 import type { ACubeSDK } from '@/core/sdk';
 
 export interface QueryOptions<TData> {
@@ -20,6 +21,12 @@ export interface QueryOptions<TData> {
   select?: (data: TData) => any;
   initialData?: TData;
   placeholderData?: TData;
+  // Offline-first enhancements
+  offlineFallback?: boolean;
+  persistToStorage?: boolean;
+  storageKey?: string;
+  networkPolicy?: 'cache-first' | 'network-first' | 'offline-first';
+  syncOnReconnect?: boolean;
 }
 
 export interface QueryResult<TData> {
@@ -37,6 +44,12 @@ export interface QueryResult<TData> {
   failureCount: number;
   isPaused: boolean;
   status: 'idle' | 'loading' | 'error' | 'success';
+  // Offline-first enhancements
+  isOffline: boolean;
+  isCached: boolean;
+  isFromCache: boolean;
+  syncStatus: 'synced' | 'pending' | 'failed' | 'unknown';
+  offlineDataAvailable: boolean;
 }
 
 interface QueryCache<TData> {
@@ -106,6 +119,8 @@ export function useACubeQuery<TData = unknown>(
     errorUpdatedAt: number;
     failureCount: number;
     status: 'idle' | 'loading' | 'error' | 'success';
+    isFromCache: boolean;
+    syncStatus: 'synced' | 'pending' | 'failed' | 'unknown';
   }>(() => {
     const cached = queryCache.get(key);
     const now = Date.now();
@@ -121,6 +136,8 @@ export function useACubeQuery<TData = unknown>(
         errorUpdatedAt: cached.error ? cached.timestamp : 0,
         failureCount: 0,
         status: cached.error ? 'error' : 'success',
+        isFromCache: true,
+        syncStatus: 'synced',
       };
     }
     
@@ -134,6 +151,8 @@ export function useACubeQuery<TData = unknown>(
       errorUpdatedAt: 0,
       failureCount: 0,
       status: enabled ? 'loading' : 'idle',
+      isFromCache: false,
+      syncStatus: 'unknown',
     };
   });
 
@@ -141,11 +160,23 @@ export function useACubeQuery<TData = unknown>(
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const refetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Get SDK instance from context (would need to be provided by ACubeProvider)
-  const sdk = useACubeSDK(); // This would need to be implemented
+  // Get SDK and offline systems from context
+  const { 
+    sdk, 
+    storage, 
+    isOnline, 
+    isOfflineEnabled 
+  } = useACube();
 
-  const fetchData = useCallback(async (isRefetch = false) => {
+  const fetchData = useCallback(async (isRefetch = false, forceNetwork = false) => {
     if (!enabled || !sdk) return;
+
+    const {
+      offlineFallback = true,
+      persistToStorage = true,
+      storageKey,
+      networkPolicy = 'cache-first',
+    } = options;
 
     // Cancel previous request
     if (abortControllerRef.current) {
@@ -159,86 +190,223 @@ export function useACubeQuery<TData = unknown>(
       isFetching: true,
       isLoading: prev.data === undefined,
       ...(isRefetch && { isStale: false }),
+      syncStatus: 'pending',
     }));
 
-    try {
-      const data = await queryFn(sdk);
+    // Offline-first data retrieval strategy
+    let shouldTryNetwork = true;
+    let cacheData: TData | undefined;
+    let isFromCache = false;
+    let isFromOfflineStorage = false;
+
+    // 1. Check memory cache first
+    const cached = queryCache.get(key);
+    if (cached && !forceNetwork) {
+      const now = Date.now();
+      const isCacheValid = (now - cached.timestamp) < staleTime;
+      
+      if (isCacheValid || (networkPolicy === 'cache-first' && !isOnline)) {
+        cacheData = cached.data;
+        isFromCache = true;
+        shouldTryNetwork = networkPolicy === 'network-first' || isRefetch;
+      }
+    }
+
+    // 2. Check offline storage if no valid cache and offline enabled
+    if (!cacheData && isOfflineEnabled && storage && offlineFallback) {
+      try {
+        const offlineKey = storageKey || `query:${key}`;
+        const offlineEntry = await storage.get(offlineKey as any);
+        if (offlineEntry?.data) {
+          cacheData = offlineEntry.data as TData;
+          isFromOfflineStorage = true;
+          shouldTryNetwork = isOnline && (networkPolicy !== 'offline-first' || isRefetch);
+        }
+      } catch (error) {
+        console.warn('Failed to load offline data:', error);
+      }
+    }
+
+    // 3. Return cached/offline data if network unavailable or policy dictates
+    if (cacheData && (!isOnline || !shouldTryNetwork)) {
+      const processedData = select ? select(cacheData) : cacheData;
       const now = Date.now();
       
-      // Update cache
-      queryCache.set(key, {
-        data,
-        timestamp: now,
-        error: null,
-        isStale: false,
-      });
-
-      const processedData = select ? select(data) : data;
-
       setState({
         data: processedData,
         error: null,
         isLoading: false,
         isFetching: false,
-        isStale: false,
-        dataUpdatedAt: now,
+        isStale: isFromOfflineStorage && isOnline,
+        dataUpdatedAt: cached?.timestamp || now,
         errorUpdatedAt: 0,
         failureCount: 0,
         status: 'success',
+        isFromCache: isFromCache || isFromOfflineStorage,
+        syncStatus: isFromOfflineStorage && isOnline ? 'pending' : 'synced',
       });
 
-      onSuccess?.(data);
-    } catch (error) {
-      const now = Date.now();
-      const err = error instanceof Error ? error : new Error(String(error));
-      
-      setState(prev => {
-        const newFailureCount = prev.failureCount + 1;
-        const shouldRetry = typeof retry === 'function' 
-          ? retry(newFailureCount, err)
-          : typeof retry === 'number' 
-            ? newFailureCount < retry
-            : retry && newFailureCount < 3;
+      // Update memory cache if data came from storage
+      if (isFromOfflineStorage) {
+        queryCache.set(key, {
+          data: cacheData,
+          timestamp: now,
+          error: null,
+          isStale: false,
+        });
+      }
 
-        if (shouldRetry) {
-          const delay = typeof retryDelay === 'function' 
-            ? retryDelay(newFailureCount) 
-            : retryDelay;
+      onSuccess?.(cacheData);
+      return;
+    }
+
+    // 4. Attempt network request
+    if (shouldTryNetwork && isOnline) {
+      try {
+        const data = await queryFn(sdk);
+        const now = Date.now();
+        
+        // Update memory cache
+        queryCache.set(key, {
+          data,
+          timestamp: now,
+          error: null,
+          isStale: false,
+        });
+
+        // Persist to storage if enabled
+        if (persistToStorage && isOfflineEnabled && storage) {
+          try {
+            const offlineKey = storageKey || `query:${key}`;
+            await storage.set(offlineKey as any, data as any);
+          } catch (error) {
+            console.warn('Failed to persist query data:', error);
+          }
+        }
+
+        const processedData = select ? select(data) : data;
+
+        setState({
+          data: processedData,
+          error: null,
+          isLoading: false,
+          isFetching: false,
+          isStale: false,
+          dataUpdatedAt: now,
+          errorUpdatedAt: 0,
+          failureCount: 0,
+          status: 'success',
+          isFromCache: false,
+          syncStatus: 'synced',
+        });
+
+        onSuccess?.(data);
+      } catch (error) {
+        const now = Date.now();
+        const err = error instanceof Error ? error : new Error(String(error));
+        
+        // Try to fall back to cached/offline data on network error
+        if (cacheData && offlineFallback) {
+          const processedData = select ? select(cacheData) : cacheData;
           
-          retryTimeoutRef.current = setTimeout(() => {
-            fetchData(true);
-          }, delay);
+          setState({
+            data: processedData,
+            error: err,
+            isLoading: false,
+            isFetching: false,
+            isStale: true,
+            dataUpdatedAt: cached?.timestamp || now,
+            errorUpdatedAt: now,
+            failureCount: 0,
+            status: 'success', // Success with stale data
+            isFromCache: true,
+            syncStatus: 'failed',
+          });
+
+          onSuccess?.(cacheData);
+          return;
+        }
+        
+        setState(prev => {
+          const newFailureCount = prev.failureCount + 1;
+          const shouldRetry = typeof retry === 'function' 
+            ? retry(newFailureCount, err)
+            : typeof retry === 'number' 
+              ? newFailureCount < retry
+              : retry && newFailureCount < 3;
+
+          if (shouldRetry && isOnline) {
+            const delay = typeof retryDelay === 'function' 
+              ? retryDelay(newFailureCount) 
+              : retryDelay;
+            
+            retryTimeoutRef.current = setTimeout(() => {
+              fetchData(true);
+            }, delay);
+
+            return {
+              ...prev,
+              failureCount: newFailureCount,
+              isFetching: false,
+              isLoading: false,
+              syncStatus: 'pending',
+            };
+          }
+
+          // Update cache with error
+          queryCache.set(key, {
+            data: prev.data as TData,
+            timestamp: now,
+            error: err,
+            isStale: true,
+          });
+
+          onError?.(err);
 
           return {
             ...prev,
-            failureCount: newFailureCount,
-            isFetching: false,
+            error: err,
             isLoading: false,
+            isFetching: false,
+            errorUpdatedAt: now,
+            failureCount: newFailureCount,
+            status: 'error',
+            syncStatus: 'failed',
           };
-        }
-
-        // Update cache with error
-        queryCache.set(key, {
-          data: prev.data as TData,
-          timestamp: now,
-          error: err,
-          isStale: true,
         });
-
-        onError?.(err);
-
-        return {
-          ...prev,
-          error: err,
-          isLoading: false,
-          isFetching: false,
-          errorUpdatedAt: now,
-          failureCount: newFailureCount,
-          status: 'error',
-        };
+      }
+    } else if (cacheData) {
+      // Offline but have cached data
+      const processedData = select ? select(cacheData) : cacheData;
+      const now = Date.now();
+      
+      setState({
+        data: processedData,
+        error: null,
+        isLoading: false,
+        isFetching: false,
+        isStale: true,
+        dataUpdatedAt: cached?.timestamp || now,
+        errorUpdatedAt: 0,
+        failureCount: 0,
+        status: 'success',
+        isFromCache: true,
+        syncStatus: 'pending',
       });
+
+      onSuccess?.(cacheData);
+    } else {
+      // No data available and offline
+      setState(prev => ({
+        ...prev,
+        error: new Error('No data available offline'),
+        isLoading: false,
+        isFetching: false,
+        status: 'error',
+        syncStatus: 'failed',
+      }));
     }
-  }, [enabled, sdk, queryFn, key, retry, retryDelay, select, onSuccess, onError]);
+  }, [enabled, sdk, queryFn, key, retry, retryDelay, select, onSuccess, onError, options, storage, isOnline, isOfflineEnabled, staleTime]);
 
   const refetch = useCallback(async () => {
     await fetchData(true);
@@ -255,6 +423,8 @@ export function useACubeQuery<TData = unknown>(
       errorUpdatedAt: 0,
       failureCount: 0,
       status: 'idle',
+      isFromCache: false,
+      syncStatus: 'unknown',
     }));
   }, [key]);
 
@@ -343,16 +513,14 @@ export function useACubeQuery<TData = unknown>(
     isError: state.status === 'error',
     isSuccess: state.status === 'success',
     isPaused: false, // Could be implemented for network-aware pausing
+    isOffline: !isOnline,
+    isCached: Boolean(queryCache.get(key)),
+    offlineDataAvailable: Boolean(state.data),
     refetch,
     remove,
   };
 }
 
-// Placeholder for SDK context hook
-function useACubeSDK(): ACubeSDK {
-  // This would be implemented to get SDK from React context
-  throw new Error('useACubeSDK must be used within ACubeProvider');
-}
 
 // Export cache utilities for advanced usage
 export const queryUtils = {

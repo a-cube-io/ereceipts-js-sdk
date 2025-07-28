@@ -12,6 +12,7 @@ export type ReceiptId = Brand<string, 'ReceiptId'>;
 export type CashierId = Brand<number, 'CashierId'>;
 export type PEMId = Brand<string, 'PEMId'>;
 export type MerchantId = Brand<string, 'MerchantId'>;
+export type PointOfSaleId = Brand<string, 'PointOfSaleId'>;
 export type CashRegisterId = Brand<string, 'CashRegisterId'>;
 export type SerialNumber = Brand<string, 'SerialNumber'>;
 export type FiscalId = Brand<string, 'FiscalId'>;
@@ -27,6 +28,7 @@ export const createReceiptId = (id: string): ReceiptId => id as ReceiptId;
 export const createCashierId = (id: number): CashierId => id as CashierId;
 export const createPEMId = (id: string): PEMId => id as PEMId;
 export const createMerchantId = (id: string): MerchantId => id as MerchantId;
+export const createPointOfSaleId = (id: string): PointOfSaleId => id as PointOfSaleId;
 export const createCashRegisterId = (id: string): CashRegisterId => id as CashRegisterId;
 export const createSerialNumber = (sn: string): SerialNumber => sn as SerialNumber;
 export const createFiscalId = (id: string): FiscalId => id as FiscalId;
@@ -50,6 +52,9 @@ export const isAmount = (value: unknown): value is Amount =>
   typeof value === 'string' && /^\d+\.\d{2,8}$/.test(value);
 
 export const isMerchantId = (value: unknown): value is MerchantId => 
+  typeof value === 'string' && value.length > 0;
+
+export const isPointOfSaleId = (value: unknown): value is PointOfSaleId => 
   typeof value === 'string' && value.length > 0;
 
 export const isSerialNumber = (value: unknown): value is SerialNumber => 

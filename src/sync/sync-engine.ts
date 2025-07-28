@@ -75,6 +75,22 @@ export class ProgressiveSyncEngine extends EventEmitter<SyncEventTypeMap> {
   }
 
   /**
+   * Initialize the sync engine
+   */
+  async initialize(): Promise<void> {
+    // Start processing queue if needed
+    this.processQueue();
+    this.emit('sync.started', {
+      syncId: 'initialization',
+      strategy: 'immediate',
+      direction: 'bidirectional',
+      operation: 'full',
+      startTime: new Date(),
+      options: {}
+    });
+  }
+
+  /**
    * Execute a progressive sync operation with rollback capability
    */
   async executeSync(options: SyncOptions = {}): Promise<SyncResult> {

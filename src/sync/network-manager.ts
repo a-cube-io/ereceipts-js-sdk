@@ -102,6 +102,20 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
   }
 
   /**
+   * Initialize the network manager
+   */
+  async initialize(): Promise<void> {
+    this.startMonitoring();
+  }
+
+  /**
+   * Register connection change listener
+   */
+  onConnectionChange(listener: (info: ConnectionInfo) => void): void {
+    this.on('connection-changed', listener);
+  }
+
+  /**
    * Start network monitoring
    */
   startMonitoring(): void {

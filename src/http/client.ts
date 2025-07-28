@@ -388,6 +388,31 @@ export class HttpClient extends EventEmitter {
     return this.retryHandler.getMetrics();
   }
 
+  getMetrics() {
+    const circuitBreakerMetrics = this.circuitBreaker.getMetrics();
+    const retryMetrics = this.retryHandler.getMetrics();
+    
+    return {
+      requestCount: circuitBreakerMetrics.totalRequests,
+      successCount: circuitBreakerMetrics.successfulRequests,
+      errorCount: circuitBreakerMetrics.failedRequests,
+      totalDuration: 0, // Would need to track this separately
+      averageResponseTime: 0, // Would need to track this separately
+      retryCount: retryMetrics.totalAttempts || 0,
+    };
+  }
+
+  getHealth() {
+    const circuitBreakerHealth = this.circuitBreaker.getHealthStatus();
+    
+    return {
+      status: circuitBreakerHealth.isHealthy ? 'healthy' : 'unhealthy',
+      circuitBreakerState: this.circuitBreaker.getState(),
+      lastError: null, // Would need to track this
+      uptime: circuitBreakerHealth.uptime,
+    };
+  }
+
   getHealthStatus() {
     return {
       circuitBreaker: this.circuitBreaker.getHealthStatus(),

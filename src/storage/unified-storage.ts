@@ -53,6 +53,7 @@ export interface StorageOptions {
 
 // Query options for bulk operations
 export interface QueryOptions {
+  readonly keyPrefix?: string; // Added for compatibility with existing code
   readonly prefix?: string;
   readonly namespace?: string;
   readonly limit?: number;
@@ -189,6 +190,13 @@ export interface UnifiedStorage extends StorageAdapter {
   // Backup and restore
   exportData(namespace?: string): Promise<string>; // Returns JSON string
   importData(data: string): Promise<number>; // Returns number of imported entries
+  
+  // Query operations with keyPrefix support
+  query<T extends StorageValue>(options: QueryOptions): Promise<Array<{ key: StorageKey; value: T }>>;
+  
+  // Initialization and cleanup
+  initialize(): Promise<void>;
+  destroy(): Promise<void>;
   
   // Event listeners
   on(event: 'set' | 'get' | 'delete' | 'clear' | 'error', listener: (...args: any[]) => void): void;

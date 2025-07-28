@@ -7,6 +7,12 @@ import { CircuitBreakerError } from '../errors';
 
 export type CircuitBreakerState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
 
+export const CircuitBreakerState = {
+  CLOSED: 'CLOSED' as const,
+  OPEN: 'OPEN' as const,
+  HALF_OPEN: 'HALF_OPEN' as const,
+} as const;
+
 export interface CircuitBreakerConfig {
   failureThreshold: number;
   successThreshold: number;
@@ -31,6 +37,14 @@ export interface CircuitBreakerMetrics {
     reason: string;
   }>;
 }
+
+export const DEFAULT_CIRCUIT_BREAKER_CONFIG: CircuitBreakerConfig = {
+  failureThreshold: 5,
+  successThreshold: 2,
+  timeout: 30000,
+  resetTimeout: 60000,
+  name: 'default-circuit-breaker',
+};
 
 export class CircuitBreaker {
   private state: CircuitBreakerState = 'CLOSED';

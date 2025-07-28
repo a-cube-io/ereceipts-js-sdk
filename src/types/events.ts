@@ -136,12 +136,20 @@ export interface ErrorEvent extends BaseEvent {
 
 // Authentication Events
 export interface AuthenticationEvent extends BaseEvent {
-  type: 'auth.success' | 'auth.failed' | 'auth.expired' | 'auth.refreshed';
+  type: 'auth.success' | 'auth.failed' | 'auth.expired' | 'auth.refreshed' | 'auth.error' | 'auth.logout';
   data: {
     userId?: string;
     role?: 'provider' | 'merchant' | 'cashier';
     expiresAt?: Date;
     error?: string;
+    errorCode?: string;
+    errorMessage?: string;
+    operation?: string;
+    retry?: boolean;
+    context?: Record<string, unknown>;
+    reason?: string;
+    user?: unknown;
+    sessionId?: string;
   };
 }
 

@@ -12,14 +12,43 @@
 import { BaseOpenAPIResource } from '@/resources/base-openapi';
 import { CashRegisterEndpoints } from '@/generated/endpoints';
 import type { HttpClient } from '@/http/client';
-import type { CashRegisterId } from '@/types/branded';
+import type { CashRegisterId, SerialNumber } from '@/types/branded';
 import type { components } from '@/types/generated';
 import { ValidationError } from '@/errors/index';
+import { MTLSCertificateManager, type MTLSCertificate } from '@/security/mtls-certificate-manager';
 
 // Extract types from OpenAPI generated types
 export type CashRegisterInput = components['schemas']['E-Receipt_IT_API_CashRegisterCreate'];
 export type CashRegisterOutput = components['schemas']['E-Receipt_IT_API_CashRegisterDetailedOutput'];
 export type CashRegisterPage = components['schemas']['E-Receipt_IT_API_Page__T_Customized_CashRegisterBasicOutput_'];
+
+/**
+ * Cash register creation request with mTLS certificate support
+ */
+export interface CashRegisterCreateRequest {
+  /** PEM serial number from the device */
+  pem_serial_number: string;
+  
+  /** Human-readable name for the cash register */
+  name: string;
+}
+
+/**
+ * Cash register creation response with mTLS certificate
+ */
+export interface CashRegisterCreateResponse {
+  /** Unique identifier for the cash register */
+  uuid: string;
+  
+  /** PEM serial number from the device */
+  pem_serial_number: string;
+  
+  /** Human-readable name for the cash register */
+  name: string;
+  
+  /** mTLS certificate in PEM format */
+  mtls_certificate: string;
+}
 
 export interface CashRegisterValidationOptions {
   validateSerialNumber?: boolean;
@@ -73,9 +102,11 @@ export type MaintenanceType = 'routine' | 'repair' | 'upgrade' | 'calibration';
 
 /**
  * Cash Registers Resource Class - OpenAPI Based
- * Manages cash register devices with full compliance
+ * Manages cash register devices with full compliance and mTLS certificate management
  */
 export class CashRegistersResource extends BaseOpenAPIResource {
+  private certificateManager: MTLSCertificateManager;
+
   constructor(client: HttpClient) {
     super({
       client,
@@ -85,10 +116,137 @@ export class CashRegistersResource extends BaseOpenAPIResource {
         getById: CashRegisterEndpoints.GET_BY_ID,
       }
     });
+
+    // Initialize certificate manager
+    this.certificateManager = new MTLSCertificateManager({
+      storageKey: 'acube_cash_register_certificates',
+      enableEncryption: true,
+    });
   }
 
   /**
-   * Create a new cash register
+   * Initialize the resource (including certificate manager)
+   */
+  async initialize(): Promise<void> {
+    await this.certificateManager.initialize();
+  }
+
+  /**
+   * Register a new cash register and obtain mTLS certificate
+   * This method calls the server endpoint and automatically stores the certificate securely
+   * 
+   * @param request - Cash register creation request
+   * @returns Promise resolving to created cash register with certificate info
+   */
+  async registerWithCertificate(
+    request: CashRegisterCreateRequest
+  ): Promise<{
+    cashRegister: CashRegisterCreateResponse;
+    certificate: MTLSCertificate;
+  }> {
+    try {
+      // Call server endpoint to create cash register and get certificate
+      const response = await this.client.post<CashRegisterCreateResponse>(
+        '/mf1/cash-register',
+        request,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          metadata: { 
+            operation: 'registerCashRegister',
+            requiresAuth: true,
+          },
+        }
+      );
+
+      if (response.status !== 201) {
+        throw new ValidationError(
+          'CASH_REGISTER_CREATION_FAILED',
+          `Failed to create cash register: ${response.status}`,
+          [{ field: 'request', message: 'Cash register creation failed', code: 'CREATION_FAILED' }]
+        );
+      }
+
+      const cashRegisterData = response.data;
+
+      // Store the certificate securely
+      const certificate = await this.certificateManager.storeCertificate(
+        cashRegisterData.uuid as CashRegisterId,
+        request.pem_serial_number as SerialNumber,
+        request.name,
+        cashRegisterData.mtls_certificate
+      );
+
+      return {
+        cashRegister: cashRegisterData,
+        certificate,
+      };
+    } catch (error) {
+      throw new ValidationError(
+        'CASH_REGISTER_REGISTRATION_FAILED',
+        `Failed to register cash register: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        [{ field: 'request', message: 'Registration failed', code: 'REGISTRATION_FAILED' }]
+      );
+    }
+  }
+
+  /**
+   * Get mTLS certificate for a cash register
+   * 
+   * @param cashRegisterId - Cash register ID
+   * @returns Promise resolving to certificate or null if not found
+   */
+  async getCertificate(cashRegisterId: CashRegisterId): Promise<MTLSCertificate | null> {
+    return this.certificateManager.getCertificate(cashRegisterId);
+  }
+
+  /**
+   * Get all stored mTLS certificates
+   * 
+   * @returns Promise resolving to array of certificates
+   */
+  async getAllCertificates(): Promise<MTLSCertificate[]> {
+    return this.certificateManager.getAllCertificates();
+  }
+
+  /**
+   * Remove mTLS certificate for a cash register
+   * 
+   * @param cashRegisterId - Cash register ID
+   * @returns Promise resolving to true if certificate was removed
+   */
+  async removeCertificate(cashRegisterId: CashRegisterId): Promise<boolean> {
+    return this.certificateManager.removeCertificate(cashRegisterId);
+  }
+
+  /**
+   * Get certificate storage statistics
+   * 
+   * @returns Promise resolving to storage statistics
+   */
+  async getCertificateStats(): Promise<{
+    totalCertificates: number;
+    activeCertificates: number;
+    expiredCertificates: number;
+    storageSize: number;
+    lastUpdate: Date | null;
+  }> {
+    return this.certificateManager.getStorageStats();
+  }
+
+  /**
+   * Cleanup expired certificates
+   * 
+   * @returns Promise resolving to number of certificates removed
+   */
+  async cleanupExpiredCertificates(): Promise<number> {
+    return this.certificateManager.cleanupExpiredCertificates();
+  }
+
+  /**
+   * Create a new cash register (legacy method)
    * 
    * @param data - Cash register input data
    * @param options - Validation options
@@ -535,6 +693,13 @@ export class CashRegistersResource extends BaseOpenAPIResource {
         'Check integration with fiscal system',
       ],
     };
+  }
+
+  /**
+   * Destroy the resource and cleanup certificate manager
+   */
+  async destroy(): Promise<void> {
+    await this.certificateManager.destroy();
   }
 }
 

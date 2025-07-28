@@ -133,6 +133,7 @@ export interface QueueEvents {
   'batch:created': { batch: BatchOperation };
   'batch:completed': { batch: BatchOperation };
   'batch:failed': { batch: BatchOperation };
+  'queue:initialized': {};
   'queue:drained': { stats: QueueStats };
   'queue:backpressure': { queueSize: number; threshold: number };
   'queue:paused': { reason?: string };

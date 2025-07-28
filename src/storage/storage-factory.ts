@@ -501,6 +501,34 @@ class UnifiedStorageImpl extends EventEmitter implements UnifiedStorage {
   async getStats(): Promise<StorageStats> {
     return this.adapter.getStats();
   }
+
+  // Missing interface methods
+  async query<T extends StorageValue>(options: QueryOptions): Promise<Array<{ key: StorageKey; value: T }>> {
+    const keys = await this.keys(options);
+    const results: Array<{ key: StorageKey; value: T }> = [];
+    
+    for (const key of keys) {
+      try {
+        const entry = await this.get<T>(key);
+        if (entry?.data) {
+          results.push({ key, value: entry.data });
+        }
+      } catch (error) {
+        console.warn(`Failed to query key ${key}:`, error);
+      }
+    }
+    
+    return results;
+  }
+
+  async initialize(): Promise<void> {
+    await this.connect();
+  }
+
+  async destroy(): Promise<void> {
+    await this.disconnect();
+    this.removeAllListeners();
+  }
 }
 
 /**

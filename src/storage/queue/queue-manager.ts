@@ -370,6 +370,47 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
   }
 
   /**
+   * Initialize the queue manager
+   */
+  async initialize(): Promise<void> {
+    // Initialize components if needed
+    this.initializeComponents();
+    
+    // Load persisted queue if available
+    // await this._loadPersistedQueue(); // TODO: Implement when storage is ready
+    
+    this.emit('queue:initialized', {});
+  }
+
+  /**
+   * Add item to queue (compatibility method)
+   */
+  async add(item: QueueItem): Promise<void> {
+    const success = this.priorityQueue.enqueue(item);
+    if (!success) {
+      throw new Error('Failed to add item to queue');
+    }
+    
+    if (this.config.enablePersistence) {
+      await this.persistQueue();
+    }
+  }
+
+  /**
+   * Process a specific queue item (public interface)
+   */
+  async processItem(item: QueueItem): Promise<ProcessingResult> {
+    return this.processItemInternal(item);
+  }
+
+  /**
+   * Get all queue items (compatibility method)
+   */
+  getQueueItems(): QueueItem[] {
+    return this.priorityQueue.toArray();
+  }
+
+  /**
    * Cleanup and destroy
    */
   async destroy(): Promise<void> {
@@ -492,7 +533,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
     const results: ProcessingResult[] = [];
     
     const processingPromises = items.map(async (item) => {
-      return this.processItem(item);
+      return this.processItemInternal(item);
     });
 
     const batchResults = await Promise.allSettled(processingPromises);
@@ -518,7 +559,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
     try {
       await this.batchProcessor.processBatch(batch.id, async (items) => {
         const batchResults = await Promise.allSettled(
-          items.map(item => this.processItem(item))
+          items.map(item => this.processItemInternal(item))
         );
         
         for (const result of batchResults) {
@@ -542,7 +583,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
     return results;
   }
 
-  private async processItem(item: QueueItem): Promise<ProcessingResult> {
+  private async processItemInternal(item: QueueItem): Promise<ProcessingResult> {
     const startTime = Date.now();
     this.processingItems.add(item.id);
 
@@ -712,3 +753,6 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
   //   }
   // }
 }
+
+// Export types for external use
+export type { QueueItem, QueueStats } from './types';

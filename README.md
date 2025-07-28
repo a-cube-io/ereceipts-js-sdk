@@ -1,647 +1,412 @@
-# A-Cube SDK
+# A-Cube E-Receipt SDK
 
-![Coverage](https://img.shields.io/badge/coverage-16%25-red?style=flat-square)
+> **Enterprise-grade TypeScript SDK for Italian e-receipt system with complete offline-first architecture, real-time sync, and performance optimization.**
 
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18+-61dafb.svg)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-> **Professional TypeScript SDK for A-Cube e-receipt system integration**
+**A-Cube E-Receipt SDK** provides a complete solution for Italian e-receipt management with enterprise-grade offline capabilities, real-time synchronization, and seamless React integration. Built for POS systems, retail applications, and enterprise solutions requiring tax compliance and high performance.
 
-[![npm version](https://badge.fury.io/js/primeng.svg)](https://badge.fury.io/js/primeng)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
-[![React Native](https://img.shields.io/badge/React%20Native-Ready-green.svg)](https://reactnative.dev/)
-[![Tree Shakeable](https://img.shields.io/badge/Tree%20Shakeable-✅-brightgreen.svg)](https://webpack.js.org/guides/tree-shaking/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+## ✨ Key Features
 
-A comprehensive, cross-platform SDK for integrating the Italian A-Cube e-receipt system into React, React Native, and PWA applications. Built with TypeScript for type safety and modern development practices.
+### 🚀 **Offline-First Architecture**
+- **Progressive Sync Engine** - Intelligent synchronization with conflict resolution
+- **Enterprise Storage** - Cross-platform with encryption and compression
+- **Queue Management** - Automatic retry, dependency resolution, and batch processing
+- **Real-time Collaboration** - Multi-client sync with operational transforms
 
-## ✨ Features
+### ⚡ **Performance Optimization**
+- **Large Dataset Handling** - Virtualization and intelligent chunking for 100K+ records
+- **Memory Management** - Adaptive caching with LRU/LFU eviction policies
+- **Network Optimization** - Compression, request coalescing, and smart prefetching
+- **Analytics & Monitoring** - Comprehensive performance metrics and auto-optimization
 
-- 🚀 **Cross-Platform**: Works seamlessly on React, React Native, and PWA
-- 📱 **No Expo Required**: Pure React Native compatibility
-- 🔒 **Secure Authentication**: JWT tokens with secure storage (Keychain/localStorage)
-- 📄 **Complete E-Receipt Management**: Create, void, return receipts
-- 🏪 **Multi-Role Support**: Provider, Merchant, and Cashier roles
-- 🌐 **Offline Support**: Request queuing with automatic retry
-- 🎯 **Tree Shakeable**: Import only what you need
-- 📚 **Full TypeScript**: Complete type definitions and IntelliSense
-- 🔧 **Modern Build**: ESM/CJS dual package with tsup
-- ⚡ **Performance Optimized**: Minimal bundle size impact
+### 🔗 **React Integration**
+- **ACubeProvider** - React Context with complete state management
+- **React Hooks** - `useACubeQuery`, `useACubeMutation`, `useACubeCache`, and more
+- **Offline Components** - Automatic offline/online state handling
+- **Real-time Updates** - WebSocket integration with React Suspense support
 
+### 🛡️ **Enterprise Security & Compliance**
+- **Italian Tax Compliance** - Complete fiscal management and audit trails
+- **GDPR Compliance** - Data protection and privacy management
+- **Access Control** - Role-based permissions and user management
+- **Encryption** - AES-256 encryption for sensitive data storage
 
-## 📖 Documentation
-
-### 📂 Navigation
-
-| Section | Description | Links |
-|---------|-------------|-------|
-| **🔧 API Reference** | Core SDK functionality | [Authentication](docs/api/auth.md) • [Receipts](docs/api/receipts.md) • [Merchants](docs/api/merchants.md) |
-| **📚 Guides** | Step-by-step tutorials | [Getting Started](docs/guides/getting-started.md) • [React Provider](docs/guides/react-provider.md) • [Authentication Flow](docs/guides/auth-flow.md) • [Receipt Management](docs/guides/receipt-management.md) |
-| **💡 Examples** | Code samples | [React Examples](examples/react/) • [React Native Examples](examples/react-native/) • [Advanced Usage](USAGE_EXAMPLE.md) |
-| **🔒 Security** | Token & certificate management | [Secure Storage](#-secure-token-storage) • [mTLS Certificates](docs/security/mtls.md) |
-| **🛠️ Development** | SDK development & contribution | [Building](docs/development/building.md) • [Testing](docs/development/testing.md) • [Contributing](CONTRIBUTING.md) |
-
-- [📋 Full API Documentation](docs/README.md)
-- [🚀 Quick Start Examples](USAGE_EXAMPLE.md)
-
-## 📦 Installation
-
-```bash
-npm install @a-cube-io/ereceipts-js-sdk
-# or
-yarn add @a-cube-io/ereceipts-js-sdk
-# or
-pnpm add @a-cube-io/ereceipts-js-sdk
-```
-
-### Peer Dependencies
-
-For **React Native** projects:
-```bash
-npm install @react-native-async-storage/async-storage react-native-keychain @react-native-community/netinfo
-```
-
-For **React Web** projects:
-```bash
-# No additional dependencies required
-```
+### 🌐 **Cross-Platform Support**
+- **Web** - Modern browsers with IndexedDB storage
+- **React Native** - Native iOS/Android with AsyncStorage
+- **PWA** - Progressive web apps with Service Worker integration
+- **Node.js** - Server-side applications and CLI tools
 
 ## 🚀 Quick Start
 
-### Option 1: React Provider (Recommended for React Apps)
+### Installation
+
+```bash
+npm install @a-cube-io/cli
+# or
+yarn add @a-cube-io/cli
+```
+
+### Basic Setup
+
+```typescript
+import { ACubeSDK } from '@a-cube-io/cli';
+
+// Initialize the SDK
+const sdk = new ACubeSDK({
+  environment: 'sandbox', // 'sandbox' | 'production'
+  apiKey: 'your-api-key',
+  // Offline capabilities enabled by default
+  offline: {
+    enabled: true,
+    storage: 'auto', // auto-detects best storage for platform
+    sync: {
+      strategy: 'progressive',
+      batchSize: 100,
+    }
+  }
+});
+
+// Access resources with full offline support
+const receipts = await sdk.receipts.list();
+const cashier = await sdk.cashiers.create({
+  name: 'John Doe',
+  email: 'john@example.com',
+  role: 'cashier'
+});
+```
+
+### React Integration
 
 ```tsx
-import React from 'react';
-import { EReceiptsProvider, useEReceipts, loginAsMerchant } from '@a-cube-io/ereceipts-js-sdk';
+import { ACubeProvider, useACubeQuery, useACubeMutation } from '@a-cube-io/cli/react';
 
+// 1. Wrap your app with ACubeProvider
 function App() {
   return (
-    <EReceiptsProvider
+    <ACubeProvider 
       config={{
         environment: 'sandbox',
-        enableLogging: true,
-        onInitialized: () => console.log('✅ SDK Ready!'),
-        onAuthChange: (isAuth) => console.log('🔐 Auth:', isAuth)
+        apiKey: 'your-api-key',
       }}
     >
-      <AppContent />
-    </EReceiptsProvider>
+      <ReceiptsComponent />
+    </ACubeProvider>
   );
 }
 
-function AppContent() {
-  const { isInitialized, isAuthenticated, currentUser } = useEReceipts();
+// 2. Use hooks for data fetching with offline support
+function ReceiptsComponent() {
+  const { data: receipts, isLoading, error } = useACubeQuery({
+    queryKey: ['receipts'],
+    queryFn: (sdk) => sdk.receipts.list(),
+    // Automatic offline/online synchronization
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  const handleLogin = async () => {
-    const result = await loginAsMerchant('merchant@example.com', 'password');
-    if (result.success) {
-      console.log('✅ Logged in!', result.token);
-    } else {
-      console.error('❌ Login failed:', result.error?.message);
+  const createReceipt = useACubeMutation({
+    mutationFn: (sdk, receiptData) => sdk.receipts.create(receiptData),
+    // Optimistic updates with offline queue
+    onSuccess: () => {
+      // Automatically syncs when online
     }
-  };
+  });
 
-  if (!isInitialized) return <div>🔄 Loading SDK...</div>;
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
 
   return (
     <div>
-      {isAuthenticated ? (
-        <p>👋 Welcome, {currentUser?.email}!</p>
-      ) : (
-        <button onClick={handleLogin}>Login</button>
-      )}
-    </div>
-  );
-}
-```
-
-### Option 2: Manual Initialization
-
-```typescript
-import { initializeEReceipts } from '@a-cube-io/ereceipts-js-sdk';
-
-// Initialize SDK (call once at app startup)
-await initializeEReceipts({
-  environment: 'sandbox', // 'sandbox' | 'production' | 'development'
-  enableLogging: true,
-  enableRetry: true,
-  enableOfflineQueue: true
-});
-```
-
-### 2. Authentication (User-Friendly)
-
-```typescript
-import { loginAsProvider, loginAsMerchant, loginAsCashier } from '@a-cube-io/ereceipts-js-sdk';
-
-// Login as Provider (highest privileges)
-const providerResult = await loginAsProvider('provider@company.com', 'password123');
-if (providerResult.success) {
-  console.log('✅ Provider logged in:', providerResult.token);
-} else {
-  console.error('❌ Login failed:', providerResult.error?.message);
-}
-
-// Login as Merchant (business owner)
-const merchantResult = await loginAsMerchant('merchant@restaurant.com', 'password123');
-
-// Login as Cashier (operational level)
-const cashierResult = await loginAsCashier('cashier@store.com', 'password123');
-```
-
-### 3. Create Your First Receipt
-
-```typescript
-import { createReceipt } from '@a-cube-io/ereceipts-js-sdk';
-
-const receipt = await createReceipt({
-  items: [
-    {
-      description: 'Caffè Espresso',
-      quantity: '2.00',
-      unit_price: '1.50',
-      good_or_service: 'B', // 'B' for goods, 'S' for services
-      vat_rate_code: '22'
-    }
-  ],
-  cash_payment_amount: '3.00',
-  electronic_payment_amount: '0.00'
-});
-
-console.log('Receipt created:', receipt.uuid);
-```
-
-### 4. Complete App Example
-
-```tsx
-import React, { useState } from 'react';
-import { 
-  EReceiptsProvider, 
-  useEReceipts, 
-  loginAsMerchant, 
-  logoutUser,
-  createReceipt,
-  Button, 
-  FormInput 
-} from '@a-cube-io/ereceipts-js-sdk';
-
-// App with Provider
-function App() {
-  return (
-    <EReceiptsProvider
-      config={{
-        environment: 'sandbox',
-        enableLogging: true,
-        onInitialized: () => console.log('🚀 E-Receipts SDK Ready!'),
-        onAuthChange: (isAuth) => console.log('🔐 Auth Status:', isAuth ? 'Logged In' : 'Logged Out')
-      }}
-    >
-      <AppContent />
-    </EReceiptsProvider>
-  );
-}
-
-// Main app content
-function AppContent() {
-  const { isInitialized, isLoading, isAuthenticated, currentUser, error } = useEReceipts();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loginLoading, setLoginLoading] = useState(false);
-
-  const handleLogin = async () => {
-    setLoginLoading(true);
-    const result = await loginAsMerchant(email, password);
-    if (result.success) {
-      console.log('✅ Login successful!');
-      // Provider automatically updates auth state
-    } else {
-      alert(`❌ Login failed: ${result.error?.message}`);
-    }
-    setLoginLoading(false);
-  };
-
-  const handleLogout = async () => {
-    const result = await logoutUser();
-    if (result.success) {
-      console.log('✅ Logged out successfully');
-    }
-  };
-
-  const handleCreateReceipt = async () => {
-    const receipt = await createReceipt({
-      items: [{
-        description: 'Test Product',
-        quantity: '1.00',
-        unit_price: '10.00',
-        good_or_service: 'B',
-        vat_rate_code: '22'
-      }],
-      cash_payment_amount: '10.00'
-    });
-    console.log('📄 Receipt created:', receipt.uuid);
-  };
-
-  // Loading state
-  if (isLoading) {
-    return <div>🔄 Initializing E-Receipts SDK...</div>;
-  }
-
-  // Error state
-  if (error) {
-    return <div>❌ SDK Error: {error.message}</div>;
-  }
-
-  // Not initialized
-  if (!isInitialized) {
-    return <div>⏳ SDK not ready...</div>;
-  }
-
-  // Login screen
-  if (!isAuthenticated) {
-    return (
-      <div style={{ padding: '20px', maxWidth: '400px' }}>
-        <h2>🔐 Login to E-Receipts</h2>
-        
-        <FormInput
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          required
-        />
-        
-        <FormInput
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          showPasswordToggle
-          required
-        />
-        
-        <Button
-          title="Login as Merchant"
-          onPress={handleLogin}
-          loading={loginLoading}
-          disabled={!email || !password}
-        />
-      </div>
-    );
-  }
-
-  // Authenticated dashboard
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1>📱 E-Receipts Dashboard</h1>
+      <h1>Receipts ({receipts?.length})</h1>
+      {receipts?.map(receipt => (
+        <div key={receipt.id}>{receipt.number}</div>
+      ))}
       
-      <div style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#f0f0f0' }}>
-        <p>👋 Welcome, <strong>{currentUser?.email}</strong></p>
-        <p>🏷️ Role: <strong>{currentUser?.role}</strong></p>
-      </div>
-
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        <Button
-          title="📄 Create Test Receipt"
-          onPress={handleCreateReceipt}
-        />
-        
-        <Button
-          title="🚪 Logout"
-          onPress={handleLogout}
-          variant="secondary"
-        />
-      </div>
+      <button onClick={() => createReceipt.mutate({
+        number: 'RCP-001',
+        amount: 29.99,
+        items: [{ name: 'Coffee', price: 2.50, quantity: 2 }]
+      })}>
+        Create Receipt
+      </button>
     </div>
   );
 }
-
-export default App;
 ```
 
-## 📚 API Reference
+### CLI Usage
 
-### SDK Initialization
-- `initializeEReceipts(config)` - Initialize the E-Receipts SDK
-- `checkSDKStatus()` - Check if SDK is ready to use
+```bash
+# Interactive development setup
+npx acube init
 
-### React Provider
-- `<EReceiptsProvider>` - React Provider for automatic SDK setup
-- `useEReceipts()` - Hook to access SDK state and methods
-- `withEReceipts(Component)` - Higher-order component wrapper
+# Generate types from OpenAPI spec
+npx acube generate types
 
-### Authentication (User-Friendly)
-- `loginAsProvider(email, password)` - Provider authentication with error handling
-- `loginAsMerchant(email, password)` - Merchant authentication with error handling
-- `loginAsCashier(email, password)` - Cashier authentication with error handling
-- `logoutUser()` - Logout current user with error handling
-- `checkAuthentication()` - Check if user is authenticated
-- `getCurrentUserInfo()` - Get current user information
+# Development server with webhook testing
+npx acube dev --webhooks
 
-### Legacy Authentication (Backward Compatibility)
-- `loginProvider(email, password)` - Direct provider authentication
-- `loginMerchant(email, password)` - Direct merchant authentication  
-- `loginCashier(email, password)` - Direct cashier authentication
-- `logout()` - Direct logout
-- `isAuthenticated()` - Direct authentication check
-- `getCurrentUser()` - Direct user info retrieval
+# Test e-receipt workflow
+npx acube test receipt-flow
 
-### Receipt Management
-- `createReceipt(data)` - Create new receipt
-- `getReceipts(page?, size?)` - List receipts
-- `getReceiptById(uuid)` - Get specific receipt
-- `voidReceipt(data)` - Void/cancel receipt
-- `returnReceiptItems(data)` - Process returns/refunds
+# Sync offline data
+npx acube sync --force
+```
 
-### Merchant Management
-- `createMerchant(data)` - Create merchant (Provider only)
-- `getMerchants(page?)` - List merchants
-- `updateMerchant(uuid, data)` - Update merchant info
+## 📖 Documentation
 
-### React Hooks
-- `useAuth()` - Authentication state and actions
-- `useRetryQueue()` - Offline queue management
-- `useProviderFlow()` - Provider-specific operations
+### 📚 **Getting Started**
+- [Installation & Setup](./docs/guides/getting-started.md)
+- [React Integration Guide](./docs/guides/react-integration.md)
+- [React Native Setup](./docs/guides/react-native-setup.md)
+- [PWA Integration](./docs/guides/pwa-integration.md)
 
-### UI Components
-- `<Button />` - Cross-platform button component
-- `<FormInput />` - Cross-platform input component
+### 📋 **API Reference**
+- [Core SDK Reference](./docs/api/core-sdk.md)
+- [Resources API](./docs/api/resources.md)
+- [React Hooks](./docs/api/react-hooks.md)
+- [Offline System](./docs/api/offline-system.md)
 
-## 🛠️ Configuration
+### 🔄 **Offline & Sync**
+- [Offline Capabilities](./docs/guides/offline-capabilities.md)
+- [Sync System Deep Dive](./docs/guides/sync-system.md)
+- [Conflict Resolution](./docs/guides/conflict-resolution.md)
+- [Performance Optimization](./docs/guides/performance.md)
 
-### Environment Setup
+### 🛡️ **Security & Compliance**
+- [Italian Tax Compliance](./docs/guides/tax-compliance.md)
+- [Security Best Practices](./docs/guides/security.md)
+- [GDPR Compliance](./docs/guides/gdpr-compliance.md)
 
+### 💼 **Enterprise Features**
+- [Large Dataset Handling](./docs/guides/large-datasets.md)
+- [Real-time Collaboration](./docs/guides/real-time.md)
+- [Analytics & Monitoring](./docs/guides/analytics.md)
+- [Multi-tenant Setup](./docs/guides/multi-tenant.md)
+
+## 🏗️ Architecture Overview
+
+The A-Cube SDK is built with a **modern, enterprise-grade architecture** designed for scalability, reliability, and developer experience:
+
+```
+┌─────────────────────┐    ┌──────────────────────┐    ┌─────────────────────┐
+│   Developer API     │    │    React Hooks      │    │   CLI & Tools       │
+│ ─────────────────── │    │ ──────────────────── │    │ ─────────────────── │
+│ • SDK Resources     │    │ • useACubeQuery      │    │ • acube init        │
+│ • Type-safe APIs    │    │ • useACubeMutation   │    │ • acube generate    │
+│ • OpenAPI Generated │    │ • useACubeCache      │    │ • acube dev         │
+└─────────────────────┘    └──────────────────────┘    └─────────────────────┘
+            │                           │                           │
+            └───────────────┬───────────────────────────────────────┘
+                           │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          Core SDK (ACubeSDK)                               │
+│ ─────────────────────────────────────────────────────────────────────────── │
+│ • Lazy-loaded Resources  • Configuration Management  • Plugin Architecture  │
+└─────────────────────────────────────────────────────────────────────────────┘
+            │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        Offline-First System                                │
+│ ─────────────────────────────────────────────────────────────────────────── │
+│ • Progressive Sync Engine    • Enhanced Sync Manager  • Analytics Monitor  │
+│ • Conflict Resolution        • Dependency Manager     • Performance Optimizer│
+│ • Real-time Coordinator      • Webhook Manager       • Background Sync     │
+└─────────────────────────────────────────────────────────────────────────────┘
+            │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       Storage & Infrastructure                             │
+│ ─────────────────────────────────────────────────────────────────────────── │
+│ • Unified Storage (IndexedDB/AsyncStorage)  • Enterprise Queue Management  │
+│ • Encryption Service (AES-256)              • Cross-platform Adapters      │
+│ • Network Layer (HTTP/WebSocket)            • Security & Compliance        │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Architectural Principles
+
+1. **Offline-First**: Every operation works offline and syncs when connection is available
+2. **Type Safety**: Complete TypeScript support with OpenAPI-generated types
+3. **Performance**: Optimized for large datasets with virtualization and caching
+4. **Cross-Platform**: Single codebase for Web, React Native, and Node.js
+5. **Enterprise-Ready**: Security, compliance, monitoring, and scalability built-in
+
+## 🎯 Use Cases
+
+### 📱 **Point of Sale (POS) Systems**
 ```typescript
-import { initSDK } from '@a-cube-io/ereceipts-js-sdk';
+// Complete POS workflow with offline support
+const pos = sdk.pointOfSales.current();
+const receipt = await sdk.receipts.create({
+  cashierId: currentCashier.id,
+  pointOfSaleId: pos.id,
+  items: cartItems,
+  // Works offline, syncs automatically
+});
 
-await initSDK({
-  environment: 'sandbox', // 'sandbox' | 'production' | 'development'
-  enableLogging: true,    // Enable debug logging
-  enableRetry: true,      // Enable automatic retries
-  maxRetries: 3,          // Maximum retry attempts
-  retryDelay: 1000,       // Base retry delay (ms)
-  enableOfflineQueue: true, // Enable offline request queuing
-  timeout: 30000          // Request timeout (ms)
+// Print receipt and update inventory
+await pos.printReceipt(receipt);
+await sdk.inventory.updateFromReceipt(receipt);
+```
+
+### 🏢 **Enterprise Retail Chains**
+```typescript
+// Multi-store management with real-time sync
+const stores = await sdk.pointOfSales.list();
+const dailyReports = await Promise.all(
+  stores.map(store => 
+    sdk.analytics.getDailySales(store.id, new Date())
+  )
+);
+
+// Real-time dashboard updates
+sdk.subscribeToUpdates('receipts', (receipt) => {
+  updateDashboard(receipt);
 });
 ```
 
-### API Architecture
+### 🧾 **E-Receipt Mobile Apps**
+```tsx
+function ReceiptApp() {
+  const { user } = useAuth();
+  const { data: receipts } = useACubeQuery({
+    queryKey: ['user-receipts', user.id],
+    queryFn: (sdk) => sdk.receipts.listForUser(user.id),
+    // Automatic offline caching
+  });
 
-The SDK automatically handles different API endpoints:
-
-| Mode | Purpose | Default Environment | Base URL |
-|------|---------|-------------------|-----------|
-| **API Mode** | E-receipt operations (receipts, POS, merchants) | `sandbox` | `ereceipts-it-sandbox.acubeapi.com` |
-| **Auth Mode** | Authentication endpoints | `sandbox` | `common-sandbox.api.acubeapi.com` |
-
-```typescript
-// API mode is used by default for most operations
-import { getAPIClient } from '@a-cube-io/ereceipts-js-sdk';
-
-// Auth mode is automatically used for authentication
-import { loginMerchant } from '@a-cube-io/ereceipts-js-sdk';
-```
-
-### Environment Configuration
-
-| Environment | API Endpoint | Auth Endpoint | Usage |
-|-------------|-------------|---------------|--------|
-| **`sandbox`** (default) | `ereceipts-it-sandbox.acubeapi.com` | `common-sandbox.api.acubeapi.com` | Development & testing |
-| **`production`** | `ereceipts-it.acubeapi.com` | `common.api.acubeapi.com` | Production deployment |
-| **`development`** | `ereceipts-it.dev.acubeapi.com` | `common-sandbox.api.acubeapi.com` | Local development |
-
-### Platform-Specific Configuration
-
-#### React Native
-```typescript
-// No additional configuration needed
-// The SDK automatically detects React Native environment
-```
-
-#### React Web
-```typescript
-// Works out of the box with Create React App, Vite, Next.js, etc.
-```
-
-## 🔧 Advanced Usage
-
-### 🔒 Secure Token Storage
-
-The SDK includes an advanced cross-platform token storage system with automatic fallbacks and configurable encryption:
-
-```typescript
-import { SecureTokenStorage } from '@a-cube-io/ereceipts-js-sdk';
-
-// Configure secure storage (call once at app startup)
-SecureTokenStorage.configure({
-  encryptionKeyId: 'my-app-key-v1',    // For future encryption
-  storeNamespace: 'my-app-secure-store' // Custom IndexedDB namespace
-});
-
-// Basic token management
-await SecureTokenStorage.storeToken(authToken);
-const token = await SecureTokenStorage.getToken();
-const isValid = await SecureTokenStorage.isTokenValid();
-
-// Advanced features
-const health = await SecureTokenStorage.checkStorageHealth();
-const stats = await SecureTokenStorage.getStorageStats();
-const expiryInfo = await SecureTokenStorage.getTokenExpiryInfo();
-
-// User info management
-await SecureTokenStorage.storeUserInfo(jwtToken);
-const userEmail = await SecureTokenStorage.getUserEmail();
-const userRole = await SecureTokenStorage.getUserRole();
-```
-
-#### Platform-Specific Storage:
-
-| Platform | Primary Storage | Fallback | Features |
-|----------|----------------|----------|----------|
-| **Web** | IndexedDB | localStorage | Custom namespace, Safari incognito support |
-| **React Native** | Keychain | AsyncStorage | Biometric protection, encrypted storage |
-| **PWA** | IndexedDB | localStorage | Offline persistence, sync capabilities |
-
-#### Storage Health Monitoring:
-
-```typescript
-// Monitor storage health in production
-const healthCheck = await SecureTokenStorage.checkStorageHealth();
-if (!healthCheck.isHealthy) {
-  console.warn('Storage issues:', healthCheck.issues);
-  // Handle fallback scenarios
-}
-
-// Get detailed statistics
-const stats = await SecureTokenStorage.getStorageStats();
-console.log(`Token expires in: ${stats.tokenExpiryInfo.expiresInMs}ms`);
-```
-
-### Certificate Management
-
-```typescript
-import { CertificateStorage } from '@a-cube-io/ereceipts-js-sdk';
-
-// mTLS certificate management for cash registers
-await CertificateStorage.storeMTLSCertificate(uuid, certificate);
-const cert = await CertificateStorage.getMTLSCertificate(uuid);
-```
-
-### Offline Support
-
-```typescript
-import { useRetryQueue } from '@a-cube-io/ereceipts-js-sdk';
-
-function OfflineIndicator() {
-  const { stats, isConnected, processQueue } = useRetryQueue();
-  
   return (
-    <div>
-      <p>Status: {isConnected ? 'Online' : 'Offline'}</p>
-      <p>Queued requests: {stats.total}</p>
-      {stats.total > 0 && (
-        <button onClick={processQueue}>Retry Queued Requests</button>
-      )}
-    </div>
+    <ReceiptList 
+      receipts={receipts} 
+      onShare={(receipt) => share(receipt.pdf)}
+    />
   );
 }
 ```
 
-### Validation Utilities
+## 🔧 Configuration
+
+### Basic Configuration
 
 ```typescript
-import { 
-  validateEmail, 
-  validatePassword, 
-  validateFiscalId,
-  validateReceiptItem 
-} from '@a-cube-io/ereceipts-js-sdk';
-
-// Validate user input
-const emailValidation = validateEmail('user@example.com');
-if (!emailValidation.isValid) {
-  console.error(emailValidation.errors);
-}
-
-// Validate Italian fiscal ID
-const fiscalValidation = validateFiscalId('12345678901');
-
-// Validate receipt items
-const itemValidation = validateReceiptItem({
-  description: 'Product',
-  quantity: '1.00',
-  unit_price: '10.00'
+const sdk = new ACubeSDK({
+  environment: 'sandbox',
+  apiKey: process.env.ACUBE_API_KEY,
+  
+  // HTTP Configuration
+  timeout: 30000,
+  retries: 3,
+  
+  // Offline Configuration
+  offline: {
+    enabled: true,
+    storage: 'indexeddb', // 'indexeddb' | 'asyncstorage' | 'memory'
+    encryption: {
+      enabled: true,
+      algorithm: 'AES-256-GCM'
+    },
+    sync: {
+      strategy: 'progressive', // 'immediate' | 'batched' | 'progressive'
+      interval: 30000, // 30 seconds
+      batchSize: 100,
+      retryAttempts: 5
+    }
+  },
+  
+  // Performance Configuration
+  performance: {
+    enableVirtualization: true,
+    maxMemoryUsage: 512, // MB
+    cacheSize: 1000,
+    compressionEnabled: true
+  }
 });
 ```
 
-## 🏗️ Project Structure
+### Environment Variables
 
-When using the SDK in your project:
+```bash
+# API Configuration
+ACUBE_API_KEY=your-api-key
+ACUBE_ENVIRONMENT=sandbox
+ACUBE_BASE_URL=https://api.acube.io
 
+# Security
+ACUBE_ENCRYPTION_KEY=your-encryption-key
+ACUBE_WEBHOOK_SECRET=your-webhook-secret
+
+# Performance
+ACUBE_CACHE_SIZE=1000
+ACUBE_BATCH_SIZE=100
+ACUBE_TIMEOUT=30000
 ```
-your-app/
-├── src/
-│   ├── services/
-│   │   └── acube.ts          # SDK initialization
-│   ├── components/
-│   │   ├── LoginScreen.tsx   # Authentication
-│   │   └── ReceiptCreator.tsx # Receipt management
-│   └── App.tsx               # Main app
-└── package.json
-```
-
-## 🤝 TypeScript Support
-
-The SDK is built with TypeScript and provides complete type definitions:
-
-```typescript
-import type { 
-  ReceiptInput, 
-  ReceiptOutput, 
-  MerchantCreateInput,
-  AuthToken,
-  ValidationResult 
-} from '@a-cube-io/ereceipts-js-sdk';
-
-// Full IntelliSense and type checking
-const receiptData: ReceiptInput = {
-  items: [/* typed items */],
-  cash_payment_amount: '10.00'
-};
-```
-
-## 📱 Platform Compatibility
-
-| Feature | React Web | React Native | PWA |
-|---------|-----------|--------------|-----|
-| Authentication | ✅ | ✅ | ✅ |
-| Receipt Management | ✅ | ✅ | ✅ |
-| Offline Support | ✅ | ✅ | ✅ |
-| Secure Storage | IndexedDB + localStorage | Keychain + AsyncStorage | IndexedDB + localStorage |
-| Push Notifications | ❌ | ✅ | ✅ |
-| File System Access | ❌ | ✅ | Limited |
-
-## 🔐 Security
-
-- **🔒 Advanced Token Storage**: 
-  - **Web**: IndexedDB with custom namespace + localStorage fallback
-  - **React Native**: Keychain (biometric) + AsyncStorage fallback
-  - **Configurable**: Custom encryption keys and namespaces
-  - **Monitoring**: Health checks and automatic fallback detection
-
-- **🔄 Automatic Token Management**: 
-  - Token expiry detection and refresh
-  - JWT payload parsing and validation
-  - User info extraction and secure storage
-
-- **🔐 mTLS Support**: End-to-end encryption for cash register communication
-- **✅ Input Validation**: Client-side validation for all inputs
-- **🌐 HTTPS Only**: All API communication over HTTPS
-- **🛡️ Fallback Strategies**: Graceful degradation when secure storage fails
-
-## 🐛 Troubleshooting
-
-### React Native/Expo Issues
-
-1. **Node.js module imports error (Fixed in v1.0.5+)**:
-   ```
-   The package attempted to import the Node standard library module "url".
-   It failed because the native React runtime does not include the Node standard library.
-   ```
-   **Solution**: Update to SDK version 1.0.5 or higher - we've fixed React Native/Expo compatibility by properly externalizing axios and preventing Node.js module bundling.
-
-2. **Keychain errors on iOS**:
-   ```bash
-   cd ios && pod install
-   ```
-
-3. **AsyncStorage warnings**:
-   ```bash
-   npm install @react-native-async-storage/async-storage
-   ```
-
-4. **Network detection issues**:
-   ```bash
-   npm install @react-native-community/netinfo
-   ```
-
-### Web Issues
-
-1. **Module resolution errors**: Ensure your bundler supports ESM/CJS dual packages
-2. **TypeScript errors**: Update to TypeScript 4.0+
-
-## 📄 License
-
-MIT © A-Cube Team
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
 
-## 📞 Support
+### Development Setup
 
-- 📧 Email: support@acube.it
-- 📖 Documentation: [Full API Documentation](https://docs.acube.it)
-- 🐛 Issues: [GitHub Issues](https://github.com/acube/@a-cube-io/ereceipts-js-sdk/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/acube/@a-cube-io/ereceipts-js-sdk/discussions)
+```bash
+# Clone the repository
+git clone https://github.com/a-cube-io/acube-ereceipt-sdk.git
+cd acube-ereceipt-sdk
+
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Start development server
+npm run dev
+
+# Build the project
+npm run build
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run specific test file
+npm test -- receipts.test.ts
+
+# Generate coverage report
+npm run test:coverage
+```
+
+## 📞 Support & Community
+
+- **📚 Documentation**: [docs.acube.io](https://docs.acube.io)
+- **💬 Discord**: [Join our community](https://discord.gg/acube)
+- **📧 Email**: [support@acube.io](mailto:support@acube.io)
+- **🐛 Issues**: [GitHub Issues](https://github.com/a-cube-io/acube-ereceipt-sdk/issues)
+- **💡 Feature Requests**: [GitHub Discussions](https://github.com/a-cube-io/acube-ereceipt-sdk/discussions)
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Italian Agency of Revenue** for e-receipt specifications
+- **React Team** for the excellent developer experience
+- **TypeScript Team** for type safety and developer productivity
+- **Open Source Community** for the tools and libraries that make this possible
 
 ---
 
-**Made with ❤️ by the A-Cube Team**
+<div align="center">
+  <strong>Built with ❤️ for the Italian e-receipt ecosystem</strong>
+  <br />
+  <sub>Made by <a href="https://acube.io">A-Cube</a> with enterprise developers in mind</sub>
+</div>

@@ -72,6 +72,22 @@ export {
 export * from './types/branded';
 export * from './types/events';
 
+// Authentication Types
+export type {
+  AuthState,
+  AuthUser,
+  LoginCredentials,
+  LogoutOptions,
+  UserRole,
+  SimpleUserRole,
+  AuthError,
+  PermissionCheck,
+  PermissionResult,
+  SessionInfo,
+  OAuth2TokenResponse,
+  StoredAuthData,
+} from './auth/types';
+
 // Storage Layer
 export {
   // Unified Storage Interface
@@ -173,12 +189,52 @@ export {
 } from './sync/types';
 
 export {
-  // React Hooks for Offline
+  // React Provider System
+  ACubeProvider,
+  useACube,
+  useACubeSDK,
+  useACubeStorage,
+  useACubeQueueManager,
+  useACubeSyncEngine,
+  useACubeNetworkManager,
+  useACubeNetworkStatus,
+  type ACubeContextValue,
+  type ACubeProviderProps,
+  
+  // React Hooks for Data Management
   useACubeOffline,
   useACubeQuery,
   useACubeMutation,
   useACubeCache,
   useACubeSubscription,
+  
+  // Authentication System
+  AuthProvider,
+  useAuthContext,
+  useAuthAvailable,
+  useAuth,
+  useLogin,
+  useLogout,
+  useUser,
+  useRoles,
+  usePermissions,
+  useSession,
+  useRequireAuth,
+  useRequireRole,
+  LoginForm,
+  UserProfile,
+  RoleSwitcher,
+  AuthStatus,
+  ProtectedRoute,
+  PermissionGate,
+  type AuthProviderProps,
+  type AuthContextValue,
+  type LoginFormProps,
+  type UserProfileProps,
+  type RoleSwitcherProps,
+  type AuthStatusProps,
+  type ProtectedRouteProps,
+  type PermissionGateProps,
 } from './hooks/react/index';
 
 export {
@@ -227,6 +283,22 @@ export {
   type ValidationResult,
   type ValidationIssue,
 } from './validation/index';
+
+export {
+  // PWA (Progressive Web App) System
+  PWAManager,
+  ManifestGenerator,
+  PWAUtils,
+  PWA_CONSTANTS,
+  type PWAManagerConfig,
+  type PWAEvents,
+  type CacheInfo,
+  type PWAManifestConfig,
+  type WebAppManifest,
+  type ServiceWorkerMessage,
+  type CacheUpdateEvent,
+  type OfflineQueueEvent,
+} from './pwa/index';
 
 // Error Handling
 export {

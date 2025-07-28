@@ -16,6 +16,9 @@ import { ReceiptEndpoints } from '@/generated/endpoints';
 import type { HttpClient } from '@/http/client';
 import type { ReceiptId, Amount } from '@/types/branded';
 import type { components } from '@/types/generated';
+import type { UnifiedStorage } from '@/storage/unified-storage';
+import type { EnterpriseQueueManager } from '@/storage/queue/queue-manager';
+import type { RequestOptions } from '@/resources/base-openapi';
 import { ValidationError } from '@/errors/index';
 
 // Extract types from OpenAPI generated types
@@ -63,11 +66,15 @@ export type PaymentMethod = 'cash' | 'electronic' | 'ticket_restaurant' | 'mixed
 /**
  * Receipts Resource Class - OpenAPI Based
  * Manages electronic receipts with full Italian fiscal compliance
+ * Enhanced with offline-first capabilities
  */
 export class ReceiptsResource extends BaseOpenAPIResource {
-  constructor(client: HttpClient) {
+  constructor(client: HttpClient, storage?: UnifiedStorage | undefined, queueManager?: EnterpriseQueueManager | undefined) {
     super({
       client,
+      storage: storage || undefined,
+      queueManager: queueManager || undefined,
+      offlineEnabled: Boolean(storage || queueManager),
       endpoints: {
         list: ReceiptEndpoints.LIST,
         create: ReceiptEndpoints.CREATE,
@@ -83,35 +90,47 @@ export class ReceiptsResource extends BaseOpenAPIResource {
 
   /**
    * Get a list of receipts with filtering and pagination
+   * Enhanced with offline-first capabilities
    * 
    * @param params - List parameters including filters and pagination
+   * @param options - Request options including offline preferences
    * @returns Promise resolving to paginated receipt list
    */
-  async list(params?: ReceiptListParams): Promise<ReceiptPage> {
+  async list(params?: ReceiptListParams, options: Partial<RequestOptions> = {}): Promise<ReceiptPage> {
     return this.executeRequest<void, ReceiptPage>('list', undefined, {
       ...(params && { queryParams: params as Record<string, unknown> }),
+      cacheTTL: 300, // Cache for 5 minutes
+      queueIfOffline: false, // Read operations don't need queuing
+      ...options,
       metadata: {
         operation: 'list_receipts',
         dateRange: params?.start_date && params?.end_date ? `${params.start_date} to ${params.end_date}` : undefined,
+        ...options.metadata,
       }
     });
   }
 
   /**
    * Create a new electronic receipt
+   * Enhanced with offline queuing and optimistic updates
    * 
    * @param data - Receipt input data with items and payment information
-   * @param options - Validation options for fiscal compliance
+   * @param validationOptions - Validation options for fiscal compliance
+   * @param requestOptions - Request options including offline preferences
    * @returns Promise resolving to created receipt
    */
   async create(
     data: ReceiptInput, 
-    options: ReceiptValidationOptions = {}
+    validationOptions: ReceiptValidationOptions = {},
+    requestOptions: Partial<RequestOptions> = {}
   ): Promise<ReceiptOutput> {
     // Validate input with Italian fiscal rules
-    await this.validateReceiptInput(data, options);
+    await this.validateReceiptInput(data, validationOptions);
 
     return this.executeRequest<ReceiptInput, ReceiptOutput>('create', data, {
+      queueIfOffline: true, // Queue receipts when offline
+      optimistic: true, // Provide immediate feedback
+      ...requestOptions,
       metadata: {
         operation: 'create_receipt',
         itemCount: data.items.length,
@@ -122,30 +141,42 @@ export class ReceiptsResource extends BaseOpenAPIResource {
 
   /**
    * Void an electronic receipt
+   * Enhanced with offline queuing for critical operations
    * 
    * @param voidData - Void request data
+   * @param options - Request options including offline preferences
    * @returns Promise resolving to void confirmation
    */
-  async void(voidData: VoidReceiptRequest): Promise<VoidReceiptOutput> {
+  async void(voidData: VoidReceiptRequest, options: Partial<RequestOptions> = {}): Promise<VoidReceiptOutput> {
     return this.executeRequest<VoidReceiptRequest, VoidReceiptOutput>('void', voidData, {
+      queueIfOffline: true, // Critical operation - queue when offline
+      optimistic: false, // Don't provide optimistic response for fiscal operations
+      ...options,
       metadata: {
         operation: 'void_receipt',
+        ...options.metadata,
       }
     });
   }
 
   /**
    * Get a specific receipt by UUID
+   * Enhanced with intelligent caching for frequent lookups
    * 
    * @param receiptId - Receipt UUID
+   * @param options - Request options including offline preferences
    * @returns Promise resolving to receipt details
    */
-  async retrieve(receiptId: ReceiptId | string): Promise<ReceiptOutput> {
+  async retrieve(receiptId: ReceiptId | string, options: Partial<RequestOptions> = {}): Promise<ReceiptOutput> {
     return this.executeRequest<void, ReceiptOutput>('getByUuid', undefined, {
       pathParams: { receipt_uuid: receiptId },
+      cacheTTL: 600, // Cache individual receipts for 10 minutes
+      queueIfOffline: false, // Read operations don't need queuing
+      ...options,
       metadata: {
         operation: 'get_receipt',
         receiptId,
+        ...options.metadata,
       }
     });
   }
@@ -671,6 +702,52 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
+  }
+
+  // Offline-specific convenience methods
+
+  /**
+   * Get offline receipt statistics
+   */
+  async getOfflineReceiptStats() {
+    const baseStats = await this.getOfflineStats();
+    return {
+      ...baseStats,
+      resourceType: 'receipts',
+      capabilities: {
+        canCreateOffline: this.isQueueEnabled(),
+        canReadOffline: this.isOfflineEnabled(),
+        canCacheReceipts: this.isOfflineEnabled(),
+      }
+    };
+  }
+
+  /**
+   * Sync all queued receipt operations
+   */
+  async syncQueuedReceipts(): Promise<void> {
+    if (!this.isQueueEnabled()) {
+      throw new ValidationError('Queue not enabled', 'sync_error', [
+        { field: 'queue', message: 'Offline queue is not configured', code: 'QUEUE_NOT_ENABLED' }
+      ]);
+    }
+
+    await this.syncQueuedOperations();
+  }
+
+  /**
+   * Clear receipt cache (useful for data refresh)
+   */
+  async clearReceiptCache(): Promise<void> {
+    await this.clearCache('receipts');
+  }
+
+  /**
+   * Store receipt for offline access
+   */
+  async storeReceiptOffline(receiptId: string, receipt: ReceiptOutput): Promise<void> {
+    const cacheKey = `GET:/receipts/{receipt_uuid}?path=receipt_uuid=${receiptId}`;
+    await this.storeOfflineData(cacheKey, receipt);
   }
 }
 

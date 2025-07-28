@@ -42,6 +42,7 @@ export class AdvancedEncryption {
   private keys = new Map<string, CryptoKey>();
   private keyPairs = new Map<string, CryptoKeyPair>();
   private config: EncryptionConfig;
+  private initialized = false;
 
   constructor(config?: Partial<EncryptionConfig>) {
     this.config = {
@@ -594,5 +595,36 @@ export class AdvancedEncryption {
 
     // Fallback: return original data
     return data;
+  }
+
+  /**
+   * Initialize the encryption system
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+    
+    // Generate a default key for certificate encryption
+    await this.generateSymmetricKey('default');
+    this.initialized = true;
+  }
+
+  /**
+   * Simple encrypt method (uses symmetric encryption)
+   */
+  async encrypt(data: string | Uint8Array, keyId: string = 'default'): Promise<EncryptedData> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+    return this.encryptSymmetric(data, keyId);
+  }
+
+  /**
+   * Simple decrypt method (uses symmetric decryption)
+   */
+  async decrypt(encryptedData: EncryptedData): Promise<Uint8Array> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+    return this.decryptSymmetric(encryptedData);
   }
 }
