@@ -86,7 +86,7 @@ export class AnalyticsPlugin extends BasePlugin {
     // Set up periodic flush
     this.flushInterval = setInterval(() => {
       this.flushEvents();
-    }, config.flushInterval);
+    }, config.flushInterval) as unknown as NodeJS.Timeout;
 
     // Track session start
     this.trackEvent('session_start', {

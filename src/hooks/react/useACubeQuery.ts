@@ -80,7 +80,7 @@ function startCacheCleanup() {
     });
     
     staleEntries.forEach(key => queryCache.delete(key));
-  }, 60000); // Run every minute
+  }, 60000) as unknown as NodeJS.Timeout; // Run every minute
 }
 
 // Start cleanup when module loads
@@ -342,7 +342,7 @@ export function useACubeQuery<TData = unknown>(
             
             retryTimeoutRef.current = setTimeout(() => {
               fetchData(true);
-            }, delay);
+            }, delay) as unknown as NodeJS.Timeout;
 
             return {
               ...prev,
@@ -449,7 +449,7 @@ export function useACubeQuery<TData = unknown>(
     if (refetchInterval && enabled && state.status === 'success') {
       refetchIntervalRef.current = setInterval(() => {
         fetchData(true);
-      }, refetchInterval);
+      }, refetchInterval) as unknown as NodeJS.Timeout;
     }
 
     return () => {
@@ -492,7 +492,7 @@ export function useACubeQuery<TData = unknown>(
     if (staleTime && state.data && state.status === 'success') {
       const timeout = setTimeout(() => {
         setState(prev => ({ ...prev, isStale: true }));
-      }, staleTime);
+      }, staleTime) as unknown as NodeJS.Timeout;
       
       return () => clearTimeout(timeout);
     }
@@ -500,7 +500,7 @@ export function useACubeQuery<TData = unknown>(
     if (cacheTime && state.data && state.status === 'success') {
       const cleanupTimeout = setTimeout(() => {
         queryCache.delete(key);
-      }, cacheTime);
+      }, cacheTime) as unknown as NodeJS.Timeout;
       
       return () => clearTimeout(cleanupTimeout);
     }

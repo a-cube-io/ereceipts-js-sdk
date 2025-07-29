@@ -14,6 +14,9 @@ const config: Config = {
       tsconfig: 'tsconfig.test.json',
     }],
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(chalk|ansi-styles|#ansi-styles|ora|inquirer|cli-cursor|log-symbols|strip-ansi|ansi-regex)/)',
+  ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
   collectCoverageFrom: [
@@ -37,6 +40,9 @@ const config: Config = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^chalk$': '<rootDir>/src/__tests__/__mocks__/chalk.ts',
+    '^ora$': '<rootDir>/src/__tests__/__mocks__/ora.ts',
+    '^inquirer$': '<rootDir>/src/__tests__/__mocks__/inquirer.ts',
   },
   testTimeout: 30000,
   maxWorkers: 1, // Simplified for debugging

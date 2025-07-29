@@ -168,8 +168,28 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
 
     // Add authorization header
     if (authState.accessToken) {
-      updatedContext.headers[this.config.authHeaderName] = 
-        `${this.config.authScheme} ${authState.accessToken}`;
+      const authHeader = `${this.config.authScheme} ${authState.accessToken}`;
+      updatedContext.headers[this.config.authHeaderName] = authHeader;
+      
+      /* // Debug: Log request headers for API server debugging
+      console.log('🔧 API Request Debug:', {
+        url: `${context.method} ${context.url}`,
+        authHeaderName: this.config.authHeaderName,
+        authScheme: this.config.authScheme,
+        tokenLength: authState.accessToken.length,
+        tokenPreview: `${authState.accessToken.substring(0, 20)}...`,
+        hasToken: !!authState.accessToken,
+        isAuthenticated: authState.isAuthenticated
+      }); */
+    } else {
+      console.log('⚠️  No access token available for request:', {
+        url: `${context.method} ${context.url}`,
+        authState: {
+          isAuthenticated: authState.isAuthenticated,
+          hasUser: !!authState.user,
+          hasToken: !!authState.accessToken
+        }
+      });
     }
 
     // Add role headers
@@ -221,6 +241,23 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
       roles: authState.user?.roles,
       permissions: authState.user?.permissions,
     };
+
+    /* // Debug: Log ALL headers being sent to API server  
+    const allHeaders: Record<string, string> = {};
+    Object.entries(updatedContext.headers).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        // Truncate Authorization header for security, show others in full
+        if (key.toLowerCase() === 'authorization') {
+          allHeaders[key] = `${value.substring(0, 30)}...`;
+        } else {
+          allHeaders[key] = value;
+        }
+      }
+    });
+    
+    if (Object.keys(allHeaders).length > 0) {
+      console.log('📋 ALL Request Headers:', allHeaders);
+    } */
 
     return updatedContext;
   }

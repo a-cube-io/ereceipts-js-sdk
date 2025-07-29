@@ -728,7 +728,7 @@ export class WebhookManager extends EventEmitter {
       if (cleanedCount > 0) {
         console.log(`Cleaned up ${cleanedCount} old webhook deliveries`);
       }
-    }, this.config.cleanupInterval);
+    }, this.config.cleanupInterval) as unknown as NodeJS.Timeout;
   }
 }
 

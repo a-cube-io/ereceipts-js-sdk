@@ -536,7 +536,7 @@ export class PerformancePlugin extends BasePlugin {
             },
           });
         }
-      }, 5000); // Every 5 seconds
+      }, 5000) as unknown as NodeJS.Timeout; // Every 5 seconds
     }
   }
 

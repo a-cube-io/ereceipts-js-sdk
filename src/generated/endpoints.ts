@@ -859,7 +859,7 @@ export class CashRegisterEndpoints {
  */
 export class MerchantEndpoints {
   static readonly LIST: EndpointDefinition = {
-    path: '/merchants',
+    path: '/mf2/merchants',
     method: 'GET',
     operationId: 'api_merchants_get_collection',
     summary: 'Get Merchants',
@@ -886,7 +886,7 @@ export class MerchantEndpoints {
   };
 
   static readonly CREATE: EndpointDefinition = {
-    path: '/merchants',
+    path: '/mf2/merchants',
     method: 'POST',
     operationId: 'api_merchants_post',
     summary: 'Create Merchant',
@@ -924,7 +924,7 @@ export class MerchantEndpoints {
   };
 
   static readonly GET_BY_UUID: EndpointDefinition = {
-    path: '/merchants/{uuid}',
+    path: '/mf2/merchants/{uuid}',
     method: 'GET',
     operationId: 'api_merchants_uuid_get',
     summary: 'Get Merchant',
@@ -962,7 +962,7 @@ export class MerchantEndpoints {
   };
 
   static readonly UPDATE: EndpointDefinition = {
-    path: '/merchants/{uuid}',
+    path: '/mf2/merchants/{uuid}',
     method: 'PUT',
     operationId: 'api_merchants_uuid_put',
     summary: 'Update Merchant',
@@ -1015,7 +1015,7 @@ export class MerchantEndpoints {
  */
 export class PEMEndpoints {
   static readonly CREATE_POS: EndpointDefinition = {
-    path: '/point-of-sales',
+    path: '/mf2/point-of-sales',
     method: 'POST',
     operationId: 'api_point-of-sales_post',
     summary: 'Create Point of Sale',
@@ -1053,7 +1053,7 @@ export class PEMEndpoints {
   };
 
   static readonly GET_CERTIFICATES: EndpointDefinition = {
-    path: '/point-of-sales/{id}/certificates',
+    path: '/mf2/point-of-sales/{id}/certificates',
     method: 'GET',
     operationId: 'api_point-of-sales_idcertificates_get',
     summary: 'Get PEM Certificates',

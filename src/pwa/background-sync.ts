@@ -647,7 +647,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
           this.handleOnlineStatus(false);
         }
       }
-    }, this.config.networkDetection.checkInterval);
+    }, this.config.networkDetection.checkInterval) as unknown as NodeJS.Timeout;
   }
 
   /**
@@ -686,7 +686,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
     
     this.syncTimeout = setTimeout(() => {
       this.syncNow();
-    }, delay);
+    }, delay) as unknown as NodeJS.Timeout;
   }
 
   /**

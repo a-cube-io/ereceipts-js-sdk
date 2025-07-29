@@ -408,7 +408,7 @@ export class BatchProcessor {
         this.pendingBatches.set(batchId, failedBatch);
         this.emit('batch:failed', { batch: failedBatch });
       }
-    }, this.config.maxWaitTime);
+    }, this.config.maxWaitTime) as unknown as NodeJS.Timeout;
 
     this.batchTimers.set(batchId, timer);
 

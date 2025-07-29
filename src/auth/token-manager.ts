@@ -33,7 +33,7 @@ interface TokenManagerConfig {
 }
 
 const DEFAULT_CONFIG: TokenManagerConfig = {
-  refreshUrl: '/mf1/token/refresh',
+  refreshUrl: '/token/refresh',
   tokenRefreshBuffer: 5, // 5 minutes
   maxRefreshAttempts: 3,
   refreshRetryDelay: 1000,
@@ -231,7 +231,7 @@ export class TokenManager extends EventEmitter {
           return new Promise<OAuth2TokenResponse>((resolve, reject) => {
             setTimeout(() => {
               this.refreshTokens().then(resolve).catch(reject);
-            }, this.config.refreshRetryDelay * Math.pow(2, this.refreshAttempts - 1));
+            }, this.config.refreshRetryDelay * Math.pow(2, this.refreshAttempts - 1)) as unknown as NodeJS.Timeout;
           });
         }
         
@@ -336,7 +336,7 @@ export class TokenManager extends EventEmitter {
       this.refreshTokens().catch((error) => {
         console.error('Scheduled token refresh failed:', error);
       });
-    }, delay);
+    }, delay) as unknown as NodeJS.Timeout;
   }
 
   /**

@@ -604,7 +604,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
     this.performanceMonitor = setInterval(() => {
       this.updateSystemLoad();
       this.checkSystemOverload();
-    }, 10000); // Every 10 seconds
+    }, 10000) as unknown as NodeJS.Timeout; // Every 10 seconds
   }
 
   private stopPerformanceMonitoring(): void {
@@ -620,7 +620,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
     this.metricsInterval = setInterval(() => {
       this.updateRealtimeMetrics();
       this.emit('metrics:updated', { metrics: this.metrics });
-    }, 30000); // Every 30 seconds
+    }, 30000) as unknown as NodeJS.Timeout; // Every 30 seconds
   }
 
   private stopMetricsCollection(): void {

@@ -44,7 +44,7 @@ import {
 
 // Factory configuration
 export interface StorageFactoryConfig {
-  readonly preferredAdapter?: 'indexeddb' | 'localstorage' | 'auto';
+  readonly preferredAdapter?: 'indexeddb' | 'localstorage' | 'memory' | 'auto';
   readonly encryption?: Partial<StorageEncryptionConfig>;
   readonly keyPrefix?: string;
   readonly enableCompression?: boolean;
@@ -661,7 +661,7 @@ export class StorageFactory {
     const preferredAdapter = config.preferredAdapter || 'auto';
     
     if (preferredAdapter !== 'auto') {
-      return this.createSpecificAdapter(preferredAdapter, config);
+      return this.createSpecificAdapter(preferredAdapter as 'indexeddb' | 'localstorage' | 'memory', config);
     }
 
     // Auto-selection based on platform capabilities
@@ -685,13 +685,16 @@ export class StorageFactory {
       }
     }
 
-    // Final fallback to memory
-    console.warn('Using memory storage as fallback - data will not persist');
+    // Final fallback to memory (suppress warning for CLI usage)
+    const isCLI = typeof window === 'undefined' && typeof process !== 'undefined' && process.env.NODE_ENV !== 'test';
+    if (!isCLI) {
+      console.warn('Using memory storage as fallback - data will not persist');
+    }
     return new MemoryStorageAdapter();
   }
 
   private createSpecificAdapter(
-    adapterType: 'indexeddb' | 'localstorage', 
+    adapterType: 'indexeddb' | 'localstorage' | 'memory', 
     config: StorageFactoryConfig
   ): StorageAdapter {
     switch (adapterType) {
@@ -699,6 +702,8 @@ export class StorageFactory {
         return new IndexedDBAdapter();
       case 'localstorage':
         return new LocalStorageAdapter(config.keyPrefix);
+      case 'memory':
+        return new MemoryStorageAdapter();
       default:
         throw new StorageError(
           `Unknown adapter type: ${adapterType}`,

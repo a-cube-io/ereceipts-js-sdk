@@ -126,7 +126,7 @@ export class RetryManager {
     // Schedule the retry
     const timer = setTimeout(() => {
       this.executeRetry(item.id);
-    }, delay);
+    }, delay) as unknown as NodeJS.Timeout;
 
     this.retryTimers.set(item.id, timer);
 

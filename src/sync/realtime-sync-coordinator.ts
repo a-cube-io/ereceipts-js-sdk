@@ -662,7 +662,7 @@ export class RealtimeSyncCoordinator extends EventEmitter {
     // Process after server confirmation (simulated)
     setTimeout(async () => {
       await this.confirmPendingOperation(session.id, operation.id);
-    }, 100);
+    }, 100) as unknown as NodeJS.Timeout;
   }
 
   /**
@@ -873,7 +873,7 @@ export class RealtimeSyncCoordinator extends EventEmitter {
           this.endSession(sessionId, 'timeout');
         }
       }
-    }, this.config.heartbeatInterval);
+    }, this.config.heartbeatInterval) as unknown as NodeJS.Timeout;
   }
 
   /**
@@ -886,7 +886,7 @@ export class RealtimeSyncCoordinator extends EventEmitter {
 
     this.metricsInterval = setInterval(() => {
       this.updateMetrics();
-    }, 10000); // Every 10 seconds
+    }, 10000) as unknown as NodeJS.Timeout; // Every 10 seconds
   }
 
   /**

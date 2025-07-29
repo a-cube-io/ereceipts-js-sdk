@@ -332,7 +332,7 @@ const sdk = new ACubeSDK({
 # API Configuration
 ACUBE_API_KEY=your-api-key
 ACUBE_ENVIRONMENT=sandbox
-ACUBE_BASE_URL=https://api.acube.io
+ACUBE_BASE_URL=https://ereceipts-it.acubeapi.com
 
 # Security
 ACUBE_ENCRYPTION_KEY=your-encryption-key

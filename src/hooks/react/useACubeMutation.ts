@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { ACubeSDK } from '../../core/sdk';
+import type { ACubeSDK } from '@/core/sdk';
 import { queryUtils } from './useACubeQuery';
 import { useACube } from './ACubeProvider';
 import type { QueueItem } from '@/storage/queue/queue-manager';
@@ -190,7 +190,7 @@ export function useACubeMutation<TData = unknown, TVariables = void>(
             if (rollbackOnError) {
               revertOptimisticUpdates(originalQueryData);
             }
-          }, optimisticUpdateDuration);
+          }, optimisticUpdateDuration) as unknown as NodeJS.Timeout;
         }
       }
 
@@ -295,7 +295,7 @@ export function useACubeMutation<TData = unknown, TVariables = void>(
           
           retryTimeoutRef.current = setTimeout(() => {
             executeMutation(variables, true);
-          }, delay);
+          }, delay) as unknown as NodeJS.Timeout;
 
           return {
             ...prev,

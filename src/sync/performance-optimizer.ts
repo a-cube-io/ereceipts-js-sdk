@@ -961,14 +961,14 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
         if (memoryPressure === 'high' || memoryPressure === 'critical') {
           global.gc?.();
         }
-      }, 30000);
+      }, 30000) as unknown as NodeJS.Timeout;
     }
   }
 
   private startBatchProcessor(): void {
     this.batchProcessor = setInterval(() => {
       this.processBatchQueue();
-    }, 1000);
+    }, 1000) as unknown as NodeJS.Timeout;
   }
 
   private async processBatchQueue(): Promise<void> {
@@ -1001,7 +1001,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
             // Immediate processing in tests to avoid timer issues
             processedChunks++;
           } else {
-            await new Promise(resolve => setTimeout(resolve, 10));
+            await new Promise(resolve => setTimeout(resolve, 10) as unknown as NodeJS.Timeout);
             processedChunks++;
           }
         } catch (error) {
@@ -1057,7 +1057,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
   private startMetricsCollection(): void {
     this.metricsInterval = setInterval(() => {
       this.updateMetrics();
-    }, this.config.metricsInterval);
+    }, this.config.metricsInterval) as unknown as NodeJS.Timeout;
   }
 
   private startMemoryMonitoring(): void {
@@ -1068,7 +1068,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
       if (this.metrics.memoryUsage.pressure === 'high' || this.metrics.memoryUsage.pressure === 'critical') {
         await this.optimizeMemory();
       }
-    }, 5000);
+    }, 5000) as unknown as NodeJS.Timeout;
   }
 
   private updateMetrics(): void {

@@ -479,7 +479,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
     this.isMonitoring = true;
     this.monitoringTimer = setInterval(() => {
       this.collectMetrics();
-    }, this.config.monitoringInterval);
+    }, this.config.monitoringInterval) as unknown as NodeJS.Timeout;
     
     console.log('Performance monitoring started');
   }

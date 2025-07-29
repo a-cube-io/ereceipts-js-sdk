@@ -812,25 +812,25 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
     this.metricsCollectionInterval = setInterval(() => {
       this.updateThroughputMetrics();
       this.updateLatencyMetrics();
-    }, 30000); // Every 30 seconds
+    }, 30000) as unknown as NodeJS.Timeout; // Every 30 seconds
   }
 
   private startAlertChecking(): void {
     this.alertCheckInterval = setInterval(() => {
       this.checkAlertRules();
-    }, 60000); // Every minute
+    }, 60000) as unknown as NodeJS.Timeout; // Every minute
   }
 
   private startBaselineUpdates(): void {
     this.baselineUpdateInterval = setInterval(() => {
       this.updateBaselines();
-    }, 900000); // Every 15 minutes
+    }, 900000) as unknown as NodeJS.Timeout; // Every 15 minutes
   }
 
   private startDataRetention(): void {
     this.dataRetentionInterval = setInterval(() => {
       this.cleanupOldData();
-    }, 3600000); // Every hour
+    }, 3600000) as unknown as NodeJS.Timeout; // Every hour
   }
 
   private checkAlertRules(): void {

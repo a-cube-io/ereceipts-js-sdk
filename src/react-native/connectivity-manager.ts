@@ -160,7 +160,7 @@ const DEFAULT_CONFIG: Required<ConnectivityConfig> = {
   retryConfigs: DEFAULT_RETRY_CONFIGS,
   timeoutConfigs: DEFAULT_TIMEOUT_CONFIGS,
   enableHealthMonitoring: true,
-  healthCheckUrl: 'https://api.acube.io/health',
+  healthCheckUrl: 'https://ereceipts-it.acubeapi.com/health',
   healthCheckInterval: 60000, // 1 minute
 };
 
@@ -401,7 +401,7 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
       if (this.currentAppState === 'active') {
         await this.updateNetworkState();
       }
-    }, this.config.qualityCheckInterval);
+    }, this.config.qualityCheckInterval) as unknown as NodeJS.Timeout;
   }
 
   private startHealthMonitoring(): void {
@@ -409,7 +409,7 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
       if (this.currentState.isConnected && this.currentAppState === 'active') {
         await this.performHealthCheck();
       }
-    }, this.config.healthCheckInterval);
+    }, this.config.healthCheckInterval) as unknown as NodeJS.Timeout;
   }
 
   private async updateNetworkState(): Promise<void> {

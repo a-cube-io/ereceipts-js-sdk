@@ -623,7 +623,7 @@ export class KeyRotationManager {
       } catch (error) {
         console.error(`Scheduled rotation failed for key ${keyId}:`, error);
       }
-    }, delay);
+    }, delay) as unknown as NodeJS.Timeout;
 
     this.rotationSchedule.set(keyId, timeout);
   }

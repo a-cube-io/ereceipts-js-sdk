@@ -143,7 +143,7 @@ export function useACubeSubscription<TData = unknown>(
               reconnectCount: prev.reconnectCount + 1,
             }));
             connect();
-          }, delay);
+          }, delay) as unknown as NodeJS.Timeout;
         }
       };
 

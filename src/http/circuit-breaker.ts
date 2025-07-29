@@ -179,7 +179,7 @@ export class CircuitBreaker {
     if (this.config.healthCheckInterval) {
       this.healthCheckTimer = setInterval(() => {
         this.performHealthCheck();
-      }, this.config.healthCheckInterval);
+      }, this.config.healthCheckInterval) as unknown as NodeJS.Timeout;
     }
   }
 

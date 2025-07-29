@@ -423,7 +423,7 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
           totalTime: this.engagementData.totalTime + 1000,
         });
       }
-    }, 1000);
+    }, 1000) as unknown as NodeJS.Timeout;
   }
 
   /**
@@ -451,12 +451,12 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
     // Check immediately
     setTimeout(() => {
       this.checkCriteriaAndShow();
-    }, this.config.showDelay);
+    }, this.config.showDelay) as unknown as NodeJS.Timeout;
 
     // Check periodically
     setInterval(() => {
       this.checkCriteriaAndShow();
-    }, 30000); // Every 30 seconds
+    }, 30000) as unknown as NodeJS.Timeout; // Every 30 seconds
   }
 
   /**
@@ -614,7 +614,7 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
       this.promptTimeout = setTimeout(() => {
         this.hideCustomPrompt();
         this.handlePromptDismissed('timeout');
-      }, 30000); // 30 seconds
+      }, 30000) as unknown as NodeJS.Timeout; // 30 seconds
 
     } catch (error) {
       this.emit('install:failed', { 

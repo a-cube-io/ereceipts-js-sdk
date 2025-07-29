@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { EnterpriseQueueManager } from './queue-manager';
-import type { ACubeSDK } from '../../core/sdk';
+import type { ACubeSDK } from '@/core/sdk';
 import type { 
   QueueItemId, 
   QueuePriority, 

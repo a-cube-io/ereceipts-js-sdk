@@ -218,7 +218,7 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
       if (!isSyncing) {
         sync().catch(console.warn);
       }
-    }, syncInterval);
+    }, syncInterval) as unknown as NodeJS.Timeout;
 
     return () => {
       if (syncIntervalRef.current) {

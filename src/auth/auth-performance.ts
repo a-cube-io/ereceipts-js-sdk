@@ -158,7 +158,7 @@ export class AuthPerformanceOptimizer {
           checks: [],
           timer: setTimeout(() => {
             this.processPendingPermissionChecks(userKey, checkFn);
-          }, this.config.batchTimeoutMs),
+          }, this.config.batchTimeoutMs) as unknown as NodeJS.Timeout,
         });
       }
       
@@ -489,7 +489,7 @@ export class AuthPerformanceOptimizer {
       this.permissionCache.purgeStale();
       this.roleCache.purgeStale();
       this.tokenValidationCache.purgeStale();
-    }, 5 * 60 * 1000); // Every 5 minutes
+    }, 5 * 60 * 1000) as unknown as NodeJS.Timeout; // Every 5 minutes
   }
 }
 

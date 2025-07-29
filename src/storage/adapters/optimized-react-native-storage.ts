@@ -132,7 +132,7 @@ class WriteBatchManager {
 
       // Schedule batch processing
       if (!this.batchTimer) {
-        this.batchTimer = setTimeout(() => this.processBatch(), this.batchDelay);
+        this.batchTimer = setTimeout(() => this.processBatch(), this.batchDelay) as unknown as NodeJS.Timeout;
       }
 
       // Force batch if at capacity
@@ -381,7 +381,7 @@ export class OptimizedReactNativeStorageAdapter extends EventEmitter<StorageEven
       } catch (error) {
         console.warn('Background cleanup failed:', error);
       }
-    }, this.config.cleanupInterval);
+    }, this.config.cleanupInterval) as unknown as NodeJS.Timeout;
   }
 
   private setupMemoryPressureHandling(): void {

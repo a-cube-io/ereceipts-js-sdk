@@ -318,7 +318,7 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
       } catch (error) {
         console.warn('Resource monitoring failed:', error);
       }
-    }, 10000); // Check every 10 seconds
+    }, 10000) as unknown as NodeJS.Timeout; // Check every 10 seconds
   }
 
   private async getMemoryInfo(): Promise<{ usage: number; total: number }> {

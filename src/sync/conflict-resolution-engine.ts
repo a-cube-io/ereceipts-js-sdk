@@ -925,7 +925,7 @@ export class ConflictResolutionEngine extends EventEmitter {
       if (cleanedCount > 0) {
         console.log(`Cleaned up ${cleanedCount} old conflict resolutions`);
       }
-    }, 60 * 60 * 1000); // Run every hour
+    }, 60 * 60 * 1000) as unknown as NodeJS.Timeout; // Run every hour
   }
 }
 

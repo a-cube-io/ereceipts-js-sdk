@@ -600,7 +600,7 @@ export class CachePlugin extends BasePlugin {
     // Run warmup every hour
     this.warmupInterval = setInterval(() => {
       this.executeWarmupRules();
-    }, 3600000);
+    }, 3600000) as unknown as NodeJS.Timeout;
 
     // Initial warmup
     setTimeout(() => this.executeWarmupRules(), 5000);

@@ -504,7 +504,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
       } catch (error) {
         console.error('Error in auto-processing:', error);
       }
-    }, this.config.processingInterval);
+    }, this.config.processingInterval) as unknown as NodeJS.Timeout;
   }
 
   private async processBatched(items: QueueItem[]): Promise<ProcessingResult[]> {

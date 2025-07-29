@@ -628,7 +628,7 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
   private startHealthMonitoring(): void {
     this.healthCheckInterval = setInterval(async () => {
       await this.performHealthCheck();
-    }, 30000); // Every 30 seconds
+    }, 30000) as unknown as NodeJS.Timeout; // Every 30 seconds
   }
 
   private startAutoOptimization(): void {
@@ -654,7 +654,7 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
       } catch (error) {
         console.warn('Auto-optimization failed:', error);
       }
-    }, 300000); // Every 5 minutes
+    }, 300000) as unknown as NodeJS.Timeout; // Every 5 minutes
   }
 
   private startDiagnostics(): void {
@@ -677,7 +677,7 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
           message: `Critical error rate: ${(this.systemHealth.performance.errorRate * 100).toFixed(1)}%`,
         });
       }
-    }, 60000); // Every minute
+    }, 60000) as unknown as NodeJS.Timeout; // Every minute
   }
 }
 

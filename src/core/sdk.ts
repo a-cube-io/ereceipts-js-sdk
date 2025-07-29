@@ -206,10 +206,10 @@ const DEFAULT_SDK_CONFIG: Required<ACubeSDKConfig> = {
   httpConfig: {},
   auth: {
     autoRefresh: true,
-    enabled: false,
+    enabled: true,
     config: {
-      loginUrl: '/mf1/login',
-      refreshUrl: '/mf1/token/refresh',
+      loginUrl: '/login',
+      refreshUrl: '/token/refresh',
       tokenRefreshBuffer: 5,
       maxRefreshAttempts: 3,
       refreshRetryDelay: 1000,
@@ -322,7 +322,7 @@ const DEFAULT_SDK_CONFIG: Required<ACubeSDKConfig> = {
       enableQualityMonitoring: true,
       enableAdaptiveRetry: true,
       enableDataOptimization: true,
-      healthCheckUrl: 'https://api.acube.io/health',
+      healthCheckUrl: 'https://ereceipts-it.acubeapi.com/health',
     },
     backgroundProcessor: {
       enabled: true,
@@ -726,7 +726,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
         enableQualityMonitoring: this.config.reactNative?.connectivity?.enableQualityMonitoring ?? true,
         enableAdaptiveRetry: this.config.reactNative?.connectivity?.enableAdaptiveRetry ?? true,
         enableDataOptimization: this.config.reactNative?.connectivity?.enableDataOptimization ?? true,
-        healthCheckUrl: this.config.reactNative?.connectivity?.healthCheckUrl ?? 'https://api.acube.io/health',
+        healthCheckUrl: this.config.reactNative?.connectivity?.healthCheckUrl ?? 'https://ereceipts-it.acubeapi.com/health',
       });
 
       // Initialize background processor if enabled
@@ -1027,27 +1027,6 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
   // Authentication system getters (only available when auth.enabled is true)
 
   /**
-   * Enterprise authentication service - OAuth2, role-based access, session management
-   * Only available when auth.enabled is true
-   */
-  get authService(): AuthService {
-    if (!this.config.auth.enabled) {
-      throw new Error('Enterprise auth is not enabled. Set auth.enabled to true in configuration.');
-    }
-    
-    if (!this._authService) {
-      const { AuthService } = require('@/auth/auth-service');
-      this._authService = new AuthService(
-        this.authClient,
-        this.config.auth.config || {},
-        undefined, // AccessControlManager - could be injected
-        this._authStorage
-      );
-    }
-    return this._authService!;
-  }
-
-  /**
    * JWT token manager - automatic refresh, validation, parsing
    * Only available when auth.enabled is true
    */
@@ -1072,6 +1051,29 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
       );
     }
     return this._tokenManager!;
+  }
+
+  /**
+   * Enterprise authentication service - OAuth2, role-based access, session management
+   * Only available when auth.enabled is true
+   */
+  get authService(): AuthService {
+    if (!this.config.auth.enabled) {
+      throw new Error('Enterprise auth is not enabled. Set auth.enabled to true in configuration.');
+    }
+    
+    if (!this._authService) {
+      const { AuthService } = require('@/auth/auth-service');
+      // Pass the shared tokenManager instance to AuthService
+      this._authService = new AuthService(
+        this.authClient,
+        this.config.auth.config || {},
+        undefined, // AccessControlManager - could be injected
+        this._authStorage,
+        this.tokenManager // Pass the shared token manager
+      );
+    }
+    return this._authService!;
   }
 
   /**
