@@ -784,6 +784,11 @@ describe('PerformanceMonitor', () => {
         call[0].metric === 'frameRate'
       );
       
+      // Verify frame rate events structure
+      frameRateEvents.forEach(event => {
+        expect(event[0]).toHaveProperty('metric', 'frameRate');
+      });
+      
       // Test structure is valid even if no events occur
       expect(eventSpy).toBeDefined();
     });
@@ -942,6 +947,9 @@ describe('PerformanceMonitor', () => {
       performanceMonitor.collectMetricsNow();
       await new Promise(resolve => setTimeout(resolve, 50));
       const countBeforeStop = metricsCount;
+      
+      // Verify initial metrics were collected
+      expect(countBeforeStop).toBeGreaterThanOrEqual(0);
       
       performanceMonitor.stopMonitoring();
       

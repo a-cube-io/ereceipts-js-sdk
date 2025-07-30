@@ -1,10 +1,10 @@
 # Cross-Platform Components Guide
 
-This guide covers the cross-platform authentication components and provider implementation for the A-Cube E-Receipt SDK, enabling seamless operation across React web and React Native applications.
+This guide covers the cross-platform authentication components and provider implementation for the ACube E-Receipt SDK, enabling seamless operation across React web and React Native applications.
 
 ## Overview
 
-The A-Cube SDK now includes cross-platform support that automatically detects the runtime environment and renders appropriate components for React web or React Native. This implementation maintains full backward compatibility while providing a native experience on each platform.
+The ACube SDK now includes cross-platform support that automatically detects the runtime environment and renders appropriate components for React web or React Native. This implementation maintains full backward compatibility while providing a native experience on each platform.
 
 ## Key Features
 
@@ -46,7 +46,7 @@ The SDK provides platform-agnostic wrapper components that automatically render 
 - **React Native**: Renders as `View` or `TouchableOpacity`
 
 ```typescript
-import { PlatformView } from '@a-cube-io/cli/hooks/react/platform-components';
+import { PlatformView } from '@a-cube-io/ereceipts-js-sdk/hooks/react/platform-components';
 
 <PlatformView style={styles.container} onPress={handlePress}>
   {/* Content */}
@@ -117,7 +117,7 @@ import { PlatformView } from '@a-cube-io/cli/hooks/react/platform-components';
 Cross-platform alert dialog:
 
 ```typescript
-import { showAlert } from '@a-cube-io/cli/hooks/react/platform-components';
+import { showAlert } from '@a-cube-io/ereceipts-js-sdk/hooks/react/platform-components';
 
 showAlert(
   'Confirm Action',
@@ -133,7 +133,7 @@ showAlert(
 Cross-platform navigation helper:
 
 ```typescript
-import { navigateTo } from '@a-cube-io/cli/hooks/react/platform-components';
+import { navigateTo } from '@a-cube-io/ereceipts-js-sdk/hooks/react/platform-components';
 
 // Web: Uses window.location.href
 // React Native: Requires integration with your navigation library
@@ -144,7 +144,7 @@ navigateTo('/dashboard');
 Platform-aware style creation:
 
 ```typescript
-import { createStyles } from '@a-cube-io/cli/hooks/react/platform-components';
+import { createStyles } from '@a-cube-io/ereceipts-js-sdk/hooks/react/platform-components';
 
 const styles = createStyles({
   container: {
@@ -166,7 +166,7 @@ All authentication components now work seamlessly across platforms:
 ### LoginForm
 
 ```typescript
-import { LoginForm } from '@a-cube-io/cli/hooks/react/auth-components';
+import { LoginForm } from '@a-cube-io/ereceipts-js-sdk/hooks/react/auth-components';
 
 <LoginForm
   onSuccess={() => navigate('/dashboard')}
@@ -180,7 +180,7 @@ import { LoginForm } from '@a-cube-io/cli/hooks/react/auth-components';
 ### UserProfile
 
 ```typescript
-import { UserProfile } from '@a-cube-io/cli/hooks/react/auth-components';
+import { UserProfile } from '@a-cube-io/ereceipts-js-sdk/hooks/react/auth-components';
 
 <UserProfile
   showRoles={true}
@@ -192,7 +192,7 @@ import { UserProfile } from '@a-cube-io/cli/hooks/react/auth-components';
 ### ProtectedRoute
 
 ```typescript
-import { ProtectedRoute } from '@a-cube-io/cli/hooks/react/auth-components';
+import { ProtectedRoute } from '@a-cube-io/ereceipts-js-sdk/hooks/react/auth-components';
 
 <ProtectedRoute
   requiredRole="ROLE_ADMIN"
@@ -205,7 +205,7 @@ import { ProtectedRoute } from '@a-cube-io/cli/hooks/react/auth-components';
 ### RoleSwitcher
 
 ```typescript
-import { RoleSwitcher } from '@a-cube-io/cli/hooks/react/auth-components';
+import { RoleSwitcher } from '@a-cube-io/ereceipts-js-sdk/hooks/react/auth-components';
 
 <RoleSwitcher
   availableRoles={['ROLE_USER', 'ROLE_ADMIN']}
@@ -218,7 +218,7 @@ import { RoleSwitcher } from '@a-cube-io/cli/hooks/react/auth-components';
 The provider now includes cross-platform network management:
 
 ```typescript
-import { ACubeProvider } from '@a-cube-io/cli/hooks/react/ACubeProvider';
+import { ACubeProvider } from '@a-cube-io/ereceipts-js-sdk/hooks/react/ACubeProvider';
 
 function App() {
   return (
@@ -246,7 +246,7 @@ The provider automatically uses the appropriate network manager:
 - **React Native**: Uses `ConnectivityManager` with advanced mobile network detection
 
 ```typescript
-import { useACubeNetworkStatus } from '@a-cube-io/cli/hooks/react/ACubeProvider';
+import { useACubeNetworkStatus } from '@a-cube-io/ereceipts-js-sdk/hooks/react/ACubeProvider';
 
 function NetworkIndicator() {
   const { isOnline, quality, type } = useACubeNetworkStatus();
@@ -403,8 +403,8 @@ npm install @react-native-picker/picker
 Example test:
 ```typescript
 import { render } from '@testing-library/react-native';
-import { LoginForm } from '@a-cube-io/cli/hooks/react/auth-components';
-import { isReactNative } from '@a-cube-io/cli/hooks/react/platform-components';
+import { LoginForm } from '@a-cube-io/ereceipts-js-sdk/hooks/react/auth-components';
+import { isReactNative } from '@a-cube-io/ereceipts-js-sdk/hooks/react/platform-components';
 
 describe('LoginForm', () => {
   it('renders correctly on current platform', () => {

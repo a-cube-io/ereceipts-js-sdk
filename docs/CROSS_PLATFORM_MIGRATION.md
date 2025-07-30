@@ -4,7 +4,7 @@ This guide helps you migrate existing React web applications using A-Cube SDK to
 
 ## Quick Start
 
-The good news: **If you're using the latest version of `@a-cube-io/cli`, your auth components are already cross-platform!** The migration has been done at the SDK level, so existing code continues to work without changes.
+The good news: **If you're using the latest version of `@a-cube-io/ereceipts-js-sdk`, your auth components are already cross-platform!** The migration has been done at the SDK level, so existing code continues to work without changes.
 
 ## What Changed
 
@@ -14,7 +14,7 @@ The auth components (`LoginForm`, `UserProfile`, `ProtectedRoute`, etc.) now aut
 
 ```typescript
 // This code now works on both web and React Native!
-import { LoginForm } from '@a-cube-io/cli/hooks/react/auth-components';
+import { LoginForm } from '@a-cube-io/ereceipts-js-sdk/hooks/react/auth-components';
 
 <LoginForm 
   onSuccess={() => console.log('Logged in!')}
@@ -46,7 +46,7 @@ import {
   PlatformTextInput,
   PlatformButton,
   createStyles 
-} from '@a-cube-io/cli/hooks/react/platform-components';
+} from '@a-cube-io/ereceipts-js-sdk/hooks/react/platform-components';
 ```
 
 ### Step 2: Replace HTML Elements
@@ -128,7 +128,7 @@ window.location.href = '/dashboard';
 
 **After:**
 ```typescript
-import { navigateTo } from '@a-cube-io/cli/hooks/react/platform-components';
+import { navigateTo } from '@a-cube-io/ereceipts-js-sdk/hooks/react/platform-components';
 
 navigateTo('/dashboard');
 ```
@@ -137,7 +137,7 @@ navigateTo('/dashboard');
 ```typescript
 // In your app setup
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
-import { navigateTo } from '@a-cube-io/cli/hooks/react/platform-components';
+import { navigateTo } from '@a-cube-io/ereceipts-js-sdk/hooks/react/platform-components';
 
 // Override navigateTo for React Native
 if (isReactNative) {

@@ -552,15 +552,22 @@ describe('DigitalSignatureManager', () => {
     it('should reject invalid HMAC signatures', async () => {
       const data = 'Test data';
       const secret = 'secret1';
-      const wrongSecret = 'secret2';
       
-       await signatureManager.generateHMAC(data, secret);
+      // Generate correct signature with the right secret
+      const correctSignature = await signatureManager.generateHMAC(data, secret);
       
-      // Generate what the signature would be with wrong secret for comparison
-      const wrongSignature = await signatureManager.generateHMAC(data, wrongSecret);
+      // Create a completely invalid signature (just random bytes)
+      const wrongSignature = new Uint8Array(32);
+      wrongSignature.fill(255); // Fill with 0xFF bytes to make it clearly wrong
+      
+      // Verify that the wrong signature fails validation
       const isValid = await signatureManager.verifyHMAC(data, wrongSignature, secret);
       
       expect(isValid).toBe(false);
+      
+      // Also verify that the correct signature passes
+      const correctValidation = await signatureManager.verifyHMAC(data, correctSignature, secret);
+      expect(correctValidation).toBe(true);
     });
 
     it('should support different HMAC algorithms', async () => {

@@ -334,7 +334,7 @@ export const platformInfo: {
 
 **Usage:**
 ```typescript
-import { platformInfo } from '@a-cube-io/cli/hooks/react/platform-components';
+import { platformInfo } from '@a-cube-io/ereceipts-js-sdk/hooks/react/platform-components';
 
 if (platformInfo.OS === 'ios') {
   // iOS-specific code
@@ -403,7 +403,7 @@ import type {
   PlatformButtonProps,
   PlatformPickerProps,
   PlatformScrollViewProps 
-} from '@a-cube-io/cli/hooks/react/platform-components';
+} from '@a-cube-io/ereceipts-js-sdk/hooks/react/platform-components';
 ```
 
 ---

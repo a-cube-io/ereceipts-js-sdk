@@ -21,7 +21,7 @@
  *
  * @example
  * ```typescript
- * import { ACubeProvider, useACube } from '@a-cube-io/cli/hooks/react';
+ * import { ACubeProvider, useACube } from '@a-cube-io/ereceipts-js-sdk/hooks/react';
  *
  * function App() {
  *   return (

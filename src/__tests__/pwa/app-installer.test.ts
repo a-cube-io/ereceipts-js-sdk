@@ -4,7 +4,7 @@
  * including install prompts, engagement tracking, and platform detection
  */
 
-import { AppInstaller, type AppInstallerConfig, type InstallCriteria, type EngagementData} from '@/pwa/app-installer';
+import { AppInstaller, type EngagementData, type InstallCriteria, type AppInstallerConfig} from '@/pwa/app-installer';
 
 // Mock localStorage
 const mockLocalStorage = {
@@ -22,6 +22,7 @@ Object.defineProperty(global, 'localStorage', {
 // Mock navigator with complete interface
 const mockNavigator = {
   userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+  standalone: false, // Explicitly set to false for non-iOS scenarios
   permissions: {
     query: jest.fn().mockResolvedValue({ state: 'granted' }),
   },
@@ -45,16 +46,7 @@ const mockWindow = {
 };
 
 
-// Mock window APIs using Object.defineProperty on individual properties
-Object.defineProperty(window, 'matchMedia', {
-  value: jest.fn().mockReturnValue({
-    matches: false,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-  }),
-  writable: true,
-  configurable: true,
-});
+// NOTE: window.matchMedia will be set up in beforeEach to ensure proper test isolation
 
 Object.defineProperty(window, 'addEventListener', {
   value: jest.fn(),
@@ -177,10 +169,10 @@ describe('AppInstaller', () => {
       removeListener: jest.fn(),
     });
 
-    // Reset window.matchMedia to default (not standalone)
+    // Reset window.matchMedia to default (not standalone) - CRITICAL FOR canInstall tests
     Object.defineProperty(window, 'matchMedia', {
       value: jest.fn().mockReturnValue({
-        matches: false,
+        matches: false, // This is key - must be false for not standalone
         addListener: jest.fn(),
         removeListener: jest.fn(),
       }),
@@ -580,7 +572,7 @@ describe('AppInstaller', () => {
       expect(stats.installed).toBe(false);
     });
 
-    it('should track return visits correctly', () => {
+    it('should track return visits correctly', async () => {
       // Ensure not standalone
       Object.defineProperty(window, 'matchMedia', {
         value: jest.fn().mockReturnValue({
@@ -606,12 +598,22 @@ describe('AppInstaller', () => {
         installed: false, // Important: not installed
       };
       
-      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(firstVisitEngagement));
+      // Create a storage mock that simulates real localStorage behavior
+      let storedData = JSON.stringify(firstVisitEngagement);
+      mockLocalStorage.getItem.mockImplementation(() => storedData);
+      mockLocalStorage.setItem.mockImplementation((_key, value) => {
+        storedData = value;
+      });
 
       appInstaller = new AppInstaller();
       
-      // The constructor should detect return visit during initialization
-      // and increment the counter since lastVisit is > 24 hours ago
+      // Manually trigger the engagement tracking logic that should detect return visit
+      (appInstaller as any).startEngagementTracking();
+      
+      // Allow for async processing
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // The logic should detect return visit and increment the counter
       const stats = appInstaller.getEngagementStats();
       expect(stats.returnVisits).toBe(1);
     });
@@ -836,25 +838,33 @@ describe('AppInstaller', () => {
 
   describe('Can Install Detection', () => {
     it('should return true when install is possible', () => {
-      // Ensure not standalone and not installed
+      // Ensure the mock is set up BEFORE creating AppInstaller
       Object.defineProperty(window, 'matchMedia', {
-        value: jest.fn().mockReturnValue({
-          matches: false, // Not standalone
+        value: jest.fn().mockImplementation(() => ({
+          matches: false, // Always return false to ensure not standalone
           addListener: jest.fn(),
           removeListener: jest.fn(),
-        }),
+        })),
         writable: true,
         configurable: true,
       });
 
+      // Also ensure navigator.standalone is false
+      Object.defineProperty(window.navigator, 'standalone', {
+        value: false,
+        writable: true,
+        configurable: true,
+      });
+
+      // Create AppInstaller with default config (customPrompt.enabled defaults to true)
       appInstaller = new AppInstaller();
       
-      // Mock available install prompt
-      (appInstaller as any).installPrompt = {
-        prompt: jest.fn(),
-        userChoice: Promise.resolve({ outcome: 'accepted', platform: 'web' }),
-      };
-
+      // Verify the setup worked
+      const platformInfo = appInstaller.getPlatformInfo();
+      const engagementStats = appInstaller.getEngagementStats();
+      
+      expect(platformInfo.isStandalone).toBe(false);
+      expect(engagementStats.installed).toBe(false);
       expect(appInstaller.canInstall()).toBe(true);
     });
 
@@ -895,23 +905,37 @@ describe('AppInstaller', () => {
     });
 
     it('should return true when custom prompt is enabled', () => {
-      // Ensure not standalone and not installed
+      // Explicitly set up non-standalone mode BEFORE creating AppInstaller
       Object.defineProperty(window, 'matchMedia', {
-        value: jest.fn().mockReturnValue({
-          matches: false, // Not standalone
+        value: jest.fn().mockImplementation(() => ({
+          matches: false, // Not standalone for any query
           addListener: jest.fn(),
           removeListener: jest.fn(),
-        }),
+        })),
         writable: true,
         configurable: true,
       });
 
+      // Also ensure navigator.standalone is false
+      Object.defineProperty(window.navigator, 'standalone', {
+        value: false,
+        writable: true,
+        configurable: true,
+      });
+
+      // Create AppInstaller with custom prompt enabled
       appInstaller = new AppInstaller({
         customPrompt: {
           enabled: true,
         },
       });
       
+      // Verify the setup worked
+      const platformInfo = appInstaller.getPlatformInfo();
+      const engagementStats = appInstaller.getEngagementStats();
+      
+      expect(platformInfo.isStandalone).toBe(false);
+      expect(engagementStats.installed).toBe(false);
       expect(appInstaller.canInstall()).toBe(true);
     });
   });

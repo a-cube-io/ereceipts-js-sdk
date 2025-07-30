@@ -69,6 +69,10 @@ describe('AdvancedEncryption', () => {
     });
 
     it('should list all symmetric keys', async () => {
+      // Generate some keys first
+      await encryption.generateSymmetricKey('key1');
+      await encryption.generateSymmetricKey('key2');
+      
       const keys = encryption.listKeys();
       expect(keys).toHaveLength(3); // Including default key
       
@@ -110,6 +114,9 @@ describe('AdvancedEncryption', () => {
     });
 
     it('should list asymmetric keys', async () => { 
+      // Generate the key first
+      await encryption.generateKeyPair('RSA-OAEP', 'test-rsa');
+      
       const keys = encryption.listKeys();
       const asymmetricKey = keys.find(k => k.keyId === 'test-rsa');
       
