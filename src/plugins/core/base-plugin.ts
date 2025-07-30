@@ -3,18 +3,19 @@
  * Provides common functionality and type-safe implementation
  */
 
-import type { 
-  Plugin, 
-  PluginManifest, 
-  PluginContext, 
+import type { HttpResponse, RequestOptions } from '@/http/client';
+
+import type {
+  Plugin,
+  PluginContext,
+  PluginManifest,
   PluginPermission,
-  PluginLifecycleHooks 
+  PluginLifecycleHooks,
 } from './plugin-manager';
-import type { RequestOptions, HttpResponse } from '@/http/client';
 
 export abstract class BasePlugin implements Plugin {
   abstract readonly manifest: PluginManifest;
-  
+
   protected context?: PluginContext;
 
   /**
@@ -119,7 +120,7 @@ export abstract class BasePlugin implements Plugin {
    */
   protected requirePermissions(...permissions: PluginPermission[]): void {
     const pluginPermissions = this.manifest.permissions || [];
-    
+
     for (const permission of permissions) {
       if (!pluginPermissions.includes(permission)) {
         throw new Error(`Plugin '${this.manifest.name}' requires permission: ${permission}`);
@@ -215,11 +216,11 @@ export abstract class BasePlugin implements Plugin {
   protected async makeRequest<T>(options: RequestOptions): Promise<HttpResponse<T>> {
     const isReadOperation = options.method === 'GET';
     this.requirePermissions(isReadOperation ? 'http:read' : 'http:write');
-    
+
     if (!this.context) {
       throw new Error('Plugin context not available');
     }
-    
+
     return this.context.http.request<T>(options);
   }
 
@@ -240,25 +241,25 @@ export abstract class BasePlugin implements Plugin {
     if (!manifest.name || typeof manifest.name !== 'string') {
       throw new Error('Plugin manifest must have a valid name');
     }
-    
+
     if (!manifest.version || typeof manifest.version !== 'string') {
       throw new Error('Plugin manifest must have a valid version');
     }
-    
+
     // Validate semantic version format
     const semverRegex = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
     if (!semverRegex.test(manifest.version)) {
       throw new Error('Plugin version must follow semantic versioning (e.g., 1.0.0)');
     }
-    
+
     // Validate permissions if provided
     if (manifest.permissions) {
       const validPermissions: PluginPermission[] = [
         'http:read', 'http:write', 'storage:read', 'storage:write',
         'events:emit', 'events:listen', 'cache:read', 'cache:write',
-        'config:read', 'config:write'
+        'config:read', 'config:write',
       ];
-      
+
       for (const permission of manifest.permissions) {
         if (!validPermissions.includes(permission)) {
           throw new Error(`Invalid permission: ${permission}`);
@@ -273,6 +274,7 @@ export abstract class BasePlugin implements Plugin {
  */
 export class PluginBuilder {
   private manifest: Partial<PluginManifest> = {};
+
   private hooks: Partial<PluginLifecycleHooks> = {};
 
   static create(name: string, version: string): PluginBuilder {

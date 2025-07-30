@@ -44,7 +44,7 @@ export class RetryHandler {
 
   async execute<T>(
     operation: () => Promise<T>,
-    operationName = 'unknown'
+    operationName = 'unknown',
   ): Promise<T> {
     let lastError: Error | null = null;
     let nextDelay = this.config.baseDelay;
@@ -54,24 +54,24 @@ export class RetryHandler {
 
       try {
         const result = await this.executeWithTimeout(operation);
-        
+
         if (attempt > 1) {
           this.metrics.successfulRetries++;
         }
-        
+
         return result;
       } catch (error) {
         lastError = error as Error;
-        
+
         const retryAttempt: RetryAttempt = {
           attempt,
           delay: nextDelay,
           error: lastError,
           timestamp: Date.now(),
         };
-        
+
         this.metrics.attempts.push(retryAttempt);
-        
+
         // Keep only last 100 attempts
         if (this.metrics.attempts.length > 100) {
           this.metrics.attempts.shift();
@@ -85,17 +85,17 @@ export class RetryHandler {
 
         // Calculate delay with jitter
         const delay = this.calculateDelay(attempt, nextDelay);
-        
+
         console.log(
-          `Retrying ${operationName} (attempt ${attempt}/${this.config.maxAttempts}) after ${delay}ms delay. Error: ${lastError.message}`
+          `Retrying ${operationName} (attempt ${attempt}/${this.config.maxAttempts}) after ${delay}ms delay. Error: ${lastError.message}`,
         );
 
         await this.sleep(delay);
-        
+
         // Update delay for next iteration
         nextDelay = Math.min(
           nextDelay * this.config.backoffMultiplier,
-          this.config.maxDelay
+          this.config.maxDelay,
         );
       }
     }
@@ -105,7 +105,7 @@ export class RetryHandler {
   }
 
   private async executeWithTimeout<T>(
-    operation: () => Promise<T>
+    operation: () => Promise<T>,
   ): Promise<T> {
     if (!this.config.timeout) {
       return operation();
@@ -150,17 +150,17 @@ export class RetryHandler {
     switch (this.config.jitterType) {
       case 'none':
         return baseDelay;
-      
+
       case 'full':
         return Math.random() * baseDelay;
-      
+
       case 'equal':
         return baseDelay / 2 + Math.random() * (baseDelay / 2);
-      
+
       case 'decorrelated':
         // Decorrelated jitter: sleep = random_between(base_delay, previous_sleep * 3)
         return Math.random() * (Math.min(this.config.maxDelay, baseDelay * 3) - this.config.baseDelay) + this.config.baseDelay;
-      
+
       default:
         return baseDelay;
     }
@@ -198,7 +198,7 @@ export class RetryHandler {
 
   public getMetrics(): Readonly<RetryMetrics> {
     const totalDelay = this.metrics.attempts.reduce((sum, attempt) => sum + attempt.delay, 0);
-    
+
     return {
       ...this.metrics,
       averageDelay: this.metrics.attempts.length > 0 ? totalDelay / this.metrics.attempts.length : 0,

@@ -3,9 +3,11 @@
  * Provides comprehensive debugging tools and request/response logging
  */
 
+import type { HttpResponse, RequestOptions } from '@/http/client';
+
 import { BasePlugin } from '../core/base-plugin';
+
 import type { PluginContext, PluginManifest } from '../core/plugin-manager';
-import type { RequestOptions, HttpResponse } from '@/http/client';
 
 export interface DebugEvent {
   id: string;
@@ -55,10 +57,15 @@ export class DebugPlugin extends BasePlugin {
   };
 
   private events: DebugEvent[] = [];
+
   private sessions = new Map<string, DebugSession>();
+
   private activeSession?: string;
+
   private requestCorrelations = new Map<string, string>();
+
   private maxEvents: number = 1000;
+
   private isEnabled: boolean = true;
 
   protected async initialize(_context: PluginContext): Promise<void> {
@@ -98,16 +105,16 @@ export class DebugPlugin extends BasePlugin {
     // Set up global error handler
     this.setupGlobalErrorHandler();
 
-    this.log('info', 'Debug plugin initialized', { 
+    this.log('info', 'Debug plugin initialized', {
       maxEvents: this.maxEvents,
       autoSession: config.autoSession,
-      logLevel: config.logLevel 
+      logLevel: config.logLevel,
     });
   }
 
   protected async cleanup(_context: PluginContext): Promise<void> {
     const config = this.getConfig<{ persistEvents: boolean }>('settings');
-    
+
     // Persist events if enabled
     if (config?.persistEvents) {
       await this.persistEvents();
@@ -122,11 +129,11 @@ export class DebugPlugin extends BasePlugin {
   }
 
   protected override async processRequest(_context: PluginContext, options: RequestOptions): Promise<RequestOptions> {
-    if (!this.isEnabled) return options;
+    if (!this.isEnabled) {return options;}
 
     // Generate correlation ID
     const correlationId = `req_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-    
+
     // Store correlation for response tracking
     const requestId = `${options.method}_${options.url}_${Date.now()}`;
     this.requestCorrelations.set(requestId, correlationId);
@@ -165,9 +172,9 @@ export class DebugPlugin extends BasePlugin {
   }
 
   protected override async processResponse(_context: PluginContext, response: HttpResponse<any>): Promise<HttpResponse<any>> {
-    if (!this.isEnabled) return response;
+    if (!this.isEnabled) {return response;}
 
-    const correlationId = response.headers?.['x-debug-correlation-id'] || 
+    const correlationId = response.headers?.['x-debug-correlation-id'] ||
                          (response as any).config?.metadata?.debugCorrelationId;
 
     // Log response
@@ -193,10 +200,10 @@ export class DebugPlugin extends BasePlugin {
   }
 
   protected override async handleError(_context: PluginContext, error: Error): Promise<Error> {
-    if (!this.isEnabled) return error;
+    if (!this.isEnabled) {return error;}
 
     // Extract correlation ID from error context
-    const correlationId = (error as any).correlationId || 
+    const correlationId = (error as any).correlationId ||
                          (error as any).config?.metadata?.debugCorrelationId;
 
     // Log error with full stack trace
@@ -229,7 +236,7 @@ export class DebugPlugin extends BasePlugin {
    */
   public startSession(name: string, metadata: Record<string, any> = {}): string {
     const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-    
+
     const session: DebugSession = {
       id: sessionId,
       name,
@@ -265,9 +272,9 @@ export class DebugPlugin extends BasePlugin {
     }
 
     session.endTime = Date.now();
-    session.events = this.events.filter(e => 
-      e.timestamp >= session.startTime && 
-      (!session.endTime || e.timestamp <= session.endTime)
+    session.events = this.events.filter(e =>
+      e.timestamp >= session.startTime &&
+      (!session.endTime || e.timestamp <= session.endTime),
     );
 
     this.addEvent({
@@ -276,7 +283,7 @@ export class DebugPlugin extends BasePlugin {
       type: 'log',
       level: 'info',
       message: `Debug session ended: ${session.name}`,
-      data: { 
+      data: {
         sessionId,
         duration: session.endTime - session.startTime,
         eventCount: session.events.length,
@@ -287,7 +294,7 @@ export class DebugPlugin extends BasePlugin {
       delete (this as any).activeSession;
     }
 
-    this.log('info', `Debug session ended: ${session.name}`, { 
+    this.log('info', `Debug session ended: ${session.name}`, {
       sessionId,
       duration: session.endTime - session.startTime,
       eventCount: session.events.length,
@@ -321,26 +328,26 @@ export class DebugPlugin extends BasePlugin {
       if (filter.level) {
         filteredEvents = filteredEvents.filter(e => filter.level!.includes(e.level));
       }
-      
+
       if (filter.type) {
         filteredEvents = filteredEvents.filter(e => filter.type!.includes(e.type));
       }
-      
+
       if (filter.timeRange) {
-        filteredEvents = filteredEvents.filter(e => 
-          e.timestamp >= filter.timeRange!.start && 
-          e.timestamp <= filter.timeRange!.end
+        filteredEvents = filteredEvents.filter(e =>
+          e.timestamp >= filter.timeRange!.start &&
+          e.timestamp <= filter.timeRange!.end,
         );
       }
-      
+
       if (filter.keyword) {
         const keyword = filter.keyword.toLowerCase();
-        filteredEvents = filteredEvents.filter(e => 
+        filteredEvents = filteredEvents.filter(e =>
           e.message.toLowerCase().includes(keyword) ||
-          JSON.stringify(e.data || {}).toLowerCase().includes(keyword)
+          JSON.stringify(e.data || {}).toLowerCase().includes(keyword),
         );
       }
-      
+
       if (filter.correlationId) {
         filteredEvents = filteredEvents.filter(e => e.correlationId === filter.correlationId);
       }
@@ -368,8 +375,8 @@ export class DebugPlugin extends BasePlugin {
    */
   public exportDebugData(sessionId?: string): { session?: DebugSession; events: DebugEvent[] } {
     const session = sessionId ? this.sessions.get(sessionId) : undefined;
-    const events = sessionId && session 
-      ? session.events 
+    const events = sessionId && session
+      ? session.events
       : this.events;
 
     return { ...(session && { session }), events };
@@ -383,9 +390,9 @@ export class DebugPlugin extends BasePlugin {
       const session = this.sessions.get(sessionId);
       if (session) {
         // Remove session events from main events array
-        this.events = this.events.filter(e => 
-          !(e.timestamp >= session.startTime && 
-            (!session.endTime || e.timestamp <= session.endTime))
+        this.events = this.events.filter(e =>
+          !(e.timestamp >= session.startTime &&
+            (!session.endTime || e.timestamp <= session.endTime)),
         );
         this.sessions.delete(sessionId);
       }
@@ -475,7 +482,7 @@ export class DebugPlugin extends BasePlugin {
   private sanitizeHeaders(headers: Record<string, any> = {}): Record<string, any> {
     const sanitized = { ...headers };
     const sensitiveHeaders = ['authorization', 'x-api-key', 'cookie', 'set-cookie'];
-    
+
     for (const header of sensitiveHeaders) {
       if (sanitized[header]) {
         sanitized[header] = '[REDACTED]';
@@ -484,13 +491,13 @@ export class DebugPlugin extends BasePlugin {
         sanitized[header.toLowerCase()] = '[REDACTED]';
       }
     }
-    
+
     return sanitized;
   }
 
   private sanitizeBody(body: any): any {
-    if (!body) return body;
-    
+    if (!body) {return body;}
+
     if (typeof body === 'string') {
       try {
         const parsed = JSON.parse(body);
@@ -499,32 +506,32 @@ export class DebugPlugin extends BasePlugin {
         return '[BINARY_DATA]';
       }
     }
-    
+
     return this.sanitizeObject(body);
   }
 
   private sanitizeResponseBody(body: any): any {
-    if (!body) return body;
-    
+    if (!body) {return body;}
+
     // Limit response body size for logging
     const bodyStr = JSON.stringify(body);
     if (bodyStr.length > 10000) {
       return '[LARGE_RESPONSE_TRUNCATED]';
     }
-    
+
     return this.sanitizeObject(body);
   }
 
   private sanitizeObject(obj: any): any {
-    if (obj === null || typeof obj !== 'object') return obj;
-    
+    if (obj === null || typeof obj !== 'object') {return obj;}
+
     if (Array.isArray(obj)) {
       return obj.map(item => this.sanitizeObject(item));
     }
-    
+
     const sanitized: any = {};
     const sensitiveKeys = ['password', 'token', 'secret', 'key', 'authorization', 'credential'];
-    
+
     for (const [key, value] of Object.entries(obj)) {
       const keyLower = key.toLowerCase();
       if (sensitiveKeys.some(sensitive => keyLower.includes(sensitive))) {
@@ -533,7 +540,7 @@ export class DebugPlugin extends BasePlugin {
         sanitized[key] = this.sanitizeObject(value);
       }
     }
-    
+
     return sanitized;
   }
 
@@ -576,17 +583,17 @@ export class DebugPlugin extends BasePlugin {
     try {
       const persistedEvents = this.getFromStorage<DebugEvent[]>('events');
       const persistedSessions = this.getFromStorage<DebugSession[]>('sessions');
-      
+
       if (persistedEvents) {
         this.events = persistedEvents.slice(-this.maxEvents);
       }
-      
+
       if (persistedSessions) {
         for (const session of persistedSessions) {
           this.sessions.set(session.id, session);
         }
       }
-      
+
       this.log('debug', 'Loaded persisted debug data', {
         events: this.events.length,
         sessions: this.sessions.size,
@@ -600,7 +607,7 @@ export class DebugPlugin extends BasePlugin {
     try {
       this.setInStorage('events', this.events);
       this.setInStorage('sessions', Array.from(this.sessions.values()));
-      
+
       this.log('debug', 'Persisted debug data', {
         events: this.events.length,
         sessions: this.sessions.size,

@@ -3,13 +3,16 @@
  * Secure cross-platform storage for authentication tokens
  */
 
-import { createStorageKey } from '@/storage/unified-storage';
 import type { UnifiedStorage } from '@/storage/unified-storage';
+
+import { EventEmitter } from 'eventemitter3';
 import { createStorage } from '@/storage/storage-factory';
 import { AdvancedEncryption } from '@/security/encryption';
-import type { StoredAuthData, AuthError, AuthErrorType } from './types';
+import { createStorageKey } from '@/storage/unified-storage';
+
 import { AuthEventType, createAuthEvent, type StorageErrorEvent } from './auth-events';
-import { EventEmitter } from 'eventemitter3';
+
+import type { AuthError, AuthErrorType, StoredAuthData } from './types';
 
 export interface AuthStorageConfig {
   storageKey: string;
@@ -30,16 +33,21 @@ const DEFAULT_CONFIG: AuthStorageConfig = {
  */
 export class AuthStorage extends EventEmitter {
   private config: AuthStorageConfig;
+
   private storage: UnifiedStorage;
+
   private encryption: AdvancedEncryption | null = null;
+
   private encryptionKeyId: string | null = null;
+
   private memoryCache: StoredAuthData | null = null;
+
   private isInitialized = false;
 
   constructor(config: Partial<AuthStorageConfig> = {}) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
-    
+
     // Storage will be initialized in initialize() method
     this.storage = null as any; // Temporary assignment
 
@@ -61,7 +69,7 @@ export class AuthStorage extends EventEmitter {
    * Initialize storage and encryption
    */
   async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+    if (this.isInitialized) {return;}
 
     try {
       // Initialize storage with appropriate adapter
@@ -110,7 +118,7 @@ export class AuthStorage extends EventEmitter {
         const serialized = JSON.stringify(data);
         const encrypted = await this.encryption.encryptSymmetric(
           serialized,
-          this.encryptionKeyId
+          this.encryptionKeyId,
         );
 
         storageData = {
@@ -135,7 +143,7 @@ export class AuthStorage extends EventEmitter {
       throw this.createAuthError(
         'STORAGE_ERROR' as AuthErrorType,
         'Failed to store authentication data',
-        error
+        error,
       );
     }
   }
@@ -152,10 +160,10 @@ export class AuthStorage extends EventEmitter {
         // Validate expiration
         if (this.memoryCache.expiresAt > Date.now()) {
           return this.memoryCache;
-        } else {
+        } 
           // Clear expired cache
           this.memoryCache = null;
-        }
+        
       }
 
       // Retrieve from storage
@@ -173,7 +181,7 @@ export class AuthStorage extends EventEmitter {
         const encrypted = AdvancedEncryption.encryptedDataFromJSON(storageData.data);
         const decrypted = await this.encryption.decryptSymmetric(encrypted);
         const data = JSON.parse(new TextDecoder().decode(decrypted)) as StoredAuthData;
-        
+
         // Update memory cache
         this.memoryCache = data;
         return data;
@@ -213,14 +221,14 @@ export class AuthStorage extends EventEmitter {
       // Emit storage cleared event
       this.emit(AuthEventType.STORAGE_CLEARED, createAuthEvent(
         AuthEventType.STORAGE_CLEARED,
-        { timestamp: Date.now() }
+        { timestamp: Date.now() },
       ));
     } catch (error) {
       this.emitStorageError('delete', error as Error);
       throw this.createAuthError(
         'STORAGE_ERROR' as AuthErrorType,
         'Failed to clear authentication data',
-        error
+        error,
       );
     }
   }
@@ -233,7 +241,7 @@ export class AuthStorage extends EventEmitter {
     if (!current) {
       throw this.createAuthError(
         'STORAGE_ERROR' as AuthErrorType,
-        'No authentication data to update'
+        'No authentication data to update',
       );
     }
 
@@ -280,7 +288,7 @@ export class AuthStorage extends EventEmitter {
    * Platform-specific secure storage (React Native Keychain)
    */
   private async storePlatformSpecific(data: StoredAuthData): Promise<void> {
-    if (typeof window === 'undefined') return; // Node.js environment
+    if (typeof window === 'undefined') {return;} // Node.js environment
 
     try {
       // React Native Keychain
@@ -293,7 +301,7 @@ export class AuthStorage extends EventEmitter {
             JSON.stringify({
               accessToken: data.accessToken,
               refreshToken: data.refreshToken,
-            })
+            }),
           );
         }
       }
@@ -318,7 +326,7 @@ export class AuthStorage extends EventEmitter {
    * Retrieve from platform-specific storage
    */
   private async retrievePlatformSpecific(): Promise<StoredAuthData | null> {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined') {return null;}
 
     try {
       // React Native Keychain
@@ -345,7 +353,7 @@ export class AuthStorage extends EventEmitter {
    * Clear platform-specific storage
    */
   private async clearPlatformSpecific(): Promise<void> {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {return;}
 
     try {
       // React Native Keychain
@@ -369,13 +377,13 @@ export class AuthStorage extends EventEmitter {
    * Initialize encryption key
    */
   private async initializeEncryption(): Promise<void> {
-    if (!this.encryption) return;
+    if (!this.encryption) {return;}
 
     try {
       // Try to retrieve existing key
       const keyStorageKey = createStorageKey('_auth_encryption_key');
       const keyEntry = await this.storage.get<{ keyId: string; key: string }>(keyStorageKey);
-      
+
       if (keyEntry) {
         // Import existing key
         const keyData = keyEntry.data;
@@ -383,12 +391,12 @@ export class AuthStorage extends EventEmitter {
         await this.encryption.importKey(
           this.base64ToArrayBuffer(keyData.key),
           'AES-GCM',
-          keyData.keyId
+          keyData.keyId,
         );
       } else {
         // Generate new key
         this.encryptionKeyId = await this.encryption.generateSymmetricKey();
-        
+
         // Export and store key
         const exportedKey = await this.encryption.exportKey(this.encryptionKeyId, 'raw');
         const keyStorageKey = createStorageKey('_auth_encryption_key');
@@ -503,7 +511,7 @@ export class AuthStorage extends EventEmitter {
         operation,
         error,
         fallbackUsed: false,
-      }
+      },
     );
     this.emit(AuthEventType.STORAGE_ERROR, event);
   }

@@ -3,10 +3,12 @@
  * Handles CLI configuration, authentication state, and profiles
  */
 
-import fs from 'fs/promises';
 import path from 'path';
+import fs from 'fs/promises';
+
+import { AUTH_FILE, CONFIG_DIR, CONFIG_FILE, PROFILES_DIR, DEFAULT_TRACE_CONFIG } from './constants.js';
+
 import type { CLIConfig, CLIAuthState } from '../types.js';
-import { CONFIG_DIR, CONFIG_FILE, AUTH_FILE, PROFILES_DIR, DEFAULT_TRACE_CONFIG } from './constants.js';
 
 // Utility functions
 export async function ensureConfigDir(): Promise<void> {
@@ -22,12 +24,12 @@ export async function loadConfig(): Promise<CLIConfig> {
   try {
     const data = await fs.readFile(CONFIG_FILE, 'utf-8');
     const config = JSON.parse(data);
-    
+
     // Ensure trace config has all required properties
     if (config.trace) {
       config.trace = { ...DEFAULT_TRACE_CONFIG, ...config.trace };
     }
-    
+
     return config;
   } catch (error) {
     // Return default config if file doesn't exist

@@ -3,51 +3,47 @@
  * Main entry point with lazy resource loading and configuration management
  */
 
-import { EventEmitter } from 'eventemitter3';
-import { HttpClient, type HttpClientConfig, DEFAULT_HTTP_CONFIG, AUTH_HTTP_CONFIG } from '@/http/client';
 import type { EventTypeMap } from '@/types/events';
-
+import type { PEMsResource } from '@/resources/pems';
+// Auth system imports (lazy loaded)
+import type { AuthService } from '@/auth/auth-service';
+import type { AuthStorage } from '@/auth/auth-storage';
+import type { TokenManager } from '@/auth/token-manager';
 // Resource imports (lazy loaded)
 import type { CashiersResource } from '@/resources/cashiers';
 import type { ReceiptsResource } from '@/resources/receipts';
-import type { PointOfSalesResource } from '@/resources/point-of-sales';
-import type { CashRegistersResource } from '@/resources/cash-registers';
 import type { MerchantsResource } from '@/resources/merchants';
-import type { PEMsResource } from '@/resources/pems';
-
-// Sync system imports (lazy loaded)
-import type { ProgressiveSyncEngine, SyncEngineConfig } from '@/sync/sync-engine';
 import type { UnifiedStorage } from '@/storage/unified-storage';
-import type { EnterpriseQueueManager } from '@/storage/queue/queue-manager';
-
-// Auth system imports (lazy loaded)
-import type { AuthService } from '@/auth/auth-service';
-import type { TokenManager } from '@/auth/token-manager';
-import type { AuthStorage } from '@/auth/auth-storage';
 import type { EnhancedAuthMiddleware } from '@/auth/auth-middleware';
-import type { AuthConfig, AuthState, LoginCredentials, AuthUser, LogoutOptions, UserRole, SimpleUserRole } from '@/auth/types';
-
 // PWA system imports (lazy loaded)
 import type { PWAManager, PWAManagerConfig } from '@/pwa/pwa-manager';
-import type { ManifestGenerator, PWAManifestConfig } from '@/pwa/manifest-generator';
-
-// React Native optimization imports (lazy loaded)
-import type { OptimizedReactNativeStorageAdapter } from '@/storage/adapters/optimized-react-native-storage';
+import type { PointOfSalesResource } from '@/resources/point-of-sales';
+import type { CashRegistersResource } from '@/resources/cash-registers';
+import type { EnterpriseQueueManager } from '@/storage/queue/queue-manager';
+import type { PerformanceMonitor } from '@/react-native/performance-monitor';
 import type { ConnectivityManager } from '@/react-native/connectivity-manager';
 import type { BackgroundProcessor } from '@/react-native/background-processor';
-import type { PerformanceMonitor } from '@/react-native/performance-monitor';
+// Sync system imports (lazy loaded)
+import type { SyncEngineConfig, ProgressiveSyncEngine } from '@/sync/sync-engine';
+import type { ManifestGenerator, PWAManifestConfig } from '@/pwa/manifest-generator';
+// React Native optimization imports (lazy loaded)
+import type { OptimizedReactNativeStorageAdapter } from '@/storage/adapters/optimized-react-native-storage';
+import type { AuthUser, UserRole, AuthState, AuthConfig, LogoutOptions, SimpleUserRole, LoginCredentials } from '@/auth/types';
+
+import { EventEmitter } from 'eventemitter3';
+import { HttpClient, AUTH_HTTP_CONFIG, DEFAULT_HTTP_CONFIG, type HttpClientConfig } from '@/http/client';
 
 export interface ACubeSDKConfig {
   /**
    * API environment
    */
   environment: 'sandbox' | 'production' | 'development';
-  
+
   /**
    * API key for authentication
    */
   apiKey?: string;
-  
+
   /**
    * Custom base URLs for different environments
    */
@@ -55,12 +51,12 @@ export interface ACubeSDKConfig {
     api?: string;
     auth?: string;
   };
-  
+
   /**
    * HTTP client configuration
    */
   httpConfig?: Partial<HttpClientConfig>;
-  
+
   /**
    * Authentication configuration
    */
@@ -69,7 +65,7 @@ export interface ACubeSDKConfig {
     getToken?: () => Promise<string | null>;
     onTokenExpired?: () => Promise<void>;
     autoRefresh?: boolean;
-    
+
     // Enhanced enterprise auth system
     enabled?: boolean;
     config?: Partial<AuthConfig>;
@@ -91,7 +87,7 @@ export interface ACubeSDKConfig {
       includeRequestContext?: boolean;
     };
   };
-  
+
   /**
    * Logging configuration
    */
@@ -100,7 +96,7 @@ export interface ACubeSDKConfig {
     level: 'debug' | 'info' | 'warn' | 'error';
     sanitize: boolean;
   };
-  
+
   /**
    * Feature flags
    */
@@ -112,7 +108,7 @@ export interface ACubeSDKConfig {
     enableSync?: boolean;
     enableRealTimeSync?: boolean;
   };
-  
+
   /**
    * Offline and sync configuration
    */
@@ -131,7 +127,7 @@ export interface ACubeSDKConfig {
     };
     sync?: Partial<SyncEngineConfig>;
   };
-  
+
   /**
    * Progressive Web App configuration
    */
@@ -155,7 +151,7 @@ export interface ACubeSDKConfig {
       };
     };
   };
-  
+
   /**
    * React Native mobile optimizations
    */
@@ -189,7 +185,7 @@ export interface ACubeSDKConfig {
       enableRemoteReporting?: boolean;
     };
   };
-  
+
   /**
    * Development options
    */
@@ -347,48 +343,65 @@ const DEFAULT_SDK_CONFIG: Required<ACubeSDKConfig> = {
 
 export class ACubeSDK extends EventEmitter<EventTypeMap> {
   private config: Required<ACubeSDKConfig>;
+
   private apiClient: HttpClient;
+
   private authClient: HttpClient;
+
   private isInitialized = false;
-  
+
   // Lazy-loaded resources
   private _cashiers?: CashiersResource;
+
   private _receipts?: ReceiptsResource;
+
   private _pointOfSales?: PointOfSalesResource;
+
   private _cashRegisters?: CashRegistersResource;
+
   private _merchants?: MerchantsResource;
+
   private _pems?: PEMsResource;
-  
+
   // Lazy-loaded offline systems
   private _syncManager?: ProgressiveSyncEngine;
+
   private _storage?: UnifiedStorage;
+
   private _queueManager?: EnterpriseQueueManager;
-  
+
   // Lazy-loaded auth systems
   private _authService?: AuthService;
+
   private _tokenManager?: TokenManager;
+
   private _authStorage?: AuthStorage;
+
   private _authMiddleware?: EnhancedAuthMiddleware;
-  
+
   // Lazy-loaded PWA systems
   private _pwaManager?: PWAManager;
+
   private _manifestGenerator?: ManifestGenerator;
-  
+
   // Lazy-loaded React Native optimization systems
   private _optimizedStorage?: OptimizedReactNativeStorageAdapter;
+
   private _connectivityManager?: ConnectivityManager;
+
   private _backgroundProcessor?: BackgroundProcessor;
+
   private _performanceMonitor?: PerformanceMonitor;
 
   constructor(config: ACubeSDKConfig) {
     super();
-    
+
     this.config = this.mergeConfig(config);
-    
+
     // Initialize HTTP clients
     this.apiClient = this.createHttpClient('api');
     this.authClient = this.createHttpClient('auth');
-    
+
     this.setupEventHandlers();
   }
 
@@ -441,7 +454,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
 
   private createHttpClient(type: 'api' | 'auth'): HttpClient {
     const baseConfig = type === 'api' ? DEFAULT_HTTP_CONFIG : AUTH_HTTP_CONFIG;
-    
+
     // Determine base URL
     let baseUrl: string;
     if (type === 'api') {
@@ -449,7 +462,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     } else {
       baseUrl = this.config.baseUrls.auth || this.getDefaultAuthUrl();
     }
-    
+
     const config: HttpClientConfig = {
       ...baseConfig,
       ...this.config.httpConfig,
@@ -460,7 +473,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
       ...(this.config.auth.getToken && { getAuthToken: this.config.auth.getToken }),
       userAgent: `ACube-SDK/2.0.0 (${this.config.environment})`,
     };
-    
+
     return new HttpClient(config);
   }
 
@@ -536,24 +549,24 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     try {
       // Validate configuration
       this.validateConfig();
-      
+
       // Initialize auth system if enabled
       if (this.config.auth.enabled) {
         await this.initializeAuthSystem();
       }
-      
+
       // Initialize React Native optimizations if enabled
       if (this.config.reactNative.enabled) {
         await this.initializeReactNativeOptimizations();
       }
-      
+
       // Test connectivity (optional health check)
       if (this.config.features.enableMetrics) {
         await this.performHealthCheck();
       }
-      
+
       this.isInitialized = true;
-      
+
       this.emit('error', {
         type: 'error',
         timestamp: new Date(),
@@ -569,6 +582,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
           },
         },
       });
+
     } catch (error) {
       this.emit('error', {
         type: 'error',
@@ -655,8 +669,8 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
       this.setupAuthEventForwarding();
 
       // Auto-login if credentials provided
-      if (this.config.auth.credentials?.autoLogin && 
-          this.config.auth.credentials.username && 
+      if (this.config.auth.credentials?.autoLogin &&
+          this.config.auth.credentials.username &&
           this.config.auth.credentials.password) {
         try {
           await this._authService.login({
@@ -702,12 +716,12 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
    */
   private async initializeReactNativeOptimizations(): Promise<void> {
     const isReactNative = typeof navigator !== 'undefined' && navigator.product === 'ReactNative';
-    
+
     if (!isReactNative) {
       console.warn('React Native optimizations requested but not in React Native environment');
       return;
     }
-    
+
     try {
       // Initialize optimized storage adapter if enabled
       if (this.config.reactNative?.storage?.enableOptimizedAdapter) {
@@ -783,7 +797,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
    * Set up auth event forwarding to SDK events
    */
   private setupAuthEventForwarding(): void {
-    if (!this._authService) return;
+    if (!this._authService) {return;}
 
     // Forward auth events to SDK events
     this._authService.on('auth:login:success', (event) => {
@@ -830,7 +844,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
   }
 
   // Lazy-loaded resource getters (Stripe-style)
-  
+
   /**
    * Cashiers resource - user management
    * Enhanced with offline capabilities when enabled
@@ -841,7 +855,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
       this._cashiers = new CashiersResource(
         this.apiClient,
         this.config.offline?.enabled ? this.storage : undefined,
-        this.config.features?.enableOfflineQueue ? this.queue : undefined
+        this.config.features?.enableOfflineQueue ? this.queue : undefined,
       );
     }
     return this._cashiers!;
@@ -857,7 +871,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
       this._receipts = new ReceiptsResource(
         this.apiClient,
         this.config.offline?.enabled ? this.storage : undefined,
-        this.config.features?.enableOfflineQueue ? this.queue : undefined
+        this.config.features?.enableOfflineQueue ? this.queue : undefined,
       );
     }
     return this._receipts!;
@@ -873,7 +887,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
       this._pointOfSales = new PointOfSalesResource(
         this.apiClient,
         this.config.offline?.enabled ? this.storage : undefined,
-        this.config.features?.enableOfflineQueue ? this.queue : undefined
+        this.config.features?.enableOfflineQueue ? this.queue : undefined,
       );
     }
     return this._pointOfSales!;
@@ -889,7 +903,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
       this._cashRegisters = new CashRegistersResource(
         this.apiClient,
         this.config.offline?.enabled ? this.storage : undefined,
-        this.config.features?.enableOfflineQueue ? this.queue : undefined
+        this.config.features?.enableOfflineQueue ? this.queue : undefined,
       );
     }
     return this._cashRegisters!;
@@ -905,7 +919,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
       this._merchants = new MerchantsResource(
         this.apiClient,
         this.config.offline?.enabled ? this.storage : undefined,
-        this.config.features?.enableOfflineQueue ? this.queue : undefined
+        this.config.features?.enableOfflineQueue ? this.queue : undefined,
       );
     }
     return this._merchants!;
@@ -921,7 +935,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
       this._pems = new PEMsResource(
         this.apiClient,
         this.config.offline?.enabled ? this.storage : undefined,
-        this.config.features?.enableOfflineQueue ? this.queue : undefined
+        this.config.features?.enableOfflineQueue ? this.queue : undefined,
       );
     }
     return this._pems!;
@@ -946,7 +960,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
           vapidPublicKey: this.config.pwa.vapidPublicKey ?? '',
         },
       };
-      
+
       this._pwaManager = new PWAManager(pwaConfig);
     }
     return this._pwaManager!;
@@ -974,7 +988,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.features.enableSync) {
       throw new Error('Sync is not enabled. Set features.enableSync to true in configuration.');
     }
-    
+
     if (!this._syncManager) {
       const { ProgressiveSyncEngine } = require('@/sync/sync-engine');
       this._syncManager = new ProgressiveSyncEngine(this.config.offline?.sync || {});
@@ -990,7 +1004,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.offline?.enabled) {
       throw new Error('Offline storage is not enabled. Set offline.enabled to true in configuration.');
     }
-    
+
     if (!this._storage) {
       const { UnifiedStorage } = require('@/storage/unified-storage');
       this._storage = new UnifiedStorage({
@@ -1010,7 +1024,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.features.enableOfflineQueue) {
       throw new Error('Offline queue is not enabled. Set features.enableOfflineQueue to true in configuration.');
     }
-    
+
     if (!this._queueManager) {
       const { EnterpriseQueueManager } = require('@/storage/queue/queue-manager');
       this._queueManager = new EnterpriseQueueManager({
@@ -1034,7 +1048,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.auth.enabled) {
       throw new Error('Enterprise auth is not enabled. Set auth.enabled to true in configuration.');
     }
-    
+
     if (!this._tokenManager) {
       const { TokenManager } = require('@/auth/token-manager');
       this._tokenManager = new TokenManager(
@@ -1047,7 +1061,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
           enableTokenRotation: this.config.auth.config?.enableTokenRotation ?? true,
           onTokenRefresh: this.config.auth.config?.onTokenRefresh,
           onTokenExpired: this.config.auth.config?.onTokenExpired,
-        }
+        },
       );
     }
     return this._tokenManager!;
@@ -1061,7 +1075,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.auth.enabled) {
       throw new Error('Enterprise auth is not enabled. Set auth.enabled to true in configuration.');
     }
-    
+
     if (!this._authService) {
       const { AuthService } = require('@/auth/auth-service');
       // Pass the shared tokenManager instance to AuthService
@@ -1070,7 +1084,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
         this.config.auth.config || {},
         undefined, // AccessControlManager - could be injected
         this._authStorage,
-        this.tokenManager // Pass the shared token manager
+        this.tokenManager, // Pass the shared token manager
       );
     }
     return this._authService!;
@@ -1084,7 +1098,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.auth.enabled) {
       throw new Error('Enterprise auth is not enabled. Set auth.enabled to true in configuration.');
     }
-    
+
     if (!this._authStorage) {
       const { AuthStorage } = require('@/auth/auth-storage');
       this._authStorage = new AuthStorage({
@@ -1105,7 +1119,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.auth.enabled) {
       throw new Error('Enterprise auth is not enabled. Set auth.enabled to true in configuration.');
     }
-    
+
     if (!this._authMiddleware) {
       const { EnhancedAuthMiddleware } = require('@/auth/auth-middleware');
       this._authMiddleware = new EnhancedAuthMiddleware(
@@ -1126,7 +1140,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
             'X-Session-ID': 'sessionId',
             'X-Request-Context': 'requestContext',
           },
-        }
+        },
       );
     }
     return this._authMiddleware!;
@@ -1141,7 +1155,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.auth.enabled) {
       throw new Error('Enterprise auth is not enabled. Set auth.enabled to true in configuration.');
     }
-    
+
     return this.authService.login(credentials);
   }
 
@@ -1152,7 +1166,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.auth.enabled) {
       throw new Error('Enterprise auth is not enabled. Set auth.enabled to true in configuration.');
     }
-    
+
     return this.authService.logout(options);
   }
 
@@ -1163,7 +1177,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.auth.enabled || !this._authService) {
       return null;
     }
-    
+
     return this.authService.getState();
   }
 
@@ -1174,7 +1188,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.auth.enabled || !this._authService) {
       return null;
     }
-    
+
     return this.authService.getCurrentUser();
   }
 
@@ -1193,7 +1207,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.auth.enabled || !this._authService) {
       return false;
     }
-    
+
     return this.authService.hasRole(role);
   }
 
@@ -1204,7 +1218,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.auth.enabled || !this._authService) {
       return false;
     }
-    
+
     return this.authService.hasAnyRole(roles);
   }
 
@@ -1215,7 +1229,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.auth.enabled || !this._authService) {
       return [];
     }
-    
+
     return this.authService.getEffectiveRoles();
   }
 
@@ -1226,7 +1240,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.auth.enabled || !this._authService) {
       return null;
     }
-    
+
     return this.authService.getPrimaryRole();
   }
 
@@ -1237,7 +1251,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.auth.enabled || !this._authService) {
       return 'cashier';
     }
-    
+
     return this.authService.getSimpleRole();
   }
 
@@ -1250,12 +1264,12 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
       merchant_id?: import('@/types/branded').MerchantId;
       cashier_id?: import('@/types/branded').CashierId;
       point_of_sale_id?: import('@/types/branded').PointOfSaleId;
-    }
+    },
   ): Promise<boolean> {
     if (!this.config.auth.enabled) {
       throw new Error('Enterprise auth is not enabled. Set auth.enabled to true in configuration.');
     }
-    
+
     return this.authService.switchRole(targetRole, context);
   }
 
@@ -1266,15 +1280,16 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
    */
   updateConfig(updates: Partial<ACubeSDKConfig>): void {
     const newConfig = this.mergeConfig({ ...this.config, ...updates });
-    
+
     // Update HTTP clients if necessary
     if (updates.httpConfig || updates.baseUrls || updates.environment) {
-      this.apiClient.updateConfig(this.createHttpClient('api')['config']);
-      this.authClient.updateConfig(this.createHttpClient('auth')['config']);
+      // TODO: Update HTTP client configurations when updateConfig is available
+      // this.apiClient.updateConfig(this.createHttpClient('api').config);
+      // this.authClient.updateConfig(this.createHttpClient('auth').config);
     }
-    
+
     this.config = newConfig;
-    
+
     this.emit('error', {
       type: 'error',
       timestamp: new Date(),
@@ -1328,15 +1343,15 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.reactNative.enabled) {
       throw new Error('React Native optimizations are not enabled. Set reactNative.enabled to true in configuration.');
     }
-    
+
     if (!this.config.reactNative?.storage?.enableOptimizedAdapter) {
       throw new Error('Optimized storage adapter is not enabled. Set reactNative.storage.enableOptimizedAdapter to true.');
     }
-    
+
     if (!this._optimizedStorage) {
       throw new Error('Optimized storage not initialized. Make sure SDK is initialized first.');
     }
-    
+
     return this._optimizedStorage;
   }
 
@@ -1348,11 +1363,11 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.reactNative.enabled) {
       throw new Error('React Native optimizations are not enabled. Set reactNative.enabled to true in configuration.');
     }
-    
+
     if (!this._connectivityManager) {
       throw new Error('Connectivity manager not initialized. Make sure SDK is initialized first.');
     }
-    
+
     return this._connectivityManager;
   }
 
@@ -1364,15 +1379,15 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.reactNative.enabled) {
       throw new Error('React Native optimizations are not enabled. Set reactNative.enabled to true in configuration.');
     }
-    
+
     if (!this.config.reactNative?.backgroundProcessor?.enabled) {
       throw new Error('Background processor is not enabled. Set reactNative.backgroundProcessor.enabled to true.');
     }
-    
+
     if (!this._backgroundProcessor) {
       throw new Error('Background processor not initialized. Make sure SDK is initialized first.');
     }
-    
+
     return this._backgroundProcessor;
   }
 
@@ -1384,15 +1399,15 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     if (!this.config.reactNative.enabled) {
       throw new Error('React Native optimizations are not enabled. Set reactNative.enabled to true in configuration.');
     }
-    
+
     if (!this.config.reactNative?.performanceMonitor?.enabled) {
       throw new Error('Performance monitor is not enabled. Set reactNative.performanceMonitor.enabled to true.');
     }
-    
+
     if (!this._performanceMonitor) {
       throw new Error('Performance monitor not initialized. Make sure SDK is initialized first.');
     }
-    
+
     return this._performanceMonitor;
   }
 
@@ -1403,57 +1418,57 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     // Cleanup HTTP clients
     this.apiClient.destroy();
     this.authClient.destroy();
-    
+
     // Cleanup auth systems if they were initialized
     if (this._authService) {
       await this._authService.destroy();
     }
-    
+
     if (this._tokenManager) {
       this._tokenManager.destroy();
     }
-    
+
     if (this._authStorage) {
       await this._authStorage.destroy();
     }
-    
+
     if (this._authMiddleware) {
       this._authMiddleware.destroy();
     }
-    
+
     // Cleanup offline systems if they were initialized
     if (this._syncManager) {
       await this._syncManager.cancelAllSyncs();
     }
-    
+
     if (this._queueManager) {
       await this._queueManager.destroy();
     }
-    
+
     if (this._storage) {
       await this._storage.destroy();
     }
-    
+
     // Cleanup React Native optimizations if they were initialized
     if (this._optimizedStorage) {
       await this._optimizedStorage.destroy();
     }
-    
+
     if (this._connectivityManager) {
       this._connectivityManager.destroy();
     }
-    
+
     if (this._backgroundProcessor) {
       this._backgroundProcessor.destroy();
     }
-    
+
     if (this._performanceMonitor) {
       this._performanceMonitor.destroy();
     }
-    
+
     this.removeAllListeners();
     this.isInitialized = false;
-    
+
     this.emit('error', {
       type: 'error',
       timestamp: new Date(),

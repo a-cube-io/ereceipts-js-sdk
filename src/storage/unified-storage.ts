@@ -3,13 +3,13 @@
  * Provides cross-platform storage abstraction with type safety and encryption support
  */
 
-import type { 
-  ReceiptId, 
-  CashierId, 
-  PEMId, 
-  MerchantId, 
+import type {
+  PEMId,
+  CashierId,
+  ReceiptId,
+  MerchantId,
   CashRegisterId,
- 
+
 } from '../types/branded';
 
 // Storage Key Types (branded for type safety)
@@ -18,12 +18,12 @@ export type StorageKey = string & { [__storageKeyBrand]: 'StorageKey' };
 export const createStorageKey = (key: string): StorageKey => key as StorageKey;
 
 // Storage Value Types
-export type StorageValue = 
-  | string 
-  | number 
-  | boolean 
-  | object 
-  | Array<any> 
+export type StorageValue =
+  | string
+  | number
+  | boolean
+  | object
+  | Array<any>
   | null
   | undefined;
 
@@ -181,7 +181,7 @@ export interface UnifiedStorage extends StorageAdapter {
   setSecure<T extends StorageValue>(key: string, value: T): Promise<void>;
   getSecure<T extends StorageValue>(key: string): Promise<T | null>;
   deleteSecure(key: string): Promise<boolean>;
-  
+
   // Configuration storage
   setConfig<T extends StorageValue>(key: string, value: T): Promise<void>;
   getConfig<T extends StorageValue>(key: string): Promise<T | null>;
@@ -190,14 +190,14 @@ export interface UnifiedStorage extends StorageAdapter {
   // Backup and restore
   exportData(namespace?: string): Promise<string>; // Returns JSON string
   importData(data: string): Promise<number>; // Returns number of imported entries
-  
+
   // Query operations with keyPrefix support
   query<T extends StorageValue>(options: QueryOptions): Promise<Array<{ key: StorageKey; value: T }>>;
-  
+
   // Initialization and cleanup
   initialize(): Promise<void>;
   destroy(): Promise<void>;
-  
+
   // Event listeners
   on(event: 'set' | 'get' | 'delete' | 'clear' | 'error', listener: (...args: any[]) => void): void;
   off(event: 'set' | 'get' | 'delete' | 'clear' | 'error', listener: (...args: any[]) => void): void;
@@ -211,7 +211,7 @@ export class StorageError extends Error {
     public readonly code: string,
     public readonly operation: string,
     public readonly key?: StorageKey,
-    public override readonly cause?: Error
+    public override readonly cause?: Error,
   ) {
     super(message);
     this.name = 'StorageError';
@@ -225,7 +225,7 @@ export class StorageConnectionError extends StorageError {
       'STORAGE_CONNECTION_ERROR',
       'connect',
       undefined,
-      cause
+      cause,
     );
   }
 }
@@ -236,7 +236,7 @@ export class StorageCapacityError extends StorageError {
       `Storage capacity exceeded for key ${key}: ${size} > ${maxSize}`,
       'STORAGE_CAPACITY_ERROR',
       'set',
-      key
+      key,
     );
   }
 }
@@ -248,7 +248,7 @@ export class StorageEncryptionError extends StorageError {
       'STORAGE_ENCRYPTION_ERROR',
       operation,
       key,
-      cause
+      cause,
     );
   }
 }
@@ -260,7 +260,7 @@ export class StorageTransactionError extends StorageError {
       'STORAGE_TRANSACTION_ERROR',
       operation,
       undefined,
-      cause
+      cause,
     );
   }
 }
@@ -300,29 +300,29 @@ export const STORAGE_NAMESPACES = {
 } as const;
 
 // Type-safe storage key generators
-export const createReceiptKey = (id: ReceiptId): StorageKey => 
+export const createReceiptKey = (id: ReceiptId): StorageKey =>
   createStorageKey(`${STORAGE_NAMESPACES.RECEIPTS}:${id}`);
 
-export const createCashierKey = (id: CashierId): StorageKey => 
+export const createCashierKey = (id: CashierId): StorageKey =>
   createStorageKey(`${STORAGE_NAMESPACES.CASHIERS}:${id}`);
 
-export const createMerchantKey = (id: MerchantId): StorageKey => 
+export const createMerchantKey = (id: MerchantId): StorageKey =>
   createStorageKey(`${STORAGE_NAMESPACES.MERCHANTS}:${id}`);
 
-export const createPEMKey = (id: PEMId): StorageKey => 
+export const createPEMKey = (id: PEMId): StorageKey =>
   createStorageKey(`${STORAGE_NAMESPACES.PEMS}:${id}`);
 
-export const createCashRegisterKey = (id: CashRegisterId): StorageKey => 
+export const createCashRegisterKey = (id: CashRegisterId): StorageKey =>
   createStorageKey(`${STORAGE_NAMESPACES.CASH_REGISTERS}:${id}`);
 
-export const createCacheKey = (key: string): StorageKey => 
+export const createCacheKey = (key: string): StorageKey =>
   createStorageKey(`${STORAGE_NAMESPACES.CACHE}:${key}`);
 
-export const createSessionKey = (key: string): StorageKey => 
+export const createSessionKey = (key: string): StorageKey =>
   createStorageKey(`${STORAGE_NAMESPACES.SESSION}:${key}`);
 
-export const createSecureKey = (key: string): StorageKey => 
+export const createSecureKey = (key: string): StorageKey =>
   createStorageKey(`${STORAGE_NAMESPACES.SECURE}:${key}`);
 
-export const createConfigKey = (key: string): StorageKey => 
+export const createConfigKey = (key: string): StorageKey =>
   createStorageKey(`${STORAGE_NAMESPACES.CONFIG}:${key}`);

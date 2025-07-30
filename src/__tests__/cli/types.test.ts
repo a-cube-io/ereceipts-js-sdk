@@ -3,10 +3,10 @@
  * Basic tests for type definitions
  */
 
-import type { 
-  TraceConfig, 
-  CLIConfig, 
-  ProcessStatus
+import type {
+  CLIConfig,
+  TraceConfig,
+  ProcessStatus,
 } from '../../cli/types.js';
 
 describe('CLI Types', () => {
@@ -18,7 +18,7 @@ describe('CLI Types', () => {
         includeStack: false,
         includeContext: true,
         includeTimestamp: true,
-        outputFormat: 'pretty'
+        outputFormat: 'pretty',
       };
 
       expect(traceConfig.enabled).toBe(true);
@@ -33,9 +33,9 @@ describe('CLI Types', () => {
         environment: 'sandbox',
         baseUrls: {
           api: 'https://api.example.com',
-          auth: 'https://auth.example.com'
+          auth: 'https://auth.example.com',
         },
-        currentProfile: 'default'
+        currentProfile: 'default',
       };
 
       expect(config.environment).toBe('sandbox');
@@ -47,7 +47,7 @@ describe('CLI Types', () => {
   describe('ProcessStatus', () => {
     it('should accept valid process status values', () => {
       const statuses: ProcessStatus[] = ['success', 'error', 'cancelled'];
-      
+
       statuses.forEach(status => {
         expect(['success', 'error', 'cancelled']).toContain(status);
       });

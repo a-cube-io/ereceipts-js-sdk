@@ -3,35 +3,35 @@
  * Complete security suite with encryption, digital signatures, and key rotation
  */
 
-// Import classes for internal use
-import { AdvancedEncryption, type EncryptionConfig, type EncryptedData } from './encryption';
-import { DigitalSignatureManager, type SignatureConfig, type DigitalSignature, type VerificationResult } from './signatures';
 import { KeyRotationManager, type KeyRotationConfig } from './key-rotation';
+// Import classes for internal use
+import { AdvancedEncryption, type EncryptedData, type EncryptionConfig } from './encryption';
+import { type SignatureConfig, type DigitalSignature, DigitalSignatureManager, type VerificationResult } from './signatures';
 
 // Re-export everything for external use
 export {
   AdvancedEncryption,
-  type EncryptionConfig,
   type EncryptedData,
   type CryptoKeyPair,
+  type EncryptionConfig,
 } from './encryption';
 
 export {
-  DigitalSignatureManager,
+  type KeyBackup,
+  type KeyVersion,
+  KeyRotationManager,
+  type RotationEvent,
+  type KeyRotationConfig,
+} from './key-rotation';
+
+export {
+  type SignedData,
   type SignatureConfig,
   type DigitalSignature,
-  type SignedData,
+  DigitalSignatureManager,
   type VerificationResult,
   type SigningCertificate,
 } from './signatures';
-
-export {
-  KeyRotationManager,
-  type KeyRotationConfig,
-  type KeyVersion,
-  type RotationEvent,
-  type KeyBackup,
-} from './key-rotation';
 
 /**
  * Comprehensive Security Manager
@@ -39,7 +39,9 @@ export {
  */
 export class SecurityManager {
   private encryption: AdvancedEncryption;
+
   private signatures: DigitalSignatureManager;
+
   private keyRotation: KeyRotationManager;
 
   constructor(config?: {
@@ -52,7 +54,7 @@ export class SecurityManager {
     this.keyRotation = new KeyRotationManager(
       this.encryption,
       this.signatures,
-      config?.keyRotation
+      config?.keyRotation,
     );
   }
 
@@ -86,23 +88,23 @@ export class SecurityManager {
   }> {
     // Generate master encryption key
     const encryptionKeyId = await this.encryption.generateSymmetricKey();
-    
+
     // Generate master signing key pair
     const signingKeyId = await this.signatures.generateSigningKeyPair();
-    
+
     // Register keys for rotation
     await this.keyRotation.registerKey(
       encryptionKeyId,
       'AES-GCM-256',
       'master_encryption',
-      'production'
+      'production',
     );
-    
+
     await this.keyRotation.registerKey(
       signingKeyId,
       'ECDSA-P256',
       'master_signing',
-      'production'
+      'production',
     );
 
     return { encryptionKeyId, signingKeyId };
@@ -114,7 +116,7 @@ export class SecurityManager {
   async secureData(
     data: string | Uint8Array,
     encryptionKeyId: string,
-    signingKeyId: string
+    signingKeyId: string,
   ): Promise<{
     encryptedData: EncryptedData;
     signature: DigitalSignature;
@@ -125,12 +127,12 @@ export class SecurityManager {
 
     // Encrypt data
     const encryptedData = await this.encryption.encryptSymmetric(data, encryptionKeyId);
-    
+
     // Sign encrypted data
     const signature = await this.signatures.signData(
       encryptedData.data,
       signingKeyId,
-      { purpose: 'data-integrity' }
+      { purpose: 'data-integrity' },
     );
 
     return { encryptedData, signature };
@@ -141,7 +143,7 @@ export class SecurityManager {
    */
   async verifyAndDecrypt(
     encryptedData: EncryptedData,
-    signature: DigitalSignature
+    signature: DigitalSignature,
   ): Promise<{
     data: Uint8Array;
     verification: VerificationResult;
@@ -149,7 +151,7 @@ export class SecurityManager {
     // Verify signature first
     const verification = await this.signatures.verifySignature(
       encryptedData.data,
-      signature
+      signature,
     );
 
     if (!verification.isValid) {
@@ -212,7 +214,7 @@ export class SecurityManager {
     // Clear all keys from memory
     this.encryption.clearKeys();
     this.signatures.clearAll();
-    
+
     // This would also clear rotation schedules and backups
     // In a real implementation, you'd want more granular control
     console.warn('Emergency security reset performed - all keys cleared');
@@ -245,10 +247,10 @@ export const SecurityUtils = {
    * Calculate SHA-256 hash
    */
   async calculateHash(data: string | Uint8Array): Promise<Uint8Array> {
-    const buffer = typeof data === 'string' 
-      ? new TextEncoder().encode(data) 
+    const buffer = typeof data === 'string'
+      ? new TextEncoder().encode(data)
       : data;
-    
+
     const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
     return new Uint8Array(hashBuffer);
   },
@@ -294,18 +296,18 @@ export const SecurityUtils = {
    */
   generateUUID(): string {
     const randomBytes = this.generateRandomBytes(16);
-    
+
     // Set version (4) and variant bits
     randomBytes[6] = ((randomBytes[6] || 0) & 0x0f) | 0x40;
     randomBytes[8] = ((randomBytes[8] || 0) & 0x3f) | 0x80;
-    
+
     const hex = this.bytesToHex(randomBytes);
     return [
       hex.substring(0, 8),
       hex.substring(8, 12),
       hex.substring(12, 16),
       hex.substring(16, 20),
-      hex.substring(20, 32)
+      hex.substring(20, 32),
     ].join('-');
   },
 
@@ -321,7 +323,7 @@ export const SecurityUtils = {
       if (config.encryption.keyLength < 256) {
         warnings.push('Encryption key length should be at least 256 bits');
       }
-      
+
       if (config.encryption.algorithm === 'AES-CBC') {
         warnings.push('AES-GCM is recommended over AES-CBC for better security');
       }
@@ -340,7 +342,7 @@ export const SecurityUtils = {
       if (config.keyRotation.rotationInterval > 90 * 24 * 60 * 60 * 1000) {
         warnings.push('Key rotation interval longer than 90 days is not recommended');
       }
-      
+
       if (!config.keyRotation.backup?.enabled) {
         warnings.push('Key backup should be enabled for production environments');
       }

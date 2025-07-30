@@ -3,21 +3,23 @@
  * Provides comprehensive metrics, alerting, and performance insights for all sync operations
  */
 
-import { EventEmitter } from 'eventemitter3';
 import type { ResourceType } from '@/storage/queue/types';
+
+import { EventEmitter } from 'eventemitter3';
+
 import type { SyncResult, SyncStatistics } from './types';
 
-export type MetricType = 
-  | 'counter' 
-  | 'gauge' 
-  | 'histogram' 
-  | 'summary' 
+export type MetricType =
+  | 'counter'
+  | 'gauge'
+  | 'histogram'
+  | 'summary'
   | 'timer';
 
-export type AlertLevel = 
-  | 'info' 
-  | 'warning' 
-  | 'error' 
+export type AlertLevel =
+  | 'info'
+  | 'warning'
+  | 'error'
   | 'critical';
 
 export interface MetricDefinition {
@@ -96,7 +98,7 @@ export interface SyncAnalyticsData {
   successfulSyncs: number;
   failedSyncs: number;
   averageDuration: number;
-  
+
   // Performance metrics
   throughput: number; // syncs per minute
   latency: {
@@ -104,7 +106,7 @@ export interface SyncAnalyticsData {
     p95: number;
     p99: number;
   };
-  
+
   // Resource-specific metrics
   resourceMetrics: Record<ResourceType, {
     syncs: number;
@@ -112,26 +114,26 @@ export interface SyncAnalyticsData {
     errorRate: number;
     lastSync: number;
   }>;
-  
+
   // Real-time metrics
   activeSessions: number;
   connectedClients: number;
   operationsPerSecond: number;
-  
+
   // Error analysis
   errorPatterns: Record<string, number>;
   topErrors: Array<{ error: string; count: number; lastOccurrence: number }>;
-  
+
   // System health
   systemLoad: number;
   memoryUsage: number;
   networkLatency: number;
-  
+
   // Conflict metrics
   conflictsDetected: number;
   conflictsResolved: number;
   autoResolutionRate: number;
-  
+
   // Background sync metrics
   backgroundJobs: number;
   queuedJobs: number;
@@ -171,17 +173,22 @@ export interface SyncAnalyticsEvents {
  */
 export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
   private config: AnalyticsConfig;
+
   private isInitialized = false;
 
   // Metrics storage
   private metrics = new Map<string, MetricDefinition>();
+
   private metricData = new Map<string, MetricValue[]>();
+
   private histograms = new Map<string, HistogramData>();
   // private summaries = new Map<string, SummaryData>(); // Reserved for future use
 
   // Alerting system
   private alertRules = new Map<string, AlertRule>();
+
   private activeAlerts = new Map<string, Alert>();
+
   private alertHistory: Alert[] = [];
 
   // Performance baselines
@@ -221,13 +228,16 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
 
   // Monitoring intervals
   private metricsCollectionInterval?: NodeJS.Timeout;
+
   private alertCheckInterval?: NodeJS.Timeout;
+
   private baselineUpdateInterval?: NodeJS.Timeout;
+
   private dataRetentionInterval?: NodeJS.Timeout;
 
   constructor(config: Partial<AnalyticsConfig> = {}) {
     super();
-    
+
     this.config = {
       enabled: true,
       retentionPeriod: 30, // 30 days
@@ -261,15 +271,15 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
     try {
       // Start monitoring intervals
       this.startMetricsCollection();
-      
+
       if (this.config.enableAlerting) {
         this.startAlertChecking();
       }
-      
+
       if (this.config.enableBaselining) {
         this.startBaselineUpdates();
       }
-      
+
       this.startDataRetention();
 
       this.isInitialized = true;
@@ -310,17 +320,17 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
    * Record a sync completion event
    */
   recordSyncEvent(result: SyncResult, resourceType?: ResourceType): void {
-    if (!this.isInitialized) return;
+    if (!this.isInitialized) {return;}
 
     // Update core sync metrics
-    this.recordCounter('sync_total', 1, { 
+    this.recordCounter('sync_total', 1, {
       status: result.status,
-      operation: result.operation 
+      operation: result.operation,
     });
 
     this.recordTimer('sync_duration', result.duration, {
       status: result.status,
-      operation: result.operation
+      operation: result.operation,
     });
 
     // Update analytics data
@@ -339,11 +349,11 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
     if (resourceType && this.analyticsData.resourceMetrics[resourceType]) {
       const resourceMetric = this.analyticsData.resourceMetrics[resourceType];
       resourceMetric.syncs++;
-      
+
       const avgDuration = (resourceMetric.avgDuration * (resourceMetric.syncs - 1) + result.duration) / resourceMetric.syncs;
       resourceMetric.avgDuration = avgDuration;
       resourceMetric.lastSync = Date.now();
-      
+
       if (result.status !== 'success') {
         resourceMetric.errorRate = ((resourceMetric.errorRate * (resourceMetric.syncs - 1)) + 1) / resourceMetric.syncs;
       }
@@ -366,7 +376,7 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
    * Record real-time session metrics
    */
   recordRealtimeMetrics(activeSessions: number, connectedClients: number, operationsPerSecond: number): void {
-    if (!this.isInitialized) return;
+    if (!this.isInitialized) {return;}
 
     this.recordGauge('realtime_sessions_active', activeSessions);
     this.recordGauge('realtime_clients_connected', connectedClients);
@@ -381,7 +391,7 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
    * Record conflict resolution metrics
    */
   recordConflictMetrics(detected: number, resolved: number, autoResolved: number): void {
-    if (!this.isInitialized) return;
+    if (!this.isInitialized) {return;}
 
     this.recordCounter('conflicts_detected', detected);
     this.recordCounter('conflicts_resolved', resolved);
@@ -389,7 +399,7 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
 
     this.analyticsData.conflictsDetected += detected;
     this.analyticsData.conflictsResolved += resolved;
-    
+
     if (this.analyticsData.conflictsDetected > 0) {
       this.analyticsData.autoResolutionRate = (autoResolved / this.analyticsData.conflictsDetected) * 100;
     }
@@ -399,7 +409,7 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
    * Record system performance metrics
    */
   recordSystemMetrics(systemLoad: number, memoryUsage: number, networkLatency: number): void {
-    if (!this.isInitialized) return;
+    if (!this.isInitialized) {return;}
 
     this.recordGauge('system_load_percent', systemLoad);
     this.recordGauge('memory_usage_percent', memoryUsage);
@@ -462,7 +472,7 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
   addAlertRule(rule: Omit<AlertRule, 'id'>): string {
     const id = `rule_${Date.now()}_${Math.random().toString(36).substring(2)}`;
     const alertRule: AlertRule = { ...rule, id };
-    
+
     this.alertRules.set(id, alertRule);
     return id;
   }
@@ -507,17 +517,17 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
 
     // Simple linear trend prediction for key metrics
     const keyMetrics = ['sync_duration', 'system_load_percent', 'memory_usage_percent'];
-    
+
     for (const metric of keyMetrics) {
       const data = this.metricData.get(metric) || [];
       if (data.length >= 5) {
         const prediction = this.predictMetricTrend(data);
         predictions[metric] = prediction;
-        
+
         this.emit('prediction:generated', {
           metric,
           prediction: prediction.prediction,
-          confidence: prediction.confidence
+          confidence: prediction.confidence,
         });
       }
     }
@@ -533,41 +543,41 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
         name: 'sync_total',
         type: 'counter',
         description: 'Total number of sync operations',
-        labels: ['status', 'operation']
+        labels: ['status', 'operation'],
       },
       {
         name: 'sync_duration',
         type: 'histogram',
         description: 'Sync operation duration',
         unit: 'milliseconds',
-        labels: ['status', 'operation']
+        labels: ['status', 'operation'],
       },
       {
         name: 'realtime_sessions_active',
         type: 'gauge',
-        description: 'Number of active real-time sessions'
+        description: 'Number of active real-time sessions',
       },
       {
         name: 'realtime_clients_connected',
         type: 'gauge',
-        description: 'Number of connected real-time clients'
+        description: 'Number of connected real-time clients',
       },
       {
         name: 'conflicts_detected',
         type: 'counter',
-        description: 'Number of conflicts detected'
+        description: 'Number of conflicts detected',
       },
       {
         name: 'system_load_percent',
         type: 'gauge',
         description: 'System load percentage',
-        unit: 'percent'
+        unit: 'percent',
       },
       {
         name: 'memory_usage_percent',
         type: 'gauge',
         description: 'Memory usage percentage',
-        unit: 'percent'
+        unit: 'percent',
       },
     ];
 
@@ -634,11 +644,11 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
 
     const existing = this.metricData.get(name) || [];
     existing.push(metricValue);
-    
+
     // Keep only recent data
     const cutoff = Date.now() - (this.config.retentionPeriod * 24 * 60 * 60 * 1000);
     const filtered = existing.filter(v => v.timestamp > cutoff);
-    
+
     this.metricData.set(name, filtered.slice(-this.config.maxMetricHistory));
     this.emit('metric:recorded', { metric: name, value: metricValue });
   }
@@ -738,20 +748,20 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
   private updateThroughputMetrics(): void {
     const now = Date.now();
     const oneMinuteAgo = now - 60000;
-    
+
     const syncData = this.metricData.get('sync_total') || [];
     const recentSyncs = syncData.filter(m => m.timestamp > oneMinuteAgo);
-    
+
     this.analyticsData.throughput = recentSyncs.length;
   }
 
   private updateLatencyMetrics(): void {
     const durationData = this.metricData.get('sync_duration') || [];
-    if (durationData.length === 0) return;
+    if (durationData.length === 0) {return;}
 
     const recent = durationData.slice(-100); // Last 100 measurements
     const sorted = recent.map(d => d.value).sort((a, b) => a - b);
-    
+
     this.analyticsData.latency = {
       p50: this.percentile(sorted, 0.5),
       p95: this.percentile(sorted, 0.95),
@@ -760,7 +770,7 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
   }
 
   private percentile(sortedArray: number[], p: number): number {
-    if (sortedArray.length === 0) return 0;
+    if (sortedArray.length === 0) {return 0;}
     const index = Math.ceil(sortedArray.length * p) - 1;
     return sortedArray[Math.max(0, index)] || 0;
   }
@@ -773,9 +783,9 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
     // Simple linear regression
     const recent = data.slice(-20); // Use last 20 points
     const n = recent.length;
-    
-    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-    
+
+    let sumX = 0; let sumY = 0; let sumXY = 0; let sumX2 = 0;
+
     for (let i = 0; i < n; i++) {
       const x = i;
       const y = recent[i]!.value;
@@ -784,27 +794,27 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
       sumXY += x * y;
       sumX2 += x * x;
     }
-    
+
     const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
-    
+
     // Predict next value
     const prediction = slope * n + intercept;
-    
+
     // Calculate confidence based on R²
     const meanY = sumY / n;
-    let ssRes = 0, ssTot = 0;
-    
+    let ssRes = 0; let ssTot = 0;
+
     for (let i = 0; i < n; i++) {
       const predicted = slope * i + intercept;
       const actual = recent[i]!.value;
-      ssRes += Math.pow(actual - predicted, 2);
-      ssTot += Math.pow(actual - meanY, 2);
+      ssRes += (actual - predicted)**2;
+      ssTot += (actual - meanY)**2;
     }
-    
+
     const r2 = 1 - (ssRes / ssTot);
     const confidence = Math.max(0, Math.min(1, r2)) * 100;
-    
+
     return { prediction, confidence };
   }
 
@@ -835,20 +845,20 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
 
   private checkAlertRules(): void {
     const now = Date.now();
-    
+
     for (const rule of this.alertRules.values()) {
-      if (!rule.enabled) continue;
-      
+      if (!rule.enabled) {continue;}
+
       // Check cooldown
       if (rule.lastTriggered && (now - rule.lastTriggered) < rule.cooldown) {
         continue;
       }
-      
+
       const currentValue = this.getCurrentMetricValue(rule.metric);
-      if (currentValue === null) continue;
-      
+      if (currentValue === null) {continue;}
+
       const shouldTrigger = this.evaluateCondition(currentValue, rule.condition, rule.threshold);
-      
+
       if (shouldTrigger) {
         this.triggerAlert(rule, currentValue);
       }
@@ -857,8 +867,8 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
 
   private getCurrentMetricValue(metricName: string): number | null {
     const data = this.metricData.get(metricName);
-    if (!data || data.length === 0) return null;
-    
+    if (!data || data.length === 0) {return null;}
+
     // Return the most recent value
     return data[data.length - 1]!.value;
   }
@@ -889,21 +899,21 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
 
     this.activeAlerts.set(alert.id, alert);
     this.alertHistory.push(alert);
-    
+
     // Update rule
     rule.lastTriggered = Date.now();
     this.alertRules.set(rule.id, rule);
-    
+
     this.emit('alert:triggered', { alert });
   }
 
   private updateBaselines(): void {
     for (const [metricName, data] of this.metricData.entries()) {
-      if (data.length < 20) continue; // Need enough data
-      
+      if (data.length < 20) {continue;} // Need enough data
+
       const recent = data.slice(-100); // Last 100 measurements
       const values = recent.map(d => d.value).sort((a, b) => a - b);
-      
+
       const baseline: PerformanceBaseline = {
         metric: metricName,
         p50: this.percentile(values, 0.5),
@@ -914,7 +924,7 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
         sampleCount: values.length,
         lastUpdated: Date.now(),
       };
-      
+
       this.baselines.set(metricName, baseline);
       this.emit('baseline:updated', { baseline });
     }
@@ -922,18 +932,18 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
 
   private calculateStdDev(values: number[]): number {
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length;
+    const variance = values.reduce((a, b) => a + (b - mean)**2, 0) / values.length;
     return Math.sqrt(variance);
   }
 
   private cleanupOldData(): void {
     const cutoff = Date.now() - (this.config.retentionPeriod * 24 * 60 * 60 * 1000);
-    
+
     for (const [metricName, data] of this.metricData.entries()) {
       const filtered = data.filter(d => d.timestamp > cutoff);
       this.metricData.set(metricName, filtered);
     }
-    
+
     // Clean up alert history
     this.alertHistory = this.alertHistory.filter(alert => alert.timestamp > cutoff);
   }
@@ -950,39 +960,39 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
 
   private exportAsPrometheus(): string {
     let output = '';
-    
+
     for (const [metricName, data] of this.metricData.entries()) {
       const metric = this.metrics.get(metricName);
-      if (!metric) continue;
-      
+      if (!metric) {continue;}
+
       output += `# HELP ${metricName} ${metric.description}\n`;
       output += `# TYPE ${metricName} ${metric.type}\n`;
-      
+
       if (data.length > 0) {
         const latest = data[data.length - 1]!;
-        const labelString = latest.labels ? 
+        const labelString = latest.labels ?
           Object.entries(latest.labels).map(([k, v]) => `${k}="${v}"`).join(',') : '';
-        
+
         output += `${metricName}{${labelString}} ${latest.value} ${latest.timestamp}\n`;
       }
-      
+
       output += '\n';
     }
-    
+
     return output;
   }
 
   private exportAsCSV(): string {
     const headers = ['timestamp', 'metric', 'value', 'labels'];
-    let output = headers.join(',') + '\n';
-    
+    let output = `${headers.join(',')  }\n`;
+
     for (const [metricName, data] of this.metricData.entries()) {
       for (const point of data.slice(-1000)) { // Last 1000 points
         const labels = point.labels ? JSON.stringify(point.labels).replace(/"/g, '""') : '';
         output += `${point.timestamp},${metricName},${point.value},"${labels}"\n`;
       }
     }
-    
+
     return output;
   }
 }
@@ -991,7 +1001,7 @@ export class SyncAnalyticsMonitor extends EventEmitter<SyncAnalyticsEvents> {
  * Create sync analytics monitor with default configuration
  */
 export function createSyncAnalyticsMonitor(
-  config: Partial<AnalyticsConfig> = {}
+  config: Partial<AnalyticsConfig> = {},
 ): SyncAnalyticsMonitor {
   return new SyncAnalyticsMonitor(config);
 }

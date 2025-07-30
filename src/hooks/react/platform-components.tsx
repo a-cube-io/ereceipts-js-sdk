@@ -1,21 +1,21 @@
 /**
  * Cross-Platform Component Abstractions
  * Platform-agnostic components that work seamlessly in React web and React Native
- * 
+ *
  * @module platform-components
  * @description
  * This module provides a unified API for building user interfaces that work
  * across both React web and React Native environments. Components automatically
  * detect the platform and render appropriate native elements.
- * 
+ *
  * @example
  * ```typescript
  * import { PlatformView, PlatformText, createStyles } from './platform-components';
- * 
+ *
  * const styles = createStyles({
  *   container: { padding: 20 }
  * });
- * 
+ *
  * function MyComponent() {
  *   return (
  *     <PlatformView style={styles.container}>
@@ -24,7 +24,7 @@
  *   );
  * }
  * ```
- * 
+ *
  * @see {@link file://./docs/CROSS_PLATFORM_GUIDE.md} for usage guide
  * @see {@link file://./docs/PLATFORM_COMPONENTS_API.md} for API reference
  */
@@ -36,7 +36,7 @@ export const isReactNative = typeof navigator !== 'undefined' && navigator.produ
 export const isWeb = !isReactNative;
 
 // Platform-specific imports with fallbacks
-let View: any, Text: any, TextInput: any, TouchableOpacity: any, ScrollView: any, StyleSheet: any, Platform: any, Alert: any;
+let View: any; let Text: any; let TextInput: any; let TouchableOpacity: any; let ScrollView: any; let StyleSheet: any; let Platform: any; let Alert: any;
 
 if (isReactNative) {
   try {
@@ -119,14 +119,14 @@ export interface PlatformPickerProps {
 }
 
 // Cross-platform View component
-export const PlatformView: React.FC<PlatformViewProps> = ({ 
-  children, 
-  className, 
-  style, 
-  testID, 
+export const PlatformView: React.FC<PlatformViewProps> = ({
+  children,
+  className,
+  style,
+  testID,
   role,
   onPress,
-  ...props 
+  ...props
 }) => {
   if (isReactNative && View) {
     const TouchableComponent = onPress ? TouchableOpacity : View;
@@ -157,14 +157,14 @@ export const PlatformView: React.FC<PlatformViewProps> = ({
 };
 
 // Cross-platform Text component
-export const PlatformText: React.FC<PlatformTextProps> = ({ 
-  children, 
-  className, 
-  style, 
+export const PlatformText: React.FC<PlatformTextProps> = ({
+  children,
+  className,
+  style,
   testID,
   numberOfLines,
   selectable = true,
-  ...props 
+  ...props
 }) => {
   if (isReactNative && Text) {
     return (
@@ -201,7 +201,7 @@ export const PlatformText: React.FC<PlatformTextProps> = ({
 };
 
 // Cross-platform TextInput component
-export const PlatformTextInput: React.FC<PlatformTextInputProps> = ({ 
+export const PlatformTextInput: React.FC<PlatformTextInputProps> = ({
   value,
   onChangeText,
   onChange,
@@ -220,7 +220,7 @@ export const PlatformTextInput: React.FC<PlatformTextInputProps> = ({
   type,
   required,
   disabled,
-  ...props 
+  ...props
 }) => {
   if (isReactNative && TextInput) {
     return (
@@ -277,7 +277,7 @@ export const PlatformTextInput: React.FC<PlatformTextInputProps> = ({
 };
 
 // Cross-platform Button component
-export const PlatformButton: React.FC<PlatformButtonProps> = ({ 
+export const PlatformButton: React.FC<PlatformButtonProps> = ({
   onPress,
   onClick,
   disabled,
@@ -287,7 +287,7 @@ export const PlatformButton: React.FC<PlatformButtonProps> = ({
   style,
   testID,
   type = 'button',
-  ...props 
+  ...props
 }) => {
   const handlePress = onPress || onClick;
 
@@ -318,7 +318,7 @@ export const PlatformButton: React.FC<PlatformButtonProps> = ({
 };
 
 // Cross-platform Picker component
-export const PlatformPicker: React.FC<PlatformPickerProps> = ({ 
+export const PlatformPicker: React.FC<PlatformPickerProps> = ({
   selectedValue,
   onValueChange,
   onChange,
@@ -328,7 +328,7 @@ export const PlatformPicker: React.FC<PlatformPickerProps> = ({
   style,
   testID,
   id,
-  ...props 
+  ...props
 }) => {
   if (isReactNative) {
     // Try to use React Native Picker
@@ -360,7 +360,7 @@ export const PlatformPicker: React.FC<PlatformPickerProps> = ({
 
   // Web fallback
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
+    const {value} = e.target;
     onValueChange?.(value);
     onChange?.(e);
   };
@@ -386,15 +386,15 @@ export const PlatformScrollView: React.FC<{
   horizontal?: boolean;
   showsVerticalScrollIndicator?: boolean;
   showsHorizontalScrollIndicator?: boolean;
-}> = ({ 
-  children, 
-  className, 
-  style, 
+}> = ({
+  children,
+  className,
+  style,
   testID,
   horizontal,
   showsVerticalScrollIndicator = true,
   showsHorizontalScrollIndicator = true,
-  ...props 
+  ...props
 }) => {
   if (isReactNative && ScrollView) {
     return (
@@ -420,7 +420,7 @@ export const PlatformScrollView: React.FC<{
       overflowY: 'hidden',
       whiteSpace: 'nowrap',
     }),
-    ...(!showsVerticalScrollIndicator && { 
+    ...(!showsVerticalScrollIndicator && {
       scrollbarWidth: 'none',
       msOverflowStyle: 'none',
     }),
@@ -444,7 +444,7 @@ export const showAlert = (title: string, message?: string, buttons?: Array<{ tex
         text: button.text,
         onPress: button.onPress,
         style: button.style,
-      }))
+      })),
     );
   } else {
     // Web fallback

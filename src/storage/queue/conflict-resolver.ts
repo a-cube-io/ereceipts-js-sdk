@@ -3,12 +3,12 @@
  * Enterprise-grade conflict resolution for offline-first operations
  */
 
-import type { 
-  QueueItem, 
-  ConflictResolutionStrategy, 
-  ConflictResolver,
+import type {
+  QueueItem,
   ResourceType,
-  QueueOperationType 
+  ConflictResolver,
+  QueueOperationType,
+  ConflictResolutionStrategy,
 } from './types';
 
 export interface ConflictContext {
@@ -20,7 +20,7 @@ export interface ConflictContext {
   conflictType: ConflictType;
 }
 
-export type ConflictType = 
+export type ConflictType =
   | 'version-mismatch'      // Local and server versions differ
   | 'concurrent-modification' // Multiple clients modified same resource
   | 'stale-data'           // Local data is outdated
@@ -61,8 +61,11 @@ export interface ConflictResolverConfig {
 
 export class ConflictResolverManager {
   private config: ConflictResolverConfig;
+
   private customResolvers: Map<string, ConflictResolver> = new Map();
+
   private pendingUserInputs: Map<string, ConflictResolution> = new Map();
+
   private resolutionHistory: ConflictResolution[] = [];
 
   constructor(config: Partial<ConflictResolverConfig> = {}) {
@@ -83,7 +86,7 @@ export class ConflictResolverManager {
   async resolveConflict<T = any>(
     localItem: QueueItem,
     serverData: T,
-    context: ConflictContext
+    context: ConflictContext,
   ): Promise<ConflictResolution<T>> {
     // Check if we have a custom resolver for this resource/operation
     const resolverKey = `${context.resource}:${context.operation}`;
@@ -101,20 +104,20 @@ export class ConflictResolverManager {
 
     // Use configured strategy for this item
     const strategy = localItem.conflictResolution || this.config.defaultStrategy;
-    
+
     switch (strategy) {
       case 'client-wins':
         return this.resolveClientWins(localItem, serverData, context);
-      
+
       case 'server-wins':
         return this.resolveServerWins(localItem, serverData, context);
-      
+
       case 'merge':
         return this.resolveMerge(localItem, serverData, context);
-      
+
       case 'manual':
         return this.resolveManual(localItem, serverData, context);
-      
+
       default:
         return this.resolveServerWins(localItem, serverData, context);
     }
@@ -126,7 +129,7 @@ export class ConflictResolverManager {
   registerResolver(
     resource: ResourceType,
     operation: QueueOperationType,
-    resolver: ConflictResolver
+    resolver: ConflictResolver,
   ): void {
     const key = `${resource}:${operation}`;
     this.customResolvers.set(key, resolver);
@@ -175,10 +178,10 @@ export class ConflictResolverManager {
    */
   analyzeConflict(localItem: QueueItem, serverData: any): ConflictContext {
     const now = Date.now();
-    
+
     // Determine conflict type based on available information
     let conflictType: ConflictType = 'version-mismatch';
-    
+
     // Check for timestamp differences
     const timeDiff = Math.abs(localItem.updatedAt - now);
     if (timeDiff > 300000) { // 5 minutes
@@ -224,59 +227,59 @@ export class ConflictResolverManager {
   private async resolveClientWins<T>(
     localItem: QueueItem,
     _serverData: T,
-    context: ConflictContext
+    context: ConflictContext,
   ): Promise<ConflictResolution<T>> {
     return this.createResolution(
       'client-wins',
       localItem.data as T,
       context,
       'Client data takes precedence',
-      0.7
+      0.7,
     );
   }
 
   private async resolveServerWins<T>(
     _localItem: QueueItem,
     serverData: T,
-    context: ConflictContext
+    context: ConflictContext,
   ): Promise<ConflictResolution<T>> {
     return this.createResolution(
       'server-wins',
       serverData,
       context,
       'Server data takes precedence',
-      0.9
+      0.9,
     );
   }
 
   private async resolveMerge<T>(
     localItem: QueueItem,
     serverData: T,
-    context: ConflictContext
+    context: ConflictContext,
   ): Promise<ConflictResolution<T>> {
     const mergeRules = this.config.mergeRules[context.resource] || [];
     const merged = await this.performMerge(
       localItem.data,
       serverData,
       mergeRules,
-      context
+      context,
     );
 
     const confidence = this.calculateMergeConfidence(mergeRules, context);
-    
+
     return this.createResolution(
       'merge',
       merged as T,
       context,
       'Data merged using configured rules',
-      confidence
+      confidence,
     );
   }
 
   private async resolveManual<T>(
     _localItem: QueueItem,
     serverData: T,
-    context: ConflictContext
+    context: ConflictContext,
   ): Promise<ConflictResolution<T>> {
     // For now, default to server wins but mark as requiring user input
     const resolution = this.createResolution(
@@ -284,11 +287,11 @@ export class ConflictResolverManager {
       serverData,
       context,
       'Manual resolution required - defaulting to server data',
-      0.3
+      0.3,
     );
 
     resolution.requiresUserInput = true;
-    
+
     // Store for user input handling
     const resolutionId = `manual_${Date.now()}_${Math.random().toString(36).substring(2)}`;
     this.pendingUserInputs.set(resolutionId, resolution);
@@ -308,7 +311,7 @@ export class ConflictResolverManager {
     clientData: any,
     serverData: any,
     mergeRules: MergeRule[],
-    context: ConflictContext
+    context: ConflictContext,
   ): Promise<any> {
     const result = { ...serverData }; // Start with server data as base
     const preservedFields: string[] = [];
@@ -332,8 +335,8 @@ export class ConflictResolverManager {
             break;
 
           case 'latest':
-            resolvedValue = context.localTimestamp > context.serverTimestamp 
-              ? clientValue 
+            resolvedValue = context.localTimestamp > context.serverTimestamp
+              ? clientValue
               : serverValue;
             break;
 
@@ -382,7 +385,7 @@ export class ConflictResolverManager {
     data: T,
     context: ConflictContext,
     reason: string,
-    confidence: number
+    confidence: number,
   ): ConflictResolution<T> {
     const resolution: ConflictResolution<T> = {
       strategy,
@@ -418,7 +421,7 @@ export class ConflictResolverManager {
   }
 
   private calculateMergeConfidence(mergeRules: MergeRule[], context: ConflictContext): number {
-    if (mergeRules.length === 0) return 0.3;
+    if (mergeRules.length === 0) {return 0.3;}
 
     let confidence = 0.8;
 
@@ -495,7 +498,7 @@ export class ConflictResolverManager {
     const keys = path.split('.');
     const lastKey = keys.pop()!;
     const target = keys.reduce((current, key) => {
-      if (!(key in current)) current[key] = {};
+      if (!(key in current)) {current[key] = {};}
       return current[key];
     }, obj);
     target[lastKey] = value;
@@ -504,16 +507,16 @@ export class ConflictResolverManager {
   private mergeArrays(clientArray: any[], serverArray: any[]): any[] {
     // Simple merge strategy - remove duplicates and combine
     const merged = [...serverArray];
-    
+
     for (const item of clientArray) {
-      const exists = merged.some(existing => 
-        JSON.stringify(existing) === JSON.stringify(item)
+      const exists = merged.some(existing =>
+        JSON.stringify(existing) === JSON.stringify(item),
       );
       if (!exists) {
         merged.push(item);
       }
     }
-    
+
     return merged;
   }
 }

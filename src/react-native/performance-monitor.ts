@@ -1,7 +1,7 @@
 /**
  * React Native Performance Monitor
  * Comprehensive performance monitoring and optimization for mobile environments
- * 
+ *
  * Features:
  * - App startup time monitoring
  * - Memory usage tracking
@@ -17,7 +17,7 @@
 import { EventEmitter } from 'eventemitter3';
 
 // Platform detection
-const isReactNative = typeof navigator !== 'undefined' && 
+const isReactNative = typeof navigator !== 'undefined' &&
   ((navigator as any).product === 'ReactNative' || (global as any).__REACT_NATIVE__);
 
 /**
@@ -28,25 +28,25 @@ export interface PerformanceMetrics {
   appStartTime: number;
   timeToInteractive: number;
   firstContentfulPaint?: number;
-  
+
   // Runtime performance
   memoryUsage: MemoryMetrics;
   cpuUsage: number;
   frameRate: FrameRateMetrics;
-  
+
   // Network metrics
   networkPerformance: NetworkMetrics;
-  
+
   // User experience metrics
   userInteractions: InteractionMetrics;
-  
+
   // Battery metrics
   batteryImpact: BatteryMetrics;
-  
+
   // Error metrics
   errorRate: number;
   crashCount: number;
-  
+
   // Timestamp
   timestamp: number;
 }
@@ -108,46 +108,46 @@ export interface PerformanceThresholds {
 export interface PerformanceMonitorConfig {
   /** Enable monitoring */
   enabled?: boolean;
-  
+
   /** Monitoring interval in ms */
   monitoringInterval?: number;
-  
+
   /** Enable memory monitoring */
   enableMemoryMonitoring?: boolean;
-  
+
   /** Enable frame rate monitoring */
   enableFrameRateMonitoring?: boolean;
-  
+
   /** Enable network monitoring */
   enableNetworkMonitoring?: boolean;
-  
+
   /** Enable battery monitoring */
   enableBatteryMonitoring?: boolean;
-  
+
   /** Enable user interaction monitoring */
   enableInteractionMonitoring?: boolean;
-  
+
   /** Enable crash reporting */
   enableCrashReporting?: boolean;
-  
+
   /** Performance thresholds */
   thresholds?: Partial<PerformanceThresholds>;
-  
+
   /** Maximum history entries to keep */
   maxHistorySize?: number;
-  
+
   /** Enable performance profiling */
   enableProfiling?: boolean;
-  
+
   /** Sample rate for profiling (0-1) */
   profilingSampleRate?: number;
-  
+
   /** Enable automatic optimization */
   enableAutoOptimization?: boolean;
-  
+
   /** Report performance data to server */
   enableRemoteReporting?: boolean;
-  
+
   /** Remote reporting endpoint */
   reportingEndpoint?: string;
 }
@@ -200,30 +200,44 @@ const DEFAULT_CONFIG: Required<PerformanceMonitorConfig> = {
  */
 export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
   private config: Required<PerformanceMonitorConfig>;
+
   private isInitialized = false;
+
   private isMonitoring = false;
-  
+
   // React Native modules
   private PerformanceObserver: any;
+
   private AppState: any;
+
   private DeviceInfo: any;
-  
+
   // Monitoring state
   private startTime: number;
+
   private lastMetrics?: PerformanceMetrics;
+
   private metricsHistory: PerformanceMetrics[] = [];
+
   private monitoringTimer?: NodeJS.Timeout;
-  
+
   // Performance tracking
   private memoryPeakUsage = 0;
+
   private frameDropCount = 0;
+
   private networkRequests: Array<{ url: string; startTime: number; endTime?: number; success?: boolean }> = [];
+
   private userInteractions: Array<{ type: string; startTime: number; endTime: number }> = [];
+
   private errorCount = 0;
+
   private crashCount = 0;
+
   private gcEventCount = 0;
+
   private memoryWarningCount = 0;
-  
+
   // Battery tracking
   private batteryHistory: Array<{ level: number; timestamp: number }> = [];
 
@@ -231,14 +245,14 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.startTime = Date.now();
-    
+
     if (this.config.enabled) {
       this.initialize();
     }
   }
 
   private async initialize(): Promise<void> {
-    if (this.isInitialized || !isReactNative) return;
+    if (this.isInitialized || !isReactNative) {return;}
 
     try {
       // Import React Native modules
@@ -277,7 +291,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
 
       this.isInitialized = true;
       this.startMonitoring();
-      
+
       console.log('PerformanceMonitor initialized');
     } catch (error) {
       console.warn('Failed to initialize PerformanceMonitor:', error);
@@ -285,7 +299,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
   }
 
   private setupMemoryMonitoring(): void {
-    if (!this.config.enableMemoryMonitoring) return;
+    if (!this.config.enableMemoryMonitoring) {return;}
 
     // Monitor memory warnings
     if (this.AppState) {
@@ -294,12 +308,12 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
         MemoryWarningHandler.addListener('memoryWarning', () => {
           this.memoryWarningCount++;
           const currentMemory = this.getMemoryUsage();
-          
-          this.emit('memory:warning', { 
-            usage: currentMemory.used, 
-            available: currentMemory.total - currentMemory.used 
+
+          this.emit('memory:warning', {
+            usage: currentMemory.used,
+            available: currentMemory.total - currentMemory.used,
           });
-          
+
           if (this.config.enableAutoOptimization) {
             this.applyMemoryOptimization();
           }
@@ -320,22 +334,22 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
   }
 
   private setupFrameRateMonitoring(): void {
-    if (!this.config.enableFrameRateMonitoring) return;
+    if (!this.config.enableFrameRateMonitoring) {return;}
 
     // Use performance observer if available
     if (this.PerformanceObserver) {
       try {
         const observer = new this.PerformanceObserver((list: any) => {
           const entries = list.getEntries();
-          
+
           for (const entry of entries) {
             if (entry.entryType === 'measure' && entry.name.includes('frame')) {
               if (entry.duration > 16.67) { // 60 FPS = 16.67ms per frame
                 this.frameDropCount++;
-                
-                this.emit('frame:drop', { 
-                  droppedFrames: 1, 
-                  duration: entry.duration 
+
+                this.emit('frame:drop', {
+                  droppedFrames: 1,
+                  duration: entry.duration,
                 });
               }
             }
@@ -350,30 +364,30 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
   }
 
   private setupNetworkMonitoring(): void {
-    if (!this.config.enableNetworkMonitoring) return;
+    if (!this.config.enableNetworkMonitoring) {return;}
 
     // Intercept fetch requests
     const originalFetch = global.fetch;
     global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
       const startTime = Date.now();
-      
+
       const requestInfo: { url: string; startTime: number; endTime?: number; success?: boolean } = { url, startTime };
       this.networkRequests.push(requestInfo);
-      
+
       try {
         const response = await originalFetch(input, init);
         const endTime = Date.now();
         const duration = endTime - startTime;
-        
+
         requestInfo.endTime = endTime;
         requestInfo.success = response.ok;
-        
+
         // Check for slow requests
         if (duration > 3000) {
           this.emit('network:slow', { url, duration });
         }
-        
+
         return response;
       } catch (error) {
         requestInfo.endTime = Date.now();
@@ -384,19 +398,19 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
   }
 
   private setupErrorMonitoring(): void {
-    if (!this.config.enableCrashReporting) return;
+    if (!this.config.enableCrashReporting) {return;}
 
     // Monitor JavaScript errors
     const originalErrorHandler = ErrorUtils?.getGlobalHandler?.();
-    
+
     ErrorUtils?.setGlobalHandler?.((error: Error, isFatal?: boolean) => {
       this.errorCount++;
-      
+
       if (isFatal) {
         this.crashCount++;
         this.emit('crash:detected', { error, context: { isFatal } });
       }
-      
+
       // Call original handler
       if (originalErrorHandler) {
         originalErrorHandler(error, isFatal);
@@ -415,7 +429,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
   }
 
   private setupInteractionMonitoring(): void {
-    if (!this.config.enableInteractionMonitoring) return;
+    if (!this.config.enableInteractionMonitoring) {}
 
     // This would integrate with React Native's touch system
     // For now, provide a manual API
@@ -428,17 +442,17 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
         try {
           const batteryLevel = await this.DeviceInfo.getBatteryLevel();
           const timestamp = Date.now();
-          
+
           this.batteryHistory.push({ level: batteryLevel, timestamp });
-          
+
           // Keep only last 24 hours of data
           const oneDayAgo = timestamp - 24 * 60 * 60 * 1000;
           this.batteryHistory = this.batteryHistory.filter(entry => entry.timestamp > oneDayAgo);
-          
+
           // Calculate drain rate
           if (this.batteryHistory.length >= 2) {
             const drainRate = this.calculateBatteryDrainRate();
-            
+
             if (drainRate > (this.config.thresholds.maxBatteryDrainRate || 5)) {
               this.emit('battery:drain', { rate: drainRate, cause: 'unknown' });
             }
@@ -451,36 +465,36 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
   }
 
   private calculateBatteryDrainRate(): number {
-    if (this.batteryHistory.length < 2) return 0;
-    
+    if (this.batteryHistory.length < 2) {return 0;}
+
     // Calculate drain over last hour
     const now = Date.now();
     const oneHourAgo = now - 60 * 60 * 1000;
-    
+
     const recentHistory = this.batteryHistory.filter(entry => entry.timestamp > oneHourAgo);
-    if (recentHistory.length < 2) return 0;
-    
+    if (recentHistory.length < 2) {return 0;}
+
     const oldest = recentHistory[0];
     const newest = recentHistory[recentHistory.length - 1];
-    
-    if (!oldest || !newest) return 0;
-    
+
+    if (!oldest || !newest) {return 0;}
+
     const timeDiff = newest.timestamp - oldest.timestamp; // ms
     const batteryDiff = oldest.level - newest.level; // battery used
-    
+
     // Convert to %/hour
     const hoursElapsed = timeDiff / (60 * 60 * 1000);
     return hoursElapsed > 0 ? (batteryDiff / hoursElapsed) * 100 : 0;
   }
 
   private startMonitoring(): void {
-    if (this.isMonitoring) return;
-    
+    if (this.isMonitoring) {return;}
+
     this.isMonitoring = true;
     this.monitoringTimer = setInterval(() => {
       this.collectMetrics();
     }, this.config.monitoringInterval) as unknown as NodeJS.Timeout;
-    
+
     console.log('Performance monitoring started');
   }
 
@@ -489,18 +503,18 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
       const metrics: PerformanceMetrics = {
         appStartTime: this.startTime,
         timeToInteractive: Date.now() - this.startTime,
-        
+
         memoryUsage: this.getMemoryUsage(),
         cpuUsage: this.getCPUUsage(),
         frameRate: this.getFrameRateMetrics(),
-        
+
         networkPerformance: this.getNetworkMetrics(),
         userInteractions: this.getInteractionMetrics(),
         batteryImpact: this.getBatteryMetrics(),
-        
+
         errorRate: this.calculateErrorRate(),
         crashCount: this.crashCount,
-        
+
         timestamp: Date.now(),
       };
 
@@ -529,7 +543,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
     // Get JavaScript heap info if available
     let heapUsed = 0;
     let heapTotal = 0;
-    
+
     if ((performance as any).memory) {
       const memoryInfo = (performance as any).memory;
       heapUsed = memoryInfo.usedJSHeapSize / (1024 * 1024);
@@ -559,7 +573,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
   private getFrameRateMetrics(): FrameRateMetrics {
     // This would use actual frame rate measurement in production
     const currentFPS = 60 - (this.frameDropCount * 0.1);
-    
+
     return {
       current: Math.max(currentFPS, 30),
       average: 58, // Placeholder
@@ -570,7 +584,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
 
   private getNetworkMetrics(): NetworkMetrics {
     const recentRequests = this.networkRequests.slice(-100); // Last 100 requests
-    
+
     if (recentRequests.length === 0) {
       return {
         avgRequestTime: 0,
@@ -583,12 +597,12 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
 
     const completedRequests = recentRequests.filter(req => req.endTime);
     const failedRequests = completedRequests.filter(req => !req.success);
-    const slowRequests = completedRequests.filter(req => 
-      req.endTime && (req.endTime - req.startTime) > 3000
+    const slowRequests = completedRequests.filter(req =>
+      req.endTime && (req.endTime - req.startTime) > 3000,
     );
 
-    const totalTime = completedRequests.reduce((sum, req) => 
-      sum + (req.endTime! - req.startTime), 0
+    const totalTime = completedRequests.reduce((sum, req) =>
+      sum + (req.endTime! - req.startTime), 0,
     );
 
     return {
@@ -602,7 +616,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
 
   private getInteractionMetrics(): InteractionMetrics {
     const recentInteractions = this.userInteractions.slice(-50); // Last 50 interactions
-    
+
     if (recentInteractions.length === 0) {
       return {
         avgResponseTime: 0,
@@ -612,12 +626,12 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
       };
     }
 
-    const totalTime = recentInteractions.reduce((sum, interaction) => 
-      sum + (interaction.endTime - interaction.startTime), 0
+    const totalTime = recentInteractions.reduce((sum, interaction) =>
+      sum + (interaction.endTime - interaction.startTime), 0,
     );
 
-    const slowInteractions = recentInteractions.filter(interaction => 
-      (interaction.endTime - interaction.startTime) > 100
+    const slowInteractions = recentInteractions.filter(interaction =>
+      (interaction.endTime - interaction.startTime) > 100,
     );
 
     const avgResponseTime = totalTime / recentInteractions.length;
@@ -633,7 +647,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
 
   private getBatteryMetrics(): BatteryMetrics {
     const drainRate = this.calculateBatteryDrainRate();
-    
+
     return {
       drainRate,
       networkDrain: drainRate * 0.3, // Estimate 30% from network
@@ -645,7 +659,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
   private calculateErrorRate(): number {
     const timeWindow = 10 * 60 * 1000; // 10 minutes
     const now = Date.now();
-    
+
     // This is simplified - in production, track errors with timestamps
     return this.errorCount / Math.max(1, (now - this.startTime) / timeWindow);
   }
@@ -718,9 +732,9 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
     // Force garbage collection if available
     if (global.gc) {
       global.gc();
-      this.emit('optimization:applied', { 
-        type: 'garbage_collection', 
-        impact: 'memory_freed' 
+      this.emit('optimization:applied', {
+        type: 'garbage_collection',
+        impact: 'memory_freed',
       });
     }
 
@@ -744,9 +758,9 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
         }),
       });
 
-      this.emit('report:sent', { 
-        success: response.ok, 
-        data: response.ok ? undefined : response.statusText 
+      this.emit('report:sent', {
+        success: response.ok,
+        data: response.ok ? undefined : response.statusText,
       });
     } catch (error) {
       this.emit('report:sent', { success: false, data: error });
@@ -754,7 +768,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
   }
 
   private async getDeviceInfo(): Promise<any> {
-    if (!this.DeviceInfo) return {};
+    if (!this.DeviceInfo) {return {};}
 
     try {
       return {
@@ -774,7 +788,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
    * Record a user interaction for monitoring
    */
   recordInteraction(type: string, startTime: number, endTime?: number): void {
-    if (!this.config.enableInteractionMonitoring) return;
+    if (!this.config.enableInteractionMonitoring) {return;}
 
     const interaction = {
       type,
@@ -815,7 +829,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
    */
   getPerformanceSummary() {
     const history = this.metricsHistory;
-    if (history.length === 0) return null;
+    if (history.length === 0) {return null;}
 
     const latest = history[history.length - 1];
     const avgMemory = history.reduce((sum, m) => sum + m.memoryUsage.used, 0) / history.length;
@@ -867,7 +881,7 @@ export class PerformanceMonitor extends EventEmitter<PerformanceEvents> {
       clearInterval(this.monitoringTimer);
       this.monitoringTimer = undefined as any;
     }
-    
+
     this.isMonitoring = false;
   }
 

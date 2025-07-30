@@ -1,7 +1,7 @@
 /**
  * Generated Endpoint Definitions from OpenAPI Specification
  * Comprehensive endpoint configurations for all API resources
- * 
+ *
  * This file is auto-generated based on openapi.yaml
  * Do not edit manually - use regeneration scripts instead
  */
@@ -56,37 +56,37 @@ export class CashierEndpoints {
     parameters: {
       query: {
         page: 'integer',
-        size: 'integer'
-      }
+        size: 'integer',
+      },
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_Page__T_Customized_CashierOutput_'
+        schema: 'E-Receipt_IT_API_Page__T_Customized_CashierOutput_',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '404': {
         description: 'Not Found',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel404NotFound'
+        schema: 'E-Receipt_IT_API_ErrorModel404NotFound',
       },
       '422': {
         description: 'Validation Error',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_HTTPValidationError'
-      }
+        schema: 'E-Receipt_IT_API_HTTPValidationError',
+      },
     },
     metadata: {
       resource: 'cashiers',
       operation: 'list',
       authRequired: true,
-      retryable: true
-    }
+      retryable: true,
+    },
   };
 
   static readonly CREATE: EndpointDefinition = {
@@ -100,31 +100,31 @@ export class CashierEndpoints {
     requestBody: {
       required: true,
       contentType: 'application/json',
-      schema: 'E-Receipt_IT_API_CashierCreateInput'
+      schema: 'E-Receipt_IT_API_CashierCreateInput',
     },
     responses: {
       '201': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_CashierOutput'
+        schema: 'E-Receipt_IT_API_CashierOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '422': {
         description: 'Validation Error',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_HTTPValidationError'
-      }
+        schema: 'E-Receipt_IT_API_HTTPValidationError',
+      },
     },
     metadata: {
       resource: 'cashiers',
       operation: 'create',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 
   static readonly ME: EndpointDefinition = {
@@ -139,25 +139,25 @@ export class CashierEndpoints {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_CashierOutput'
+        schema: 'E-Receipt_IT_API_CashierOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '404': {
         description: 'Not Found',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel404NotFound'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel404NotFound',
+      },
     },
     metadata: {
       resource: 'cashiers',
       operation: 'me',
       authRequired: true,
-      retryable: true
-    }
+      retryable: true,
+    },
   };
 
   static readonly GET_BY_ID: EndpointDefinition = {
@@ -170,37 +170,37 @@ export class CashierEndpoints {
     security: [{ 'E-Receipt_IT_API_OAuth2PasswordBearer': [] }],
     parameters: {
       path: {
-        cashier_id: 'integer'
-      }
+        cashier_id: 'integer',
+      },
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_CashierOutput'
+        schema: 'E-Receipt_IT_API_CashierOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '404': {
         description: 'Not Found',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel404NotFound'
+        schema: 'E-Receipt_IT_API_ErrorModel404NotFound',
       },
       '422': {
         description: 'Validation Error',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_HTTPValidationError'
-      }
+        schema: 'E-Receipt_IT_API_HTTPValidationError',
+      },
     },
     metadata: {
       resource: 'cashiers',
       operation: 'get',
       authRequired: true,
-      retryable: true
-    }
+      retryable: true,
+    },
   };
 
   static readonly DELETE: EndpointDefinition = {
@@ -213,35 +213,35 @@ export class CashierEndpoints {
     security: [{ 'E-Receipt_IT_API_OAuth2PasswordBearer': [] }],
     parameters: {
       path: {
-        cashier_id: 'integer'
-      }
+        cashier_id: 'integer',
+      },
     },
     responses: {
       '204': {
-        description: 'Successful Response'
+        description: 'Successful Response',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '404': {
         description: 'Not Found',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel404NotFound'
+        schema: 'E-Receipt_IT_API_ErrorModel404NotFound',
       },
       '422': {
         description: 'Validation Error',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_HTTPValidationError'
-      }
+        schema: 'E-Receipt_IT_API_HTTPValidationError',
+      },
     },
     metadata: {
       resource: 'cashiers',
       operation: 'delete',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 }
 
@@ -261,20 +261,20 @@ export class PointOfSalesEndpoints {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_Page__T_Customized_PointOfSaleOutput_'
+        schema: 'E-Receipt_IT_API_Page__T_Customized_PointOfSaleOutput_',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
+      },
     },
     metadata: {
       resource: 'point-of-sales',
       operation: 'list',
       authRequired: true,
-      retryable: true
-    }
+      retryable: true,
+    },
   };
 
   static readonly GET_BY_SERIAL: EndpointDefinition = {
@@ -287,32 +287,32 @@ export class PointOfSalesEndpoints {
     security: [{ 'E-Receipt_IT_API_OAuth2PasswordBearer': [] }],
     parameters: {
       path: {
-        serial_number: 'string'
-      }
+        serial_number: 'string',
+      },
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_PointOfSaleOutput'
+        schema: 'E-Receipt_IT_API_PointOfSaleOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '404': {
         description: 'Not Found',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel404NotFound'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel404NotFound',
+      },
     },
     metadata: {
       resource: 'point-of-sales',
       operation: 'get',
       authRequired: true,
-      retryable: true
-    }
+      retryable: true,
+    },
   };
 
   static readonly CLOSE_JOURNAL: EndpointDefinition = {
@@ -326,26 +326,26 @@ export class PointOfSalesEndpoints {
     requestBody: {
       required: true,
       contentType: 'application/json',
-      schema: 'E-Receipt_IT_API_CloseJournalRequest'
+      schema: 'E-Receipt_IT_API_CloseJournalRequest',
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_CloseJournalOutput'
+        schema: 'E-Receipt_IT_API_CloseJournalOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
+      },
     },
     metadata: {
       resource: 'point-of-sales',
       operation: 'close_journal',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 
   static readonly ACTIVATION: EndpointDefinition = {
@@ -358,32 +358,32 @@ export class PointOfSalesEndpoints {
     security: [{ 'E-Receipt_IT_API_OAuth2PasswordBearer': [] }],
     parameters: {
       path: {
-        serial_number: 'string'
-      }
+        serial_number: 'string',
+      },
     },
     requestBody: {
       required: true,
       contentType: 'application/json',
-      schema: 'E-Receipt_IT_API_ActivationRequest'
+      schema: 'E-Receipt_IT_API_ActivationRequest',
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ActivationOutput'
+        schema: 'E-Receipt_IT_API_ActivationOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
+      },
     },
     metadata: {
       resource: 'point-of-sales',
       operation: 'activation',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 
   static readonly CREATE_INACTIVITY: EndpointDefinition = {
@@ -396,31 +396,31 @@ export class PointOfSalesEndpoints {
     security: [{ 'E-Receipt_IT_API_OAuth2PasswordBearer': [] }],
     parameters: {
       path: {
-        serial_number: 'string'
-      }
+        serial_number: 'string',
+      },
     },
     requestBody: {
       required: true,
       contentType: 'application/json',
-      schema: 'E-Receipt_IT_API_InactivityRequest'
+      schema: 'E-Receipt_IT_API_InactivityRequest',
     },
     responses: {
       '200': {
         description: 'Successful Response',
-        contentType: 'application/json'
+        contentType: 'application/json',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
+      },
     },
     metadata: {
       resource: 'point-of-sales',
       operation: 'create_inactivity',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 
   static readonly SET_OFFLINE: EndpointDefinition = {
@@ -433,26 +433,26 @@ export class PointOfSalesEndpoints {
     security: [{ 'E-Receipt_IT_API_OAuth2PasswordBearer': [] }],
     parameters: {
       path: {
-        serial_number: 'string'
-      }
+        serial_number: 'string',
+      },
     },
     responses: {
       '200': {
         description: 'Successful Response',
-        contentType: 'application/json'
+        contentType: 'application/json',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
+      },
     },
     metadata: {
       resource: 'point-of-sales',
       operation: 'set_offline',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 }
 
@@ -474,27 +474,27 @@ export class ReceiptEndpoints {
         size: 'integer',
         start_date: 'string',
         end_date: 'string',
-        serial_number: 'string'
-      }
+        serial_number: 'string',
+      },
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_Page__T_Customized_ReceiptOutput_'
+        schema: 'E-Receipt_IT_API_Page__T_Customized_ReceiptOutput_',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
+      },
     },
     metadata: {
       resource: 'receipts',
       operation: 'list',
       authRequired: true,
-      retryable: true
-    }
+      retryable: true,
+    },
   };
 
   static readonly CREATE: EndpointDefinition = {
@@ -508,31 +508,31 @@ export class ReceiptEndpoints {
     requestBody: {
       required: true,
       contentType: 'application/json',
-      schema: 'E-Receipt_IT_API_ReceiptInput'
+      schema: 'E-Receipt_IT_API_ReceiptInput',
     },
     responses: {
       '201': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ReceiptOutput'
+        schema: 'E-Receipt_IT_API_ReceiptOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '422': {
         description: 'Validation Error',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_HTTPValidationError'
-      }
+        schema: 'E-Receipt_IT_API_HTTPValidationError',
+      },
     },
     metadata: {
       resource: 'receipts',
       operation: 'create',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 
   static readonly VOID: EndpointDefinition = {
@@ -546,26 +546,26 @@ export class ReceiptEndpoints {
     requestBody: {
       required: true,
       contentType: 'application/json',
-      schema: 'E-Receipt_IT_API_VoidReceiptRequest'
+      schema: 'E-Receipt_IT_API_VoidReceiptRequest',
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_VoidReceiptOutput'
+        schema: 'E-Receipt_IT_API_VoidReceiptOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
+      },
     },
     metadata: {
       resource: 'receipts',
       operation: 'void',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 
   static readonly GET_BY_UUID: EndpointDefinition = {
@@ -578,32 +578,32 @@ export class ReceiptEndpoints {
     security: [{ 'E-Receipt_IT_API_OAuth2PasswordBearer': [] }],
     parameters: {
       path: {
-        receipt_uuid: 'string'
-      }
+        receipt_uuid: 'string',
+      },
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ReceiptOutput'
+        schema: 'E-Receipt_IT_API_ReceiptOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '404': {
         description: 'Not Found',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel404NotFound'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel404NotFound',
+      },
     },
     metadata: {
       resource: 'receipts',
       operation: 'get',
       authRequired: true,
-      retryable: true
-    }
+      retryable: true,
+    },
   };
 
   static readonly VOID_WITH_PROOF: EndpointDefinition = {
@@ -617,26 +617,26 @@ export class ReceiptEndpoints {
     requestBody: {
       required: true,
       contentType: 'application/json',
-      schema: 'E-Receipt_IT_API_VoidReceiptWithProofRequest'
+      schema: 'E-Receipt_IT_API_VoidReceiptWithProofRequest',
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_VoidReceiptOutput'
+        schema: 'E-Receipt_IT_API_VoidReceiptOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
+      },
     },
     metadata: {
       resource: 'receipts',
       operation: 'void_with_proof',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 
   static readonly GET_DETAILS: EndpointDefinition = {
@@ -649,33 +649,33 @@ export class ReceiptEndpoints {
     security: [{ 'E-Receipt_IT_API_OAuth2PasswordBearer': [] }],
     parameters: {
       path: {
-        receipt_uuid: 'string'
+        receipt_uuid: 'string',
       },
       header: {
-        Accept: 'string'
-      }
+        Accept: 'string',
+      },
     },
     responses: {
       '200': {
-        description: 'Successful Response'
+        description: 'Successful Response',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '404': {
         description: 'Not Found',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel404NotFound'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel404NotFound',
+      },
     },
     metadata: {
       resource: 'receipts',
       operation: 'get_details',
       authRequired: true,
-      retryable: true
-    }
+      retryable: true,
+    },
   };
 
   static readonly RETURN_ITEMS: EndpointDefinition = {
@@ -689,26 +689,26 @@ export class ReceiptEndpoints {
     requestBody: {
       required: true,
       contentType: 'application/json',
-      schema: 'E-Receipt_IT_API_ReturnRequest'
+      schema: 'E-Receipt_IT_API_ReturnRequest',
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ReceiptOutput'
+        schema: 'E-Receipt_IT_API_ReceiptOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
+      },
     },
     metadata: {
       resource: 'receipts',
       operation: 'return_items',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 
   static readonly RETURN_ITEMS_WITH_PROOF: EndpointDefinition = {
@@ -722,26 +722,26 @@ export class ReceiptEndpoints {
     requestBody: {
       required: true,
       contentType: 'application/json',
-      schema: 'E-Receipt_IT_API_ReturnWithProofRequest'
+      schema: 'E-Receipt_IT_API_ReturnWithProofRequest',
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ReceiptOutput'
+        schema: 'E-Receipt_IT_API_ReceiptOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
+      },
     },
     metadata: {
       resource: 'receipts',
       operation: 'return_items_with_proof',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 }
 
@@ -760,31 +760,31 @@ export class CashRegisterEndpoints {
     requestBody: {
       required: true,
       contentType: 'application/json',
-      schema: 'E-Receipt_IT_API_CashRegisterInput'
+      schema: 'E-Receipt_IT_API_CashRegisterInput',
     },
     responses: {
       '201': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_CashRegisterOutput'
+        schema: 'E-Receipt_IT_API_CashRegisterOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '422': {
         description: 'Validation Error',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_HTTPValidationError'
-      }
+        schema: 'E-Receipt_IT_API_HTTPValidationError',
+      },
     },
     metadata: {
       resource: 'cash-registers',
       operation: 'create',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 
   static readonly LIST: EndpointDefinition = {
@@ -799,20 +799,20 @@ export class CashRegisterEndpoints {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_Page__T_Customized_CashRegisterOutput_'
+        schema: 'E-Receipt_IT_API_Page__T_Customized_CashRegisterOutput_',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
+      },
     },
     metadata: {
       resource: 'cash-registers',
       operation: 'list',
       authRequired: true,
-      retryable: true
-    }
+      retryable: true,
+    },
   };
 
   static readonly GET_BY_ID: EndpointDefinition = {
@@ -825,32 +825,32 @@ export class CashRegisterEndpoints {
     security: [{ 'E-Receipt_IT_API_OAuth2PasswordBearer': [] }],
     parameters: {
       path: {
-        id: 'integer'
-      }
+        id: 'integer',
+      },
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_CashRegisterOutput'
+        schema: 'E-Receipt_IT_API_CashRegisterOutput',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '404': {
         description: 'Not Found',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel404NotFound'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel404NotFound',
+      },
     },
     metadata: {
       resource: 'cash-registers',
       operation: 'get',
       authRequired: true,
-      retryable: true
-    }
+      retryable: true,
+    },
   };
 }
 
@@ -869,20 +869,20 @@ export class MerchantEndpoints {
     responses: {
       '200': {
         description: 'Successful Response',
-        contentType: 'application/json'
+        contentType: 'application/json',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
+      },
     },
     metadata: {
       resource: 'merchants',
       operation: 'list',
       authRequired: true,
-      retryable: true
-    }
+      retryable: true,
+    },
   };
 
   static readonly CREATE: EndpointDefinition = {
@@ -896,31 +896,31 @@ export class MerchantEndpoints {
     requestBody: {
       required: true,
       contentType: 'application/json',
-      schema: 'Merchant-create'
+      schema: 'Merchant-create',
     },
     responses: {
       '201': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'Merchant-read'
+        schema: 'Merchant-read',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '422': {
         description: 'Validation Error',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_HTTPValidationError'
-      }
+        schema: 'E-Receipt_IT_API_HTTPValidationError',
+      },
     },
     metadata: {
       resource: 'merchants',
       operation: 'create',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 
   static readonly GET_BY_UUID: EndpointDefinition = {
@@ -933,32 +933,32 @@ export class MerchantEndpoints {
     security: [{ 'E-Receipt_IT_API_OAuth2PasswordBearer': [] }],
     parameters: {
       path: {
-        uuid: 'string'
-      }
+        uuid: 'string',
+      },
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'Merchant-read'
+        schema: 'Merchant-read',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '404': {
         description: 'Not Found',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel404NotFound'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel404NotFound',
+      },
     },
     metadata: {
       resource: 'merchants',
       operation: 'get',
       authRequired: true,
-      retryable: true
-    }
+      retryable: true,
+    },
   };
 
   static readonly UPDATE: EndpointDefinition = {
@@ -971,42 +971,42 @@ export class MerchantEndpoints {
     security: [{ 'E-Receipt_IT_API_OAuth2PasswordBearer': [] }],
     parameters: {
       path: {
-        uuid: 'string'
-      }
+        uuid: 'string',
+      },
     },
     requestBody: {
       required: true,
       contentType: 'application/json',
-      schema: 'Merchant-update'
+      schema: 'Merchant-update',
     },
     responses: {
       '200': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'Merchant-read'
+        schema: 'Merchant-read',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '404': {
         description: 'Not Found',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel404NotFound'
+        schema: 'E-Receipt_IT_API_ErrorModel404NotFound',
       },
       '422': {
         description: 'Validation Error',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_HTTPValidationError'
-      }
+        schema: 'E-Receipt_IT_API_HTTPValidationError',
+      },
     },
     metadata: {
       resource: 'merchants',
       operation: 'update',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 }
 
@@ -1025,31 +1025,31 @@ export class PEMEndpoints {
     requestBody: {
       required: true,
       contentType: 'application/json',
-      schema: 'PointOfSale-create'
+      schema: 'PointOfSale-create',
     },
     responses: {
       '201': {
         description: 'Successful Response',
         contentType: 'application/json',
-        schema: 'PointOfSale-read'
+        schema: 'PointOfSale-read',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '422': {
         description: 'Validation Error',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_HTTPValidationError'
-      }
+        schema: 'E-Receipt_IT_API_HTTPValidationError',
+      },
     },
     metadata: {
       resource: 'pems',
       operation: 'create_pos',
       authRequired: true,
-      retryable: false
-    }
+      retryable: false,
+    },
   };
 
   static readonly GET_CERTIFICATES: EndpointDefinition = {
@@ -1062,31 +1062,31 @@ export class PEMEndpoints {
     security: [{ 'E-Receipt_IT_API_OAuth2PasswordBearer': [] }],
     parameters: {
       path: {
-        id: 'string'
-      }
+        id: 'string',
+      },
     },
     responses: {
       '200': {
         description: 'Successful Response',
-        contentType: 'application/json'
+        contentType: 'application/json',
       },
       '403': {
         description: 'Forbidden',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden'
+        schema: 'E-Receipt_IT_API_ErrorModel403Forbidden',
       },
       '404': {
         description: 'Not Found',
         contentType: 'application/json',
-        schema: 'E-Receipt_IT_API_ErrorModel404NotFound'
-      }
+        schema: 'E-Receipt_IT_API_ErrorModel404NotFound',
+      },
     },
     metadata: {
       resource: 'pems',
       operation: 'get_certificates',
       authRequired: true,
-      retryable: true
-    }
+      retryable: true,
+    },
   };
 }
 
@@ -1145,11 +1145,11 @@ export class EndpointUtils {
    */
   static buildUrl(endpoint: EndpointDefinition, pathParams: Record<string, string | number> = {}): string {
     let url = endpoint.path;
-    
+
     for (const [key, value] of Object.entries(pathParams)) {
       url = url.replace(`{${key}}`, String(value));
     }
-    
+
     return url;
   }
 

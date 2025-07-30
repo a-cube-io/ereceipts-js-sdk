@@ -4,43 +4,48 @@
  */
 
 import { EventEmitter } from 'events';
-import { 
-  UnifiedStorage, 
-  StorageAdapter, 
-  StorageKey, 
-  StorageValue, 
-  StorageEntry, 
-  StorageOptions, 
-  QueryOptions, 
-  StorageTransaction, 
-  StorageStats,
-  StorageError,
-  DEFAULT_STORAGE_OPTIONS,
-  createReceiptKey,
-  createCashierKey,
-  createMerchantKey,
-  createPEMKey,
-  createCashRegisterKey,
-  createCacheKey,
-  createSessionKey,
-  createSecureKey,
-  createConfigKey,
-} from './unified-storage';
-import { 
-  ReceiptId, 
-  CashierId, 
-  PEMId, 
-  MerchantId, 
-  CashRegisterId 
-} from '../types/branded';
-import { platformDetector, PlatformType, EnvironmentInfo } from './platform-detector';
+
+import { platformDetector } from './platform-detector';
 import { IndexedDBAdapter } from './adapters/indexeddb-adapter';
-import { LocalStorageAdapter } from './adapters/localstorage-adapter';
-import { 
-  StorageEncryptionService, 
-  StorageEncryptionConfig,
+import {
   createEncryptionService,
 } from './encryption-service';
+import { LocalStorageAdapter } from './adapters/localstorage-adapter';
+import {
+  StorageError,
+  createPEMKey,
+  createCacheKey,
+  createConfigKey,
+  createSecureKey,
+  createCashierKey,
+  createReceiptKey,
+  createSessionKey,
+  createMerchantKey,
+  createCashRegisterKey,
+  DEFAULT_STORAGE_OPTIONS,
+} from './unified-storage';
+
+import type { PlatformType, EnvironmentInfo } from './platform-detector';
+import type {
+  StorageEncryptionConfig,
+  StorageEncryptionService } from './encryption-service';
+import type {
+  PEMId,
+  CashierId,
+  ReceiptId,
+  MerchantId,
+  CashRegisterId,
+} from '../types/branded';
+import type {
+  StorageKey,
+  QueryOptions,
+  StorageEntry,
+  StorageStats,
+  StorageValue,
+  StorageAdapter,
+  StorageOptions,
+  UnifiedStorage,
+  StorageTransaction } from './unified-storage';
 
 // Factory configuration
 export interface StorageFactoryConfig {
@@ -58,6 +63,7 @@ export interface StorageFactoryConfig {
 // Memory-based adapter for fallback scenarios
 class MemoryStorageAdapter implements StorageAdapter {
   public readonly name = 'Memory';
+
   private store = new Map<string, any>();
 
   public readonly capabilities = {
@@ -71,8 +77,11 @@ class MemoryStorageAdapter implements StorageAdapter {
   } as const;
 
   get isAvailable(): boolean { return true; }
+
   isConnected(): boolean { return true; }
+
   async connect(): Promise<void> {}
+
   async disconnect(): Promise<void> { this.store.clear(); }
 
   async set<T extends StorageValue>(key: StorageKey, value: T, options?: StorageOptions): Promise<void> {
@@ -83,14 +92,14 @@ class MemoryStorageAdapter implements StorageAdapter {
 
   async get<T extends StorageValue>(key: StorageKey): Promise<StorageEntry<T> | null> {
     const entry = this.store.get(key);
-    if (!entry) return null;
-    
+    if (!entry) {return null;}
+
     // Check expiration
     if (entry.metadata.expiresAt && entry.metadata.expiresAt < Date.now()) {
       this.store.delete(key);
       return null;
     }
-    
+
     return entry;
   }
 
@@ -119,7 +128,7 @@ class MemoryStorageAdapter implements StorageAdapter {
   async deleteMany(keys: StorageKey[]): Promise<number> {
     let count = 0;
     for (const key of keys) {
-      if (await this.delete(key)) count++;
+      if (await this.delete(key)) {count++;}
     }
     return count;
   }
@@ -163,7 +172,7 @@ class MemoryStorageAdapter implements StorageAdapter {
   async getStats(): Promise<StorageStats> {
     const entries = Array.from(this.store.values());
     const now = Date.now();
-    
+
     return {
       totalKeys: entries.length,
       totalSize: entries.reduce((size, entry) => size + JSON.stringify(entry).length, 0),
@@ -199,14 +208,16 @@ class MemoryStorageAdapter implements StorageAdapter {
  */
 class UnifiedStorageImpl extends EventEmitter implements UnifiedStorage {
   public readonly name: string;
+
   public readonly capabilities;
+
   public readonly isAvailable: boolean;
 
   constructor(
     private adapter: StorageAdapter,
     private encryptionService: StorageEncryptionService,
     // @ts-ignore - Config parameter reserved for future use
-    private _config: StorageFactoryConfig
+    private _config: StorageFactoryConfig,
   ) {
     super();
     this.name = `Unified-${adapter.name}`;
@@ -216,12 +227,14 @@ class UnifiedStorageImpl extends EventEmitter implements UnifiedStorage {
 
   // Delegate core methods to adapter
   isConnected(): boolean { return this.adapter.isConnected(); }
+
   async connect(): Promise<void> { return this.adapter.connect(); }
+
   async disconnect(): Promise<void> { return this.adapter.disconnect(); }
 
   async set<T extends StorageValue>(key: StorageKey, value: T, options?: StorageOptions): Promise<void> {
     const mergedOptions = { ...DEFAULT_STORAGE_OPTIONS, ...options };
-    
+
     try {
       // Apply encryption if needed
       let finalValue: T | string = value;
@@ -251,7 +264,7 @@ class UnifiedStorageImpl extends EventEmitter implements UnifiedStorage {
       if (entry.metadata.encrypted) {
         const decrypted = await this.encryptionService.decryptStorageEntry(entry);
         this.emit('get', key, decrypted.data);
-        return decrypted as StorageEntry<T>;
+        return decrypted;
       }
 
       this.emit('get', key, entry.data);
@@ -444,7 +457,7 @@ class UnifiedStorageImpl extends EventEmitter implements UnifiedStorage {
   async importData(data: string): Promise<number> {
     const entries = JSON.parse(data) as StorageEntry<any>[];
     let imported = 0;
-    
+
     for (const entry of entries) {
       try {
         await this.set(entry.metadata.key, entry.data);
@@ -453,7 +466,7 @@ class UnifiedStorageImpl extends EventEmitter implements UnifiedStorage {
         console.warn(`Failed to import entry ${entry.metadata.key}:`, error);
       }
     }
-    
+
     return imported;
   }
 
@@ -506,7 +519,7 @@ class UnifiedStorageImpl extends EventEmitter implements UnifiedStorage {
   async query<T extends StorageValue>(options: QueryOptions): Promise<Array<{ key: StorageKey; value: T }>> {
     const keys = await this.keys(options);
     const results: Array<{ key: StorageKey; value: T }> = [];
-    
+
     for (const key of keys) {
       try {
         const entry = await this.get<T>(key);
@@ -517,7 +530,7 @@ class UnifiedStorageImpl extends EventEmitter implements UnifiedStorage {
         console.warn(`Failed to query key ${key}:`, error);
       }
     }
-    
+
     return results;
   }
 
@@ -537,6 +550,7 @@ class UnifiedStorageImpl extends EventEmitter implements UnifiedStorage {
  */
 export class StorageFactory {
   private static instance: StorageFactory | null = null;
+
   private storageInstances = new Map<string, UnifiedStorage>();
 
   private constructor() {}
@@ -553,7 +567,7 @@ export class StorageFactory {
    */
   async createStorage(config: StorageFactoryConfig = {}): Promise<UnifiedStorage> {
     const instanceKey = this.generateInstanceKey(config);
-    
+
     if (this.storageInstances.has(instanceKey)) {
       return this.storageInstances.get(instanceKey)!;
     }
@@ -562,23 +576,23 @@ export class StorageFactory {
       // Detect platform and select adapter
       const environmentInfo = platformDetector.getEnvironmentInfo();
       const adapter = await this.selectOptimalAdapter(config, environmentInfo);
-      
+
       // Create encryption service
       const encryptionService = createEncryptionService(config.encryption);
-      
+
       // Create unified storage instance
       const storage = new UnifiedStorageImpl(adapter, encryptionService, config);
-      
+
       // Connect to storage
       await storage.connect();
-      
+
       // Cache instance
       this.storageInstances.set(instanceKey, storage);
-      
+
       if (config.debug) {
         console.log(`Storage created: ${storage.name} for platform: ${environmentInfo.platform}`);
       }
-      
+
       return storage;
     } catch (error) {
       throw new StorageError(
@@ -586,7 +600,7 @@ export class StorageFactory {
         'STORAGE_FACTORY_ERROR',
         'createStorage',
         undefined,
-        error as Error
+        error as Error,
       );
     }
   }
@@ -610,7 +624,7 @@ export class StorageFactory {
   }> {
     const environmentInfo = platformDetector.getEnvironmentInfo();
     const availableAdapters: string[] = [];
-    
+
     // Test IndexedDB
     if (environmentInfo.hasIndexedDB) {
       try {
@@ -622,7 +636,7 @@ export class StorageFactory {
         // IndexedDB not working
       }
     }
-    
+
     // Test LocalStorage
     if (environmentInfo.hasLocalStorage) {
       try {
@@ -634,10 +648,10 @@ export class StorageFactory {
         // LocalStorage not working
       }
     }
-    
+
     // Memory is always available
     availableAdapters.push('memory');
-    
+
     return {
       platform: environmentInfo.platform,
       availableAdapters,
@@ -655,13 +669,13 @@ export class StorageFactory {
   }
 
   private async selectOptimalAdapter(
-    config: StorageFactoryConfig, 
-    environmentInfo: EnvironmentInfo
+    config: StorageFactoryConfig,
+    environmentInfo: EnvironmentInfo,
   ): Promise<StorageAdapter> {
     const preferredAdapter = config.preferredAdapter || 'auto';
-    
+
     if (preferredAdapter !== 'auto') {
-      return this.createSpecificAdapter(preferredAdapter as 'indexeddb' | 'localstorage' | 'memory', config);
+      return this.createSpecificAdapter(preferredAdapter, config);
     }
 
     // Auto-selection based on platform capabilities
@@ -694,8 +708,8 @@ export class StorageFactory {
   }
 
   private createSpecificAdapter(
-    adapterType: 'indexeddb' | 'localstorage' | 'memory', 
-    config: StorageFactoryConfig
+    adapterType: 'indexeddb' | 'localstorage' | 'memory',
+    config: StorageFactoryConfig,
   ): StorageAdapter {
     switch (adapterType) {
       case 'indexeddb':
@@ -708,7 +722,7 @@ export class StorageFactory {
         throw new StorageError(
           `Unknown adapter type: ${adapterType}`,
           'UNKNOWN_ADAPTER',
-          'createSpecificAdapter'
+          'createSpecificAdapter',
         );
     }
   }
@@ -727,31 +741,23 @@ export class StorageFactory {
 // Export singleton instance and convenience functions
 export const storageFactory = StorageFactory.getInstance();
 
-export const createStorage = (config?: StorageFactoryConfig): Promise<UnifiedStorage> => {
-  return storageFactory.createStorage(config);
-};
+export const createStorage = (config?: StorageFactoryConfig): Promise<UnifiedStorage> => storageFactory.createStorage(config);
 
-export const createSecureStorage = (masterPassword: string): Promise<UnifiedStorage> => {
-  return storageFactory.createStorage({
+export const createSecureStorage = (masterPassword: string): Promise<UnifiedStorage> => storageFactory.createStorage({
     encryption: {
       enabled: true,
       masterPassword,
     },
   });
-};
 
-export const createHighPerformanceStorage = (): Promise<UnifiedStorage> => {
-  return storageFactory.createStorage({
+export const createHighPerformanceStorage = (): Promise<UnifiedStorage> => storageFactory.createStorage({
     preferredAdapter: 'indexeddb',
     performanceMode: 'high',
     enableCompression: true,
   });
-};
 
-export const createCompatibilityStorage = (): Promise<UnifiedStorage> => {
-  return storageFactory.createStorage({
+export const createCompatibilityStorage = (): Promise<UnifiedStorage> => storageFactory.createStorage({
     preferredAdapter: 'localstorage',
     performanceMode: 'conservative',
     enableCompression: false,
   });
-};

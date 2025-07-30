@@ -1,7 +1,7 @@
 /**
  * Background Sync Manager for A-Cube E-Receipt SDK
  * Advanced offline-first synchronization with intelligent retry strategies
- * 
+ *
  * Features:
  * - Priority-based sync queue
  * - Conflict resolution strategies
@@ -11,11 +11,12 @@
  * - Automatic retry with exponential backoff
  */
 
-import { EventEmitter } from 'eventemitter3';
 import type { HttpClient, HttpResponse } from '@/http/client';
 import type { UnifiedStorage } from '@/storage/unified-storage';
-import { createStorageKey } from '@/storage/unified-storage';
+
+import { EventEmitter } from 'eventemitter3';
 import { createStorage } from '@/storage/storage-factory';
+import { createStorageKey } from '@/storage/unified-storage';
 
 /**
  * Sync operation types
@@ -99,34 +100,34 @@ export interface SyncBatch {
 export interface BackgroundSyncConfig {
   /** Maximum number of operations in queue */
   maxQueueSize?: number;
-  
+
   /** Maximum retry attempts per operation */
   maxRetries?: number;
-  
+
   /** Base retry delay in milliseconds */
   baseRetryDelay?: number;
-  
+
   /** Maximum retry delay in milliseconds */
   maxRetryDelay?: number;
-  
+
   /** Batch size for sync operations */
   batchSize?: number;
-  
+
   /** Enable delta sync optimization */
   enableDeltaSync?: boolean;
-  
+
   /** Enable compression for sync data */
   enableCompression?: boolean;
-  
+
   /** Conflict resolution strategy */
   defaultConflictStrategy?: ConflictStrategy;
-  
+
   /** Storage configuration */
   storage?: {
     adapter?: 'memory' | 'localStorage' | 'indexedDB' | 'reactNative';
     encryptionKey?: string;
   };
-  
+
   /** Network detection */
   networkDetection?: {
     enabled?: boolean;
@@ -196,14 +197,23 @@ const DEFAULT_CONFIG: Required<BackgroundSyncConfig> = {
  */
 export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
   private config: Required<BackgroundSyncConfig>;
+
   private storage: UnifiedStorage | null = null;
+
   private httpClient: HttpClient;
+
   private syncQueue: Map<string, SyncOperation> = new Map();
+
   private activeBatch: SyncBatch | null = null;
+
   private isOnline: boolean = navigator.onLine;
+
   private isSyncing: boolean = false;
+
   private networkCheckInterval?: NodeJS.Timeout;
+
   private syncTimeout: NodeJS.Timeout | undefined = undefined;
+
   private statistics: SyncStatistics = {
     totalOperations: 0,
     pendingOperations: 0,
@@ -221,7 +231,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
     super();
     this.httpClient = httpClient;
     this.config = { ...DEFAULT_CONFIG, ...config };
-    
+
     this.setupEventListeners();
     this.initialize();
   }
@@ -233,7 +243,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
     try {
       // Initialize storage
       this.storage = await createStorage({
-        preferredAdapter: this.config.storage.adapter === 'indexedDB' ? 'indexeddb' : 
+        preferredAdapter: this.config.storage.adapter === 'indexedDB' ? 'indexeddb' :
                           this.config.storage.adapter === 'localStorage' ? 'localstorage' : 'auto',
         encryption: { enabled: false },
       });
@@ -275,7 +285,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
    * Queue a sync operation
    */
   async queueOperation(
-    operation: Omit<SyncOperation, 'id' | 'metadata' | 'status'>
+    operation: Omit<SyncOperation, 'id' | 'metadata' | 'status'>,
   ): Promise<SyncOperation> {
     // Check queue size limit
     if (this.syncQueue.size >= this.config.maxQueueSize) {
@@ -324,7 +334,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
    */
   async queueBatch(
     operations: Array<Omit<SyncOperation, 'id' | 'metadata' | 'status'>>,
-    priority: SyncPriority = 'normal'
+    priority: SyncPriority = 'normal',
   ): Promise<SyncBatch> {
     const batch: SyncBatch = {
       id: this.generateBatchId(),
@@ -368,7 +378,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
     try {
       // Get pending operations sorted by priority and creation time
       const pendingOps = this.getPendingOperations();
-      
+
       if (pendingOps.length === 0) {
         this.isSyncing = false;
         return;
@@ -422,7 +432,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
       this.isSyncing = false;
       this.activeBatch = null;
       await this.saveQueueToStorage();
-      
+
       // Schedule next sync if there are pending operations
       if (this.statistics.pendingOperations > 0) {
         this.scheduleNextSync();
@@ -443,7 +453,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
 
     try {
       // Prepare request
-      const requestData = this.config.enableCompression 
+      const requestData = this.config.enableCompression
         ? await this.compressData(operation.data)
         : operation.data;
 
@@ -491,7 +501,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
   private async handleConflict(
     operation: SyncOperation,
     response: HttpResponse<any>,
-    batch: SyncBatch
+    batch: SyncBatch,
   ): Promise<void> {
     operation.status = 'conflict';
     operation.conflictData = {
@@ -503,9 +513,9 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
     this.statistics.conflictedOperations++;
     batch.progress.conflicts++;
 
-    this.emit('operation:conflict', { 
-      operation, 
-      conflict: operation.conflictData 
+    this.emit('operation:conflict', {
+      operation,
+      conflict: operation.conflictData,
     });
 
     // Apply conflict resolution strategy
@@ -531,7 +541,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
         // Attempt to merge changes
         const mergedData = await this.mergeConflict(
           operation.conflictData.localVersion,
-          operation.conflictData.serverVersion
+          operation.conflictData.serverVersion,
         );
         operation.data = mergedData;
         operation.status = 'pending';
@@ -550,7 +560,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
   private async handleOperationError(
     operation: SyncOperation,
     error: Error,
-    batch: SyncBatch
+    batch: SyncBatch,
   ): Promise<void> {
     operation.error = {
       code: 'SYNC_ERROR',
@@ -562,24 +572,24 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
     if (operation.metadata.attemptCount < this.config.maxRetries) {
       // Calculate next retry time with exponential backoff
       const delay = Math.min(
-        this.config.baseRetryDelay * Math.pow(2, operation.metadata.attemptCount - 1),
-        this.config.maxRetryDelay
+        this.config.baseRetryDelay * 2**(operation.metadata.attemptCount - 1),
+        this.config.maxRetryDelay,
       );
-      
+
       operation.metadata.nextRetry = new Date(Date.now() + delay);
       operation.status = 'pending';
-      
+
       this.emit('operation:failed', { operation, error });
     } else {
       // Max retries exceeded
       operation.status = 'failed';
       this.statistics.failedOperations++;
       batch.progress.failed++;
-      
+
       // Remove from queue
       this.syncQueue.delete(operation.id);
       this.statistics.pendingOperations--;
-      
+
       this.emit('operation:failed', { operation, error });
     }
   }
@@ -591,8 +601,8 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
     const now = new Date();
     const pendingOps = Array.from(this.syncQueue.values())
       .filter(op => {
-        if (op.status !== 'pending') return false;
-        if (op.metadata.nextRetry && op.metadata.nextRetry > now) return false;
+        if (op.status !== 'pending') {return false;}
+        if (op.metadata.nextRetry && op.metadata.nextRetry > now) {return false;}
         return true;
       });
 
@@ -600,9 +610,9 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
     return pendingOps.sort((a, b) => {
       const priorityOrder = { critical: 0, high: 1, normal: 2, low: 3 };
       const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-      
-      if (priorityDiff !== 0) return priorityDiff;
-      
+
+      if (priorityDiff !== 0) {return priorityDiff;}
+
       return a.metadata.createdAt.getTime() - b.metadata.createdAt.getTime();
     });
   }
@@ -613,7 +623,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
   private async registerBackgroundSync(): Promise<void> {
     try {
       const registration = await navigator.serviceWorker.ready;
-      
+
       if ('sync' in registration) {
         await (registration as any).sync.register('acube-background-sync');
         console.log('Background sync registered');
@@ -628,17 +638,17 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
    */
   private startNetworkMonitoring(): void {
     this.networkCheckInterval = setInterval(async () => {
-      if (!this.config.networkDetection.endpoints || this.config.networkDetection.endpoints.length === 0) return;
-      
+      if (!this.config.networkDetection.endpoints || this.config.networkDetection.endpoints.length === 0) {return;}
+
       try {
         // Try to reach one of the health check endpoints
         const endpoint = this.config.networkDetection.endpoints[0];
-        if (!endpoint) return;
-        
+        if (!endpoint) {return;}
+
         const response = await this.httpClient.get(endpoint, {
           timeout: 5000,
         });
-        
+
         if (!this.isOnline && response.status === 200) {
           this.handleOnlineStatus(true);
         }
@@ -654,20 +664,20 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
    * Handle online/offline status change
    */
   private handleOnlineStatus(isOnline: boolean): void {
-    if (this.isOnline === isOnline) return;
-    
+    if (this.isOnline === isOnline) {return;}
+
     this.isOnline = isOnline;
-    
+
     if (isOnline) {
       this.emit('network:online', { timestamp: new Date() });
-      
+
       // Start sync when coming online
       if (this.statistics.pendingOperations > 0) {
         this.scheduleSyncWithDelay(1000); // Wait 1 second before syncing
       }
     } else {
       this.emit('network:offline', { timestamp: new Date() });
-      
+
       // Cancel any scheduled sync
       if (this.syncTimeout) {
         clearTimeout(this.syncTimeout);
@@ -683,7 +693,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
     if (this.syncTimeout) {
       clearTimeout(this.syncTimeout);
     }
-    
+
     this.syncTimeout = setTimeout(() => {
       this.syncNow();
     }, delay) as unknown as NodeJS.Timeout;
@@ -695,13 +705,13 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
   private scheduleNextSync(): void {
     // Find the earliest retry time
     let earliestRetry: Date | null = null;
-    
+
     for (const op of this.syncQueue.values()) {
       if (op.metadata.nextRetry && (!earliestRetry || op.metadata.nextRetry < earliestRetry)) {
         earliestRetry = op.metadata.nextRetry;
       }
     }
-    
+
     if (earliestRetry) {
       const delay = Math.max(0, earliestRetry.getTime() - Date.now());
       this.scheduleSyncWithDelay(delay);
@@ -713,30 +723,30 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
    * Load queue from storage
    */
   private async loadQueueFromStorage(): Promise<void> {
-    if (!this.storage) return;
-    
+    if (!this.storage) {return;}
+
     try {
       const storageKey = createStorageKey('acube_sync_queue');
       const result = await this.storage.get(storageKey);
       if (result && result.data) {
         const queue = JSON.parse(result.data as string);
-        
+
         // Restore queue with proper date objects
         for (const [id, op] of Object.entries(queue)) {
           const operation = op as SyncOperation;
           operation.metadata.createdAt = new Date(operation.metadata.createdAt);
           operation.metadata.updatedAt = new Date(operation.metadata.updatedAt);
-          
+
           if (operation.metadata.lastAttempt) {
             operation.metadata.lastAttempt = new Date(operation.metadata.lastAttempt);
           }
           if (operation.metadata.nextRetry) {
             operation.metadata.nextRetry = new Date(operation.metadata.nextRetry);
           }
-          
+
           this.syncQueue.set(id, operation);
         }
-        
+
         // Update statistics
         this.updateStatisticsFromQueue();
       }
@@ -749,15 +759,15 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
    * Save queue to storage
    */
   private async saveQueueToStorage(): Promise<void> {
-    if (!this.storage) return;
-    
+    if (!this.storage) {return;}
+
     try {
       const queue: Record<string, SyncOperation> = {};
-      
+
       for (const [id, op] of this.syncQueue) {
         queue[id] = op;
       }
-      
+
       const storageKey = createStorageKey('acube_sync_queue');
       await this.storage.set(storageKey, JSON.stringify(queue), {
         encrypt: true,
@@ -772,7 +782,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
    */
   private updateStatisticsFromQueue(): void {
     this.statistics.pendingOperations = 0;
-    
+
     for (const op of this.syncQueue.values()) {
       if (op.status === 'pending') {
         this.statistics.pendingOperations++;
@@ -789,7 +799,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
       const uploadSize = JSON.stringify(operation.data).length;
       this.statistics.dataTransferred.uploaded += uploadSize;
     }
-    
+
     // Estimate download size
     if (response.data) {
       const downloadSize = JSON.stringify(response.data).length;
@@ -824,18 +834,18 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
    * Calculate checksum for data integrity
    */
   private calculateChecksum(data: any): string {
-    if (!data) return '';
-    
+    if (!data) {return '';}
+
     // Simple checksum implementation
     const str = JSON.stringify(data);
     let hash = 0;
-    
+
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash &= hash; // Convert to 32-bit integer
     }
-    
+
     return Math.abs(hash).toString(16);
   }
 
@@ -867,12 +877,12 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
   private getDeviceId(): string {
     // Try to get or generate a persistent device ID
     let deviceId = localStorage.getItem('acube_device_id');
-    
+
     if (!deviceId) {
       deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       localStorage.setItem('acube_device_id', deviceId);
     }
-    
+
     return deviceId;
   }
 
@@ -902,18 +912,18 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
    */
   clearCompleted(): number {
     let cleared = 0;
-    
+
     for (const [id, op] of this.syncQueue) {
       if (op.status === 'completed') {
         this.syncQueue.delete(id);
         cleared++;
       }
     }
-    
+
     if (cleared > 0) {
       this.saveQueueToStorage();
     }
-    
+
     return cleared;
   }
 
@@ -922,14 +932,14 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
    */
   cancelOperation(operationId: string): boolean {
     const operation = this.syncQueue.get(operationId);
-    
+
     if (operation && operation.status === 'pending') {
       this.syncQueue.delete(operationId);
       this.statistics.pendingOperations--;
       this.saveQueueToStorage();
       return true;
     }
-    
+
     return false;
   }
 
@@ -938,7 +948,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
    */
   retryFailed(): number {
     let retried = 0;
-    
+
     for (const op of this.syncQueue.values()) {
       if (op.status === 'failed') {
         op.status = 'pending';
@@ -948,17 +958,17 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
         retried++;
       }
     }
-    
+
     if (retried > 0) {
       this.statistics.pendingOperations += retried;
       this.statistics.failedOperations -= retried;
       this.saveQueueToStorage();
-      
+
       if (this.isOnline && !this.isSyncing) {
         this.syncNow();
       }
     }
-    
+
     return retried;
   }
 
@@ -968,7 +978,7 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
   forceSyncNow(): Promise<void> {
     const wasOffline = !this.isOnline;
     this.isOnline = true;
-    
+
     return this.syncNow().finally(() => {
       if (wasOffline) {
         this.isOnline = false;
@@ -984,18 +994,18 @@ export class BackgroundSyncManager extends EventEmitter<BackgroundSyncEvents> {
     if (this.networkCheckInterval) {
       clearInterval(this.networkCheckInterval);
     }
-    
+
     if (this.syncTimeout) {
       clearTimeout(this.syncTimeout);
     }
-    
+
     // Remove event listeners
     window.removeEventListener('online', () => this.handleOnlineStatus(true));
     window.removeEventListener('offline', () => this.handleOnlineStatus(false));
-    
+
     // Save final state
     await this.saveQueueToStorage();
-    
+
     // Clear memory
     this.syncQueue.clear();
     this.removeAllListeners();

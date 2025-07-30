@@ -4,15 +4,16 @@
  * Provides event-driven updates for receipts, cashiers, merchants, and other resources
  */
 
-import { EventEmitter } from 'events';
 import type { ResourceType } from '@/storage/queue/types';
 
-export type WebhookEventType = 
-  | 'receipt.created' 
-  | 'receipt.updated' 
+import { EventEmitter } from 'events';
+
+export type WebhookEventType =
+  | 'receipt.created'
+  | 'receipt.updated'
   | 'receipt.deleted'
   | 'cashier.created'
-  | 'cashier.updated' 
+  | 'cashier.updated'
   | 'cashier.deleted'
   | 'merchant.created'
   | 'merchant.updated'
@@ -132,8 +133,11 @@ export interface WebhookEvents {
  */
 export class WebhookManager extends EventEmitter {
   private subscriptions = new Map<string, WebhookSubscription>();
+
   private deliveries = new Map<string, WebhookDelivery>();
+
   private handlers = new Map<WebhookEventType, Set<(payload: WebhookPayload) => Promise<void> | void>>();
+
   private stats: WebhookStats = {
     totalDeliveries: 0,
     successfulDeliveries: 0,
@@ -143,10 +147,13 @@ export class WebhookManager extends EventEmitter {
     lastDeliveryAt: undefined,
     subscriptionStats: {},
   };
-  
+
   private deliveryQueue: WebhookDelivery[] = [];
+
   private processingDeliveries = new Set<string>();
+
   private cleanupInterval?: NodeJS.Timeout;
+
   private isInitialized = false;
 
   constructor(private config: WebhookManagerConfig) {
@@ -165,7 +172,7 @@ export class WebhookManager extends EventEmitter {
     // Start background processes
     this.startDeliveryProcessor();
     this.startCleanupProcess();
-    
+
     this.isInitialized = true;
     console.log('WebhookManager initialized');
   }
@@ -189,7 +196,7 @@ export class WebhookManager extends EventEmitter {
     this.handlers.clear();
     this.deliveryQueue = [];
     this.processingDeliveries.clear();
-    
+
     this.isInitialized = false;
     console.log('WebhookManager destroyed');
   }
@@ -204,7 +211,7 @@ export class WebhookManager extends EventEmitter {
       headers?: Record<string, string>;
       secret?: string;
       retryPolicy?: Partial<WebhookSubscription['retryPolicy']>;
-    } = {}
+    } = {},
   ): Promise<WebhookSubscription> {
     if (this.subscriptions.size >= this.config.maxSubscriptions) {
       throw new Error('Maximum number of subscriptions reached');
@@ -227,7 +234,7 @@ export class WebhookManager extends EventEmitter {
 
     this.subscriptions.set(subscription.id, subscription);
     this.emit('subscription:created', { subscription });
-    
+
     return subscription;
   }
 
@@ -236,7 +243,7 @@ export class WebhookManager extends EventEmitter {
    */
   async updateSubscription(
     subscriptionId: string,
-    updates: Partial<Pick<WebhookSubscription, 'eventTypes' | 'url' | 'active' | 'headers' | 'secret' | 'retryPolicy'>>
+    updates: Partial<Pick<WebhookSubscription, 'eventTypes' | 'url' | 'active' | 'headers' | 'secret' | 'retryPolicy'>>,
   ): Promise<WebhookSubscription> {
     const existing = this.subscriptions.get(subscriptionId);
     if (!existing) {
@@ -246,14 +253,14 @@ export class WebhookManager extends EventEmitter {
     const updated: WebhookSubscription = {
       ...existing,
       ...updates,
-      retryPolicy: updates.retryPolicy 
+      retryPolicy: updates.retryPolicy
         ? { ...existing.retryPolicy, ...updates.retryPolicy }
         : existing.retryPolicy,
     };
 
     this.subscriptions.set(subscriptionId, updated);
     this.emit('subscription:updated', { subscription: updated });
-    
+
     return updated;
   }
 
@@ -267,7 +274,7 @@ export class WebhookManager extends EventEmitter {
     }
 
     this.subscriptions.delete(subscriptionId);
-    
+
     // Cancel pending deliveries for this subscription
     this.deliveryQueue = this.deliveryQueue.filter(delivery => {
       if (delivery.subscriptionId === subscriptionId) {
@@ -330,13 +337,13 @@ export class WebhookManager extends EventEmitter {
       // Process with registered handlers
       const handlers = this.handlers.get(payload.type);
       if (handlers && handlers.size > 0) {
-        const promises = Array.from(handlers).map(handler => 
+        const promises = Array.from(handlers).map(handler =>
           Promise.resolve(handler(payload)).catch(error => {
             console.error(`Handler error for ${payload.type}:`, error);
             return error;
-          })
+          }),
         );
-        
+
         const results = await Promise.allSettled(promises);
         const errors = results
           .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
@@ -351,7 +358,7 @@ export class WebhookManager extends EventEmitter {
       await this.queueDeliveries(payload);
 
       this.emit('webhook:processed', { payload, result: 'success' });
-      
+
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.emit('webhook:error', { payload, error: err });
@@ -458,10 +465,10 @@ export class WebhookManager extends EventEmitter {
       // Get deliveries ready for processing
       const now = Date.now();
       const readyDeliveries = this.deliveryQueue
-        .filter(delivery => 
+        .filter(delivery =>
           !this.processingDeliveries.has(delivery.id) &&
           delivery.status === 'pending' &&
-          (delivery.nextAttemptAt || 0) <= now
+          (delivery.nextAttemptAt || 0) <= now,
         )
         .slice(0, 10); // Process max 10 at a time
 
@@ -470,8 +477,8 @@ export class WebhookManager extends EventEmitter {
       await Promise.allSettled(promises);
 
       // Clean up completed deliveries from queue
-      this.deliveryQueue = this.deliveryQueue.filter(delivery => 
-        delivery.status === 'pending' || this.processingDeliveries.has(delivery.id)
+      this.deliveryQueue = this.deliveryQueue.filter(delivery =>
+        delivery.status === 'pending' || this.processingDeliveries.has(delivery.id),
       );
     };
 
@@ -499,7 +506,7 @@ export class WebhookManager extends EventEmitter {
 
     try {
       const startTime = Date.now();
-      
+
       // Prepare request
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -517,11 +524,11 @@ export class WebhookManager extends EventEmitter {
       const response = await this.makeWebhookRequest(
         subscription.url,
         delivery.payload,
-        headers
+        headers,
       );
 
       const duration = Date.now() - startTime;
-      
+
       // Update delivery with success
       const updatedDelivery: WebhookDelivery = {
         ...delivery,
@@ -544,7 +551,7 @@ export class WebhookManager extends EventEmitter {
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       const attempts = delivery.attempts + 1;
-      
+
       if (attempts >= delivery.maxAttempts) {
         // Max retries exceeded, mark as failed
         const updatedDelivery: WebhookDelivery = {
@@ -554,12 +561,12 @@ export class WebhookManager extends EventEmitter {
           lastAttemptAt: Date.now(),
           error: err.message,
         };
-        
+
         this.deliveries.set(delivery.id, updatedDelivery);
         this.stats.failedDeliveries++;
         this.updateSubscriptionStats(subscription.id, false, 0);
         this.emit('delivery:failed', { delivery: updatedDelivery, error: err });
-        
+
       } else {
         // Schedule retry
         const retryDelay = this.calculateRetryDelay(attempts, subscription.retryPolicy);
@@ -570,7 +577,7 @@ export class WebhookManager extends EventEmitter {
           nextAttemptAt: Date.now() + retryDelay,
           error: err.message,
         };
-        
+
         this.deliveries.set(delivery.id, updatedDelivery);
         this.emit('delivery:retry', { delivery: updatedDelivery, attempt: attempts });
       }
@@ -584,10 +591,10 @@ export class WebhookManager extends EventEmitter {
    */
   private calculateRetryDelay(attempt: number, retryPolicy: WebhookSubscription['retryPolicy']): number {
     const baseDelay = retryPolicy.retryDelay;
-    const backoffFactor = retryPolicy.backoffFactor;
+    const {backoffFactor} = retryPolicy;
     const jitter = Math.random() * 1000; // Add jitter to prevent thundering herd
-    
-    return Math.floor(baseDelay * Math.pow(backoffFactor, attempt - 1) + jitter);
+
+    return Math.floor(baseDelay * backoffFactor**(attempt - 1) + jitter);
   }
 
   /**
@@ -595,34 +602,34 @@ export class WebhookManager extends EventEmitter {
    */
   private async generateSignature(payload: WebhookPayload, secret: string): Promise<string> {
     const data = JSON.stringify(payload);
-    
+
     if (typeof crypto !== 'undefined' && crypto.subtle) {
       const encoder = new TextEncoder();
       const keyData = encoder.encode(secret);
       const messageData = encoder.encode(data);
-      
+
       const cryptoKey = await crypto.subtle.importKey(
         'raw',
         keyData,
         { name: 'HMAC', hash: 'SHA-256' },
         false,
-        ['sign']
+        ['sign'],
       );
-      
+
       const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
       const hashArray = Array.from(new Uint8Array(signature));
-      return 'sha256=' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return `sha256=${  hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}`;
     }
-    
+
     // Fallback simple hash (not cryptographically secure)
     let hash = 0;
     const combined = secret + data;
     for (let i = 0; i < combined.length; i++) {
       const char = combined.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
+      hash &= hash;
     }
-    return 'simple=' + hash.toString(16);
+    return `simple=${  hash.toString(16)}`;
   }
 
   /**
@@ -631,11 +638,11 @@ export class WebhookManager extends EventEmitter {
   private async makeWebhookRequest(
     url: string,
     payload: WebhookPayload,
-    requestHeaders: Record<string, string>
+    requestHeaders: Record<string, string>,
   ): Promise<{ status: number; headers: Record<string, string>; body: string }> {
     // In a real implementation, this would use fetch() or a similar HTTP client
     // For now, we'll simulate a request
-    
+
     const isValidUrl = url.startsWith('http://') || url.startsWith('https://');
     if (!isValidUrl) {
       throw new Error('Invalid webhook URL');
@@ -646,10 +653,10 @@ export class WebhookManager extends EventEmitter {
 
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
-    
+
     // Simulate success/failure based on URL
     const shouldFail = url.includes('fail') || Math.random() < 0.1; // 10% failure rate
-    
+
     if (shouldFail) {
       throw new Error('Webhook delivery failed');
     }
@@ -676,18 +683,18 @@ export class WebhookManager extends EventEmitter {
 
     const stats = this.stats.subscriptionStats[subscriptionId];
     stats.deliveries++;
-    
+
     if (success) {
       stats.successes++;
       // Update average response time
-      stats.averageResponseTime = 
+      stats.averageResponseTime =
         (stats.averageResponseTime * (stats.successes - 1) + responseTime) / stats.successes;
     } else {
       stats.failures++;
     }
 
     // Update global stats
-    this.stats.successRate = this.stats.totalDeliveries > 0 
+    this.stats.successRate = this.stats.totalDeliveries > 0
       ? (this.stats.successfulDeliveries / this.stats.totalDeliveries) * 100
       : 0;
 
@@ -717,7 +724,7 @@ export class WebhookManager extends EventEmitter {
       if (this.deliveries.size > this.config.maxDeliveryHistory) {
         const sortedDeliveries = Array.from(this.deliveries.entries())
           .sort(([, a], [, b]) => b.createdAt - a.createdAt);
-        
+
         const toDelete = sortedDeliveries.slice(this.config.maxDeliveryHistory);
         for (const [id] of toDelete) {
           this.deliveries.delete(id);
@@ -765,7 +772,7 @@ export function getWebhookEventType(resource: ResourceType, operation: 'create' 
     },
     'cashiers': {
       'create': 'cashier.created',
-      'update': 'cashier.updated', 
+      'update': 'cashier.updated',
       'delete': 'cashier.deleted',
     },
     'merchants': {

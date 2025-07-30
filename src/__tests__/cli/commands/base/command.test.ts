@@ -4,6 +4,7 @@
  */
 
 import { BaseCommand } from '../../../../cli/commands/base/command.js';
+
 import type { BaseCommandOptions } from '../../../../cli/types.js';
 
 // Mock process.exit to prevent tests from actually exiting
@@ -19,7 +20,9 @@ jest.mock('../../../../cli/utils/sdk.js', () => ({
 // Create a test command class
 class TestCommand extends BaseCommand {
   protected commandName = 'test';
+
   public executeCommandCalled = false;
+
   public shouldThrow = false;
 
   protected async executeCommand(_options: BaseCommandOptions): Promise<void> {
@@ -44,16 +47,16 @@ describe('BaseCommand', () => {
   describe('run', () => {
     it('should execute command successfully', async () => {
       const options: BaseCommandOptions = {};
-      
+
       await testCommand.run(options);
-      
+
       expect(testCommand.executeCommandCalled).toBe(true);
     });
 
     it('should handle errors and re-throw them', async () => {
       const options: BaseCommandOptions = {};
       testCommand.shouldThrow = true;
-      
+
       await expect(testCommand.run(options)).rejects.toThrow('Test error');
       expect(testCommand.executeCommandCalled).toBe(true);
     });
@@ -62,7 +65,7 @@ describe('BaseCommand', () => {
   describe('execute', () => {
     it('should execute command and exit with success', async () => {
       const options: BaseCommandOptions = {};
-      
+
       await expect(testCommand.execute(options)).rejects.toThrow('process.exit called');
       expect(testCommand.executeCommandCalled).toBe(true);
       expect(mockExit).toHaveBeenCalledWith(0);
@@ -71,7 +74,7 @@ describe('BaseCommand', () => {
     it('should handle errors and exit with error code', async () => {
       const options: BaseCommandOptions = {};
       testCommand.shouldThrow = true;
-      
+
       await expect(testCommand.execute(options)).rejects.toThrow('process.exit called');
       expect(testCommand.executeCommandCalled).toBe(true);
       expect(mockExit).toHaveBeenCalledWith(1);
@@ -81,7 +84,7 @@ describe('BaseCommand', () => {
   describe('validateOptions', () => {
     it('should have default validation that does nothing', () => {
       const options: BaseCommandOptions = {};
-      
+
       expect(() => {
         (testCommand as any).validateOptions(options);
       }).not.toThrow();

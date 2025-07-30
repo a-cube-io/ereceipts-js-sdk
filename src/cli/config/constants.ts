@@ -2,8 +2,9 @@
  * CLI Configuration Constants
  */
 
-import path from 'path';
 import os from 'os';
+import path from 'path';
+
 import type { TraceConfig } from '../types.js';
 
 // File paths for CLI configuration

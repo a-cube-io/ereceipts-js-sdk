@@ -1,7 +1,7 @@
 /**
  * Push Notifications Manager for A-Cube E-Receipt SDK
  * Handles PWA push notifications with Italian e-receipt specific messaging
- * 
+ *
  * Features:
  * - VAPID key management
  * - Subscription handling
@@ -16,7 +16,7 @@ import { EventEmitter } from 'eventemitter3';
 /**
  * Notification types for e-receipts
  */
-export type NotificationType = 
+export type NotificationType =
   | 'receipt_created'
   | 'receipt_synced'
   | 'receipt_void'
@@ -38,37 +38,37 @@ export type NotificationPriority = 'urgent' | 'high' | 'normal' | 'low';
 export interface PushNotificationConfig {
   /** VAPID public key for push service */
   vapidPublicKey: string;
-  
+
   /** Service worker registration */
   serviceWorkerRegistration?: ServiceWorkerRegistration;
-  
+
   /** Default notification options */
   defaultOptions?: {
     /** Notification icon */
     icon?: string;
-    
+
     /** Notification badge */
     badge?: string;
-    
+
     /** Vibration pattern */
     vibrate?: number[];
-    
+
     /** Silent notifications */
     silent?: boolean;
-    
+
     /** Require interaction */
     requireInteraction?: boolean;
-    
+
     /** Notification tag for grouping */
     tag?: string;
   };
-  
+
   /** Language for notifications */
   language?: 'it' | 'en' | 'de' | 'fr';
-  
+
   /** Enable automatic subscription */
   autoSubscribe?: boolean;
-  
+
   /** Notification server endpoint */
   serverEndpoint?: string;
 }
@@ -296,14 +296,18 @@ const DEFAULT_CONFIG: Partial<PushNotificationConfig> = {
  */
 export class PushNotificationManager extends EventEmitter<PushNotificationEvents> {
   private config: Required<PushNotificationConfig>;
+
   private registration: ServiceWorkerRegistration | null = null;
+
   private subscription: PushSubscription | null = null;
+
   private isSupported: boolean;
+
   private permission: NotificationPermission = 'default';
 
   constructor(config: PushNotificationConfig) {
     super();
-    
+
     this.config = {
       ...DEFAULT_CONFIG,
       ...config,
@@ -312,9 +316,9 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
         ...config.defaultOptions,
       },
     } as Required<PushNotificationConfig>;
-    
+
     this.isSupported = this.checkSupport();
-    
+
     if (this.isSupported) {
       this.permission = Notification.permission;
       this.initialize();
@@ -325,8 +329,11 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
    * Check if push notifications are supported
    */
   private checkSupport(): boolean {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      return false;
+    }
+
     return (
-      typeof window !== 'undefined' &&
       'serviceWorker' in navigator &&
       'PushManager' in window &&
       'Notification' in window
@@ -344,24 +351,24 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
       } else {
         this.registration = await navigator.serviceWorker.ready;
       }
-      
+
       // Check existing subscription
       this.subscription = await this.registration.pushManager.getSubscription();
-      
+
       if (this.subscription) {
-        this.emit('subscription:created', { 
-          subscription: this.extractSubscriptionInfo(this.subscription) 
+        this.emit('subscription:created', {
+          subscription: this.extractSubscriptionInfo(this.subscription),
         });
       }
-      
+
       // Auto-subscribe if configured
       if (this.config.autoSubscribe && !this.subscription && this.permission === 'default') {
         await this.subscribe();
       }
     } catch (error) {
-      this.emit('error', { 
-        error: error as Error, 
-        context: 'initialization' 
+      this.emit('error', {
+        error: error as Error,
+        context: 'initialization',
       });
     }
   }
@@ -373,21 +380,21 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
     if (!this.isSupported) {
       throw new Error('Push notifications are not supported');
     }
-    
+
     try {
       this.permission = await Notification.requestPermission();
-      
+
       if (this.permission === 'granted') {
         this.emit('permission:granted', { permission: this.permission });
       } else {
         this.emit('permission:denied', { permission: this.permission });
       }
-      
+
       return this.permission;
     } catch (error) {
-      this.emit('error', { 
-        error: error as Error, 
-        context: 'permission_request' 
+      this.emit('error', {
+        error: error as Error,
+        context: 'permission_request',
       });
       throw error;
     }
@@ -400,7 +407,7 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
     if (!this.isSupported || !this.registration) {
       throw new Error('Push notifications not initialized');
     }
-    
+
     // Check permission
     if (this.permission !== 'granted') {
       const permission = await this.requestPermission();
@@ -408,7 +415,7 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
         return null;
       }
     }
-    
+
     try {
       // Subscribe to push service
       const applicationServerKey = this.urlBase64ToUint8Array(this.config.vapidPublicKey);
@@ -416,19 +423,19 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
         userVisibleOnly: true,
         applicationServerKey: new Uint8Array(applicationServerKey),
       });
-      
+
       const subscriptionInfo = this.extractSubscriptionInfo(this.subscription);
-      
+
       // Send subscription to server
       await this.sendSubscriptionToServer(subscriptionInfo);
-      
+
       this.emit('subscription:created', { subscription: subscriptionInfo });
-      
+
       return subscriptionInfo;
     } catch (error) {
-      this.emit('error', { 
-        error: error as Error, 
-        context: 'subscription' 
+      this.emit('error', {
+        error: error as Error,
+        context: 'subscription',
       });
       throw error;
     }
@@ -441,19 +448,19 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
     if (!this.subscription) {
       return;
     }
-    
+
     try {
       await this.subscription.unsubscribe();
-      
+
       // Remove subscription from server
       await this.removeSubscriptionFromServer();
-      
+
       this.subscription = null;
       this.emit('subscription:deleted', { reason: 'user_unsubscribed' });
     } catch (error) {
-      this.emit('error', { 
-        error: error as Error, 
-        context: 'unsubscription' 
+      this.emit('error', {
+        error: error as Error,
+        context: 'unsubscription',
       });
       throw error;
     }
@@ -466,10 +473,10 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
     if (!this.isSupported || this.permission !== 'granted') {
       throw new Error('Cannot show notification: permission not granted');
     }
-    
+
     try {
       const { title, body, options } = this.prepareNotification(payload);
-      
+
       if (this.registration) {
         // Use service worker to show notification
         await this.registration.showNotification(title, {
@@ -488,26 +495,26 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
           data: payload.data,
           tag: payload.type,
         });
-        
+
         // Handle notification events
         notification.onclick = () => {
-          this.emit('notification:clicked', { 
-            action: 'default', 
-            data: payload.data || {} 
+          this.emit('notification:clicked', {
+            action: 'default',
+            data: payload.data || {},
           });
           notification.close();
         };
-        
+
         notification.onclose = () => {
           this.emit('notification:closed', { notification: payload });
         };
       }
-      
+
       this.emit('notification:shown', { notification: payload });
     } catch (error) {
-      this.emit('error', { 
-        error: error as Error, 
-        context: 'show_notification' 
+      this.emit('error', {
+        error: error as Error,
+        context: 'show_notification',
       });
       throw error;
     }
@@ -591,7 +598,7 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
    */
   async notifySyncStatus(status: 'completed' | 'failed', count: number): Promise<void> {
     const type = status === 'completed' ? 'sync_completed' : 'sync_failed';
-    
+
     await this.showNotification({
       type,
       title: '',
@@ -609,8 +616,8 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
    * Show offline reminder notification
    */
   async notifyOfflineReminder(pendingCount: number): Promise<void> {
-    if (pendingCount === 0) return;
-    
+    if (pendingCount === 0) {return;}
+
     await this.showNotification({
       type: 'offline_reminder',
       title: '',
@@ -633,11 +640,11 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
   } {
     const templates = NOTIFICATION_TEMPLATES[this.config.language] || NOTIFICATION_TEMPLATES.it;
     const template = templates?.[payload.type] || { title: 'Notification', body: 'New notification' };
-    
+
     // Replace placeholders in template
     let title = payload.title || template.title;
     let body = payload.body || template.body;
-    
+
     if (payload.data) {
       Object.entries(payload.data).forEach(([key, value]) => {
         const placeholder = `{${key}}`;
@@ -645,48 +652,48 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
         body = body.replace(placeholder, String(value));
       });
     }
-    
+
     // Add actions based on notification type
     const actions: Array<{ action: string; title: string }> = [];
-    
+
     switch (payload.type) {
       case 'receipt_created':
       case 'receipt_synced':
         actions.push(
           { action: 'view', title: this.getActionTitle('view') },
-          { action: 'dismiss', title: this.getActionTitle('dismiss') }
+          { action: 'dismiss', title: this.getActionTitle('dismiss') },
         );
         break;
-        
+
       case 'fiscal_alert':
         actions.push(
           { action: 'resolve', title: this.getActionTitle('resolve') },
-          { action: 'later', title: this.getActionTitle('later') }
+          { action: 'later', title: this.getActionTitle('later') },
         );
         break;
-        
+
       case 'lottery_win':
         actions.push(
           { action: 'claim', title: this.getActionTitle('claim') },
-          { action: 'share', title: this.getActionTitle('share') }
+          { action: 'share', title: this.getActionTitle('share') },
         );
         break;
-        
+
       case 'sync_failed':
         actions.push(
           { action: 'retry', title: this.getActionTitle('retry') },
-          { action: 'details', title: this.getActionTitle('details') }
+          { action: 'details', title: this.getActionTitle('details') },
         );
         break;
-        
+
       case 'app_update':
         actions.push(
           { action: 'update', title: this.getActionTitle('update') },
-          { action: 'later', title: this.getActionTitle('later') }
+          { action: 'later', title: this.getActionTitle('later') },
         );
         break;
     }
-    
+
     return {
       title,
       body,
@@ -747,7 +754,7 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
         update: 'Mettre à jour',
       },
     };
-    
+
     const titles = actionTitles[this.config.language] || actionTitles.it;
     return titles?.[action] || action;
   }
@@ -776,11 +783,11 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
   private extractSubscriptionInfo(subscription: PushSubscription): PushSubscriptionInfo {
     const key = subscription.getKey('p256dh');
     const token = subscription.getKey('auth');
-    
+
     if (!key || !token) {
       throw new Error('Unable to get subscription keys');
     }
-    
+
     return {
       endpoint: subscription.endpoint,
       keys: {
@@ -808,7 +815,7 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
           timestamp: new Date().toISOString(),
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}`);
       }
@@ -869,7 +876,7 @@ export class PushNotificationManager extends EventEmitter<PushNotificationEvents
     if (!this.subscription) {
       return null;
     }
-    
+
     return this.extractSubscriptionInfo(this.subscription);
   }
 

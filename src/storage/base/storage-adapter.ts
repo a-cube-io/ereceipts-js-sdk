@@ -109,6 +109,7 @@ export interface StorageItem<T = any> {
  */
 export abstract class BaseStorageAdapter implements StorageAdapter {
   protected isInitialized = false;
+
   protected stats: StorageStats = {
     totalKeys: 0,
     totalSize: 0,
@@ -148,12 +149,12 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
       priority: options.priority ?? 'normal',
       size: this.calculateSize(value),
     };
-    
+
     // Only add expiresAt if we have a value (exactOptionalPropertyTypes compliance)
     if (options.expiresIn) {
       item.expiresAt = now + options.expiresIn;
     }
-    
+
     return item;
   }
 

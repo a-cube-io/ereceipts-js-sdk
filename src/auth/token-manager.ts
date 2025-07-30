@@ -3,24 +3,27 @@
  * Handles JWT token parsing, validation, and automatic refresh
  */
 
+import type { HttpClient } from '@/http/client';
+
 import { EventEmitter } from 'eventemitter3';
-import { HttpClient } from '@/http/client';
-import type {
-  OAuth2TokenResponse,
-  JWTPayload,
-  TokenRefreshRequest,
-  TokenStatus,
-  AuthError,
-} from './types';
+
 import { AuthErrorType } from './types';
 import {
   AuthEventType,
   createAuthEvent,
-  type TokenRefreshStartEvent,
-  type TokenRefreshSuccessEvent,
-  type TokenRefreshFailureEvent,
   type TokenExpiredEvent,
+  type TokenRefreshStartEvent,
+  type TokenRefreshFailureEvent,
+  type TokenRefreshSuccessEvent,
 } from './auth-events';
+
+import type {
+  AuthError,
+  JWTPayload,
+  TokenStatus,
+  OAuth2TokenResponse,
+  TokenRefreshRequest,
+} from './types';
 
 interface TokenManagerConfig {
   refreshUrl: string;
@@ -45,10 +48,15 @@ const DEFAULT_CONFIG: TokenManagerConfig = {
  */
 export class TokenManager extends EventEmitter {
   private config: TokenManagerConfig;
+
   private httpClient: HttpClient;
+
   private refreshTimer: NodeJS.Timeout | null = null;
+
   private refreshPromise: Promise<OAuth2TokenResponse> | null = null;
+
   private refreshAttempts = 0;
+
   private currentTokens: {
     access: string | null;
     refresh: string | null;
@@ -74,13 +82,13 @@ export class TokenManager extends EventEmitter {
     if (!payload) {
       throw this.createAuthError(
         'TOKEN_INVALID',
-        'Invalid access token format'
+        'Invalid access token format',
       );
     }
 
     // Calculate expiration
     const expiresAt = payload.exp * 1000; // Convert to milliseconds
-    
+
     // Store tokens
     this.currentTokens = {
       access: tokens.access_token,
@@ -198,7 +206,7 @@ export class TokenManager extends EventEmitter {
     if (!this.currentTokens.refresh) {
       throw this.createAuthError(
         'REFRESH_FAILED',
-        'No refresh token available'
+        'No refresh token available',
       );
     }
 
@@ -212,35 +220,35 @@ export class TokenManager extends EventEmitter {
         this.setTokens(tokens);
         this.emitRefreshSuccess(tokens);
         this.refreshPromise = null;
-        
+
         // Call callback if provided
         if (this.config.onTokenRefresh) {
           this.config.onTokenRefresh(tokens);
         }
-        
+
         return tokens;
       })
       .catch((error) => {
         // Failure - handle error
         this.refreshPromise = null;
         this.emitRefreshFailure(error);
-        
+
         // Check if we should retry
         if (this.refreshAttempts < this.config.maxRefreshAttempts) {
           // Schedule retry
           return new Promise<OAuth2TokenResponse>((resolve, reject) => {
             setTimeout(() => {
               this.refreshTokens().then(resolve).catch(reject);
-            }, this.config.refreshRetryDelay * Math.pow(2, this.refreshAttempts - 1)) as unknown as NodeJS.Timeout;
+            }, this.config.refreshRetryDelay * 2**(this.refreshAttempts - 1)) as unknown as NodeJS.Timeout;
           });
         }
-        
+
         // Max attempts reached - emit expiry and throw
         this.emitTokenExpired();
         if (this.config.onTokenExpired) {
           this.config.onTokenExpired();
         }
-        
+
         throw error;
       });
 
@@ -265,14 +273,14 @@ export class TokenManager extends EventEmitter {
         {
           skipRetry: false, // Allow retries for refresh
           metadata: { isTokenRefresh: true },
-        }
+        },
       );
 
       // Validate response
       if (!response.data.access_token || !response.data.refresh_token) {
         throw this.createAuthError(
           'REFRESH_FAILED',
-          'Invalid refresh response'
+          'Invalid refresh response',
         );
       }
 
@@ -288,14 +296,14 @@ export class TokenManager extends EventEmitter {
     } catch (error) {
       // Handle specific error cases
       if (error instanceof Error && 'statusCode' in error) {
-        const statusCode = (error as any).statusCode;
-        
+        const {statusCode} = (error as any);
+
         if (statusCode === 401 || statusCode === 403) {
           // Refresh token invalid or expired
           throw this.createAuthError(
             'TOKEN_INVALID',
             'Refresh token is invalid or expired',
-            error
+            error,
           );
         }
       }
@@ -303,7 +311,7 @@ export class TokenManager extends EventEmitter {
       throw this.createAuthError(
         'REFRESH_FAILED',
         'Failed to refresh token',
-        error
+        error,
       );
     }
   }
@@ -376,18 +384,18 @@ export class TokenManager extends EventEmitter {
   private base64UrlDecode(str: string): string {
     // Add padding if needed
     str += '='.repeat((4 - (str.length % 4)) % 4);
-    
+
     // Replace URL-safe characters
     str = str.replace(/-/g, '+').replace(/_/g, '/');
-    
+
     // Decode base64
     if (typeof window !== 'undefined' && window.atob) {
       return window.atob(str);
-    } else if (typeof Buffer !== 'undefined') {
+    } if (typeof Buffer !== 'undefined') {
       return Buffer.from(str, 'base64').toString('utf-8');
-    } else {
+    } 
       throw new Error('No base64 decoder available');
-    }
+    
   }
 
   /**
@@ -396,7 +404,7 @@ export class TokenManager extends EventEmitter {
   private createAuthError(
     type: AuthErrorType,
     message: string,
-    cause?: unknown
+    cause?: unknown,
   ): AuthError {
     const error: AuthError = {
       name: 'AuthError',
@@ -423,7 +431,7 @@ export class TokenManager extends EventEmitter {
         reason: this.refreshAttempts > 1 ? 'retry' : 'expiry_approaching',
         attemptNumber: this.refreshAttempts,
         tokenStatus: this.getTokenStatus(),
-      }
+      },
     );
     this.emit(AuthEventType.TOKEN_REFRESH_START, event);
   }
@@ -436,7 +444,7 @@ export class TokenManager extends EventEmitter {
         oldExpiresAt: this.currentTokens.expiresAt || 0,
         newExpiresAt: this.parseToken(tokens.access_token)?.exp || 0,
         attemptNumber: this.refreshAttempts,
-      }
+      },
     );
     this.emit(AuthEventType.TOKEN_REFRESH_SUCCESS, event);
   }
@@ -449,12 +457,12 @@ export class TokenManager extends EventEmitter {
     };
 
     if (this.refreshAttempts < this.config.maxRefreshAttempts) {
-      eventData.nextRetryAt = new Date(Date.now() + this.config.refreshRetryDelay * Math.pow(2, this.refreshAttempts - 1));
+      eventData.nextRetryAt = new Date(Date.now() + this.config.refreshRetryDelay * 2**(this.refreshAttempts - 1));
     }
 
     const event = createAuthEvent<TokenRefreshFailureEvent>(
       AuthEventType.TOKEN_REFRESH_FAILURE,
-      eventData
+      eventData,
     );
     this.emit(AuthEventType.TOKEN_REFRESH_FAILURE, event);
   }
@@ -466,7 +474,7 @@ export class TokenManager extends EventEmitter {
         expiredAt: new Date(this.currentTokens.expiresAt || Date.now()),
         wasRefreshAttempted: this.refreshAttempts > 0,
         refreshFailed: true,
-      }
+      },
     );
     this.emit(AuthEventType.TOKEN_EXPIRED, event);
   }

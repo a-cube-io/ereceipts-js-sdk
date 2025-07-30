@@ -4,31 +4,32 @@
  */
 
 import { Command } from 'commander';
+
 import {
   // Auth commands
   LoginCommand,
-  LogoutCommand,
-  StatusCommand,
-  RefreshCommand,
-  
   // Config commands
   SetupCommand,
-  ShowConfigCommand,
-  
+  LogoutCommand,
+  StatusCommand,
+
+  RefreshCommand,
+  VersionCommand,
+
   // Resource commands
   ReceiptsCommand,
   CashiersCommand,
   MerchantsCommand,
-  PointOfSalesCommand,
-  
+  ShowConfigCommand,
+
   // Profile commands
   ProfileListCommand,
-  ProfileSwitchCommand,
-  ProfileDeleteCommand,
-  
   // Other commands
   InteractiveCommand,
-  VersionCommand,
+  PointOfSalesCommand,
+
+  ProfileSwitchCommand,
+  ProfileDeleteCommand,
 } from './commands/index.js';
 
 const program = new Command();

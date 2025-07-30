@@ -42,6 +42,7 @@ export interface EnvironmentInfo extends PlatformCapabilities {
  */
 export class PlatformDetector {
   private static instance: PlatformDetector | null = null;
+
   private cachedInfo: EnvironmentInfo | null = null;
 
   private constructor() {}
@@ -61,21 +62,21 @@ export class PlatformDetector {
    */
   detectPlatform(): PlatformType {
     // Check for Node.js environment
-    if (typeof process !== 'undefined' && 
-        process.versions && 
+    if (typeof process !== 'undefined' &&
+        process.versions &&
         process.versions.node &&
         typeof window === 'undefined') {
       return 'node';
     }
 
     // Check for React Native environment
-    if (typeof navigator !== 'undefined' && 
+    if (typeof navigator !== 'undefined' &&
         navigator.product === 'ReactNative') {
       return 'react-native';
     }
 
     // Check for web browser environment
-    if (typeof window !== 'undefined' && 
+    if (typeof window !== 'undefined' &&
         typeof document !== 'undefined') {
       return 'web';
     }
@@ -92,7 +93,7 @@ export class PlatformDetector {
     }
 
     const platform = this.detectPlatform();
-    
+
     this.cachedInfo = {
       ...this.detectCapabilities(platform),
       ...this.detectDeviceInfo(platform),
@@ -199,15 +200,15 @@ export class PlatformDetector {
 
     if (typeof navigator !== 'undefined') {
       isOnline = navigator.onLine;
-      
+
       // Network Information API (experimental)
-      const connection = (navigator as any).connection || 
-                        (navigator as any).mozConnection || 
+      const connection = (navigator as any).connection ||
+                        (navigator as any).mozConnection ||
                         (navigator as any).webkitConnection;
-      
+
       if (connection) {
-        const effectiveType = connection.effectiveType;
-        if (effectiveType === 'slow-2g' || effectiveType === '2g' || 
+        const {effectiveType} = connection;
+        if (effectiveType === 'slow-2g' || effectiveType === '2g' ||
             effectiveType === '3g' || effectiveType === '4g') {
           connectionType = 'cellular';
         } else {
@@ -240,8 +241,8 @@ export class PlatformDetector {
   // Capability detection methods
   private checkIndexedDBSupport(): boolean {
     try {
-      return typeof window !== 'undefined' && 
-             'indexedDB' in window && 
+      return typeof window !== 'undefined' &&
+             'indexedDB' in window &&
              window.indexedDB !== null;
     } catch {
       return false;
@@ -265,7 +266,7 @@ export class PlatformDetector {
   private checkAsyncStorageSupport(): boolean {
     try {
       // Check if AsyncStorage is available (React Native)
-      return typeof require !== 'undefined' && 
+      return typeof require !== 'undefined' &&
              require('@react-native-async-storage/async-storage') !== null;
     } catch {
       return false;
@@ -274,7 +275,7 @@ export class PlatformDetector {
 
   private checkFileSystemSupport(): boolean {
     try {
-      return typeof require !== 'undefined' && 
+      return typeof require !== 'undefined' &&
              (require('fs') !== null || require('react-native-fs') !== null);
     } catch {
       return false;
@@ -289,7 +290,7 @@ export class PlatformDetector {
       // Node.js crypto module
       if (typeof require !== 'undefined') {
         const nodeCrypto = require('crypto');
-        return nodeCrypto && nodeCrypto.webcrypto;
+        return nodeCrypto?.webcrypto;
       }
       return false;
     } catch {
@@ -299,7 +300,7 @@ export class PlatformDetector {
 
   private checkCompressionStreamsSupport(): boolean {
     try {
-      return typeof CompressionStream !== 'undefined' && 
+      return typeof CompressionStream !== 'undefined' &&
              typeof DecompressionStream !== 'undefined';
     } catch {
       return false;
@@ -308,7 +309,7 @@ export class PlatformDetector {
 
   private checkNodeCompressionSupport(): boolean {
     try {
-      return typeof require !== 'undefined' && 
+      return typeof require !== 'undefined' &&
              require('zlib') !== null;
     } catch {
       return false;
@@ -325,7 +326,7 @@ export class PlatformDetector {
 
   private checkWorkerThreadsSupport(): boolean {
     try {
-      return typeof require !== 'undefined' && 
+      return typeof require !== 'undefined' &&
              require('worker_threads') !== null;
     } catch {
       return false;
@@ -334,8 +335,8 @@ export class PlatformDetector {
 
   private checkNotificationSupport(): boolean {
     try {
-      return typeof Notification !== 'undefined' || 
-             (typeof require !== 'undefined' && 
+      return typeof Notification !== 'undefined' ||
+             (typeof require !== 'undefined' &&
               require('react-native-push-notification') !== null);
     } catch {
       return false;
@@ -361,27 +362,25 @@ export class PlatformDetector {
   private estimateWebStorageQuota(): number {
     if (typeof navigator !== 'undefined' && 'storage' in navigator && 'estimate' in navigator.storage) {
       // This will be resolved asynchronously, but we return 0 for now
-      navigator.storage.estimate().then(estimate => {
-        return estimate.quota || 0;
-      });
+      navigator.storage.estimate().then(estimate => estimate.quota || 0);
     }
-    
+
     // Fallback estimates based on browser
     const userAgent = navigator?.userAgent || '';
     if (userAgent.includes('Chrome')) {
       return 1024 * 1024 * 1024; // ~1GB for Chrome
-    } else if (userAgent.includes('Firefox')) {
+    } if (userAgent.includes('Firefox')) {
       return 2 * 1024 * 1024 * 1024; // ~2GB for Firefox
-    } else if (userAgent.includes('Safari')) {
+    } if (userAgent.includes('Safari')) {
       return 1024 * 1024 * 1024; // ~1GB for Safari
     }
-    
+
     return 50 * 1024 * 1024; // 50MB default
   }
 
   private getReactNativeVersion(): string {
     try {
-      const Platform = require('react-native').Platform;
+      const {Platform} = require('react-native');
       return Platform.constants?.reactNativeVersion?.string || 'unknown';
     } catch {
       return 'unknown';
@@ -390,7 +389,7 @@ export class PlatformDetector {
 
   private getReactNativeOS(): string {
     try {
-      const Platform = require('react-native').Platform;
+      const {Platform} = require('react-native');
       return Platform.OS;
     } catch {
       return 'unknown';
@@ -399,10 +398,10 @@ export class PlatformDetector {
 
   private detectMobileDeviceType(): 'mobile' | 'tablet' {
     try {
-      const Dimensions = require('react-native').Dimensions;
+      const {Dimensions} = require('react-native');
       const { width, height } = Dimensions.get('window');
       const aspectRatio = Math.max(width, height) / Math.min(width, height);
-      
+
       // Simple heuristic: tablets typically have lower aspect ratios
       return aspectRatio < 1.6 ? 'tablet' : 'mobile';
     } catch {
@@ -411,17 +410,17 @@ export class PlatformDetector {
   }
 
   private detectWebDeviceType(): 'mobile' | 'tablet' | 'desktop' {
-    if (typeof window === 'undefined') return 'desktop';
-    
-    const userAgent = navigator.userAgent;
-    
+    if (typeof window === 'undefined') {return 'desktop';}
+
+    const {userAgent} = navigator;
+
     if (/iPad|Android(?!.*Mobile)/i.test(userAgent)) {
       return 'tablet';
-    } else if (/iPhone|iPod|Android.*Mobile|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
+    } if (/iPhone|iPod|Android.*Mobile|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
       return 'mobile';
-    } else {
+    } 
       return 'desktop';
-    }
+    
   }
 
   private parseBrowserInfo(userAgent: string): { name: string; version: string } {
@@ -444,11 +443,11 @@ export class PlatformDetector {
   }
 
   private parseOSInfo(userAgent: string): string {
-    if (userAgent.includes('Windows')) return 'Windows';
-    if (userAgent.includes('Mac OS')) return 'macOS';
-    if (userAgent.includes('Linux')) return 'Linux';
-    if (userAgent.includes('Android')) return 'Android';
-    if (userAgent.includes('iOS')) return 'iOS';
+    if (userAgent.includes('Windows')) {return 'Windows';}
+    if (userAgent.includes('Mac OS')) {return 'macOS';}
+    if (userAgent.includes('Linux')) {return 'Linux';}
+    if (userAgent.includes('Android')) {return 'Android';}
+    if (userAgent.includes('iOS')) {return 'iOS';}
     return 'Unknown';
   }
 
@@ -472,18 +471,18 @@ export class PlatformDetector {
    */
   getRecommendedStorageAdapter(): 'indexeddb' | 'localstorage' | 'asyncstorage' | 'filesystem' | 'memory' {
     const capabilities = this.getEnvironmentInfo();
-    
+
     if (capabilities.hasIndexedDB) {
       return 'indexeddb';
-    } else if (capabilities.hasAsyncStorage) {
+    } if (capabilities.hasAsyncStorage) {
       return 'asyncstorage';
-    } else if (capabilities.hasLocalStorage) {
+    } if (capabilities.hasLocalStorage) {
       return 'localstorage';
-    } else if (capabilities.hasFileSystem) {
+    } if (capabilities.hasFileSystem) {
       return 'filesystem';
-    } else {
+    } 
       return 'memory';
-    }
+    
   }
 
   /**
@@ -491,15 +490,15 @@ export class PlatformDetector {
    */
   getPerformanceTier(): 'high' | 'medium' | 'low' {
     const info = this.getEnvironmentInfo();
-    
-    if (info.platform === 'node' || 
+
+    if (info.platform === 'node' ||
         (info.platform === 'web' && info.deviceType === 'desktop')) {
       return 'high';
-    } else if (info.platform === 'react-native' && info.deviceType === 'tablet') {
+    } if (info.platform === 'react-native' && info.deviceType === 'tablet') {
       return 'medium';
-    } else {
+    } 
       return 'low';
-    }
+    
   }
 }
 
@@ -509,7 +508,7 @@ export const platformDetector = PlatformDetector.getInstance();
 // Convenience functions
 export const getPlatform = (): PlatformType => platformDetector.detectPlatform();
 export const getEnvironmentInfo = (): EnvironmentInfo => platformDetector.getEnvironmentInfo();
-export const hasCapability = (capability: keyof PlatformCapabilities): boolean => 
+export const hasCapability = (capability: keyof PlatformCapabilities): boolean =>
   platformDetector.hasCapability(capability);
 export const getRecommendedStorageAdapter = () => platformDetector.getRecommendedStorageAdapter();
 export const getPerformanceTier = () => platformDetector.getPerformanceTier();

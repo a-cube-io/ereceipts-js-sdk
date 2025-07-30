@@ -4,59 +4,57 @@
  */
 
 import {
+  CICDManager,
+  type CICDConfig,
+  type PipelineRun,
+  type ArtifactInfo,
+  type PipelineStep,
+  type PipelineConfig,
+  type PipelineMetrics,
+  type DeploymentConfig,
+} from './ci-cd';
+import {
   PreCommitManager,
+  type QualityHook,
+  type QualityIssue,
+  type CommitValidation,
   type QualityGateConfig,
   type QualityCheckConfig,
   type QualityCheckResult,
-  type QualityIssue,
-  type CommitValidation,
-  type QualityHook,
 } from './pre-commit';
-
 import {
-  CICDManager,
-  type CICDConfig,
-  type PipelineConfig,
-  type PipelineStep,
-  type PipelineRun,
-  type DeploymentConfig,
-  type PipelineMetrics,
-  type ArtifactInfo,
-} from './ci-cd';
-
-import {
+  type UpdatePlan,
   DependencyManager,
-  type DependencyConfig,
   type DependencyInfo,
+  type DependencyConfig,
   type DependencyReport,
   type SecurityVulnerability,
   type DependencyRecommendation,
-  type UpdatePlan,
 } from './dependency-management';
 
 export {
+  CICDManager,
+  type CICDConfig,
+  type UpdatePlan,
   PreCommitManager,
+  type QualityHook,
+  type PipelineRun,
+  type QualityIssue,
+  type PipelineStep,
+  type ArtifactInfo,
+  DependencyManager,
+  type PipelineConfig,
+  type DependencyInfo,
+  type PipelineMetrics,
+  type CommitValidation,
+  type DeploymentConfig,
+  type DependencyConfig,
+  type DependencyReport,
   type QualityGateConfig,
   type QualityCheckConfig,
   type QualityCheckResult,
-  type QualityIssue,
-  type CommitValidation,
-  type QualityHook,
-  CICDManager,
-  type CICDConfig,
-  type PipelineConfig,
-  type PipelineStep,
-  type PipelineRun,
-  type DeploymentConfig,
-  type PipelineMetrics,
-  type ArtifactInfo,
-  DependencyManager,
-  type DependencyConfig,
-  type DependencyInfo,
-  type DependencyReport,
   type SecurityVulnerability,
   type DependencyRecommendation,
-  type UpdatePlan,
 };
 
 /**
@@ -65,7 +63,9 @@ export {
  */
 export class QualityManager {
   private preCommit: PreCommitManager;
+
   private cicd: CICDManager;
+
   private dependencies: DependencyManager;
 
   constructor(config?: {
@@ -127,7 +127,7 @@ export class QualityManager {
    */
   async runQualityCheck(
     stagedFiles: string[],
-    commitMessage: string
+    commitMessage: string,
   ): Promise<{
     validation: CommitValidation;
     dependencyReport?: DependencyReport;
@@ -146,19 +146,19 @@ export class QualityManager {
 
     // Run dependency scan if package files changed
     let dependencyReport: DependencyReport | undefined;
-    const packageFilesChanged = stagedFiles.some(file => 
-      file.includes('package.json') || 
-      file.includes('package-lock.json') || 
-      file.includes('yarn.lock')
+    const packageFilesChanged = stagedFiles.some(file =>
+      file.includes('package.json') ||
+      file.includes('package-lock.json') ||
+      file.includes('yarn.lock'),
     );
 
     if (packageFilesChanged) {
       dependencyReport = await this.dependencies.scanDependencies();
-      
+
       if (dependencyReport.summary.vulnerable > 0) {
         recommendations.push('Fix security vulnerabilities before committing');
       }
-      
+
       if (dependencyReport.summary.outdated > 5) {
         recommendations.push('Consider updating outdated dependencies');
       }
@@ -293,7 +293,7 @@ export class QualityManager {
   }> {
     // Get dependency metrics
     const dependencyMetrics = this.dependencies.getDependencyMetrics();
-    
+
     // Get CI/CD metrics
     const cicdMetrics = this.cicd.getPipelineMetrics();
 
@@ -302,7 +302,7 @@ export class QualityManager {
 
     // Calculate overall scores
     const qualityScore = this.calculateQualityScore(cicdMetrics, dependencyReport);
-    const securityScore = dependencyMetrics.current.securityScore;
+    const {securityScore} = dependencyMetrics.current;
     const maintenanceScore = this.calculateMaintenanceScore(dependencyReport);
 
     // Generate recommendations
@@ -310,7 +310,7 @@ export class QualityManager {
       qualityScore,
       securityScore,
       maintenanceScore,
-      dependencyReport
+      dependencyReport,
     );
 
     return {
@@ -397,12 +397,12 @@ export class QualityManager {
 
   private calculateQualityScore(
     cicdMetrics: ReturnType<CICDManager['getPipelineMetrics']>,
-    dependencyReport: DependencyReport
+    dependencyReport: DependencyReport,
   ): number {
     const cicdScore = cicdMetrics.summary.successRate;
     const dependencyScore = Math.max(0, 100 - (dependencyReport.summary.outdated * 2));
-    const securityScore = dependencyReport.metrics.securityScore;
-    
+    const {securityScore} = dependencyReport.metrics;
+
     return Math.round((cicdScore + dependencyScore + securityScore) / 3);
   }
 
@@ -410,7 +410,7 @@ export class QualityManager {
     const outdatedPenalty = report.summary.outdated * 3;
     const unusedPenalty = report.summary.unused * 2;
     const vulnerabilityPenalty = report.summary.vulnerable * 5;
-    
+
     return Math.max(0, 100 - outdatedPenalty - unusedPenalty - vulnerabilityPenalty);
   }
 
@@ -418,7 +418,7 @@ export class QualityManager {
     qualityScore: number,
     securityScore: number,
     maintenanceScore: number,
-    dependencyReport: DependencyReport
+    dependencyReport: DependencyReport,
   ): string[] {
     const recommendations: string[] = [];
 
@@ -451,18 +451,18 @@ export class QualityManager {
 
   private calculateTrend(
     data: Array<{ date: number; [key: string]: number }>,
-    inverse: boolean = false
+    inverse: boolean = false,
   ): 'improving' | 'stable' | 'declining' {
-    if (data.length < 2) return 'stable';
+    if (data.length < 2) {return 'stable';}
 
     const recent = data.slice(-3);
     const values = recent.map(d => Object.values(d).find(v => typeof v === 'number' && v !== d.date) as number);
-    
+
     const trend = (values[values.length - 1] || 0) - (values[0] || 0);
     const threshold = 5; // 5% change threshold
 
-    if (Math.abs(trend) < threshold) return 'stable';
-    
+    if (Math.abs(trend) < threshold) {return 'stable';}
+
     const isImproving = inverse ? trend < 0 : trend > 0;
     return isImproving ? 'improving' : 'declining';
   }
@@ -595,8 +595,8 @@ export const QualityUtils = {
     ];
 
     // Mock validation
-    const missing = requiredFiles.filter(_file => 
-      Math.random() > 0.8 // Simulate some missing files
+    const missing = requiredFiles.filter(_file =>
+      Math.random() > 0.8, // Simulate some missing files
     );
 
     const recommendations: string[] = [];
@@ -621,7 +621,7 @@ export const QualityUtils = {
    * Generate quality gates configuration
    */
   generateQualityGatesConfig(
-    level: 'basic' | 'standard' | 'strict' = 'standard'
+    level: 'basic' | 'standard' | 'strict' = 'standard',
   ): QualityGateConfig {
     const configs = {
       basic: {
@@ -703,15 +703,15 @@ export const QualityUtils = {
     };
 
     const score = Math.round(
-      Object.values(breakdown).reduce((sum, value) => sum + value, 0) / 5
+      Object.values(breakdown).reduce((sum, value) => sum + value, 0) / 5,
     );
 
     let grade: 'A' | 'B' | 'C' | 'D' | 'F';
-    if (score >= 90) grade = 'A';
-    else if (score >= 80) grade = 'B';
-    else if (score >= 70) grade = 'C';
-    else if (score >= 60) grade = 'D';
-    else grade = 'F';
+    if (score >= 90) {grade = 'A';}
+    else if (score >= 80) {grade = 'B';}
+    else if (score >= 70) {grade = 'C';}
+    else if (score >= 60) {grade = 'D';}
+    else {grade = 'F';}
 
     return { score, grade, breakdown };
   },

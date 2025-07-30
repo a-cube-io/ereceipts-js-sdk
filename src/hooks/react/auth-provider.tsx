@@ -3,20 +3,21 @@
  * Provides authentication context and state management for React applications
  */
 
-import React, { createContext, useContext, useEffect, useReducer, useCallback, useRef } from 'react';
 import type { ACubeSDK } from '@/core/sdk';
 import type {
-  AuthState,
   AuthUser,
-  LoginCredentials,
-  LogoutOptions,
   UserRole,
-  SimpleUserRole,
   AuthError,
-  PermissionCheck,
-  PermissionResult,
+  AuthState,
   SessionInfo,
+  LogoutOptions,
+  SimpleUserRole,
+  PermissionCheck,
+  LoginCredentials,
+  PermissionResult,
 } from '@/auth/types';
+
+import React, { useRef, useEffect, useContext, useReducer, useCallback, createContext } from 'react';
 
 // Auth Context Types
 export interface AuthContextValue {
@@ -313,7 +314,7 @@ export function AuthProvider({
 
   const refreshSession = useCallback(async (): Promise<void> => {
     try {
-      const authService = sdkRef.current.authService;
+      const {authService} = sdkRef.current;
       await authService.refreshSession();
     } catch (error) {
       const authError: AuthError = {
@@ -333,25 +334,15 @@ export function AuthProvider({
   }, []);
 
   // Role management
-  const hasRole = useCallback((role: UserRole): boolean => {
-    return sdkRef.current.hasRole(role);
-  }, []);
+  const hasRole = useCallback((role: UserRole): boolean => sdkRef.current.hasRole(role), []);
 
-  const hasAnyRole = useCallback((roles: UserRole[]): boolean => {
-    return sdkRef.current.hasAnyRole(roles);
-  }, []);
+  const hasAnyRole = useCallback((roles: UserRole[]): boolean => sdkRef.current.hasAnyRole(roles), []);
 
-  const getEffectiveRoles = useCallback((): UserRole[] => {
-    return sdkRef.current.getEffectiveRoles();
-  }, []);
+  const getEffectiveRoles = useCallback((): UserRole[] => sdkRef.current.getEffectiveRoles(), []);
 
-  const getPrimaryRole = useCallback((): UserRole | null => {
-    return sdkRef.current.getPrimaryRole();
-  }, []);
+  const getPrimaryRole = useCallback((): UserRole | null => sdkRef.current.getPrimaryRole(), []);
 
-  const getSimpleRole = useCallback((): SimpleUserRole => {
-    return sdkRef.current.getSimpleRole();
-  }, []);
+  const getSimpleRole = useCallback((): SimpleUserRole => sdkRef.current.getSimpleRole(), []);
 
   const switchRole = useCallback(async (
     targetRole: UserRole,
@@ -359,7 +350,7 @@ export function AuthProvider({
       merchant_id?: import('@/types/branded').MerchantId;
       cashier_id?: import('@/types/branded').CashierId;
       point_of_sale_id?: import('@/types/branded').PointOfSaleId;
-    }
+    },
   ): Promise<boolean> => {
     try {
       const success = await sdkRef.current.switchRole(targetRole, context);
@@ -378,14 +369,10 @@ export function AuthProvider({
   }, []);
 
   // Permission checking
-  const checkPermission = useCallback(async (permission: PermissionCheck): Promise<PermissionResult> => {
-    return sdkRef.current.authService.checkPermission(permission);
-  }, []);
+  const checkPermission = useCallback(async (permission: PermissionCheck): Promise<PermissionResult> => sdkRef.current.authService.checkPermission(permission), []);
 
   // Session management
-  const getSessionInfo = useCallback(async (): Promise<SessionInfo | null> => {
-    return sdkRef.current.authService.getSessionInfo();
-  }, []);
+  const getSessionInfo = useCallback(async (): Promise<SessionInfo | null> => sdkRef.current.authService.getSessionInfo(), []);
 
   // Context value
   const contextValue: AuthContextValue = {

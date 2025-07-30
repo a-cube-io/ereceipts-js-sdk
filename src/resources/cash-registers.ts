@@ -1,7 +1,7 @@
 /**
  * Cash Registers Resource - OpenAPI Implementation
  * Type-safe implementation for cash register management
- * 
+ *
  * Features:
  * - Cash register lifecycle management
  * - Registration and configuration
@@ -9,13 +9,14 @@
  * - Integration with Point of Sales devices
  */
 
-import { BaseOpenAPIResource } from '@/resources/base-openapi';
-import { CashRegisterEndpoints } from '@/generated/endpoints';
 import type { HttpClient } from '@/http/client';
-import type { CashRegisterId, SerialNumber } from '@/types/branded';
 import type { components } from '@/types/generated';
+import type { SerialNumber, CashRegisterId } from '@/types/branded';
+
 import { ValidationError } from '@/errors/index';
-import { MTLSCertificateManager, type MTLSCertificate } from '@/security/mtls-certificate-manager';
+import { CashRegisterEndpoints } from '@/generated/endpoints';
+import { BaseOpenAPIResource } from '@/resources/base-openapi';
+import { type MTLSCertificate, MTLSCertificateManager } from '@/security/mtls-certificate-manager';
 
 // Extract types from OpenAPI generated types
 export type CashRegisterInput = components['schemas']['E-Receipt_IT_API_CashRegisterCreate'];
@@ -28,7 +29,7 @@ export type CashRegisterPage = components['schemas']['E-Receipt_IT_API_Page__T_C
 export interface CashRegisterCreateRequest {
   /** PEM serial number from the device */
   pem_serial_number: string;
-  
+
   /** Human-readable name for the cash register */
   name: string;
 }
@@ -39,13 +40,13 @@ export interface CashRegisterCreateRequest {
 export interface CashRegisterCreateResponse {
   /** Unique identifier for the cash register */
   uuid: string;
-  
+
   /** PEM serial number from the device */
   pem_serial_number: string;
-  
+
   /** Human-readable name for the cash register */
   name: string;
-  
+
   /** mTLS certificate in PEM format */
   mtls_certificate: string;
 }
@@ -114,7 +115,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
         create: CashRegisterEndpoints.CREATE,
         list: CashRegisterEndpoints.LIST,
         getById: CashRegisterEndpoints.GET_BY_ID,
-      }
+      },
     });
 
     // Initialize certificate manager
@@ -134,12 +135,12 @@ export class CashRegistersResource extends BaseOpenAPIResource {
   /**
    * Register a new cash register and obtain mTLS certificate
    * This method calls the server endpoint and automatically stores the certificate securely
-   * 
+   *
    * @param request - Cash register creation request
    * @returns Promise resolving to created cash register with certificate info
    */
   async registerWithCertificate(
-    request: CashRegisterCreateRequest
+    request: CashRegisterCreateRequest,
   ): Promise<{
     cashRegister: CashRegisterCreateResponse;
     certificate: MTLSCertificate;
@@ -154,18 +155,18 @@ export class CashRegistersResource extends BaseOpenAPIResource {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-          metadata: { 
+          metadata: {
             operation: 'registerCashRegister',
             requiresAuth: true,
           },
-        }
+        },
       );
 
       if (response.status !== 201) {
         throw new ValidationError(
           'CASH_REGISTER_CREATION_FAILED',
           `Failed to create cash register: ${response.status}`,
-          [{ field: 'request', message: 'Cash register creation failed', code: 'CREATION_FAILED' }]
+          [{ field: 'request', message: 'Cash register creation failed', code: 'CREATION_FAILED' }],
         );
       }
 
@@ -176,7 +177,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
         cashRegisterData.uuid as CashRegisterId,
         request.pem_serial_number as SerialNumber,
         request.name,
-        cashRegisterData.mtls_certificate
+        cashRegisterData.mtls_certificate,
       );
 
       return {
@@ -187,14 +188,14 @@ export class CashRegistersResource extends BaseOpenAPIResource {
       throw new ValidationError(
         'CASH_REGISTER_REGISTRATION_FAILED',
         `Failed to register cash register: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        [{ field: 'request', message: 'Registration failed', code: 'REGISTRATION_FAILED' }]
+        [{ field: 'request', message: 'Registration failed', code: 'REGISTRATION_FAILED' }],
       );
     }
   }
 
   /**
    * Get mTLS certificate for a cash register
-   * 
+   *
    * @param cashRegisterId - Cash register ID
    * @returns Promise resolving to certificate or null if not found
    */
@@ -204,7 +205,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
 
   /**
    * Get all stored mTLS certificates
-   * 
+   *
    * @returns Promise resolving to array of certificates
    */
   async getAllCertificates(): Promise<MTLSCertificate[]> {
@@ -213,7 +214,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
 
   /**
    * Remove mTLS certificate for a cash register
-   * 
+   *
    * @param cashRegisterId - Cash register ID
    * @returns Promise resolving to true if certificate was removed
    */
@@ -223,7 +224,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
 
   /**
    * Get certificate storage statistics
-   * 
+   *
    * @returns Promise resolving to storage statistics
    */
   async getCertificateStats(): Promise<{
@@ -238,7 +239,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
 
   /**
    * Cleanup expired certificates
-   * 
+   *
    * @returns Promise resolving to number of certificates removed
    */
   async cleanupExpiredCertificates(): Promise<number> {
@@ -247,14 +248,14 @@ export class CashRegistersResource extends BaseOpenAPIResource {
 
   /**
    * Create a new cash register (legacy method)
-   * 
+   *
    * @param data - Cash register input data
    * @param options - Validation options
    * @returns Promise resolving to created cash register
    */
   async create(
-    data: CashRegisterInput, 
-    options: CashRegisterValidationOptions = {}
+    data: CashRegisterInput,
+    options: CashRegisterValidationOptions = {},
   ): Promise<CashRegisterOutput> {
     // Validate input
     await this.validateCashRegisterInput(data, options);
@@ -264,26 +265,26 @@ export class CashRegistersResource extends BaseOpenAPIResource {
         operation: 'create_cash_register',
         serialNumber: data.pem_serial_number,
         name: data.name,
-      }
+      },
     });
   }
 
   /**
    * Get a list of cash registers
-   * 
+   *
    * @returns Promise resolving to paginated cash register list
    */
   async list(): Promise<CashRegisterPage> {
     return this.executeRequest<void, CashRegisterPage>('list', undefined, {
       metadata: {
         operation: 'list_cash_registers',
-      }
+      },
     });
   }
 
   /**
    * Get a specific cash register by ID
-   * 
+   *
    * @param registerId - Cash register ID
    * @returns Promise resolving to cash register details
    */
@@ -293,13 +294,13 @@ export class CashRegistersResource extends BaseOpenAPIResource {
       metadata: {
         operation: 'get_cash_register',
         registerId,
-      }
+      },
     });
   }
 
   /**
    * Get cash register configuration
-   * 
+   *
    * @param registerId - Cash register ID
    * @returns Promise resolving to configuration
    */
@@ -310,7 +311,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
 
   /**
    * Get cash register statistics
-   * 
+   *
    * @param registerId - Cash register ID
    * @returns Promise resolving to statistics
    */
@@ -323,19 +324,19 @@ export class CashRegistersResource extends BaseOpenAPIResource {
    * Update cash register settings (future enhancement)
    */
   async updateSettings(
-    registerId: CashRegisterId | number, 
-    settings: Partial<CashRegisterSettings>
+    registerId: CashRegisterId | number,
+    settings: Partial<CashRegisterSettings>,
   ): Promise<CashRegisterOutput> {
     if (!this.hasOperation('update')) {
       throw this.createUnsupportedOperationError('update');
     }
-    
+
     return this.executeRequest<Partial<CashRegisterSettings>, CashRegisterOutput>('update', settings, {
       pathParams: { id: registerId },
       metadata: {
         operation: 'update_cash_register_settings',
         registerId,
-      }
+      },
     });
   }
 
@@ -345,8 +346,8 @@ export class CashRegistersResource extends BaseOpenAPIResource {
    * Validate cash register input
    */
   private async validateCashRegisterInput(
-    data: CashRegisterInput, 
-    options: CashRegisterValidationOptions = {}
+    data: CashRegisterInput,
+    options: CashRegisterValidationOptions = {},
   ): Promise<void> {
     const errors: Array<{ field: string; message: string; code: string }> = [];
 
@@ -355,7 +356,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
       errors.push({
         field: 'serial_number',
         message: 'Serial number is required',
-        code: 'REQUIRED'
+        code: 'REQUIRED',
       });
     } else if (options.validateSerialNumber) {
       const serialValidation = CashRegistersResource.validateSerialNumber(data.pem_serial_number);
@@ -363,7 +364,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
         errors.push({
           field: 'serial_number',
           message: serialValidation.error || 'Invalid serial number format',
-          code: 'INVALID_SERIAL_NUMBER'
+          code: 'INVALID_SERIAL_NUMBER',
         });
       }
     }
@@ -374,13 +375,13 @@ export class CashRegistersResource extends BaseOpenAPIResource {
         errors.push({
           field: 'name',
           message: 'Name is required',
-          code: 'REQUIRED'
+          code: 'REQUIRED',
         });
       } else if (data.name.length > 100) {
         errors.push({
           field: 'name',
           message: 'Name cannot exceed 100 characters',
-          code: 'TOO_LONG'
+          code: 'TOO_LONG',
         });
       }
     }
@@ -392,7 +393,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
         errors.push({
           field: 'serial_number',
           message: 'Cash register with this serial number is already registered',
-          code: 'DUPLICATE_SERIAL'
+          code: 'DUPLICATE_SERIAL',
         });
       }
     }
@@ -524,7 +525,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
     estimatedDuration: string;
   } {
     const now = new Date();
-    
+
     // Since last_maintenance field is not available in OpenAPI schema,
     // return default routine maintenance schedule
     return {
@@ -540,8 +541,8 @@ export class CashRegistersResource extends BaseOpenAPIResource {
    * Validate cash register compatibility with PEM device
    */
   static validatePEMCompatibility(
-    register: CashRegisterOutput, 
-    pemModel: string
+    register: CashRegisterOutput,
+    pemModel: string,
   ): {
     compatible: boolean;
     issues: string[];
@@ -554,7 +555,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
 
     // Note: connection_type, firmware_version, and power_consumption fields
     // are not available in the OpenAPI schema, using mock validation
-    
+
     // Mock compatibility check since actual fields are not available
     if (pemModel.includes('legacy')) {
       issues.push('Legacy PEM devices may have compatibility issues');
@@ -609,7 +610,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
     for (const register of registers) {
       // status field not available in OpenAPI schema, using mock status
       const status: CashRegisterStatus = 'active';
-      
+
       // Update status breakdown
       report.statusBreakdown[status] = (report.statusBreakdown[status] || 0) + 1;
 
@@ -627,7 +628,7 @@ export class CashRegistersResource extends BaseOpenAPIResource {
       const stats = this.calculateStatistics(register);
       totalUptime += stats.uptime.percentage;
       report.totalTransactionsToday += stats.transactionsToday;
-      
+
       const todayRevenue = parseFloat(stats.amountToday);
       totalRevenue += todayRevenue;
 

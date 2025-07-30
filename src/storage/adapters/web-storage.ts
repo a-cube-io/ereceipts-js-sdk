@@ -3,7 +3,9 @@
  * Enterprise-grade storage for web environments
  */
 
-import { BaseStorageAdapter, StorageOptions } from '@/storage/base/storage-adapter';
+import type { StorageOptions } from '@/storage/base/storage-adapter';
+
+import { BaseStorageAdapter } from '@/storage/base/storage-adapter';
 
 export interface WebStorageConfig {
   dbName: string;
@@ -23,7 +25,9 @@ const DEFAULT_CONFIG: Required<WebStorageConfig> = {
 
 export class WebStorageAdapter extends BaseStorageAdapter {
   private config: Required<WebStorageConfig>;
+
   private db: IDBDatabase | null = null;
+
   private useIndexedDB = false;
 
   constructor(config: Partial<WebStorageConfig> = {}) {
@@ -32,7 +36,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
   }
 
   async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+    if (this.isInitialized) {return;}
 
     try {
       // Try IndexedDB first
@@ -40,7 +44,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
       this.useIndexedDB = true;
     } catch (error) {
       console.warn('IndexedDB initialization failed, falling back to localStorage:', error);
-      
+
       if (this.config.fallbackToLocalStorage && typeof localStorage !== 'undefined') {
         await this.initializeLocalStorage();
         this.useIndexedDB = false;
@@ -69,7 +73,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        
+
         // Create object store if it doesn't exist
         if (!db.objectStoreNames.contains(this.config.storeName)) {
           const store = db.createObjectStore(this.config.storeName, { keyPath: 'key' });
@@ -104,7 +108,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
   }
 
   private async setIndexedDB(key: string, item: any): Promise<void> {
-    if (!this.db) throw new Error('IndexedDB not initialized');
+    if (!this.db) {throw new Error('IndexedDB not initialized');}
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.config.storeName], 'readwrite');
@@ -137,13 +141,13 @@ export class WebStorageAdapter extends BaseStorageAdapter {
 
     if (this.useIndexedDB) {
       return this.getIndexedDB<T>(key);
-    } else {
+    } 
       return this.getLocalStorage<T>(key);
-    }
+    
   }
 
   private async getIndexedDB<T>(key: string): Promise<T | null> {
-    if (!this.db) throw new Error('IndexedDB not initialized');
+    if (!this.db) {throw new Error('IndexedDB not initialized');}
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.config.storeName], 'readonly');
@@ -151,7 +155,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
       const request = store.get(key);
 
       request.onsuccess = () => {
-        const result = request.result;
+        const {result} = request;
         if (!result) {
           resolve(null);
           return;
@@ -173,7 +177,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
   private async getLocalStorage<T>(key: string): Promise<T | null> {
     try {
       const serialized = localStorage.getItem(`${this.config.dbName}:${key}`);
-      if (!serialized) return null;
+      if (!serialized) {return null;}
 
       const item = JSON.parse(serialized);
       if (this.isExpired(item)) {
@@ -192,9 +196,9 @@ export class WebStorageAdapter extends BaseStorageAdapter {
 
     if (this.useIndexedDB) {
       return this.hasIndexedDB(key);
-    } else {
+    } 
       return this.hasLocalStorage(key);
-    }
+    
   }
 
   private async hasIndexedDB(key: string): Promise<boolean> {
@@ -220,7 +224,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
   }
 
   private async removeIndexedDB(key: string): Promise<void> {
-    if (!this.db) throw new Error('IndexedDB not initialized');
+    if (!this.db) {throw new Error('IndexedDB not initialized');}
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.config.storeName], 'readwrite');
@@ -250,7 +254,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
   }
 
   private async clearIndexedDB(prefix?: string): Promise<void> {
-    if (!this.db) throw new Error('IndexedDB not initialized');
+    if (!this.db) {throw new Error('IndexedDB not initialized');}
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.config.storeName], 'readwrite');
@@ -280,7 +284,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
 
   private async clearLocalStorage(prefix?: string): Promise<void> {
     const keysToRemove: string[] = [];
-    
+
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith(`${this.config.dbName}:`)) {
@@ -298,13 +302,13 @@ export class WebStorageAdapter extends BaseStorageAdapter {
 
     if (this.useIndexedDB) {
       return this.keysIndexedDB(prefix);
-    } else {
+    } 
       return this.keysLocalStorage(prefix);
-    }
+    
   }
 
   private async keysIndexedDB(prefix?: string): Promise<string[]> {
-    if (!this.db) throw new Error('IndexedDB not initialized');
+    if (!this.db) {throw new Error('IndexedDB not initialized');}
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.config.storeName], 'readonly');
@@ -324,7 +328,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
 
   private async keysLocalStorage(prefix?: string): Promise<string[]> {
     const keys: string[] = [];
-    
+
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith(`${this.config.dbName}:`)) {
@@ -370,7 +374,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
   }
 
   private async cleanupIndexedDB(): Promise<number> {
-    if (!this.db) throw new Error('IndexedDB not initialized');
+    if (!this.db) {throw new Error('IndexedDB not initialized');}
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.config.storeName], 'readwrite');
@@ -422,7 +426,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
     try {
       const keys = await this.keys();
       this.stats.totalKeys = keys.length;
-      
+
       // Calculate total size (approximation)
       let totalSize = 0;
       for (const key of keys.slice(0, 100)) { // Sample first 100 keys
@@ -431,7 +435,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
           totalSize += this.calculateSize(value);
         }
       }
-      
+
       // Extrapolate for all keys
       this.stats.totalSize = Math.round((totalSize / Math.min(keys.length, 100)) * keys.length);
     } catch (error) {
@@ -444,7 +448,7 @@ export class WebStorageAdapter extends BaseStorageAdapter {
       this.db.close();
       this.db = null;
     }
-    
+
     if (!this.useIndexedDB) {
       await this.clearLocalStorage();
     }

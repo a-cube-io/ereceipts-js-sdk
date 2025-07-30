@@ -40,8 +40,11 @@ export interface CryptoKeyPair {
 
 export class AdvancedEncryption {
   private keys = new Map<string, CryptoKey>();
+
   private keyPairs = new Map<string, CryptoKeyPair>();
+
   private config: EncryptionConfig;
+
   private initialized = false;
 
   constructor(config?: Partial<EncryptionConfig>) {
@@ -68,14 +71,14 @@ export class AdvancedEncryption {
    */
   async generateSymmetricKey(keyId?: string): Promise<string> {
     const id = keyId || this.generateKeyId();
-    
+
     const key = await crypto.subtle.generateKey(
       {
         name: this.config.algorithm,
         length: this.config.keyLength,
       },
       true, // extractable
-      ['encrypt', 'decrypt']
+      ['encrypt', 'decrypt'],
     );
 
     this.keys.set(id, key);
@@ -87,7 +90,7 @@ export class AdvancedEncryption {
    */
   async generateKeyPair(algorithm: 'RSA-OAEP' | 'ECDSA' = 'RSA-OAEP', keyId?: string): Promise<string> {
     const id = keyId || this.generateKeyId();
-    
+
     let keyGenParams: RsaHashedKeyGenParams | EcKeyGenParams;
     let usages: KeyUsage[];
 
@@ -110,7 +113,7 @@ export class AdvancedEncryption {
     const keyPair = await crypto.subtle.generateKey(
       keyGenParams,
       true, // extractable
-      usages
+      usages,
     );
 
     const cryptoKeyPair: CryptoKeyPair = {
@@ -132,7 +135,7 @@ export class AdvancedEncryption {
   async deriveKeyFromPassword(password: string, salt?: Uint8Array): Promise<string> {
     const keyId = this.generateKeyId();
     const usedSalt = salt || crypto.getRandomValues(new Uint8Array(16));
-    
+
     const encoder = new TextEncoder();
     const passwordBuffer = encoder.encode(password);
 
@@ -142,7 +145,7 @@ export class AdvancedEncryption {
       passwordBuffer,
       { name: 'PBKDF2' },
       false,
-      ['deriveKey']
+      ['deriveKey'],
     );
 
     // Derive the actual encryption key
@@ -159,14 +162,14 @@ export class AdvancedEncryption {
         length: this.config.keyLength,
       },
       true,
-      ['encrypt', 'decrypt']
+      ['encrypt', 'decrypt'],
     );
 
     this.keys.set(keyId, derivedKey);
-    
+
     // Update salt in config for later use
     this.config.keyDerivation.salt = usedSalt;
-    
+
     return keyId;
   }
 
@@ -199,19 +202,19 @@ export class AdvancedEncryption {
     const encryptedBuffer = await crypto.subtle.encrypt(
       {
         name: this.config.algorithm,
-        iv: iv,
+        iv,
       },
       key,
-      dataBuffer
+      dataBuffer,
     );
 
     const encryptedArray = new Uint8Array(encryptedBuffer);
-    
+
     // For GCM, the auth tag is included in the encrypted data
-    const authTag = this.config.algorithm === 'AES-GCM' 
+    const authTag = this.config.algorithm === 'AES-GCM'
       ? encryptedArray.slice(-16) // Last 16 bytes
       : undefined;
-    
+
     const ciphertext = this.config.algorithm === 'AES-GCM'
       ? encryptedArray.slice(0, -16) // All but last 16 bytes
       : encryptedArray;
@@ -254,7 +257,7 @@ export class AdvancedEncryption {
         iv: encryptedData.iv,
       },
       key,
-      fullEncryptedBuffer
+      fullEncryptedBuffer,
     );
 
     let result = new Uint8Array(decryptedBuffer);
@@ -286,7 +289,7 @@ export class AdvancedEncryption {
 
     // RSA-OAEP has size limitations, so we might need to chunk large data
     const maxChunkSize = Math.floor((this.config.keyLength as number) / 8) - 42; // OAEP padding overhead
-    
+
     if (dataBuffer.length > maxChunkSize) {
       throw new Error(`Data too large for RSA encryption. Max size: ${maxChunkSize} bytes`);
     }
@@ -297,7 +300,7 @@ export class AdvancedEncryption {
         name: 'RSA-OAEP',
       },
       keyPair.publicKey,
-      dataBuffer
+      dataBuffer,
     );
 
     return {
@@ -326,7 +329,7 @@ export class AdvancedEncryption {
         name: 'RSA-OAEP',
       },
       keyPair.privateKey,
-      encryptedData.data
+      encryptedData.data,
     );
 
     return new Uint8Array(decryptedBuffer);
@@ -339,20 +342,20 @@ export class AdvancedEncryption {
     const symmetricKey = this.keys.get(keyId);
     if (symmetricKey) {
       if (format === 'jwk') {
-        return await crypto.subtle.exportKey('jwk', symmetricKey) as JsonWebKey;
-      } else {
-        return await crypto.subtle.exportKey(format as 'raw', symmetricKey) as ArrayBuffer;
-      }
+        return crypto.subtle.exportKey('jwk', symmetricKey);
+      } 
+        return crypto.subtle.exportKey(format as 'raw', symmetricKey);
+      
     }
 
     const keyPair = this.keyPairs.get(keyId);
     if (keyPair) {
       // Export public key by default, private key requires special handling
       if (format === 'jwk') {
-        return await crypto.subtle.exportKey('jwk', keyPair.publicKey) as JsonWebKey;
-      } else {
-        return await crypto.subtle.exportKey(format as 'spki', keyPair.publicKey) as ArrayBuffer;
-      }
+        return crypto.subtle.exportKey('jwk', keyPair.publicKey);
+      } 
+        return crypto.subtle.exportKey(format as 'spki', keyPair.publicKey);
+      
     }
 
     throw new Error(`Key not found: ${keyId}`);
@@ -365,7 +368,7 @@ export class AdvancedEncryption {
     keyData: JsonWebKey | ArrayBuffer,
     algorithm: string,
     keyId?: string,
-    usages: KeyUsage[] = ['encrypt', 'decrypt']
+    usages: KeyUsage[] = ['encrypt', 'decrypt'],
   ): Promise<string> {
     const id = keyId || this.generateKeyId();
 
@@ -387,7 +390,7 @@ export class AdvancedEncryption {
 
     const importedKey = await (format === 'jwk'
       ? crypto.subtle.importKey('jwk', keyData as JsonWebKey, algorithmParams, true, usages)
-      : crypto.subtle.importKey(format as 'raw' | 'spki', keyData as ArrayBuffer, algorithmParams, true, usages));
+      : crypto.subtle.importKey(format, keyData as ArrayBuffer, algorithmParams, true, usages));
 
     if (algorithm === 'AES-GCM') {
       this.keys.set(id, importedKey);
@@ -601,8 +604,8 @@ export class AdvancedEncryption {
    * Initialize the encryption system
    */
   async initialize(): Promise<void> {
-    if (this.initialized) return;
-    
+    if (this.initialized) {return;}
+
     // Generate a default key for certificate encryption
     await this.generateSymmetricKey('default');
     this.initialized = true;

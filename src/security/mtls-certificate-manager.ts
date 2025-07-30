@@ -1,7 +1,7 @@
 /**
  * mTLS Certificate Manager
  * Secure storage and management of mTLS certificates for POS devices
- * 
+ *
  * Features:
  * - Secure storage of certificates received from server
  * - Cross-platform certificate management
@@ -9,12 +9,13 @@
  * - Integration with cash register endpoints
  */
 
-import { EventEmitter } from 'eventemitter3';
 import type { UnifiedStorage } from '@/storage/unified-storage';
-import { createStorageKey } from '@/storage/unified-storage';
+import type { SerialNumber, CashRegisterId } from '@/types/branded';
+
+import { EventEmitter } from 'eventemitter3';
 import { createStorage } from '@/storage/storage-factory';
+import { createStorageKey } from '@/storage/unified-storage';
 import { AdvancedEncryption, type EncryptedData } from '@/security/encryption';
-import type { CashRegisterId, SerialNumber } from '@/types/branded';
 
 /**
  * mTLS Certificate data structure
@@ -22,37 +23,37 @@ import type { CashRegisterId, SerialNumber } from '@/types/branded';
 export interface MTLSCertificate {
   /** Unique identifier for the cash register */
   cashRegisterId: CashRegisterId;
-  
+
   /** PEM serial number from the device */
   pemSerialNumber: SerialNumber;
-  
+
   /** Human-readable name for the cash register */
   name: string;
-  
+
   /** The actual mTLS certificate in PEM format */
   certificate: string;
-  
+
   /** Certificate metadata */
   metadata: {
     /** When the certificate was issued */
     issuedAt: Date;
-    
+
     /** When the certificate expires (if available) */
     expiresAt?: Date;
-    
+
     /** Certificate authority information */
     issuer?: string;
-    
+
     /** Certificate subject information */
     subject?: string;
-    
+
     /** Certificate fingerprint for validation */
     fingerprint?: string;
   };
-  
+
   /** When this certificate was stored locally */
   storedAt: Date;
-  
+
   /** Certificate status */
   status: 'active' | 'expired' | 'revoked' | 'pending';
 }
@@ -72,21 +73,21 @@ interface StoredCertificateData {
 export interface MTLSCertificateManagerConfig {
   /** Storage key for certificates */
   storageKey?: string;
-  
+
   /** Enable encryption for stored certificates */
   enableEncryption?: boolean;
-  
+
   /** Storage adapter type */
   storageAdapter?: 'memory' | 'localStorage' | 'indexedDB' | 'reactNative';
-  
+
   /** Certificate validation options */
   validation?: {
     /** Validate certificate format */
     validateFormat?: boolean;
-    
+
     /** Check certificate expiration */
     checkExpiration?: boolean;
-    
+
     /** Validate certificate chain */
     validateChain?: boolean;
   };
@@ -120,8 +121,11 @@ const DEFAULT_CONFIG: Required<MTLSCertificateManagerConfig> = {
  */
 export class MTLSCertificateManager extends EventEmitter<CertificateEvents> {
   private config: Required<MTLSCertificateManagerConfig>;
+
   private storage: UnifiedStorage | null = null;
+
   private encryption: AdvancedEncryption | null = null;
+
   private initialized = false;
 
   constructor(config: MTLSCertificateManagerConfig = {}) {
@@ -137,11 +141,11 @@ export class MTLSCertificateManager extends EventEmitter<CertificateEvents> {
       // Initialize storage
       const adapterMapping: Record<string, 'indexeddb' | 'localstorage' | 'auto'> = {
         'memory': 'localstorage',
-        'localStorage': 'localstorage', 
+        'localStorage': 'localstorage',
         'indexedDB': 'indexeddb',
         'reactNative': 'localstorage',
       };
-      
+
       this.storage = await createStorage({
         preferredAdapter: adapterMapping[this.config.storageAdapter] || 'auto',
         encryption: this.config.enableEncryption ? { enabled: true } : { enabled: false },
@@ -168,14 +172,14 @@ export class MTLSCertificateManager extends EventEmitter<CertificateEvents> {
     cashRegisterId: CashRegisterId,
     pemSerialNumber: SerialNumber,
     name: string,
-    certificate: string
+    certificate: string,
   ): Promise<MTLSCertificate> {
     this.ensureInitialized();
 
     try {
       // Parse certificate metadata
       const metadata = this.parseCertificateMetadata(certificate);
-      
+
       // Create certificate object
       const mtlsCertificate: MTLSCertificate = {
         cashRegisterId,
@@ -194,10 +198,10 @@ export class MTLSCertificateManager extends EventEmitter<CertificateEvents> {
 
       // Get existing certificates
       const existingData = await this.getStoredData();
-      
+
       // Store certificate
       existingData.certificates[cashRegisterId] = mtlsCertificate;
-      
+
       // Save to storage
       await this.saveStoredData(existingData);
 
@@ -261,8 +265,8 @@ export class MTLSCertificateManager extends EventEmitter<CertificateEvents> {
    * Update certificate status
    */
   async updateCertificateStatus(
-    cashRegisterId: CashRegisterId, 
-    status: MTLSCertificate['status']
+    cashRegisterId: CashRegisterId,
+    status: MTLSCertificate['status'],
   ): Promise<void> {
     this.ensureInitialized();
 
@@ -290,7 +294,7 @@ export class MTLSCertificateManager extends EventEmitter<CertificateEvents> {
     try {
       const storedData = await this.getStoredData();
       const existed = !!storedData.certificates[cashRegisterId];
-      
+
       delete storedData.certificates[cashRegisterId];
       await this.saveStoredData(storedData);
 
@@ -338,14 +342,14 @@ export class MTLSCertificateManager extends EventEmitter<CertificateEvents> {
     try {
       const storedData = await this.getStoredData();
       const certificates = Object.values(storedData.certificates);
-      
+
       const activeCertificates = certificates.filter(cert => cert.status === 'active').length;
       const expiredCertificates = certificates.filter(cert => cert.status === 'expired').length;
-      
+
       // Estimate storage size (rough calculation)
       const storageSize = JSON.stringify(storedData).length;
-      
-      const lastUpdate = certificates.length > 0 
+
+      const lastUpdate = certificates.length > 0
         ? new Date(Math.max(...certificates.map(cert => cert.storedAt.getTime())))
         : null;
 
@@ -401,7 +405,7 @@ export class MTLSCertificateManager extends EventEmitter<CertificateEvents> {
     if (this.storage) {
       await this.storage.destroy();
     }
-    
+
     this.removeAllListeners();
     this.initialized = false;
   }
@@ -422,7 +426,7 @@ export class MTLSCertificateManager extends EventEmitter<CertificateEvents> {
     try {
       const storageKey = createStorageKey(this.config.storageKey);
       const result = await this.storage.get(storageKey);
-      
+
       if (!result || !result.data) {
         return {
           certificates: {},
@@ -433,9 +437,9 @@ export class MTLSCertificateManager extends EventEmitter<CertificateEvents> {
 
       // Handle both encrypted and unencrypted data
       const data = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
-      
+
       let parsedData: StoredCertificateData;
-      
+
       if (this.config.enableEncryption && this.encryption) {
         try {
           const encryptedDataObj = JSON.parse(data);
@@ -506,7 +510,7 @@ export class MTLSCertificateManager extends EventEmitter<CertificateEvents> {
       // Extract basic information from PEM certificate
       // This is a simplified parser - in production you might want to use
       // a proper certificate parsing library
-      
+
       const certLines = certificate.split('\n');
       const certData = certLines.find(line => line.includes('Subject:'));
       if (certData) {
@@ -523,7 +527,7 @@ export class MTLSCertificateManager extends EventEmitter<CertificateEvents> {
       for (let i = 0; i < certificate.length; i++) {
         const char = certificate.charCodeAt(i);
         hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
+        hash &= hash; // Convert to 32-bit integer
       }
       metadata.fingerprint = Math.abs(hash).toString(16);
 
@@ -535,7 +539,7 @@ export class MTLSCertificateManager extends EventEmitter<CertificateEvents> {
   }
 
   private validateCertificateFormat(certificate: string): void {
-    if (!certificate.includes('-----BEGIN CERTIFICATE-----') || 
+    if (!certificate.includes('-----BEGIN CERTIFICATE-----') ||
         !certificate.includes('-----END CERTIFICATE-----')) {
       throw new Error('Invalid certificate format: must be PEM format');
     }

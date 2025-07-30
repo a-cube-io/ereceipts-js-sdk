@@ -3,9 +3,11 @@
  * Provides intelligent caching with TTL, invalidation, and cache warming
  */
 
+import type { HttpResponse, RequestOptions } from '@/http/client';
+
 import { BasePlugin } from '../core/base-plugin';
+
 import type { PluginContext, PluginManifest } from '../core/plugin-manager';
-import type { RequestOptions, HttpResponse } from '@/http/client';
 
 export interface CacheEntry<T = any> {
   key: string;
@@ -73,12 +75,14 @@ export class CachePlugin extends BasePlugin {
   };
 
   private cache = new Map<string, CacheEntry>();
+
   private stats = {
     hits: 0,
     misses: 0,
     evictions: 0,
     totalRequests: 0,
   };
+
   private config: CacheConfig = {
     enabled: true,
     maxSize: 1000,
@@ -89,8 +93,11 @@ export class CachePlugin extends BasePlugin {
     maxMemoryMB: 50,
     warmupUrls: [],
   };
+
   private warmupRules: CacheWarmupRule[] = [];
+
   private warmupInterval?: NodeJS.Timeout;
+
   private isEnabled: boolean = true;
 
   protected async initialize(_context: PluginContext): Promise<void> {
@@ -172,7 +179,7 @@ export class CachePlugin extends BasePlugin {
       // Cache hit - return cached response
       this.stats.hits++;
       this.stats.totalRequests++;
-      
+
       cached.hits++;
       cached.lastAccessed = Date.now();
 
@@ -185,7 +192,7 @@ export class CachePlugin extends BasePlugin {
         duration: 0,
         requestId: `cached_${Date.now()}`,
       };
-      
+
       // Add extended properties using type assertion for cache metadata
       (cachedResponse as any).config = options;
       (cachedResponse as any).fromCache = true;
@@ -223,11 +230,11 @@ export class CachePlugin extends BasePlugin {
   }
 
   protected override async processResponse(_context: PluginContext, response: HttpResponse<any>): Promise<HttpResponse<any>> {
-    if (!this.isEnabled) return response;
+    if (!this.isEnabled) {return response;}
 
     // Defensive typing for config property
     const responseConfig = (response as any).config;
-    
+
     // Return cached response if available
     if (responseConfig?.metadata?._cachedResponse) {
       return responseConfig.metadata._cachedResponse;
@@ -292,7 +299,7 @@ export class CachePlugin extends BasePlugin {
    */
   public clearByTags(tags: string[]): number {
     let cleared = 0;
-    
+
     for (const [key, entry] of this.cache.entries()) {
       if (tags.some(tag => entry.tags.includes(tag))) {
         this.cache.delete(key);
@@ -348,7 +355,7 @@ export class CachePlugin extends BasePlugin {
    * Warm cache with predefined URLs
    */
   public async warmCache(urls: string[] = this.config.warmupUrls): Promise<void> {
-    if (!this.isEnabled || urls.length === 0) return;
+    if (!this.isEnabled || urls.length === 0) {return;}
 
     this.log('info', `Starting cache warmup for ${urls.length} URLs`);
 
@@ -381,7 +388,7 @@ export class CachePlugin extends BasePlugin {
     if (this.warmupInterval) {
       clearInterval(this.warmupInterval);
     }
-    
+
     if (rules.length > 0) {
       this.startCacheWarmup();
     }
@@ -402,7 +409,7 @@ export class CachePlugin extends BasePlugin {
    */
   public getEntriesByTags(tags: string[]): CacheEntry[] {
     return Array.from(this.cache.values()).filter(entry =>
-      tags.some(tag => entry.tags.includes(tag))
+      tags.some(tag => entry.tags.includes(tag)),
     );
   }
 
@@ -444,20 +451,20 @@ export class CachePlugin extends BasePlugin {
 
   private shouldCache(options: RequestOptions): boolean {
     // Only cache GET requests by default
-    if (options.method !== 'GET') return false;
+    if (options.method !== 'GET') {return false;}
 
     // Don't cache if explicitly disabled
-    if (options.headers?.['X-No-Cache'] === 'true') return false;
+    if (options.headers?.['X-No-Cache'] === 'true') {return false;}
 
     // Don't cache warmup requests
-    if (options.headers?.['X-Cache-Warmup'] === 'true') return false;
+    if (options.headers?.['X-Cache-Warmup'] === 'true') {return false;}
 
     return true;
   }
 
   private shouldCacheResponse(response: HttpResponse<any>): boolean {
     // Only cache successful responses
-    if (response.status < 200 || response.status >= 300) return false;
+    if (response.status < 200 || response.status >= 300) {return false;}
 
     // Don't cache responses with no-cache headers
     const cacheControl = response.headers?.['cache-control'];
@@ -475,7 +482,7 @@ export class CachePlugin extends BasePlugin {
       .map(([key, value]) => `${key}=${value}`)
       .join('&');
 
-    return `${options.method}:${url.pathname}${params ? '?' + params : ''}`;
+    return `${options.method}:${url.pathname}${params ? `?${  params}` : ''}`;
   }
 
   private determineTtl(response: HttpResponse<any>): number {
@@ -492,7 +499,7 @@ export class CachePlugin extends BasePlugin {
     }
 
     // Check Expires header
-    const expires = response.headers?.['expires'];
+    const expires = response.headers?.expires;
     if (expires) {
       const expiresTime = new Date(expires).getTime();
       const now = Date.now();
@@ -526,13 +533,13 @@ export class CachePlugin extends BasePlugin {
           .sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed)
           .slice(0, entriesToEvict);
         break;
-      
+
       case 'lfu':
         evicted = entries
           .sort(([, a], [, b]) => a.hits - b.hits)
           .slice(0, entriesToEvict);
         break;
-      
+
       case 'fifo':
       default:
         evicted = entries
@@ -546,9 +553,9 @@ export class CachePlugin extends BasePlugin {
       this.stats.evictions++;
     }
 
-    this.emitEvent('cache_eviction', { 
-      strategy: this.config.strategy, 
-      count: evicted.length 
+    this.emitEvent('cache_eviction', {
+      strategy: this.config.strategy,
+      count: evicted.length,
     });
 
     this.log('debug', `Evicted ${evicted.length} cache entries using ${this.config.strategy} strategy`);
@@ -571,14 +578,14 @@ export class CachePlugin extends BasePlugin {
   }
 
   private calculateHitRate(): number {
-    return this.stats.totalRequests > 0 
-      ? this.stats.hits / this.stats.totalRequests 
+    return this.stats.totalRequests > 0
+      ? this.stats.hits / this.stats.totalRequests
       : 0;
   }
 
   private calculateSize(data: any): number {
-    if (!data) return 0;
-    
+    if (!data) {return 0;}
+
     try {
       return new Blob([JSON.stringify(data)]).size;
     } catch {
@@ -589,7 +596,7 @@ export class CachePlugin extends BasePlugin {
   private calculateMemoryUsage(totalSize?: number): { used: number; available: number; percentage: number } {
     const used = totalSize || Array.from(this.cache.values())
       .reduce((sum, entry) => sum + this.calculateSize(entry.data), 0);
-    
+
     const available = this.config.maxMemoryMB * 1024 * 1024; // Convert MB to bytes
     const percentage = available > 0 ? (used / available) * 100 : 0;
 
@@ -635,16 +642,16 @@ export class CachePlugin extends BasePlugin {
         const endParts = rule.conditions.timeRange.end.split(':').map(Number);
         const [startHour, startMinute] = startParts;
         const [endHour, endMinute] = endParts;
-        
-        if (startHour === undefined || startMinute === undefined || 
+
+        if (startHour === undefined || startMinute === undefined ||
             endHour === undefined || endMinute === undefined) {
           return false; // Skip invalid time range
         }
-        
+
         const currentTime = hour * 60 + minute;
         const startTime = startHour * 60 + startMinute;
         const endTime = endHour * 60 + endMinute;
-        
+
         if (currentTime < startTime || currentTime > endTime) {
           return false;
         }
@@ -663,7 +670,7 @@ export class CachePlugin extends BasePlugin {
         return regex.test(url);
       });
     }
-    
+
     return [pattern];
   }
 
@@ -671,7 +678,7 @@ export class CachePlugin extends BasePlugin {
     try {
       const persistedEntries = this.getFromStorage<Array<[string, CacheEntry]>>('cache_entries');
       const persistedStats = this.getFromStorage<typeof this.stats>('cache_stats');
-      
+
       if (persistedEntries) {
         for (const [key, entry] of persistedEntries) {
           if (!this.isExpired(entry)) {
@@ -679,11 +686,11 @@ export class CachePlugin extends BasePlugin {
           }
         }
       }
-      
+
       if (persistedStats) {
         this.stats = { ...this.stats, ...persistedStats };
       }
-      
+
       this.log('debug', 'Loaded persisted cache', {
         entries: this.cache.size,
         hitRate: this.calculateHitRate(),
@@ -698,7 +705,7 @@ export class CachePlugin extends BasePlugin {
       const entries = Array.from(this.cache.entries());
       this.setInStorage('cache_entries', entries);
       this.setInStorage('cache_stats', this.stats);
-      
+
       this.log('debug', 'Persisted cache', {
         entries: entries.length,
         hitRate: this.calculateHitRate(),

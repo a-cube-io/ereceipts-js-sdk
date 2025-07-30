@@ -3,7 +3,7 @@
  * Event definitions for auth state changes and notifications
  */
 
-import type { AuthUser, AuthError, OAuth2TokenResponse, TokenStatus } from './types';
+import type { AuthUser, AuthError, TokenStatus, OAuth2TokenResponse } from './types';
 
 /**
  * Authentication event types
@@ -14,35 +14,35 @@ export enum AuthEventType {
   LOGIN_SUCCESS = 'auth:login:success',
   LOGIN_FAILURE = 'auth:login:failure',
   LOGOUT = 'auth:logout',
-  
+
   // Token management
   TOKEN_REFRESH_START = 'auth:token:refresh:start',
   TOKEN_REFRESH_SUCCESS = 'auth:token:refresh:success',
   TOKEN_REFRESH_FAILURE = 'auth:token:refresh:failure',
   TOKEN_EXPIRED = 'auth:token:expired',
   TOKEN_REVOKED = 'auth:token:revoked',
-  
+
   // Session management
   SESSION_CREATED = 'auth:session:created',
   SESSION_RESTORED = 'auth:session:restored',
   SESSION_EXPIRED = 'auth:session:expired',
   SESSION_TERMINATED = 'auth:session:terminated',
-  
+
   // User state
   USER_UPDATED = 'auth:user:updated',
   ROLE_CHANGED = 'auth:role:changed',
   PERMISSION_CHANGED = 'auth:permission:changed',
-  
+
   // Security events
   SECURITY_WARNING = 'auth:security:warning',
   UNAUTHORIZED_ACCESS = 'auth:security:unauthorized',
   MFA_REQUIRED = 'auth:security:mfa:required',
   MFA_COMPLETED = 'auth:security:mfa:completed',
-  
+
   // Storage events
   STORAGE_ERROR = 'auth:storage:error',
   STORAGE_CLEARED = 'auth:storage:cleared',
-  
+
   // Network events
   NETWORK_ERROR = 'auth:network:error',
   API_RATE_LIMITED = 'auth:api:rate_limited',
@@ -322,7 +322,7 @@ export type AuthEventListeners = {
 export function createAuthEvent<T extends AuthEvent>(
   type: T['type'],
   data: T['data'],
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
 ): T {
   return {
     type,

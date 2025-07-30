@@ -133,11 +133,17 @@ export interface AccessAuditEntry {
 
 export class AccessControlManager {
   private config: AccessControlConfig;
+
   private users = new Map<string, User>();
+
   private roles = new Map<string, Role>();
+
   private sessions = new Map<string, UserSession>();
+
   private accessRequests = new Map<string, AccessRequest>();
+
   private auditLog: AccessAuditEntry[] = [];
+
   private permissionCache = new Map<string, { permissions: Permission[]; expiresAt: number }>();
 
   constructor(config?: Partial<AccessControlConfig>) {
@@ -173,7 +179,7 @@ export class AccessControlManager {
    */
   async createUser(
     userData: Omit<User, 'id' | 'sessions' | 'failedAttempts' | 'metadata'>,
-    createdBy: string
+    createdBy: string,
   ): Promise<string> {
     if (!this.config.enabled) {
       throw new Error('Access control is disabled');
@@ -286,7 +292,7 @@ export class AccessControlManager {
    */
   async createRole(
     roleData: Omit<Role, 'id' | 'metadata'>,
-    createdBy: string
+    createdBy: string,
   ): Promise<string> {
     const roleId = this.generateRoleId();
     const now = Date.now();
@@ -326,7 +332,7 @@ export class AccessControlManager {
    */
   async authenticate(
     userId: string,
-    context: AccessContext
+    context: AccessContext,
   ): Promise<{ sessionId: string; permissions: Permission[] }> {
     const user = this.users.get(userId);
     if (!user) {
@@ -424,7 +430,7 @@ export class AccessControlManager {
     sessionId: string,
     resource: string,
     action: string,
-    context: AccessContext
+    context: AccessContext,
   ): Promise<{ granted: boolean; reason?: string; requiresApproval?: boolean }> {
     if (!this.config.enabled) {
       return { granted: true };
@@ -437,7 +443,7 @@ export class AccessControlManager {
         sessionId,
         action: 'access_denied',
         resource,
-        details: { 
+        details: {
           reason: 'invalid_session',
           requestedAction: action,
         },
@@ -456,7 +462,7 @@ export class AccessControlManager {
         sessionId,
         action: 'access_denied',
         resource,
-        details: { 
+        details: {
           reason: 'session_expired',
           requestedAction: action,
         },
@@ -484,7 +490,7 @@ export class AccessControlManager {
       resource,
       action,
       user,
-      context
+      context,
     );
 
     // Create access request record
@@ -534,7 +540,7 @@ export class AccessControlManager {
   async approveAccess(
     requestId: string,
     approvedBy: string,
-    context: AccessContext
+    context: AccessContext,
   ): Promise<void> {
     const request = this.accessRequests.get(requestId);
     if (!request) {
@@ -569,7 +575,7 @@ export class AccessControlManager {
    */
   async terminateSession(sessionId: string): Promise<void> {
     const session = this.sessions.get(sessionId);
-    if (!session) return;
+    if (!session) {return;}
 
     session.status = 'terminated';
     this.sessions.delete(sessionId);
@@ -606,24 +612,24 @@ export class AccessControlManager {
   async getUserPermissions(userId: string): Promise<Permission[]> {
     const cacheKey = `user_${userId}`;
     const cached = this.permissionCache.get(cacheKey);
-    
+
     if (cached && Date.now() < cached.expiresAt) {
       return cached.permissions;
     }
 
     const user = this.users.get(userId);
-    if (!user) return [];
+    if (!user) {return [];}
 
     const permissions: Permission[] = [];
     const processedRoles = new Set<string>();
 
     // Recursively process roles and their inheritance
     const processRole = (roleId: string) => {
-      if (processedRoles.has(roleId)) return;
+      if (processedRoles.has(roleId)) {return;}
       processedRoles.add(roleId);
 
       const role = this.roles.get(roleId);
-      if (!role) return;
+      if (!role) {return;}
 
       // Add role permissions
       permissions.push(...role.permissions);
@@ -643,10 +649,10 @@ export class AccessControlManager {
 
     // Remove duplicates and sort by priority (deny effects first)
     const uniquePermissions = Array.from(
-      new Map(permissions.map(p => [`${p.resource}:${p.action}`, p])).values()
+      new Map(permissions.map(p => [`${p.resource}:${p.action}`, p])).values(),
     ).sort((a, b) => {
-      if (a.effect === 'deny' && b.effect === 'allow') return -1;
-      if (a.effect === 'allow' && b.effect === 'deny') return 1;
+      if (a.effect === 'deny' && b.effect === 'allow') {return -1;}
+      if (a.effect === 'allow' && b.effect === 'deny') {return 1;}
       return 0;
     });
 
@@ -675,22 +681,22 @@ export class AccessControlManager {
       if (filter.userId) {
         filteredLog = filteredLog.filter(entry => entry.userId === filter.userId);
       }
-      
+
       if (filter.action) {
         filteredLog = filteredLog.filter(entry => entry.action === filter.action);
       }
-      
+
       if (filter.resource) {
         filteredLog = filteredLog.filter(entry => entry.resource === filter.resource);
       }
-      
+
       if (filter.timeRange) {
-        filteredLog = filteredLog.filter(entry => 
-          entry.timestamp >= filter.timeRange!.start && 
-          entry.timestamp <= filter.timeRange!.end
+        filteredLog = filteredLog.filter(entry =>
+          entry.timestamp >= filter.timeRange!.start &&
+          entry.timestamp <= filter.timeRange!.end,
         );
       }
-      
+
       if (filter.riskLevel) {
         filteredLog = filteredLog.filter(entry => entry.riskLevel === filter.riskLevel);
       }
@@ -776,12 +782,12 @@ export class AccessControlManager {
     resource: string,
     action: string,
     user: User,
-    context: AccessContext
+    context: AccessContext,
   ): Promise<{ granted: boolean; reason?: string }> {
     // Find applicable permissions
-    const applicablePermissions = permissions.filter(p => 
-      this.matchesResource(p.resource, resource) && 
-      this.matchesAction(p.action, action)
+    const applicablePermissions = permissions.filter(p =>
+      this.matchesResource(p.resource, resource) &&
+      this.matchesAction(p.action, action),
     );
 
     if (applicablePermissions.length === 0) {
@@ -793,13 +799,13 @@ export class AccessControlManager {
       const conditionsMet = await this.evaluateConditions(
         permission.conditions || [],
         user,
-        context
+        context,
       );
 
       if (conditionsMet) {
         if (permission.effect === 'deny') {
           return { granted: false, reason: 'Explicitly denied by permission rule' };
-        } else if (permission.effect === 'allow') {
+        } if (permission.effect === 'allow') {
           // Check scope if defined
           if (permission.scope && !this.checkScope(permission.scope, user, context)) {
             continue; // Skip this permission, check next
@@ -815,7 +821,7 @@ export class AccessControlManager {
   private async evaluateConditions(
     conditions: AccessCondition[],
     user: User,
-    context: AccessContext
+    context: AccessContext,
   ): Promise<boolean> {
     for (const condition of conditions) {
       if (!await this.evaluateCondition(condition, user, context)) {
@@ -828,7 +834,7 @@ export class AccessControlManager {
   private async evaluateCondition(
     condition: AccessCondition,
     user: User,
-    context: AccessContext
+    context: AccessContext,
   ): Promise<boolean> {
     let actualValue: any;
 
@@ -879,11 +885,11 @@ export class AccessControlManager {
   private checkScope(
     scope: Permission['scope'],
     user: User,
-    context: AccessContext
+    context: AccessContext,
   ): boolean {
-    if (!scope) return true;
+    if (!scope) {return true;}
 
-    if (scope.global) return true;
+    if (scope.global) {return true;}
 
     if (scope.organizations && user.metadata.department) {
       return scope.organizations.includes(user.metadata.department);
@@ -899,7 +905,7 @@ export class AccessControlManager {
 
   private matchesResource(permissionResource: string, requestedResource: string): boolean {
     // Support wildcards
-    if (permissionResource === '*') return true;
+    if (permissionResource === '*') {return true;}
     if (permissionResource.endsWith('*')) {
       const prefix = permissionResource.slice(0, -1);
       return requestedResource.startsWith(prefix);
@@ -909,7 +915,7 @@ export class AccessControlManager {
 
   private matchesAction(permissionAction: string, requestedAction: string): boolean {
     // Support wildcards
-    if (permissionAction === '*') return true;
+    if (permissionAction === '*') {return true;}
     if (permissionAction.endsWith('*')) {
       const prefix = permissionAction.slice(0, -1);
       return requestedAction.startsWith(prefix);
@@ -1020,7 +1026,7 @@ export class AccessControlManager {
   private startSessionCleanup(): void {
     setInterval(() => {
       const now = Date.now();
-      
+
       // Clean up expired sessions
       for (const [sessionId, session] of this.sessions.entries()) {
         if (session.expiresAt <= now) {
@@ -1032,7 +1038,7 @@ export class AccessControlManager {
       // Clean up old audit entries
       const retentionCutoff = now - this.config.audit.retentionPeriod;
       this.auditLog = this.auditLog.filter(entry => entry.timestamp > retentionCutoff);
-      
+
     }, 60 * 60 * 1000); // Every hour
   }
 

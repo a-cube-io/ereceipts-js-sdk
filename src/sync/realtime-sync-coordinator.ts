@@ -4,12 +4,14 @@
  * Manages sync sessions, client states, and ensures eventual consistency
  */
 
-import { EventEmitter } from 'events';
-import type { WebhookManager, WebhookPayload, WebhookEventType } from './webhook-manager';
-import type { ConflictResolutionEngine, ConflictData, ConflictResolution } from './conflict-resolution-engine';
 import type { ResourceType } from '@/storage/queue/types';
 
-export type SyncSessionState = 
+import { EventEmitter } from 'events';
+
+import type { WebhookManager, WebhookPayload, WebhookEventType } from './webhook-manager';
+import type { ConflictData, ConflictResolution, ConflictResolutionEngine } from './conflict-resolution-engine';
+
+export type SyncSessionState =
   | 'initializing'
   | 'syncing'
   | 'idle'
@@ -17,14 +19,14 @@ export type SyncSessionState =
   | 'error'
   | 'disconnected';
 
-export type ClientStatus = 
+export type ClientStatus =
   | 'online'
   | 'offline'
   | 'syncing'
   | 'conflicted'
   | 'error';
 
-export type SyncStrategy = 
+export type SyncStrategy =
   | 'optimistic'     // Apply changes immediately, resolve conflicts later
   | 'pessimistic'    // Wait for server confirmation before applying
   | 'collaborative'  // Real-time collaboration with operational transforms
@@ -151,10 +153,13 @@ export interface SyncCoordinatorEvents {
  */
 export class RealtimeSyncCoordinator extends EventEmitter {
   private sessions = new Map<string, SyncSession>();
+
   private clients = new Map<string, ClientInfo>();
+
   private operations = new Map<string, SyncOperation>();
+
   private events = new Map<string, SyncEvent>();
-  
+
   private stats: SyncCoordinatorStats = {
     activeSessions: 0,
     totalClients: 0,
@@ -182,13 +187,15 @@ export class RealtimeSyncCoordinator extends EventEmitter {
   };
 
   private heartbeatInterval?: NodeJS.Timeout;
+
   private metricsInterval?: NodeJS.Timeout;
+
   private isInitialized = false;
 
   constructor(
     private config: SyncCoordinatorConfig,
     private webhookManager?: WebhookManager,
-    private conflictEngine?: ConflictResolutionEngine
+    private conflictEngine?: ConflictResolutionEngine,
   ) {
     super();
     this.setMaxListeners(1000); // Support many clients
@@ -313,12 +320,12 @@ export class RealtimeSyncCoordinator extends EventEmitter {
     resourceType: ResourceType,
     resourceId: string,
     strategy: SyncStrategy = this.config.defaultStrategy,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): Promise<SyncSession> {
     // Check session limits
     const existingSessions = Array.from(this.sessions.values())
       .filter(s => s.resourceType === resourceType && s.resourceId === resourceId);
-    
+
     if (existingSessions.length >= this.config.maxSessionsPerResource) {
       throw new Error(`Maximum sessions reached for ${resourceType}:${resourceId}`);
     }
@@ -518,7 +525,7 @@ export class RealtimeSyncCoordinator extends EventEmitter {
    * Set up webhook event listeners
    */
   private setupWebhookListeners(): void {
-    if (!this.webhookManager) return;
+    if (!this.webhookManager) {return;}
 
     this.webhookManager.onEvent('receipt.created', this.handleResourceWebhook.bind(this));
     this.webhookManager.onEvent('receipt.updated', this.handleResourceWebhook.bind(this));
@@ -533,7 +540,7 @@ export class RealtimeSyncCoordinator extends EventEmitter {
    * Set up conflict resolution listeners
    */
   private setupConflictListeners(): void {
-    if (!this.conflictEngine) return;
+    if (!this.conflictEngine) {return;}
 
     this.conflictEngine.on('conflict:detected', this.handleConflictDetected.bind(this));
     this.conflictEngine.on('conflict:resolved', this.handleConflictResolved.bind(this));
@@ -547,7 +554,7 @@ export class RealtimeSyncCoordinator extends EventEmitter {
       // Find sessions for this resource
       const resourceType = this.extractResourceType(payload.type);
       const resourceId = this.extractResourceId(payload);
-      
+
       if (!resourceType || !resourceId) {
         return;
       }
@@ -570,7 +577,7 @@ export class RealtimeSyncCoordinator extends EventEmitter {
    */
   private async handleConflictDetected(event: { conflict: ConflictData }): Promise<void> {
     const { conflict } = event;
-    
+
     // Find session for this conflict
     const session = this.getSessionByResource(conflict.context.resourceType, conflict.context.resourceId);
     if (!session) {
@@ -601,7 +608,7 @@ export class RealtimeSyncCoordinator extends EventEmitter {
    */
   private async handleConflictResolved(event: { conflict: ConflictData; resolution: ConflictResolution }): Promise<void> {
     const { conflict, resolution } = event;
-    
+
     // Find session for this conflict
     const session = this.getSessionByResource(conflict.context.resourceType, conflict.context.resourceId);
     if (!session) {
@@ -676,7 +683,7 @@ export class RealtimeSyncCoordinator extends EventEmitter {
 
     // Apply operational transforms
     const transformedOperation = await this.applyOperationalTransforms(session, operation);
-    
+
     // Broadcast transformed operation
     const targetClients = session.participants
       .filter(p => p.id !== operation.clientId)
@@ -711,14 +718,14 @@ export class RealtimeSyncCoordinator extends EventEmitter {
   private async applyOperationalTransforms(session: SyncSession, operation: SyncOperation): Promise<SyncOperation> {
     // Simplified operational transform implementation
     // In a real system, this would be much more sophisticated
-    
+
     if (!operation.transforms || operation.transforms.length === 0) {
       return operation;
     }
 
     // Apply transforms to resolve conflicts
     const transformedData = await this.transformData(operation.data, operation.transforms);
-    
+
     return {
       ...operation,
       data: transformedData,
@@ -732,9 +739,9 @@ export class RealtimeSyncCoordinator extends EventEmitter {
   private async transformData(data: unknown, transforms: OperationalTransform[]): Promise<unknown> {
     // Simplified transform application
     // Real implementation would handle complex text/data transformations
-    
+
     let result = data;
-    
+
     for (const transform of transforms) {
       switch (transform.type) {
         case 'replace':
@@ -751,7 +758,7 @@ export class RealtimeSyncCoordinator extends EventEmitter {
           break;
       }
     }
-    
+
     return result;
   }
 
@@ -761,7 +768,7 @@ export class RealtimeSyncCoordinator extends EventEmitter {
   private async broadcastOperation(session: SyncSession, operation: SyncOperation, clientIds: string[]): Promise<void> {
     // In a real implementation, this would use WebSocket or similar real-time transport
     console.log(`Broadcasting operation ${operation.id} to ${clientIds.length} clients in session ${session.id}`);
-    
+
     // Create sync event
     const event: SyncEvent = {
       id: `event_${Date.now()}_${Math.random().toString(36).substring(2)}`,
@@ -899,7 +906,7 @@ export class RealtimeSyncCoordinator extends EventEmitter {
       totalClients: this.clients.size,
     };
     this.updateClientStats();
-    
+
     // Calculate operations per second
     const recentOperations = Array.from(this.operations.values())
       .filter(op => Date.now() - op.timestamp < 60000); // Last minute
@@ -984,8 +991,8 @@ export class RealtimeSyncCoordinator extends EventEmitter {
     };
 
     const resource = resourceMap[operation.resourceType];
-    const action = operation.type === 'create' ? 'created' : 
-                   operation.type === 'update' ? 'updated' : 
+    const action = operation.type === 'create' ? 'created' :
+                   operation.type === 'update' ? 'updated' :
                    operation.type === 'delete' ? 'deleted' : 'updated';
 
     return `${resource}.${action}` as WebhookEventType;
@@ -998,7 +1005,7 @@ export class RealtimeSyncCoordinator extends EventEmitter {
 export function createRealtimeSyncCoordinator(
   config: Partial<SyncCoordinatorConfig> = {},
   webhookManager?: WebhookManager,
-  conflictEngine?: ConflictResolutionEngine
+  conflictEngine?: ConflictResolutionEngine,
 ): RealtimeSyncCoordinator {
   const defaultConfig: SyncCoordinatorConfig = {
     enabled: true,
@@ -1019,6 +1026,6 @@ export function createRealtimeSyncCoordinator(
   return new RealtimeSyncCoordinator(
     { ...defaultConfig, ...config },
     webhookManager,
-    conflictEngine
+    conflictEngine,
   );
 }

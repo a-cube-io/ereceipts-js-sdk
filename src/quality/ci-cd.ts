@@ -131,7 +131,9 @@ export interface DeploymentConfig {
 
 export class CICDManager {
   private config: CICDConfig;
+
   private runs = new Map<string, PipelineRun>();
+
   private deployments = new Map<string, DeploymentConfig>();
 
   constructor(config?: Partial<CICDConfig>) {
@@ -169,7 +171,7 @@ export class CICDManager {
       trigger: string;
       author?: string;
       message?: string;
-    }
+    },
   ): Promise<string> {
     if (!this.config.enabled) {
       throw new Error('CI/CD is disabled');
@@ -285,23 +287,23 @@ export class CICDManager {
   async deployToEnvironment(
     environment: string,
     deploymentConfig: DeploymentConfig,
-    artifacts: ArtifactInfo[]
+    artifacts: ArtifactInfo[],
   ): Promise<string> {
     const deploymentId = this.generateRunId();
-    
+
     try {
       // Validate deployment config
       await this.validateDeployment(deploymentConfig);
-      
+
       // Execute deployment strategy
       await this.executeDeploymentStrategy(deploymentConfig, artifacts);
-      
+
       // Run health checks
       await this.runHealthChecks(deploymentConfig);
-      
+
       // Store deployment info
       this.deployments.set(deploymentId, deploymentConfig);
-      
+
       await this.sendNotification('deployment_success', {
         deploymentId,
         environment,
@@ -330,11 +332,11 @@ export class CICDManager {
         workflows['.github/workflows/ci.yml'] = this.generateGitHubWorkflow();
         workflows['.github/workflows/release.yml'] = this.generateGitHubReleaseWorkflow();
         break;
-      
+
       case 'gitlab':
         workflows['.gitlab-ci.yml'] = this.generateGitLabWorkflow();
         break;
-      
+
       case 'azure':
         workflows['azure-pipelines.yml'] = this.generateAzureWorkflow();
         break;
@@ -371,7 +373,7 @@ export class CICDManager {
     const totalRuns = recentRuns.length;
     const successfulRuns = recentRuns.filter(r => r.status === 'success').length;
     const successRate = totalRuns > 0 ? (successfulRuns / totalRuns) * 100 : 0;
-    
+
     const completedRuns = recentRuns.filter(r => r.duration);
     const averageDuration = completedRuns.length > 0
       ? completedRuns.reduce((sum, r) => sum + (r.duration || 0), 0) / completedRuns.length
@@ -415,9 +417,9 @@ export class CICDManager {
       if (pipeline.parallel) {
         // Execute steps in parallel
         await Promise.all(
-          pipeline.steps.map((step, index) => 
-            this.executeStep(run, step, index)
-          )
+          pipeline.steps.map((step, index) =>
+            this.executeStep(run, step, index),
+          ),
         );
       } else {
         // Execute steps sequentially
@@ -426,7 +428,7 @@ export class CICDManager {
           if (step) {
             await this.executeStep(run, step, i);
           }
-          
+
           const stepResult = run.steps[i];
           if (stepResult?.status === 'failure' && !step?.continueOnError) {
             throw new Error(`Step ${stepResult.name} failed`);
@@ -449,7 +451,7 @@ export class CICDManager {
   private async executeStep(
     run: PipelineRun,
     step: PipelineStep,
-    index: number
+    index: number,
   ): Promise<void> {
     const stepResult = run.steps[index];
     if (!stepResult) {
@@ -516,7 +518,7 @@ export class CICDManager {
 
   private evaluateConditions(
     conditions: PipelineCondition[],
-    context: { branch: string; commit: string }
+    context: { branch: string; commit: string },
   ): boolean {
     return conditions.every(condition => {
       switch (condition.type) {
@@ -534,7 +536,7 @@ export class CICDManager {
     if (config.replicas < 1) {
       throw new Error('Deployment must have at least 1 replica');
     }
-    
+
     if (config.healthChecks.enabled && !config.healthChecks.path) {
       throw new Error('Health check path is required when health checks are enabled');
     }
@@ -542,7 +544,7 @@ export class CICDManager {
 
   private async executeDeploymentStrategy(
     config: DeploymentConfig,
-    artifacts: ArtifactInfo[]
+    artifacts: ArtifactInfo[],
   ): Promise<void> {
     switch (config.strategy) {
       case 'rolling':
@@ -561,7 +563,7 @@ export class CICDManager {
 
   private async executeRollingDeployment(
     config: DeploymentConfig,
-    artifacts: ArtifactInfo[]
+    artifacts: ArtifactInfo[],
   ): Promise<void> {
     console.log(`Executing rolling deployment for ${config.environment} with ${artifacts.length} artifacts...`);
     await new Promise(resolve => setTimeout(resolve, 3000));
@@ -569,7 +571,7 @@ export class CICDManager {
 
   private async executeBlueGreenDeployment(
     config: DeploymentConfig,
-    artifacts: ArtifactInfo[]
+    artifacts: ArtifactInfo[],
   ): Promise<void> {
     console.log(`Executing blue-green deployment for ${config.environment} with ${artifacts.length} artifacts...`);
     await new Promise(resolve => setTimeout(resolve, 5000));
@@ -577,14 +579,14 @@ export class CICDManager {
 
   private async executeCanaryDeployment(
     config: DeploymentConfig,
-    artifacts: ArtifactInfo[]
+    artifacts: ArtifactInfo[],
   ): Promise<void> {
     console.log(`Executing canary deployment for ${config.environment} with ${artifacts.length} artifacts...`);
     await new Promise(resolve => setTimeout(resolve, 4000));
   }
 
   private async runHealthChecks(config: DeploymentConfig): Promise<void> {
-    if (!config.healthChecks.enabled) return;
+    if (!config.healthChecks.enabled) {return;}
 
     console.log(`Running health checks on ${config.healthChecks.path}...`);
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -882,12 +884,12 @@ steps:
   private generateSuccessRateTrend(runs: PipelineRun[]): Array<{ date: number; rate: number }> {
     // Group by day and calculate success rate
     const grouped = new Map<string, { total: number; success: number }>();
-    
+
     runs.forEach(r => {
       const day = new Date(r.startedAt).toDateString();
       const stats = grouped.get(day) || { total: 0, success: 0 };
       stats.total++;
-      if (r.status === 'success') stats.success++;
+      if (r.status === 'success') {stats.success++;}
       grouped.set(day, stats);
     });
 
@@ -900,7 +902,7 @@ steps:
   private generateDeploymentFrequency(runs: PipelineRun[]): Array<{ date: number; count: number }> {
     const deployments = runs.filter(r => r.pipelineType === 'deploy');
     const grouped = new Map<string, number>();
-    
+
     deployments.forEach(r => {
       const day = new Date(r.startedAt).toDateString();
       grouped.set(day, (grouped.get(day) || 0) + 1);
@@ -916,7 +918,7 @@ steps:
     const values = runs
       .map(r => r.metrics[metric])
       .filter(v => typeof v === 'number' && v > 0) as number[];
-    
+
     return values.length > 0 ? values.reduce((sum, v) => sum + v, 0) / values.length : 0;
   }
 }

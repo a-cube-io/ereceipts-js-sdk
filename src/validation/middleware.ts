@@ -3,10 +3,11 @@
  * Integrates runtime validation with resource operations
  */
 
-import type { ValidationEngine, ValidationOptions, SchemaDefinition } from './index';
 import { defaultValidator } from './index';
-import { ValidationSchemas, type ValidationSchemaName } from './schemas';
 import { ValidationError } from '../errors/index';
+import { ValidationSchemas, type ValidationSchemaName } from './schemas';
+
+import type { SchemaDefinition, ValidationEngine, ValidationOptions } from './index';
 
 /**
  * Validation middleware configuration
@@ -28,7 +29,7 @@ export const DEFAULT_VALIDATION_CONFIG: ValidationMiddlewareConfig = {
   strict: false,
   enableWarnings: true,
   failOnWarnings: false,
-  skipValidation: []
+  skipValidation: [],
 };
 
 /**
@@ -36,11 +37,12 @@ export const DEFAULT_VALIDATION_CONFIG: ValidationMiddlewareConfig = {
  */
 export class ValidationMiddleware {
   private engine: ValidationEngine;
+
   private config: ValidationMiddlewareConfig;
 
   constructor(
     config: Partial<ValidationMiddlewareConfig> = {},
-    engine: ValidationEngine = defaultValidator
+    engine: ValidationEngine = defaultValidator,
   ) {
     this.config = { ...DEFAULT_VALIDATION_CONFIG, ...config };
     this.engine = engine;
@@ -68,7 +70,7 @@ export class ValidationMiddleware {
     data: unknown,
     schemaName: ValidationSchemaName | string,
     operation: string,
-    options?: ValidationOptions
+    options?: ValidationOptions,
   ): T {
     if (!this.config.enabled || this.config.skipValidation?.includes(operation)) {
       return data as T;
@@ -83,8 +85,8 @@ export class ValidationMiddleware {
           [{
             field: 'schema',
             message: `Schema '${schemaName}' not found`,
-            code: 'SCHEMA_NOT_FOUND'
-          }]
+            code: 'SCHEMA_NOT_FOUND',
+          }],
         );
       }
       return data as T;
@@ -93,7 +95,7 @@ export class ValidationMiddleware {
     const validationOptions: ValidationOptions = {
       strict: this.config.strict,
       enableWarnings: this.config.enableWarnings,
-      ...options
+      ...options,
     };
 
     const result = this.engine.validate(data, schema, validationOptions);
@@ -107,11 +109,11 @@ export class ValidationMiddleware {
           result.warnings.map(warning => ({
             field: warning.field,
             message: warning.message,
-            code: warning.code
-          }))
+            code: warning.code,
+          })),
         );
       }
-      
+
       // Log warnings if not failing on them
       console.warn(`Validation warnings for ${operation}:`, result.warnings);
     }
@@ -124,8 +126,8 @@ export class ValidationMiddleware {
         result.errors.map(error => ({
           field: error.field,
           message: error.message,
-          code: error.code
-        }))
+          code: error.code,
+        })),
       );
     }
 
@@ -139,7 +141,7 @@ export class ValidationMiddleware {
     data: unknown,
     schemaName: ValidationSchemaName | string,
     operation: string,
-    options?: ValidationOptions
+    options?: ValidationOptions,
   ): T {
     // Response validation is typically less strict
     if (!this.config.enabled || !this.config.strict) {
@@ -184,7 +186,7 @@ export namespace ValidationDecorators {
 
       descriptor.value = function (this: { validationMiddleware?: ValidationMiddleware }, ...args: unknown[]) {
         const middleware = this.validationMiddleware || new ValidationMiddleware();
-        
+
         if (args.length > 0 && middleware.isValidationEnabled(propertyKey)) {
           args[0] = middleware.validateInput(args[0], schemaName, propertyKey, options);
         }
@@ -206,7 +208,7 @@ export namespace ValidationDecorators {
       descriptor.value = async function (this: { validationMiddleware?: ValidationMiddleware }, ...args: unknown[]) {
         const result = await originalMethod.apply(this, args);
         const middleware = this.validationMiddleware || new ValidationMiddleware();
-        
+
         if (middleware.isValidationEnabled(propertyKey)) {
           return middleware.validateOutput(result, schemaName, propertyKey, options);
         }
@@ -275,9 +277,9 @@ export namespace ValidationHelpers {
    * Validate branded type
    */
   export function validateBrandedType<T>(
-    value: unknown, 
+    value: unknown,
     typeName: ValidationSchemaName,
-    operation = 'validate_type'
+    operation = 'validate_type',
   ): T {
     const middleware = new ValidationMiddleware();
     return middleware.validateInput<T>(value, typeName, operation);
@@ -296,12 +298,12 @@ export namespace ValidationHelpers {
   export function validateArray<T>(
     items: unknown[],
     itemSchemaName: ValidationSchemaName | string,
-    operation = 'validate_array'
+    operation = 'validate_array',
   ): T[] {
     const middleware = new ValidationMiddleware();
-    
-    return items.map((item, index) => 
-      middleware.validateInput<T>(item, itemSchemaName, `${operation}[${index}]`)
+
+    return items.map((item, index) =>
+      middleware.validateInput<T>(item, itemSchemaName, `${operation}[${index}]`),
     );
   }
 }
@@ -324,7 +326,7 @@ export namespace ValidationConfig {
       strict: true,
       enableWarnings: true,
       failOnWarnings: true,
-      skipValidation: []
+      skipValidation: [],
     };
   }
 
@@ -337,7 +339,7 @@ export namespace ValidationConfig {
       strict: false,
       enableWarnings: true,
       failOnWarnings: false,
-      skipValidation: []
+      skipValidation: [],
     };
   }
 
@@ -350,7 +352,7 @@ export namespace ValidationConfig {
       strict: false,
       enableWarnings: true,
       failOnWarnings: false,
-      skipValidation: []
+      skipValidation: [],
     };
   }
 
@@ -363,7 +365,7 @@ export namespace ValidationConfig {
       strict: true,
       enableWarnings: false,
       failOnWarnings: false,
-      skipValidation: []
+      skipValidation: [],
     };
   }
 
@@ -376,7 +378,7 @@ export namespace ValidationConfig {
       strict: false,
       enableWarnings: false,
       failOnWarnings: false,
-      skipValidation: []
+      skipValidation: [],
     };
   }
 }

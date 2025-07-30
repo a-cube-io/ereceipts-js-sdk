@@ -5,18 +5,20 @@
 
 import chalk from 'chalk';
 import inquirer from 'inquirer';
+
 import { BaseCommand } from './base/command.js';
-import { ReceiptsCommand, CashiersCommand, MerchantsCommand, PointOfSalesCommand } from './resources/index.js';
 import { LoginCommand, LogoutCommand, StatusCommand } from './auth/index.js';
+import { CashiersCommand, ReceiptsCommand, MerchantsCommand, PointOfSalesCommand } from './resources/index.js';
+
 import type { BaseCommandOptions } from '../types.js';
 
 export class InteractiveCommand extends BaseCommand {
   protected commandName = 'interactive';
-  
+
   protected async executeCommand(options: BaseCommandOptions): Promise<void> {
     console.log(chalk.blue.bold('A-Cube E-Receipt Interactive Mode'));
     console.log(chalk.gray('Select an option to continue\n'));
-    
+
     while (true) {
       const { action } = await inquirer.prompt([{
         type: 'list',
@@ -31,12 +33,12 @@ export class InteractiveCommand extends BaseCommand {
           { name: 'Exit', value: 'exit' },
         ],
       }]);
-      
+
       if (action === 'exit') {
         console.log(chalk.green('Goodbye! 👋'));
         break;
       }
-      
+
       try {
         await this.handleAction(action, options);
       } catch (error) {
@@ -46,7 +48,7 @@ export class InteractiveCommand extends BaseCommand {
       }
     }
   }
-  
+
   private async handleAction(action: string, options: BaseCommandOptions): Promise<void> {
     switch (action) {
       case 'auth':
@@ -66,7 +68,7 @@ export class InteractiveCommand extends BaseCommand {
         break;
     }
   }
-  
+
   private async handleAuthMenu(options: BaseCommandOptions): Promise<void> {
     const { authAction } = await inquirer.prompt([{
       type: 'list',
@@ -79,9 +81,9 @@ export class InteractiveCommand extends BaseCommand {
         { name: 'Back', value: 'back' },
       ],
     }]);
-    
-    if (authAction === 'back') return;
-    
+
+    if (authAction === 'back') {return;}
+
     switch (authAction) {
       case 'login':
         await new LoginCommand().run(options);
@@ -94,7 +96,7 @@ export class InteractiveCommand extends BaseCommand {
         break;
     }
   }
-  
+
   private async handleResourceMenu(resourceName: string, command: any, options: BaseCommandOptions): Promise<void> {
     const { resourceAction } = await inquirer.prompt([{
       type: 'list',
@@ -106,9 +108,9 @@ export class InteractiveCommand extends BaseCommand {
         { name: 'Back', value: 'back' },
       ],
     }]);
-    
-    if (resourceAction === 'back') return;
-    
+
+    if (resourceAction === 'back') {return;}
+
     switch (resourceAction) {
       case 'list':
         await command.list({ limit: 10, ...options });

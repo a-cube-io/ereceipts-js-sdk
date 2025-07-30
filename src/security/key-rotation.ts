@@ -4,7 +4,8 @@
  */
 
 import { AdvancedEncryption } from './encryption';
-import { DigitalSignatureManager } from './signatures';
+
+import type { DigitalSignatureManager } from './signatures';
 
 export interface KeyRotationConfig {
   rotationInterval: number; // milliseconds
@@ -70,18 +71,25 @@ export interface KeyBackup {
 
 export class KeyRotationManager {
   private encryption: AdvancedEncryption;
+
   private signatures: DigitalSignatureManager;
+
   private config: KeyRotationConfig;
+
   private keyVersions = new Map<string, KeyVersion[]>();
+
   private rotationSchedule = new Map<string, NodeJS.Timeout>();
+
   private rotationEvents: RotationEvent[] = [];
+
   private keyBackups = new Map<string, KeyBackup[]>();
+
   private eventListeners = new Map<string, Array<(event: RotationEvent) => void>>();
 
   constructor(
     encryption: AdvancedEncryption,
     signatures: DigitalSignatureManager,
-    config?: Partial<KeyRotationConfig>
+    config?: Partial<KeyRotationConfig>,
   ) {
     this.encryption = encryption;
     this.signatures = signatures;
@@ -118,7 +126,7 @@ export class KeyRotationManager {
     keyId: string,
     algorithm: string,
     purpose: string,
-    environment: string = 'production'
+    environment: string = 'production',
   ): Promise<void> {
     const now = Date.now();
     const keyVersion: KeyVersion = {
@@ -239,7 +247,7 @@ export class KeyRotationManager {
         oldVersion: currentVersion.version,
         newVersion: newVersion.version,
         reason,
-        details: { 
+        details: {
           newKeyId,
           gracePeriodEnd: now + this.config.gracePeriod,
         },
@@ -254,11 +262,11 @@ export class KeyRotationManager {
         keyId,
         oldVersion: currentVersion.version,
         reason,
-        details: { 
+        details: {
           error: error instanceof Error ? error.message : 'Unknown error',
         },
       });
-      
+
       throw error;
     }
   }
@@ -268,7 +276,7 @@ export class KeyRotationManager {
    */
   getCurrentVersion(keyId: string): KeyVersion | undefined {
     const versions = this.keyVersions.get(keyId);
-    if (!versions) return undefined;
+    if (!versions) {return undefined;}
 
     return versions.find(v => v.status === 'active');
   }
@@ -285,7 +293,7 @@ export class KeyRotationManager {
    */
   getKeyVersion(keyId: string, version: number): KeyVersion | undefined {
     const versions = this.keyVersions.get(keyId);
-    if (!versions) return undefined;
+    if (!versions) {return undefined;}
 
     return versions.find(v => v.version === version);
   }
@@ -295,7 +303,7 @@ export class KeyRotationManager {
    */
   recordKeyUsage(keyId: string): void {
     const currentVersion = this.getCurrentVersion(keyId);
-    if (!currentVersion) return;
+    if (!currentVersion) {return;}
 
     currentVersion.usageCount++;
     currentVersion.lastUsed = Date.now();
@@ -337,12 +345,12 @@ export class KeyRotationManager {
       reason: 'compromise_detected',
       details: details || {},
     };
-    
+
     const newVersion = this.getCurrentVersion(keyId)?.version;
     if (newVersion !== undefined) {
       eventData.newVersion = newVersion;
     }
-    
+
     this.emitEvent(eventData);
 
     return newKeyId;
@@ -353,7 +361,7 @@ export class KeyRotationManager {
    */
   scheduleRotationNotification(keyId: string, callback: () => void): void {
     const currentVersion = this.getCurrentVersion(keyId);
-    if (!currentVersion) return;
+    if (!currentVersion) {return;}
 
     const notificationTime = currentVersion.expiresAt - this.config.notification.beforeRotation;
     const delay = notificationTime - Date.now();
@@ -408,20 +416,20 @@ export class KeyRotationManager {
    * Create key backup
    */
   private async createKeyBackup(keyId: string, version: KeyVersion): Promise<void> {
-    if (!this.config.backup.enabled) return;
+    if (!this.config.backup.enabled) {return;}
 
     try {
       // Export the key
       const keyData = await this.encryption.exportKey(keyId);
-      
+
       // Encrypt backup if configured
       let encryptedKeyData: string;
       if (this.config.backup.encryptBackups) {
         // Use a master backup key (simplified - in production, use proper key management)
         const backupKeyId = await this.encryption.generateSymmetricKey();
         const encrypted = await this.encryption.encryptSymmetric(
-          JSON.stringify(keyData), 
-          backupKeyId
+          JSON.stringify(keyData),
+          backupKeyId,
         );
         encryptedKeyData = AdvancedEncryption.encryptedDataToJSON(encrypted);
       } else {
@@ -498,7 +506,7 @@ export class KeyRotationManager {
       keyData,
       backup.algorithm,
       undefined,
-      ['encrypt', 'decrypt']
+      ['encrypt', 'decrypt'],
     );
 
     return restoredKeyId;
@@ -630,7 +638,7 @@ export class KeyRotationManager {
 
   private expireKeyVersion(keyId: string, version: number): void {
     const versions = this.keyVersions.get(keyId);
-    if (!versions) return;
+    if (!versions) {return;}
 
     const keyVersion = versions.find(v => v.version === version);
     if (keyVersion && keyVersion.status === 'deprecated') {
@@ -642,7 +650,7 @@ export class KeyRotationManager {
     // Set up periodic cleanup of expired keys
     setInterval(() => {
       this.cleanupExpiredBackups();
-      
+
       // Mark expired keys
       const expiredKeys = this.getExpiredKeys();
       for (const key of expiredKeys) {
@@ -653,7 +661,7 @@ export class KeyRotationManager {
 
   private emitEvent(event: RotationEvent): void {
     this.rotationEvents.push(event);
-    
+
     // Keep only last 1000 events
     if (this.rotationEvents.length > 1000) {
       this.rotationEvents = this.rotationEvents.slice(-1000);
@@ -662,7 +670,7 @@ export class KeyRotationManager {
     // Emit to listeners
     const listeners = this.eventListeners.get(event.type) || [];
     const allListeners = this.eventListeners.get('*') || [];
-    
+
     [...listeners, ...allListeners].forEach(listener => {
       try {
         listener(event);

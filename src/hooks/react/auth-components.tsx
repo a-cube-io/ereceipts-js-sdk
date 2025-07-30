@@ -1,7 +1,7 @@
 /**
  * React Auth Components
  * Pre-built authentication components for common use cases
- * 
+ *
  * This file now exports cross-platform components that work seamlessly
  * in both React web and React Native environments.
  */
@@ -10,13 +10,13 @@
 export * from './auth-components-cross-platform';
 
 // Re-export types for backward compatibility
-export type { LoginCredentials, UserRole, PermissionCheck } from '@/auth/types';
+export type { UserRole, PermissionCheck, LoginCredentials } from '@/auth/types';
 
-/* 
+/*
  * NOTE: All component implementations have been moved to auth-components-cross-platform.tsx
  * This file now serves as the main entry point, exporting cross-platform components
  * that work seamlessly in both React web and React Native environments.
- * 
+ *
  * The cross-platform components include:
  * - LoginForm: Cross-platform login form with platform-specific inputs
  * - UserProfile: User information display with cross-platform layout

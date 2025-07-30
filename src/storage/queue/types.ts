@@ -195,5 +195,5 @@ export const isValidOperation = (value: unknown): value is QueueOperationType =>
   typeof value === 'string' && ['create', 'update', 'delete', 'batch', 'custom'].includes(value);
 
 export const isValidResource = (value: unknown): value is ResourceType =>
-  typeof value === 'string' && 
+  typeof value === 'string' &&
   ['receipts', 'cashiers', 'merchants', 'cash-registers', 'point-of-sales', 'pems'].includes(value);

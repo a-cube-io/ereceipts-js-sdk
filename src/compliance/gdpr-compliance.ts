@@ -140,11 +140,17 @@ export interface GDPRViolation {
 
 export class GDPRComplianceManager {
   private config: GDPRConfig;
+
   private dataSubjects = new Map<string, DataSubject>();
+
   private consentRecords = new Map<string, ConsentRecord>();
+
   private processingRecords: DataProcessingRecord[] = [];
+
   private exportRequests = new Map<string, DataExportRequest>();
+
   private erasureRequests = new Map<string, ErasureRequest>();
+
   private violations: GDPRViolation[] = [];
 
   constructor(config?: Partial<GDPRConfig>) {
@@ -202,9 +208,9 @@ export class GDPRComplianceManager {
   async registerDataSubject(
     subjectId: string,
     email?: string,
-    initialConsent?: Partial<ConsentRecord>
+    initialConsent?: Partial<ConsentRecord>,
   ): Promise<void> {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     const dataSubject: DataSubject = {
       id: subjectId,
@@ -237,7 +243,7 @@ export class GDPRComplianceManager {
       lawfulBasis: initialConsent ? 'consent' : 'contract',
       processingActivity: 'data_subject_registration',
       dataLocation: 'internal_database',
-      retentionPeriod: this.config.dataRetention.categories['user_profile'] || this.config.dataRetention.defaultPeriod,
+      retentionPeriod: this.config.dataRetention.categories.user_profile || this.config.dataRetention.defaultPeriod,
       thirdPartySharing: false,
       encryptionUsed: true,
       metadata: { email: !!email },
@@ -253,9 +259,9 @@ export class GDPRComplianceManager {
       purpose: string;
       dataTypes: string[];
       consentGiven: boolean;
-    }
+    },
   ): Promise<string> {
-    if (!this.config.enabled) return '';
+    if (!this.config.enabled) {return '';}
 
     const consentId = this.generateConsentId();
     const now = Date.now();
@@ -282,7 +288,7 @@ export class GDPRComplianceManager {
     if (dataSubject) {
       dataSubject.consentRecords.push(consentRecord);
       dataSubject.lastActivity = now;
-      
+
       // Add data categories
       for (const dataType of consent.dataTypes) {
         if (!dataSubject.dataCategories.includes(dataType)) {
@@ -313,9 +319,9 @@ export class GDPRComplianceManager {
   async withdrawConsent(
     subjectId: string,
     consentId: string,
-    reason?: string
+    reason?: string,
   ): Promise<void> {
-    if (!this.config.enabled || !this.config.consent.withdrawalEnabled) return;
+    if (!this.config.enabled || !this.config.consent.withdrawalEnabled) {return;}
 
     const consentRecord = this.consentRecords.get(consentId);
     if (!consentRecord || consentRecord.subjectId !== subjectId) {
@@ -351,9 +357,9 @@ export class GDPRComplianceManager {
   isProcessingLawful(
     subjectId: string,
     purpose: string,
-    dataTypes: string[]
+    dataTypes: string[],
   ): { lawful: boolean; basis: string; warnings: string[] } {
-    if (!this.config.enabled) return { lawful: true, basis: 'not_applicable', warnings: [] };
+    if (!this.config.enabled) {return { lawful: true, basis: 'not_applicable', warnings: [] };}
 
     const dataSubject = this.dataSubjects.get(subjectId);
     if (!dataSubject) {
@@ -366,12 +372,12 @@ export class GDPRComplianceManager {
 
     // Check for valid consent
     const relevantConsents = dataSubject.consentRecords.filter(
-      consent => 
+      consent =>
         consent.purpose === purpose &&
         consent.consentGiven &&
         !consent.withdrawnAt &&
         (!consent.expiresAt || consent.expiresAt > Date.now()) &&
-        dataTypes.every(type => consent.dataTypes.includes(type))
+        dataTypes.every(type => consent.dataTypes.includes(type)),
     );
 
     if (relevantConsents.length > 0) {
@@ -383,7 +389,7 @@ export class GDPRComplianceManager {
     if (this.config.dataMinimization.enabled) {
       const allowedFields = this.config.dataMinimization.allowedFields[purpose] || [];
       const excessiveFields = dataTypes.filter(type => !allowedFields.includes(type));
-      
+
       if (excessiveFields.length > 0) {
         warnings.push(`Excessive data types for purpose ${purpose}: ${excessiveFields.join(', ')}`);
       }
@@ -401,8 +407,8 @@ export class GDPRComplianceManager {
       lawfulBasis = 'legal_obligation';
     }
 
-    const lawful = hasValidConsent || 
-                   legitimateInterestPurposes.includes(purpose) || 
+    const lawful = hasValidConsent ||
+                   legitimateInterestPurposes.includes(purpose) ||
                    legalObligationPurposes.includes(purpose);
 
     return { lawful, basis: lawfulBasis, warnings };
@@ -412,7 +418,7 @@ export class GDPRComplianceManager {
    * Record data processing activity
    */
   recordProcessingActivity(activity: Omit<DataProcessingRecord, 'id' | 'timestamp'>): void {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     const record: DataProcessingRecord = {
       id: this.generateProcessingId(),
@@ -443,7 +449,7 @@ export class GDPRComplianceManager {
       format?: 'json' | 'xml' | 'csv';
       includeMetadata?: boolean;
       dataTypes?: string[];
-    }
+    },
   ): Promise<string> {
     if (!this.config.enabled || !this.config.dataPortability.enabled) {
       throw new Error('Data portability not enabled');
@@ -491,7 +497,7 @@ export class GDPRComplianceManager {
       immediateErasure?: boolean;
       dataTypes?: string[];
       cascadeDelete?: boolean;
-    }
+    },
   ): Promise<string> {
     if (!this.config.enabled || !this.config.rightToErasure.enabled) {
       throw new Error('Right to erasure not enabled');
@@ -499,8 +505,8 @@ export class GDPRComplianceManager {
 
     const requestId = this.generateRequestId();
     const now = Date.now();
-    const scheduledAt = options?.immediateErasure 
-      ? now 
+    const scheduledAt = options?.immediateErasure
+      ? now
       : now + this.config.rightToErasure.gracePeriod;
 
     const erasureRequest: ErasureRequest = {
@@ -546,25 +552,25 @@ export class GDPRComplianceManager {
 
     // Get data for the period
     const periodProcessingRecords = this.processingRecords.filter(
-      record => record.timestamp >= start
+      record => record.timestamp >= start,
     );
 
     const periodConsents = Array.from(this.consentRecords.values()).filter(
-      consent => consent.timestamp >= start
+      consent => consent.timestamp >= start,
     );
 
     const periodExportRequests = Array.from(this.exportRequests.values()).filter(
-      request => request.requestedAt >= start
+      request => request.requestedAt >= start,
     );
 
     const periodErasureRequests = Array.from(this.erasureRequests.values()).filter(
-      request => request.requestedAt >= start
+      request => request.requestedAt >= start,
     );
 
     // Calculate compliance metrics
     const totalConsents = periodConsents.length;
     const activeConsents = periodConsents.filter(
-      c => c.consentGiven && !c.withdrawnAt && (!c.expiresAt || c.expiresAt > now)
+      c => c.consentGiven && !c.withdrawnAt && (!c.expiresAt || c.expiresAt > now),
     ).length;
     const withdrawnConsents = periodConsents.filter(c => c.withdrawnAt).length;
 
@@ -599,10 +605,10 @@ export class GDPRComplianceManager {
    * Anonymize data for a subject
    */
   async anonymizeDataSubject(subjectId: string): Promise<void> {
-    if (!this.config.enabled || !this.config.anonymization.enabled) return;
+    if (!this.config.enabled || !this.config.anonymization.enabled) {return;}
 
     const dataSubject = this.dataSubjects.get(subjectId);
-    if (!dataSubject) return;
+    if (!dataSubject) {return;}
 
     if (this.config.anonymization.techniques.includes('pseudonymization')) {
       // Replace identifiable information with pseudonyms
@@ -642,7 +648,7 @@ export class GDPRComplianceManager {
 
   private async processDataExport(requestId: string): Promise<void> {
     const exportRequest = this.exportRequests.get(requestId);
-    if (!exportRequest) return;
+    if (!exportRequest) {return;}
 
     try {
       exportRequest.status = 'processing';
@@ -664,7 +670,7 @@ export class GDPRComplianceManager {
         },
         consents: dataSubject.consentRecords,
         processingActivities: this.processingRecords.filter(
-          record => record.subjectId === exportRequest.subjectId
+          record => record.subjectId === exportRequest.subjectId,
         ),
       };
 
@@ -707,7 +713,7 @@ export class GDPRComplianceManager {
 
   private async processDataErasure(requestId: string): Promise<void> {
     const erasureRequest = this.erasureRequests.get(requestId);
-    if (!erasureRequest) return;
+    if (!erasureRequest) {return;}
 
     try {
       erasureRequest.status = 'processing';
@@ -724,7 +730,7 @@ export class GDPRComplianceManager {
       // Remove or anonymize processing records
       if (erasureRequest.cascadeDelete) {
         this.processingRecords = this.processingRecords.filter(
-          record => record.subjectId !== erasureRequest.subjectId
+          record => record.subjectId !== erasureRequest.subjectId,
         );
       } else {
         // Anonymize instead of delete
@@ -770,7 +776,7 @@ export class GDPRComplianceManager {
     // Clean up old processing records
     const maxAge = Math.max(...Object.values(this.config.dataRetention.categories));
     this.processingRecords = this.processingRecords.filter(
-      record => now - record.timestamp <= maxAge
+      record => now - record.timestamp <= maxAge,
     );
   }
 
@@ -781,17 +787,17 @@ export class GDPRComplianceManager {
 
   private async checkDataRetentionAfterConsentWithdrawal(subjectId: string): Promise<void> {
     const dataSubject = this.dataSubjects.get(subjectId);
-    if (!dataSubject) return;
+    if (!dataSubject) {return;}
 
     const activeConsents = dataSubject.consentRecords.filter(
-      consent => consent.consentGiven && !consent.withdrawnAt
+      consent => consent.consentGiven && !consent.withdrawnAt,
     );
 
     if (activeConsents.length === 0) {
       // No active consents, check if data can be retained under other lawful bases
       const legitimateInterestData = this.processingRecords.filter(
-        record => record.subjectId === subjectId && 
-                 record.lawfulBasis === 'legitimate_interests'
+        record => record.subjectId === subjectId &&
+                 record.lawfulBasis === 'legitimate_interests',
       );
 
       if (legitimateInterestData.length === 0) {
@@ -813,7 +819,7 @@ export class GDPRComplianceManager {
       for (const category of dataSubject.dataCategories) {
         const retentionPeriod = this.config.dataRetention.categories[category] ||
                               this.config.dataRetention.defaultPeriod;
-        
+
         if (now - dataSubject.createdAt > retentionPeriod) {
           subjectCompliant = false;
           break;
@@ -829,14 +835,14 @@ export class GDPRComplianceManager {
   }
 
   private calculateDataMinimizationCompliance(): number {
-    if (!this.config.dataMinimization.enabled) return 100;
+    if (!this.config.dataMinimization.enabled) {return 100;}
 
     const recentRecords = this.processingRecords.filter(
-      record => Date.now() - record.timestamp <= 30 * 24 * 60 * 60 * 1000 // Last 30 days
+      record => Date.now() - record.timestamp <= 30 * 24 * 60 * 60 * 1000, // Last 30 days
     );
 
     let compliantRecords = 0;
-    let totalRecords = recentRecords.length;
+    const totalRecords = recentRecords.length;
 
     for (const record of recentRecords) {
       const allowedFields = this.config.dataMinimization.allowedFields[record.purpose] || [];
@@ -858,8 +864,8 @@ export class GDPRComplianceManager {
 
     // Check consent expiration
     const expiringConsents = Array.from(this.consentRecords.values()).filter(
-      consent => consent.expiresAt && 
-                consent.expiresAt - Date.now() <= 30 * 24 * 60 * 60 * 1000 // 30 days
+      consent => consent.expiresAt &&
+                consent.expiresAt - Date.now() <= 30 * 24 * 60 * 60 * 1000, // 30 days
     );
 
     if (expiringConsents.length > 0) {
@@ -884,20 +890,20 @@ export class GDPRComplianceManager {
   }
 
   private pseudonymizeEmail(email?: string): string | undefined {
-    if (!email) return undefined;
-    
+    if (!email) {return undefined;}
+
     const emailParts = email.split('@');
-    if (emailParts.length !== 2) return undefined;
-    
+    if (emailParts.length !== 2) {return undefined;}
+
     const [local, domain] = emailParts;
-    if (!local || !domain) return undefined;
+    if (!local || !domain) {return undefined;}
     const hash = btoa(local).substring(0, 8);
     return `user_${hash}@${domain}`;
   }
 
   private aggregateProcessingRecords(subjectId: string): void {
     const subjectRecords = this.processingRecords.filter(
-      record => record.subjectId === subjectId
+      record => record.subjectId === subjectId,
     );
 
     // Group by purpose and create aggregated records
@@ -911,17 +917,17 @@ export class GDPRComplianceManager {
           lastActivity: record.timestamp,
         };
       }
-      
+
       acc[key].count++;
       acc[key].dataTypes.add(record.dataType);
       acc[key].lastActivity = Math.max(acc[key].lastActivity, record.timestamp);
-      
+
       return acc;
     }, {} as Record<string, any>);
 
     // Replace individual records with aggregated ones
     this.processingRecords = this.processingRecords.filter(
-      record => record.subjectId !== subjectId
+      record => record.subjectId !== subjectId,
     );
 
     for (const [purpose, stats] of Object.entries(aggregated)) {
@@ -953,31 +959,31 @@ export class GDPRComplianceManager {
   private convertToCSV(data: any): string {
     // Simplified CSV conversion - in production, use proper CSV library
     const lines: string[] = [];
-    
+
     // Headers
     lines.push('Type,ID,Timestamp,Data');
-    
+
     // Subject data
     lines.push(`Subject,${data.subject.id},${data.subject.createdAt},${JSON.stringify(data.subject).replace(/,/g, ';')}`);
-    
+
     // Consents
     for (const consent of data.consents) {
       lines.push(`Consent,${consent.id},${consent.timestamp},${JSON.stringify(consent).replace(/,/g, ';')}`);
     }
-    
+
     return lines.join('\n');
   }
 
   private convertToXML(data: any): string {
     // Simplified XML conversion - in production, use proper XML library
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<gdpr-export>\n';
-    
+
     xml += '  <subject>\n';
     xml += `    <id>${data.subject.id}</id>\n`;
     xml += `    <email>${data.subject.email || ''}</email>\n`;
     xml += `    <created-at>${data.subject.createdAt}</created-at>\n`;
     xml += '  </subject>\n';
-    
+
     xml += '  <consents>\n';
     for (const consent of data.consents) {
       xml += '    <consent>\n';
@@ -987,7 +993,7 @@ export class GDPRComplianceManager {
       xml += '    </consent>\n';
     }
     xml += '  </consents>\n';
-    
+
     xml += '</gdpr-export>';
     return xml;
   }

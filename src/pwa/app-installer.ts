@@ -1,7 +1,7 @@
 /**
  * PWA App Installer for A-Cube E-Receipt SDK
  * Handles Progressive Web App installation prompts and app lifecycle
- * 
+ *
  * Features:
  * - Smart install prompt timing
  * - Custom install UI components
@@ -19,19 +19,19 @@ import { EventEmitter } from 'eventemitter3';
 export interface InstallCriteria {
   /** Minimum user engagement time (ms) */
   minEngagementTime?: number;
-  
+
   /** Minimum page views */
   minPageViews?: number;
-  
+
   /** Minimum receipts created */
   minReceiptsCreated?: number;
-  
+
   /** Days since first visit */
   daysSinceFirstVisit?: number;
-  
+
   /** Require return visits */
   requireReturnVisit?: boolean;
-  
+
   /** Custom criteria function */
   customCriteria?: () => boolean | Promise<boolean>;
 }
@@ -42,19 +42,19 @@ export interface InstallCriteria {
 export interface AppInstallerConfig {
   /** Install criteria */
   criteria?: InstallCriteria;
-  
+
   /** Auto-show prompt when criteria met */
   autoShow?: boolean;
-  
+
   /** Delay before showing prompt (ms) */
   showDelay?: number;
-  
+
   /** Max times to show prompt */
   maxPromptAttempts?: number;
-  
+
   /** Days to wait after dismissal */
   dismissalCooldown?: number;
-  
+
   /** Custom prompt UI */
   customPrompt?: {
     enabled?: boolean;
@@ -64,14 +64,14 @@ export interface AppInstallerConfig {
     cancelButtonText?: string;
     icon?: string;
   };
-  
+
   /** Installation tracking */
   analytics?: {
     enabled?: boolean;
     trackingId?: string;
     customEvents?: Record<string, any>;
   };
-  
+
   /** Platform-specific settings */
   platforms?: {
     /** iOS Safari specific */
@@ -79,13 +79,13 @@ export interface AppInstallerConfig {
       showIOSInstructions?: boolean;
       customInstructions?: string;
     };
-    
+
     /** Android Chrome specific */
     android?: {
       enableWebAPK?: boolean;
       customIcon?: string;
     };
-    
+
     /** Desktop specific */
     desktop?: {
       showDesktopPrompt?: boolean;
@@ -195,12 +195,19 @@ const DEFAULT_CONFIG: Required<AppInstallerConfig> = {
  */
 export class AppInstaller extends EventEmitter<AppInstallerEvents> {
   private config: Required<AppInstallerConfig>;
+
   private installPrompt: BeforeInstallPromptEvent | null = null;
+
   private engagementData: EngagementData;
+
   private platformInfo: PlatformInfo;
+
   private isInitialized = false;
+
   private engagementTimer?: NodeJS.Timeout;
+
   private promptTimeout: NodeJS.Timeout | undefined = undefined;
+
   private customPromptElement: HTMLElement | undefined = undefined;
 
   constructor(config: AppInstallerConfig = {}) {
@@ -208,7 +215,7 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
     this.config = this.mergeConfig(config);
     this.platformInfo = this.detectPlatform();
     this.engagementData = this.loadEngagementData();
-    
+
     this.initialize();
   }
 
@@ -263,13 +270,13 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
 
     // Setup event listeners
     this.setupEventListeners();
-    
+
     // Start engagement tracking
     this.startEngagementTracking();
-    
+
     // Check criteria periodically
     this.startCriteriaChecking();
-    
+
     this.isInitialized = true;
   }
 
@@ -282,7 +289,7 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
       event.preventDefault();
       this.installPrompt = event as BeforeInstallPromptEvent;
       this.emit('prompt:available', { prompt: this.installPrompt });
-      
+
       if (this.config.autoShow) {
         this.checkCriteriaAndShow();
       }
@@ -313,8 +320,8 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
    * Detect platform information
    */
   private detectPlatform(): PlatformInfo {
-    const userAgent = navigator.userAgent;
-    const isStandalone = 
+    const {userAgent} = navigator;
+    const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as any).standalone === true;
 
@@ -334,15 +341,15 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
       platform = 'android';
       browser = /Chrome/.test(userAgent) ? 'chrome' : 'other';
       const match = userAgent.match(/Android (\d+\.\d+)/);
-      version = match && match[1] ? match[1] : '';
+      version = match?.[1] ? match[1] : '';
     }
     // Desktop detection
     else {
       platform = 'desktop';
-      if (/Chrome/.test(userAgent)) browser = 'chrome';
-      else if (/Firefox/.test(userAgent)) browser = 'firefox';
-      else if (/Safari/.test(userAgent)) browser = 'safari';
-      else if (/Edge/.test(userAgent)) browser = 'edge';
+      if (/Chrome/.test(userAgent)) {browser = 'chrome';}
+      else if (/Firefox/.test(userAgent)) {browser = 'firefox';}
+      else if (/Safari/.test(userAgent)) {browser = 'safari';}
+      else if (/Edge/.test(userAgent)) {browser = 'edge';}
     }
 
     return {
@@ -407,10 +414,10 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
    */
   private startEngagementTracking(): void {
     const now = Date.now();
-    
+
     // Check if this is a return visit
     if (now - this.engagementData.lastVisit > 24 * 60 * 60 * 1000) {
-      this.updateEngagementData({ 
+      this.updateEngagementData({
         returnVisits: this.engagementData.returnVisits + 1,
         lastVisit: now,
       });
@@ -528,10 +535,10 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
 
     try {
       const criteriaMet = await this.checkCriteria();
-      
+
       if (criteriaMet) {
         this.emit('criteria:met', { criteria: this.config.criteria });
-        
+
         if (this.platformInfo.supportsNativePrompt && this.installPrompt) {
           await this.showNativePrompt();
         } else if (this.config.customPrompt.enabled) {
@@ -581,9 +588,9 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
 
       this.installPrompt = null;
     } catch (error) {
-      this.emit('install:failed', { 
-        error: error as Error, 
-        platform: this.platformInfo.name 
+      this.emit('install:failed', {
+        error: error as Error,
+        platform: this.platformInfo.name,
       });
       this.trackAnalytics('install_prompt_error', { error: (error as Error).message });
     }
@@ -617,9 +624,9 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
       }, 30000) as unknown as NodeJS.Timeout; // 30 seconds
 
     } catch (error) {
-      this.emit('install:failed', { 
-        error: error as Error, 
-        platform: this.platformInfo.name 
+      this.emit('install:failed', {
+        error: error as Error,
+        platform: this.platformInfo.name,
       });
     }
   }
@@ -629,7 +636,7 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
    */
   private createCustomPromptUI(): HTMLElement {
     const { customPrompt, platforms } = this.config;
-    
+
     // Main container
     const container = document.createElement('div');
     container.className = 'acube-install-prompt';
@@ -691,12 +698,12 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
     // Message
     const message = document.createElement('p');
     let messageText = customPrompt.message || 'Installa l\'app per un accesso più veloce';
-    
+
     // Platform-specific messages
     if (this.platformInfo.name === 'ios' && platforms.ios?.showIOSInstructions) {
       messageText = platforms.ios?.customInstructions || messageText;
     }
-    
+
     message.textContent = messageText;
     message.style.cssText = 'margin: 0 0 20px 0; font-size: 14px; color: #666; line-height: 1.4;';
     container.appendChild(message);
@@ -738,7 +745,7 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
       this.customPromptElement.remove();
       this.customPromptElement = undefined;
     }
-    
+
     if (this.promptTimeout) {
       clearTimeout(this.promptTimeout);
       this.promptTimeout = undefined;
@@ -763,7 +770,7 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
    */
   private showInstallInstructions(): void {
     let instructions = '';
-    
+
     switch (this.platformInfo.name) {
       case 'ios':
         instructions = this.config.platforms.ios?.customInstructions ||
@@ -781,11 +788,11 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
 
     // Show instructions in a simple alert or modal
     alert(instructions);
-    
+
     this.emit('install:started', { platform: this.platformInfo.name });
-    this.trackAnalytics('install_instructions_shown', { 
+    this.trackAnalytics('install_instructions_shown', {
       platform: this.platformInfo.name,
-      instructions 
+      instructions,
     });
   }
 
@@ -794,15 +801,15 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
    */
   private handleAppInstalled(outcome: 'accepted' | 'dismissed'): void {
     this.updateEngagementData({ installed: true });
-    
-    this.emit('install:completed', { 
-      outcome, 
-      platform: this.platformInfo.name 
-    });
-    
-    this.trackAnalytics('app_installed', { 
+
+    this.emit('install:completed', {
+      outcome,
       platform: this.platformInfo.name,
-      outcome 
+    });
+
+    this.trackAnalytics('app_installed', {
+      platform: this.platformInfo.name,
+      outcome,
     });
   }
 
@@ -811,7 +818,7 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
    */
   private handlePromptDismissed(reason: 'user' | 'timeout' | 'error'): void {
     this.updateEngagementData({ dismissed: true });
-    
+
     this.emit('prompt:dismissed', { reason });
     this.trackAnalytics('install_prompt_dismissed', { reason });
   }
@@ -867,7 +874,7 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
    * Check if app can be installed
    */
   canInstall(): boolean {
-    return !this.platformInfo.isStandalone && 
+    return !this.platformInfo.isStandalone &&
            !this.engagementData.installed &&
            (!!this.installPrompt || !!this.config.customPrompt?.enabled);
   }
@@ -912,11 +919,11 @@ export class AppInstaller extends EventEmitter<AppInstallerEvents> {
     if (this.engagementTimer) {
       clearInterval(this.engagementTimer);
     }
-    
+
     if (this.promptTimeout) {
       clearTimeout(this.promptTimeout);
     }
-    
+
     this.hideCustomPrompt();
     this.saveEngagementData();
     this.removeAllListeners();

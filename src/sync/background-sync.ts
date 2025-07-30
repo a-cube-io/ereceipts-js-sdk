@@ -4,24 +4,25 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
+
 import type {
-  SyncOptions,
   SyncResult,
-  BackgroundSyncConfig,
-  BackgroundSyncJob,
-  BackgroundSyncTrigger,
+  SyncOptions,
   SyncEventTypeMap,
+  BackgroundSyncJob,
+  BackgroundSyncConfig,
+  BackgroundSyncTrigger,
 } from './types';
 
 export interface BackgroundSyncServiceConfig extends BackgroundSyncConfig {
   // Service Worker specific
   serviceWorkerPath?: string;
   swScope?: string;
-  
+
   // Storage for job persistence
   storageProvider: 'memory' | 'localStorage' | 'indexedDB';
   maxJobHistory: number;
-  
+
   // Network awareness
   networkSensitive: boolean;
   minimumConnectionQuality: 'poor' | 'fair' | 'good' | 'excellent';
@@ -63,10 +64,15 @@ const isServiceWorkerSupported = isBrowser && 'serviceWorker' in navigator && 's
  */
 export class BackgroundSyncService extends EventEmitter<BackgroundSyncEventMap> {
   private config: BackgroundSyncServiceConfig;
+
   private isInitialized = false;
+
   private serviceWorkerRegistration: any = null;
+
   private scheduledJobs = new Map<string, BackgroundSyncJob>();
+
   private jobHistory: Array<{ job: BackgroundSyncJob; result?: SyncResult; error?: Error }> = [];
+
   private periodicTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(config: Partial<BackgroundSyncServiceConfig> = {}) {
@@ -93,7 +99,7 @@ export class BackgroundSyncService extends EventEmitter<BackgroundSyncEventMap> 
 
       this.setupPeriodicSync();
       this.isInitialized = true;
-      
+
       this.emit('background-sync-available', this.isBackgroundSyncAvailable());
     } catch (error) {
       this.emit('service-worker-error', { error: error as Error });
@@ -116,7 +122,7 @@ export class BackgroundSyncService extends EventEmitter<BackgroundSyncEventMap> 
   async scheduleSync(
     options: SyncOptions,
     trigger: BackgroundSyncTrigger = 'user-action',
-    priority = 1
+    priority = 1,
   ): Promise<string> {
     const job: BackgroundSyncJob = {
       id: this.generateJobId(),
@@ -186,7 +192,7 @@ export class BackgroundSyncService extends EventEmitter<BackgroundSyncEventMap> 
    */
   async executePendingJobs(): Promise<void> {
     const jobs = Array.from(this.scheduledJobs.values());
-    
+
     for (const job of jobs) {
       try {
         await this.executeJob(job);
@@ -206,11 +212,11 @@ export class BackgroundSyncService extends EventEmitter<BackgroundSyncEventMap> 
       // Register Service Worker
       this.serviceWorkerRegistration = await navigator.serviceWorker.register(
         this.config.serviceWorkerPath!,
-        { ...(this.config.swScope && { scope: this.config.swScope }) }
+        { ...(this.config.swScope && { scope: this.config.swScope }) },
       );
 
-      this.emit('service-worker-registered', { 
-        registration: this.serviceWorkerRegistration 
+      this.emit('service-worker-registered', {
+        registration: this.serviceWorkerRegistration,
       });
 
       // Listen for messages from Service Worker
@@ -228,7 +234,7 @@ export class BackgroundSyncService extends EventEmitter<BackgroundSyncEventMap> 
   }
 
   private setupServiceWorkerMessageHandling(): void {
-    if (!navigator.serviceWorker) return;
+    if (!navigator.serviceWorker) {return;}
 
     navigator.serviceWorker.addEventListener('message', (event) => {
       const { type, jobId, result, error } = event.data;
@@ -263,7 +269,7 @@ export class BackgroundSyncService extends EventEmitter<BackgroundSyncEventMap> 
         priority: 'low',
       },
       'periodic',
-      0 // Low priority
+      0, // Low priority
     );
   }
 
@@ -290,7 +296,7 @@ export class BackgroundSyncService extends EventEmitter<BackgroundSyncEventMap> 
     // 1. High priority job
     // 2. User-initiated action
     // 3. Good network conditions (if network sensitive)
-    
+
     if (job.priority > 5 || job.trigger === 'user-action') {
       return true;
     }
@@ -314,7 +320,7 @@ export class BackgroundSyncService extends EventEmitter<BackgroundSyncEventMap> 
     try {
       // This would integrate with the SyncEngine
       const result = await this.performSync(job.options);
-      
+
       this.handleJobCompleted(job, result);
     } catch (error) {
       this.handleJobFailed(job, error as Error);
@@ -324,10 +330,10 @@ export class BackgroundSyncService extends EventEmitter<BackgroundSyncEventMap> 
   private async performSync(options: SyncOptions): Promise<SyncResult> {
     // This is a placeholder implementation
     // In the real implementation, this would call the SyncEngine
-    
+
     // Simulate sync operation
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     return {
       id: `sync_${Date.now()}`,
       operation: options.operation || 'full',
@@ -354,29 +360,29 @@ export class BackgroundSyncService extends EventEmitter<BackgroundSyncEventMap> 
 
   private handleJobCompleted(job: BackgroundSyncJob, result: SyncResult): void {
     this.scheduledJobs.delete(job.id);
-    
+
     // Add to history
     this.addToHistory({ job, result });
-    
+
     this.emit('job-completed', { job, result });
   }
 
   private handleJobFailed(job: BackgroundSyncJob, error: Error): void {
     job.currentRetries++;
-    
+
     if (job.currentRetries < job.maxRetries) {
       // Reschedule with exponential backoff
-      const delay = Math.pow(2, job.currentRetries) * 1000;
+      const delay = 2**job.currentRetries * 1000;
       setTimeout(() => {
         this.executeJob(job);
       }, delay);
     } else {
       // Max retries reached, remove job
       this.scheduledJobs.delete(job.id);
-      
+
       // Add to history
       this.addToHistory({ job, error });
-      
+
       this.emit('job-failed', { job, error });
     }
   }
@@ -397,7 +403,7 @@ export class BackgroundSyncService extends EventEmitter<BackgroundSyncEventMap> 
 
   private addToHistory(entry: { job: BackgroundSyncJob; result?: SyncResult; error?: Error }): void {
     this.jobHistory.push(entry);
-    
+
     // Keep history within limits
     if (this.jobHistory.length > this.config.maxJobHistory) {
       this.jobHistory.shift();

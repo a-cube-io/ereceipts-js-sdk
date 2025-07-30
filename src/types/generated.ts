@@ -10,154 +10,154 @@ type XOR<T, U> = (T | U) extends object ? (Without<T, U> & U) | (Without<U, T> &
 type OneOf<T extends any[]> = T extends [infer Only] ? Only : T extends [infer A, infer B, ...infer Rest] ? OneOf<[XOR<A, B>, ...Rest]> : never;
 
 export interface paths {
-  "/mf1/cashiers": {
+  '/mf1/cashiers': {
     /** Read Cashiers */
-    get: operations["read_cashiers_mf1_cashiers_get"];
+    get: operations['read_cashiers_mf1_cashiers_get'];
     /** Create Cashier */
-    post: operations["create_cashier_mf1_cashiers_post"];
+    post: operations['create_cashier_mf1_cashiers_post'];
   };
-  "/mf1/cashiers/me": {
+  '/mf1/cashiers/me': {
     /**
      * Read Cashier Me
      * @description Read currently authenticated cashier's information
      */
-    get: operations["read_cashier_me_mf1_cashiers_me_get"];
+    get: operations['read_cashier_me_mf1_cashiers_me_get'];
   };
-  "/mf1/cashiers/{cashier_id}": {
+  '/mf1/cashiers/{cashier_id}': {
     /**
      * Read Cashier By Id
      * @description Get a specific user by id.
      */
-    get: operations["read_cashier_by_id_mf1_cashiers__cashier_id__get"];
+    get: operations['read_cashier_by_id_mf1_cashiers__cashier_id__get'];
     /**
      * Delete Cashier
      * @description Delete a cashier.
      */
-    delete: operations["delete_cashier_mf1_cashiers__cashier_id__delete"];
+    delete: operations['delete_cashier_mf1_cashiers__cashier_id__delete'];
   };
-  "/mf1/point-of-sales": {
+  '/mf1/point-of-sales': {
     /**
      * Read Point Of Sales
      * @description Retrieve PEMs.
      */
-    get: operations["read_point_of_sales_mf1_point_of_sales_get"];
+    get: operations['read_point_of_sales_mf1_point_of_sales_get'];
   };
-  "/mf1/point-of-sales/{serial_number}": {
+  '/mf1/point-of-sales/{serial_number}': {
     /** Read Point Of Sale */
-    get: operations["read_point_of_sale_mf1_point_of_sales__serial_number__get"];
+    get: operations['read_point_of_sale_mf1_point_of_sales__serial_number__get'];
   };
-  "/mf1/point-of-sales/close": {
+  '/mf1/point-of-sales/close': {
     /** Close Journal */
-    post: operations["close_journal_mf1_point_of_sales_close_post"];
+    post: operations['close_journal_mf1_point_of_sales_close_post'];
   };
-  "/mf1/point-of-sales/{serial_number}/activation": {
+  '/mf1/point-of-sales/{serial_number}/activation': {
     /**
      * Post Activation
      * @description Trigger the activation process of a Point of Sale by requesting a certificate to the Italian Tax Agency
      */
-    post: operations["post_activation_mf1_point_of_sales__serial_number__activation_post"];
+    post: operations['post_activation_mf1_point_of_sales__serial_number__activation_post'];
   };
-  "/mf1/point-of-sales/{serial_number}/inactivity": {
+  '/mf1/point-of-sales/{serial_number}/inactivity': {
     /**
      * Create Inactivity Period
      * @description Create a new inactivity period
      */
-    post: operations["create_inactivity_period_mf1_point_of_sales__serial_number__inactivity_post"];
+    post: operations['create_inactivity_period_mf1_point_of_sales__serial_number__inactivity_post'];
   };
-  "/mf1/point-of-sales/{serial_number}/status/offline": {
+  '/mf1/point-of-sales/{serial_number}/status/offline': {
     /**
      * Post Offline
      * @description Change the state of the Point of Sale to 'offline'
      */
-    post: operations["post_offline_mf1_point_of_sales__serial_number__status_offline_post"];
+    post: operations['post_offline_mf1_point_of_sales__serial_number__status_offline_post'];
   };
-  "/mf1/receipts": {
+  '/mf1/receipts': {
     /** Get a list of electronic receipts */
-    get: operations["get_receipts_mf1_receipts_get"];
+    get: operations['get_receipts_mf1_receipts_get'];
     /** Create a new electronic receipt */
-    post: operations["create_receipt_mf1_receipts_post"];
+    post: operations['create_receipt_mf1_receipts_post'];
     /** Void an electronic receipt */
-    delete: operations["void_receipt_mf1_receipts_delete"];
+    delete: operations['void_receipt_mf1_receipts_delete'];
   };
-  "/mf1/receipts/{receipt_uuid}": {
+  '/mf1/receipts/{receipt_uuid}': {
     /** Get an electronic receipt */
-    get: operations["get_receipt_mf1_receipts__receipt_uuid__get"];
+    get: operations['get_receipt_mf1_receipts__receipt_uuid__get'];
   };
-  "/mf1/receipts/void-with-proof": {
+  '/mf1/receipts/void-with-proof': {
     /** Void an electronic receipt identified by a proof of purchase */
-    delete: operations["void_receipt_via_proof_mf1_receipts_void_with_proof_delete"];
+    delete: operations['void_receipt_via_proof_mf1_receipts_void_with_proof_delete'];
   };
-  "/mf1/receipts/{receipt_uuid}/details": {
+  '/mf1/receipts/{receipt_uuid}/details': {
     /**
      * Get the details or the PDF of an electronic receipt
      * @description Retrieve receipt details in JSON format or download as PDF based on the Accept header. Use 'Accept: application/json' for JSON response (default) or 'Accept: application/pdf' for PDF download.
      */
-    get: operations["get_receipt_details_mf1_receipts__receipt_uuid__details_get"];
+    get: operations['get_receipt_details_mf1_receipts__receipt_uuid__details_get'];
   };
-  "/mf1/receipts/return": {
+  '/mf1/receipts/return': {
     /** Return items from an electronic receipt (same PEM or other PEM) */
-    post: operations["return_receipt_items_mf1_receipts_return_post"];
+    post: operations['return_receipt_items_mf1_receipts_return_post'];
   };
-  "/mf1/receipts/return-with-proof": {
+  '/mf1/receipts/return-with-proof': {
     /** Return items from an electronic receipt identified by a proof of purchase */
-    post: operations["return_receipt_items_via_proof_mf1_receipts_return_with_proof_post"];
+    post: operations['return_receipt_items_via_proof_mf1_receipts_return_with_proof_post'];
   };
-  "/mf1/cash-register": {
+  '/mf1/cash-register': {
     /**
      * Get Cash Registers
      * @description Get all point of sales for the current merchant.
      */
-    get: operations["get_cash_registers_mf1_cash_register_get"];
+    get: operations['get_cash_registers_mf1_cash_register_get'];
     /**
      * Create Cash Register
      * @description Create a new point of sale.
      */
-    post: operations["create_cash_register_mf1_cash_register_post"];
+    post: operations['create_cash_register_mf1_cash_register_post'];
   };
-  "/mf1/cash-register/{id}": {
+  '/mf1/cash-register/{id}': {
     /**
      * Get Cash Register
      * @description Get a point of sale by ID.
      */
-    get: operations["get_cash_register_mf1_cash_register__id__get"];
+    get: operations['get_cash_register_mf1_cash_register__id__get'];
   };
-  "/mf2/merchants": {
+  '/mf2/merchants': {
     /**
      * Retrieves the collection of Merchant resources.
      * @description Retrieves the collection of Merchant resources.
      */
-    get: operations["api_merchants_get_collection"];
+    get: operations['api_merchants_get_collection'];
     /**
      * Creates a Merchant resource.
      * @description Creates a Merchant resource.
      */
-    post: operations["api_merchants_post"];
+    post: operations['api_merchants_post'];
   };
-  "/mf2/merchants/{uuid}": {
+  '/mf2/merchants/{uuid}': {
     /**
      * Retrieves a Merchant resource.
      * @description Retrieves a Merchant resource.
      */
-    get: operations["api_merchants_uuid_get"];
+    get: operations['api_merchants_uuid_get'];
     /**
      * Replaces the Merchant resource.
      * @description Replaces the Merchant resource.
      */
-    put: operations["api_merchants_uuid_put"];
+    put: operations['api_merchants_uuid_put'];
   };
-  "/mf2/point-of-sales": {
+  '/mf2/point-of-sales': {
     /**
      * Creates a new PEM.
      * @description Creates a Pem resource.
      */
-    post: operations["api_point-of-sales_post"];
+    post: operations['api_point-of-sales_post'];
   };
-  "/mf2/point-of-sales/{id}/certificates": {
+  '/mf2/point-of-sales/{id}/certificates': {
     /**
      * Returns the mTLS and signing certificates
      * @description Retrieves a Pem resource.
      */
-    get: operations["api_point-of-sales_idcertificates_get"];
+    get: operations['api_point-of-sales_idcertificates_get'];
   };
 }
 
@@ -166,12 +166,12 @@ export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
     /** ActivationRequest */
-    "E-Receipt_IT_API_ActivationRequest": {
+    'E-Receipt_IT_API_ActivationRequest': {
       /** Registration Key */
       registration_key: string;
     };
     /** Address */
-    "E-Receipt_IT_API_Address": {
+    'E-Receipt_IT_API_Address': {
       /**
        * Street Address
        * @description The street address associated to the PEM
@@ -194,7 +194,7 @@ export interface components {
       province: string;
     };
     /** CashRegisterBasicOutput */
-    "E-Receipt_IT_API_CashRegisterBasicOutput": {
+    'E-Receipt_IT_API_CashRegisterBasicOutput': {
       /**
        * Id
        * Format: uuid
@@ -206,14 +206,14 @@ export interface components {
       name: string;
     };
     /** CashRegisterCreate */
-    "E-Receipt_IT_API_CashRegisterCreate": {
+    'E-Receipt_IT_API_CashRegisterCreate': {
       /** Pem Serial Number */
       pem_serial_number: string;
       /** Name */
       name: string;
     };
     /** CashRegisterDetailedOutput */
-    "E-Receipt_IT_API_CashRegisterDetailedOutput": {
+    'E-Receipt_IT_API_CashRegisterDetailedOutput': {
       /**
        * Id
        * Format: uuid
@@ -229,21 +229,21 @@ export interface components {
       private_key: string;
     };
     /** CashierCreateInput */
-    "E-Receipt_IT_API_CashierCreateInput": {
+    'E-Receipt_IT_API_CashierCreateInput': {
       /** Email */
       email: string;
       /** Password */
       password: string;
     };
     /** CashierOutput */
-    "E-Receipt_IT_API_CashierOutput": {
+    'E-Receipt_IT_API_CashierOutput': {
       /** Id */
       id: number;
       /** Email */
       email: string;
     };
     /** ErrorModel400BadRequest */
-    "E-Receipt_IT_API_ErrorModel400BadRequest": {
+    'E-Receipt_IT_API_ErrorModel400BadRequest': {
       /**
        * Type
        * @default /errors/400
@@ -271,7 +271,7 @@ export interface components {
       instance?: string | null;
     };
     /** ErrorModel401Unauthorized */
-    "E-Receipt_IT_API_ErrorModel401Unauthorized": {
+    'E-Receipt_IT_API_ErrorModel401Unauthorized': {
       /**
        * Type
        * @default /errors/401
@@ -299,7 +299,7 @@ export interface components {
       instance?: string | null;
     };
     /** ErrorModel403Forbidden */
-    "E-Receipt_IT_API_ErrorModel403Forbidden": {
+    'E-Receipt_IT_API_ErrorModel403Forbidden': {
       /**
        * Type
        * @default /errors/403
@@ -327,7 +327,7 @@ export interface components {
       instance?: string | null;
     };
     /** ErrorModel404NotFound */
-    "E-Receipt_IT_API_ErrorModel404NotFound": {
+    'E-Receipt_IT_API_ErrorModel404NotFound': {
       /**
        * Type
        * @default /errors/404
@@ -358,19 +358,19 @@ export interface components {
      * GoodOrService
      * @enum {string}
      */
-    "E-Receipt_IT_API_GoodOrService": "B" | "S";
+    'E-Receipt_IT_API_GoodOrService': 'B' | 'S';
     /** HTTPValidationError */
-    "E-Receipt_IT_API_HTTPValidationError": {
+    'E-Receipt_IT_API_HTTPValidationError': {
       /** Detail */
-      detail?: components["schemas"]["E-Receipt_IT_API_ValidationError"][];
+      detail?: components['schemas']['E-Receipt_IT_API_ValidationError'][];
     };
     /**
      * PEMStatus
      * @enum {string}
      */
-    "E-Receipt_IT_API_PEMStatus": "NEW" | "REGISTERED" | "ACTIVE" | "ONLINE" | "OFFLINE" | "DISCARDED";
+    'E-Receipt_IT_API_PEMStatus': 'NEW' | 'REGISTERED' | 'ACTIVE' | 'ONLINE' | 'OFFLINE' | 'DISCARDED';
     /** PEMStatusOfflineRequest */
-    "E-Receipt_IT_API_PEMStatusOfflineRequest": {
+    'E-Receipt_IT_API_PEMStatusOfflineRequest': {
       /**
        * Timestamp
        * Format: date-time
@@ -380,9 +380,9 @@ export interface components {
       reason: string;
     };
     /** Page[~T]Customized[CashRegisterBasicOutput] */
-    "E-Receipt_IT_API_Page__T_Customized_CashRegisterBasicOutput_": {
+    'E-Receipt_IT_API_Page__T_Customized_CashRegisterBasicOutput_': {
       /** Members */
-      members: components["schemas"]["E-Receipt_IT_API_CashRegisterBasicOutput"][];
+      members: components['schemas']['E-Receipt_IT_API_CashRegisterBasicOutput'][];
       /** Total */
       total?: number | null;
       /** Page */
@@ -393,9 +393,9 @@ export interface components {
       pages?: number | null;
     };
     /** Page[~T]Customized[CashierOutput] */
-    "E-Receipt_IT_API_Page__T_Customized_CashierOutput_": {
+    'E-Receipt_IT_API_Page__T_Customized_CashierOutput_': {
       /** Members */
-      members: components["schemas"]["E-Receipt_IT_API_CashierOutput"][];
+      members: components['schemas']['E-Receipt_IT_API_CashierOutput'][];
       /** Total */
       total?: number | null;
       /** Page */
@@ -406,9 +406,9 @@ export interface components {
       pages?: number | null;
     };
     /** Page[~T]Customized[PointOfSaleOutput] */
-    "E-Receipt_IT_API_Page__T_Customized_PointOfSaleOutput_": {
+    'E-Receipt_IT_API_Page__T_Customized_PointOfSaleOutput_': {
       /** Members */
-      members: components["schemas"]["E-Receipt_IT_API_PointOfSaleOutput"][];
+      members: components['schemas']['E-Receipt_IT_API_PointOfSaleOutput'][];
       /** Total */
       total?: number | null;
       /** Page */
@@ -419,9 +419,9 @@ export interface components {
       pages?: number | null;
     };
     /** Page[~T]Customized[ReceiptOutput] */
-    "E-Receipt_IT_API_Page__T_Customized_ReceiptOutput_": {
+    'E-Receipt_IT_API_Page__T_Customized_ReceiptOutput_': {
       /** Members */
-      members: components["schemas"]["E-Receipt_IT_API_ReceiptOutput"][];
+      members: components['schemas']['E-Receipt_IT_API_ReceiptOutput'][];
       /** Total */
       total?: number | null;
       /** Page */
@@ -432,29 +432,29 @@ export interface components {
       pages?: number | null;
     };
     /** PointOfSaleDetailedOutput */
-    "E-Receipt_IT_API_PointOfSaleDetailedOutput": {
+    'E-Receipt_IT_API_PointOfSaleDetailedOutput': {
       /** Serial Number */
       serial_number: string;
-      status: components["schemas"]["E-Receipt_IT_API_PEMStatus"];
-      address: components["schemas"]["E-Receipt_IT_API_Address"];
+      status: components['schemas']['E-Receipt_IT_API_PEMStatus'];
+      address: components['schemas']['E-Receipt_IT_API_Address'];
       /** Registration Key */
       registration_key: string | null;
     };
     /** PointOfSaleOutput */
-    "E-Receipt_IT_API_PointOfSaleOutput": {
+    'E-Receipt_IT_API_PointOfSaleOutput': {
       /** Serial Number */
       serial_number: string;
-      status: components["schemas"]["E-Receipt_IT_API_PEMStatus"];
-      address: components["schemas"]["E-Receipt_IT_API_Address"];
+      status: components['schemas']['E-Receipt_IT_API_PEMStatus'];
+      address: components['schemas']['E-Receipt_IT_API_Address'];
     };
     /** ReceiptDetailsOutput */
-    "E-Receipt_IT_API_ReceiptDetailsOutput": {
+    'E-Receipt_IT_API_ReceiptDetailsOutput': {
       /**
        * Uuid
        * Format: uuid
        */
       uuid: string;
-      type: components["schemas"]["E-Receipt_IT_API_ReceiptType"];
+      type: components['schemas']['E-Receipt_IT_API_ReceiptType'];
       /**
        * Customer Lottery Code
        * @description Lottery code of the customer
@@ -524,15 +524,15 @@ export interface components {
        * @description List of individual products/services included in the receipt
        * @default []
        */
-      items?: components["schemas"]["E-Receipt_IT_API_ReceiptItem"][];
+      items?: components['schemas']['E-Receipt_IT_API_ReceiptItem'][];
     };
     /** ReceiptInput */
-    "E-Receipt_IT_API_ReceiptInput": {
+    'E-Receipt_IT_API_ReceiptInput': {
       /**
        * Items
        * @description 'Elementi contabili. Commercial document items. It is mandatory that there is at least one item.
        */
-      items: components["schemas"]["E-Receipt_IT_API_ReceiptItem"][];
+      items: components['schemas']['E-Receipt_IT_API_ReceiptItem'][];
       /**
        * Customer Tax Code
        * @description Tax code of the customer
@@ -602,12 +602,12 @@ export interface components {
      * ReceiptItem
      * @description Model representing an item in a commercial document.
      */
-    "E-Receipt_IT_API_ReceiptItem": {
+    'E-Receipt_IT_API_ReceiptItem': {
       /**
        * @description Type of the item. It can be a good or a service.
        * @default B
        */
-      good_or_service?: components["schemas"]["E-Receipt_IT_API_GoodOrService"];
+      good_or_service?: components['schemas']['E-Receipt_IT_API_GoodOrService'];
       /**
        * Quantity
        * @description Quantity expressed as a string with exactly 2 decimal digits. E.g. '1.00', '1.50', '2.00'
@@ -627,7 +627,7 @@ export interface components {
        * @description VAT rate code as a string
        * @default 22
        */
-      vat_rate_code?: components["schemas"]["E-Receipt_IT_API_VatRateCode"] | null;
+      vat_rate_code?: components['schemas']['E-Receipt_IT_API_VatRateCode'] | null;
       /**
        * Simplified Vat Allocation
        * @description Set to true if this item is subject to 'Ventilazione IVA'. If true, 'vat_rate_code' must not be set.
@@ -654,13 +654,13 @@ export interface components {
       complimentary?: boolean;
     };
     /** ReceiptOutput */
-    "E-Receipt_IT_API_ReceiptOutput": {
+    'E-Receipt_IT_API_ReceiptOutput': {
       /**
        * Uuid
        * Format: uuid
        */
       uuid: string;
-      type: components["schemas"]["E-Receipt_IT_API_ReceiptType"];
+      type: components['schemas']['E-Receipt_IT_API_ReceiptType'];
       /**
        * Customer Lottery Code
        * @description Lottery code of the customer
@@ -690,16 +690,16 @@ export interface components {
      * ReceiptProofType
      * @enum {string}
      */
-    "E-Receipt_IT_API_ReceiptProofType": "POS" | "VR" | "ND";
+    'E-Receipt_IT_API_ReceiptProofType': 'POS' | 'VR' | 'ND';
     /** ReceiptReturnOrVoidViaPEMInput */
-    "E-Receipt_IT_API_ReceiptReturnOrVoidViaPEMInput": {
+    'E-Receipt_IT_API_ReceiptReturnOrVoidViaPEMInput': {
       /**
        * Pem Id
        * @description The PEM ID that issued the original receipt. If not provided, we assume the sale receipt was issued by the current PEM.
        */
       pem_id?: string | null;
       /** Items */
-      items: components["schemas"]["E-Receipt_IT_API_ReceiptItem"][];
+      items: components['schemas']['E-Receipt_IT_API_ReceiptItem'][];
       /**
        * Document Number
        * @description The document number of the original receipt
@@ -717,11 +717,11 @@ export interface components {
       lottery_code?: string | null;
     };
     /** ReceiptReturnOrVoidWithProofInput */
-    "E-Receipt_IT_API_ReceiptReturnOrVoidWithProofInput": {
+    'E-Receipt_IT_API_ReceiptReturnOrVoidWithProofInput': {
       /** Items */
-      items: components["schemas"]["E-Receipt_IT_API_ReceiptItem"][];
+      items: components['schemas']['E-Receipt_IT_API_ReceiptItem'][];
       /** @description The type of proof of purchase: 'POS' for POS receipts, 'VR' for 'Vuoti a rendere', 'ND' for other residual cases. Used in place of device serial number/unique PEM identifier. */
-      proof: components["schemas"]["E-Receipt_IT_API_ReceiptProofType"];
+      proof: components['schemas']['E-Receipt_IT_API_ReceiptProofType'];
       /**
        * Document Datetime
        * @description The date of the proof of purchase in ISO format
@@ -732,9 +732,9 @@ export interface components {
      * ReceiptType
      * @enum {string}
      */
-    "E-Receipt_IT_API_ReceiptType": "sale" | "return" | "void";
+    'E-Receipt_IT_API_ReceiptType': 'sale' | 'return' | 'void';
     /** ValidationError */
-    "E-Receipt_IT_API_ValidationError": {
+    'E-Receipt_IT_API_ValidationError': {
       /** Location */
       loc: (string | number)[];
       /** Message */
@@ -747,29 +747,29 @@ export interface components {
      * @description VAT rate codes with their corresponding descriptions.
      * @enum {string}
      */
-    "E-Receipt_IT_API_VatRateCode": "4" | "5" | "10" | "22" | "2" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6";
-    "A-Cube_GOV-IT_PEL_Platform_Address": {
+    'E-Receipt_IT_API_VatRateCode': '4' | '5' | '10' | '22' | '2' | '6.4' | '7' | '7.3' | '7.5' | '7.65' | '7.95' | '8.3' | '8.5' | '8.8' | '9.5' | '12.3' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6';
+    'A-Cube_GOV-IT_PEL_Platform_Address': {
       street_address: string;
       zip_code: string;
       city: string;
       province: string;
     };
-    "A-Cube_GOV-IT_PEL_Platform_Address.jsonld": {
-      "@context"?: OneOf<[string, {
-        "@vocab": string;
+    'A-Cube_GOV-IT_PEL_Platform_Address.jsonld': {
+      '@context'?: OneOf<[string, {
+        '@vocab': string;
         /** @enum {string} */
-        hydra: "http://www.w3.org/ns/hydra/core#";
+        hydra: 'http://www.w3.org/ns/hydra/core#';
         [key: string]: unknown;
       }]>;
-      "@id"?: string;
-      "@type"?: string;
+      '@id'?: string;
+      '@type'?: string;
       street_address: string;
       zip_code: string;
       city: string;
       province: string;
     };
     /** @description Unprocessable entity */
-    "A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json": {
+    'A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json': {
       /**
        * @default 422
        * @example 422
@@ -787,15 +787,15 @@ export interface components {
       instance?: string | null;
     };
     /** @description Unprocessable entity */
-    "A-Cube_GOV-IT_PEL_Platform_ConstraintViolation.jsonld-jsonld": {
-      "@context"?: OneOf<[string, {
-        "@vocab": string;
+    'A-Cube_GOV-IT_PEL_Platform_ConstraintViolation.jsonld-jsonld': {
+      '@context'?: OneOf<[string, {
+        '@vocab': string;
         /** @enum {string} */
-        hydra: "http://www.w3.org/ns/hydra/core#";
+        hydra: 'http://www.w3.org/ns/hydra/core#';
         [key: string]: unknown;
       }]>;
-      "@id"?: string;
-      "@type"?: string;
+      '@id'?: string;
+      '@type'?: string;
       /**
        * @default 422
        * @example 422
@@ -814,7 +814,7 @@ export interface components {
       instance?: string | null;
     };
     /** @description A representation of common errors. */
-    "A-Cube_GOV-IT_PEL_Platform_Error": {
+    'A-Cube_GOV-IT_PEL_Platform_Error': {
       /** @description A short, human-readable summary of the problem. */
       title?: string | null;
       /** @description A human-readable explanation specific to this occurrence of the problem. */
@@ -827,15 +827,15 @@ export interface components {
       type?: string;
     };
     /** @description A representation of common errors. */
-    "A-Cube_GOV-IT_PEL_Platform_Error.jsonld": {
-      "@context"?: OneOf<[string, {
-        "@vocab": string;
+    'A-Cube_GOV-IT_PEL_Platform_Error.jsonld': {
+      '@context'?: OneOf<[string, {
+        '@vocab': string;
         /** @enum {string} */
-        hydra: "http://www.w3.org/ns/hydra/core#";
+        hydra: 'http://www.w3.org/ns/hydra/core#';
         [key: string]: unknown;
       }]>;
-      "@id"?: string;
-      "@type"?: string;
+      '@id'?: string;
+      '@type'?: string;
       /** @description A short, human-readable summary of the problem. */
       title?: string | null;
       /** @description A human-readable explanation specific to this occurrence of the problem. */
@@ -848,7 +848,7 @@ export interface components {
       type?: string;
       description?: string | null;
     };
-    "A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantCreateInput": {
+    'A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantCreateInput': {
       /** @description The VAT-ID of the merchant (Partita IVA). */
       fiscal_id: string;
       /** @description The business name of the merchant (Ragione sociale). */
@@ -861,9 +861,9 @@ export interface components {
       /** @description The password. */
       password: string;
       /** @description The billing address. */
-      address?: components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Address"];
+      address?: components['schemas']['A-Cube_GOV-IT_PEL_Platform_Address'];
     };
-    "A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantCreateInput.jsonld": {
+    'A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantCreateInput.jsonld': {
       /** @description The VAT-ID of the merchant (Partita IVA). */
       fiscal_id: string;
       /** @description The business name of the merchant (Ragione sociale). */
@@ -876,105 +876,105 @@ export interface components {
       /** @description The password. */
       password: string;
       /** @description The billing address. */
-      address?: components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Address.jsonld"];
+      address?: components['schemas']['A-Cube_GOV-IT_PEL_Platform_Address.jsonld'];
     };
-    "A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput": {
+    'A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput': {
       uuid?: string;
       fiscal_id?: string;
       name?: string;
       email?: string;
-      address?: components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Address"];
+      address?: components['schemas']['A-Cube_GOV-IT_PEL_Platform_Address'];
     };
-    "A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld": {
-      "@context"?: OneOf<[string, {
-        "@vocab": string;
+    'A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld': {
+      '@context'?: OneOf<[string, {
+        '@vocab': string;
         /** @enum {string} */
-        hydra: "http://www.w3.org/ns/hydra/core#";
+        hydra: 'http://www.w3.org/ns/hydra/core#';
         [key: string]: unknown;
       }]>;
-      "@id"?: string;
-      "@type"?: string;
+      '@id'?: string;
+      '@type'?: string;
       uuid?: string;
       fiscal_id?: string;
       name?: string;
       email?: string;
-      address?: components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Address.jsonld"];
+      address?: components['schemas']['A-Cube_GOV-IT_PEL_Platform_Address.jsonld'];
     };
-    "A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantUpdateInput": {
+    'A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantUpdateInput': {
       /** @description The business name of the merchant (Ragione sociale). */
       name: string;
       /** @description The billing address. */
-      address?: components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Address"] | null;
+      address?: components['schemas']['A-Cube_GOV-IT_PEL_Platform_Address'] | null;
     };
-    "A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantUpdateInput.jsonld": {
+    'A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantUpdateInput.jsonld': {
       /** @description The business name of the merchant (Ragione sociale). */
       name: string;
       /** @description The billing address. */
-      address?: components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Address.jsonld"] | null;
+      address?: components['schemas']['A-Cube_GOV-IT_PEL_Platform_Address.jsonld'] | null;
     };
-    "A-Cube_GOV-IT_PEL_Platform_Pem.PemCertificatesOutput": {
+    'A-Cube_GOV-IT_PEL_Platform_Pem.PemCertificatesOutput': {
       mtls_certificate?: string;
       activation_xml_response?: string | null;
     };
-    "A-Cube_GOV-IT_PEL_Platform_Pem.PemCertificatesOutput.jsonld": {
-      "@context"?: OneOf<[string, {
-        "@vocab": string;
+    'A-Cube_GOV-IT_PEL_Platform_Pem.PemCertificatesOutput.jsonld': {
+      '@context'?: OneOf<[string, {
+        '@vocab': string;
         /** @enum {string} */
-        hydra: "http://www.w3.org/ns/hydra/core#";
+        hydra: 'http://www.w3.org/ns/hydra/core#';
         [key: string]: unknown;
       }]>;
-      "@id"?: string;
-      "@type"?: string;
+      '@id'?: string;
+      '@type'?: string;
       mtls_certificate?: string;
       activation_xml_response?: string | null;
     };
-    "A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateInput": {
+    'A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateInput': {
       /**
        * Format: uuid
        * @description The merchant UUID.
        */
       merchant_uuid: string;
       /** @description The address. Leave empty to use the default merchant address. */
-      address?: components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Address"] | null;
+      address?: components['schemas']['A-Cube_GOV-IT_PEL_Platform_Address'] | null;
       /** @description The external PEM configuration. */
-      external_pem_data?: components["schemas"]["A-Cube_GOV-IT_PEL_Platform_PemData"] | null;
+      external_pem_data?: components['schemas']['A-Cube_GOV-IT_PEL_Platform_PemData'] | null;
     };
-    "A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateInput.jsonld": {
+    'A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateInput.jsonld': {
       /**
        * Format: uuid
        * @description The merchant UUID.
        */
       merchant_uuid: string;
       /** @description The address. Leave empty to use the default merchant address. */
-      address?: components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Address.jsonld"] | null;
+      address?: components['schemas']['A-Cube_GOV-IT_PEL_Platform_Address.jsonld'] | null;
       /** @description The external PEM configuration. */
-      external_pem_data?: components["schemas"]["A-Cube_GOV-IT_PEL_Platform_PemData.jsonld"] | null;
+      external_pem_data?: components['schemas']['A-Cube_GOV-IT_PEL_Platform_PemData.jsonld'] | null;
     };
-    "A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateOutput": {
+    'A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateOutput': {
       serial_number?: string;
       registration_key?: string;
     };
-    "A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateOutput.jsonld": {
-      "@context"?: OneOf<[string, {
-        "@vocab": string;
+    'A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateOutput.jsonld': {
+      '@context'?: OneOf<[string, {
+        '@vocab': string;
         /** @enum {string} */
-        hydra: "http://www.w3.org/ns/hydra/core#";
+        hydra: 'http://www.w3.org/ns/hydra/core#';
         [key: string]: unknown;
       }]>;
-      "@id"?: string;
-      "@type"?: string;
+      '@id'?: string;
+      '@type'?: string;
       serial_number?: string;
       registration_key?: string;
     };
-    "A-Cube_GOV-IT_PEL_Platform_PemData": {
+    'A-Cube_GOV-IT_PEL_Platform_PemData': {
       version: string;
       /** @enum {string} */
-      type: "AP" | "SP" | "TM" | "PV";
+      type: 'AP' | 'SP' | 'TM' | 'PV';
     };
-    "A-Cube_GOV-IT_PEL_Platform_PemData.jsonld": {
+    'A-Cube_GOV-IT_PEL_Platform_PemData.jsonld': {
       version: string;
       /** @enum {string} */
-      type: "AP" | "SP" | "TM" | "PV";
+      type: 'AP' | 'SP' | 'TM' | 'PV';
     };
   };
   responses: {
@@ -1007,25 +1007,25 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_Page__T_Customized_CashierOutput_"];
+          'application/json': components['schemas']['E-Receipt_IT_API_Page__T_Customized_CashierOutput_'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1034,32 +1034,32 @@ export interface operations {
   create_cashier_mf1_cashiers_post: {
     requestBody: {
       content: {
-        "application/json": components["schemas"]["E-Receipt_IT_API_CashierCreateInput"];
+        'application/json': components['schemas']['E-Receipt_IT_API_CashierCreateInput'];
       };
     };
     responses: {
       /** @description Successful Response */
       201: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_CashierOutput"];
+          'application/json': components['schemas']['E-Receipt_IT_API_CashierOutput'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1073,19 +1073,19 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_CashierOutput"];
+          'application/json': components['schemas']['E-Receipt_IT_API_CashierOutput'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
     };
@@ -1104,25 +1104,25 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_CashierOutput"];
+          'application/json': components['schemas']['E-Receipt_IT_API_CashierOutput'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1145,19 +1145,19 @@ export interface operations {
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1169,7 +1169,7 @@ export interface operations {
   read_point_of_sales_mf1_point_of_sales_get: {
     parameters: {
       query?: {
-        status?: components["schemas"]["E-Receipt_IT_API_PEMStatus"] | null;
+        status?: components['schemas']['E-Receipt_IT_API_PEMStatus'] | null;
         /** @description Page number */
         page?: number;
         size?: number;
@@ -1179,25 +1179,25 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_Page__T_Customized_PointOfSaleOutput_"];
+          'application/json': components['schemas']['E-Receipt_IT_API_Page__T_Customized_PointOfSaleOutput_'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1214,25 +1214,25 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_PointOfSaleDetailedOutput"];
+          'application/json': components['schemas']['E-Receipt_IT_API_PointOfSaleDetailedOutput'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1243,19 +1243,19 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": unknown;
+          'application/json': unknown;
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
     };
@@ -1273,32 +1273,32 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["E-Receipt_IT_API_ActivationRequest"];
+        'application/json': components['schemas']['E-Receipt_IT_API_ActivationRequest'];
       };
     };
     responses: {
       /** @description Successful Response */
       202: {
         content: {
-          "application/json": unknown;
+          'application/json': unknown;
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1318,37 +1318,37 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": unknown;
+          'application/json': unknown;
         };
       };
       /** @description Bad Request */
       400: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel400BadRequest"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel400BadRequest'];
         };
       };
       /** @description Unauthorized */
       401: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel401Unauthorized"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel401Unauthorized'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1366,32 +1366,32 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["E-Receipt_IT_API_PEMStatusOfflineRequest"];
+        'application/json': components['schemas']['E-Receipt_IT_API_PEMStatusOfflineRequest'];
       };
     };
     responses: {
       /** @description Successful Response */
       202: {
         content: {
-          "application/json": unknown;
+          'application/json': unknown;
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1409,25 +1409,25 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_Page__T_Customized_ReceiptOutput_"];
+          'application/json': components['schemas']['E-Receipt_IT_API_Page__T_Customized_ReceiptOutput_'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1436,32 +1436,32 @@ export interface operations {
   create_receipt_mf1_receipts_post: {
     requestBody: {
       content: {
-        "application/json": components["schemas"]["E-Receipt_IT_API_ReceiptInput"];
+        'application/json': components['schemas']['E-Receipt_IT_API_ReceiptInput'];
       };
     };
     responses: {
       /** @description Successful Response */
       201: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ReceiptOutput"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ReceiptOutput'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1470,7 +1470,7 @@ export interface operations {
   void_receipt_mf1_receipts_delete: {
     requestBody: {
       content: {
-        "application/json": components["schemas"]["E-Receipt_IT_API_ReceiptReturnOrVoidViaPEMInput"];
+        'application/json': components['schemas']['E-Receipt_IT_API_ReceiptReturnOrVoidViaPEMInput'];
       };
     };
     responses: {
@@ -1481,19 +1481,19 @@ export interface operations {
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1509,25 +1509,25 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ReceiptOutput"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ReceiptOutput'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1536,7 +1536,7 @@ export interface operations {
   void_receipt_via_proof_mf1_receipts_void_with_proof_delete: {
     requestBody: {
       content: {
-        "application/json": components["schemas"]["E-Receipt_IT_API_ReceiptReturnOrVoidWithProofInput"];
+        'application/json': components['schemas']['E-Receipt_IT_API_ReceiptReturnOrVoidWithProofInput'];
       };
     };
     responses: {
@@ -1547,19 +1547,19 @@ export interface operations {
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1582,8 +1582,8 @@ export interface operations {
       /** @description Receipt details in JSON format or PDF file based on Accept header */
       200: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ReceiptDetailsOutput"];
-          "application/pdf": string;
+          'application/json': components['schemas']['E-Receipt_IT_API_ReceiptDetailsOutput'];
+          'application/pdf': string;
         };
       };
       /** @description Unauthorized */
@@ -1601,7 +1601,7 @@ export interface operations {
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1610,32 +1610,32 @@ export interface operations {
   return_receipt_items_mf1_receipts_return_post: {
     requestBody: {
       content: {
-        "application/json": components["schemas"]["E-Receipt_IT_API_ReceiptReturnOrVoidViaPEMInput"];
+        'application/json': components['schemas']['E-Receipt_IT_API_ReceiptReturnOrVoidViaPEMInput'];
       };
     };
     responses: {
       /** @description Successful Response */
       201: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ReceiptOutput"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ReceiptOutput'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1644,32 +1644,32 @@ export interface operations {
   return_receipt_items_via_proof_mf1_receipts_return_with_proof_post: {
     requestBody: {
       content: {
-        "application/json": components["schemas"]["E-Receipt_IT_API_ReceiptReturnOrVoidWithProofInput"];
+        'application/json': components['schemas']['E-Receipt_IT_API_ReceiptReturnOrVoidWithProofInput'];
       };
     };
     responses: {
       /** @description Successful Response */
       201: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ReceiptOutput"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ReceiptOutput'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1690,25 +1690,25 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_Page__T_Customized_CashRegisterBasicOutput_"];
+          'application/json': components['schemas']['E-Receipt_IT_API_Page__T_Customized_CashRegisterBasicOutput_'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1720,32 +1720,32 @@ export interface operations {
   create_cash_register_mf1_cash_register_post: {
     requestBody: {
       content: {
-        "application/json": components["schemas"]["E-Receipt_IT_API_CashRegisterCreate"];
+        'application/json': components['schemas']['E-Receipt_IT_API_CashRegisterCreate'];
       };
     };
     responses: {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_CashRegisterDetailedOutput"];
+          'application/json': components['schemas']['E-Receipt_IT_API_CashRegisterDetailedOutput'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1765,25 +1765,25 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_CashRegisterBasicOutput"];
+          'application/json': components['schemas']['E-Receipt_IT_API_CashRegisterBasicOutput'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel403Forbidden"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel403Forbidden'];
         };
       };
       /** @description Not Found */
       404: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_ErrorModel404NotFound"];
+          'application/json': components['schemas']['E-Receipt_IT_API_ErrorModel404NotFound'];
         };
       };
       /** @description Validation Error */
       422: {
         content: {
-          "application/json": components["schemas"]["E-Receipt_IT_API_HTTPValidationError"];
+          'application/json': components['schemas']['E-Receipt_IT_API_HTTPValidationError'];
         };
       };
     };
@@ -1803,9 +1803,9 @@ export interface operations {
       /** @description Merchant collection */
       200: {
         content: {
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput"][];
-          "application/ld+json": {
-            member: components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld"][];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput'][];
+          'application/ld+json': {
+            member: components['schemas']['A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld'][];
             totalItems?: number;
             /**
              * @example {
@@ -1819,8 +1819,8 @@ export interface operations {
              */
             view?: {
               /** Format: iri-reference */
-              "@id"?: string;
-              "@type"?: string;
+              '@id'?: string;
+              '@type'?: string;
               /** Format: iri-reference */
               first?: string;
               /** Format: iri-reference */
@@ -1831,11 +1831,11 @@ export interface operations {
               next?: string;
             };
             search?: {
-              "@type"?: string;
+              '@type'?: string;
               template?: string;
               variableRepresentation?: string;
               mapping?: ({
-                  "@type"?: string;
+                  '@type'?: string;
                   variable?: string;
                   property?: string | null;
                   required?: boolean;
@@ -1847,9 +1847,9 @@ export interface operations {
       /** @description Forbidden */
       403: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error.jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error.jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
         };
       };
     };
@@ -1862,40 +1862,40 @@ export interface operations {
     /** @description The new Merchant resource */
     requestBody: {
       content: {
-        "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantCreateInput"];
-        "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantCreateInput.jsonld"];
+        'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantCreateInput'];
+        'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantCreateInput.jsonld'];
       };
     };
     responses: {
       /** @description Merchant resource created */
       201: {
         content: {
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput"];
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld"];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput'];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld'];
         };
       };
       /** @description Invalid input */
       400: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error.jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error.jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error.jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error.jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
         };
       };
       /** @description An error occurred */
       422: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_ConstraintViolation.jsonld-jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_ConstraintViolation.jsonld-jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json'];
         };
       };
     };
@@ -1915,24 +1915,24 @@ export interface operations {
       /** @description Merchant resource */
       200: {
         content: {
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput"];
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld"];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput'];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error.jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error.jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
         };
       };
       /** @description Not found */
       404: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error.jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error.jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
         };
       };
     };
@@ -1951,48 +1951,48 @@ export interface operations {
     /** @description The updated Merchant resource */
     requestBody: {
       content: {
-        "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantUpdateInput"];
-        "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantUpdateInput.jsonld"];
+        'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantUpdateInput'];
+        'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantUpdateInput.jsonld'];
       };
     };
     responses: {
       /** @description Merchant resource updated */
       200: {
         content: {
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput"];
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld"];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput'];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld'];
         };
       };
       /** @description Invalid input */
       400: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error.jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error.jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error.jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error.jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
         };
       };
       /** @description Not found */
       404: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error.jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error.jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
         };
       };
       /** @description An error occurred */
       422: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_ConstraintViolation.jsonld-jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_ConstraintViolation.jsonld-jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json'];
         };
       };
     };
@@ -2001,44 +2001,44 @@ export interface operations {
    * Creates a new PEM.
    * @description Creates a Pem resource.
    */
-  "api_point-of-sales_post": {
+  'api_point-of-sales_post': {
     /** @description The new Pem resource */
     requestBody: {
       content: {
-        "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateInput"];
-        "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateInput.jsonld"];
+        'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateInput'];
+        'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateInput.jsonld'];
       };
     };
     responses: {
       /** @description Pem resource created */
       201: {
         content: {
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateOutput"];
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateOutput.jsonld"];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateOutput'];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateOutput.jsonld'];
         };
       };
       /** @description Invalid input */
       400: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error.jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error.jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error.jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error.jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
         };
       };
       /** @description An error occurred */
       422: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_ConstraintViolation.jsonld-jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_ConstraintViolation.jsonld-jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_ConstraintViolation-json'];
         };
       };
     };
@@ -2047,7 +2047,7 @@ export interface operations {
    * Returns the mTLS and signing certificates
    * @description Retrieves a Pem resource.
    */
-  "api_point-of-sales_idcertificates_get": {
+  'api_point-of-sales_idcertificates_get': {
     parameters: {
       path: {
         /** @description Pem identifier */
@@ -2058,24 +2058,24 @@ export interface operations {
       /** @description Pem resource */
       200: {
         content: {
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Pem.PemCertificatesOutput"];
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Pem.PemCertificatesOutput.jsonld"];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Pem.PemCertificatesOutput'];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Pem.PemCertificatesOutput.jsonld'];
         };
       };
       /** @description Forbidden */
       403: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error.jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error.jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
         };
       };
       /** @description Not found */
       404: {
         content: {
-          "application/ld+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error.jsonld"];
-          "application/problem+json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
-          "application/json": components["schemas"]["A-Cube_GOV-IT_PEL_Platform_Error"];
+          'application/ld+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error.jsonld'];
+          'application/problem+json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
+          'application/json': components['schemas']['A-Cube_GOV-IT_PEL_Platform_Error'];
         };
       };
     };

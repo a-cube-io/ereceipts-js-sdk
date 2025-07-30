@@ -3,9 +3,11 @@
  * Enhanced with UnifiedStorage, enterprise queue management, and intelligent sync
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useACube } from './ACubeProvider';
 import type { QueueItem, QueueStats } from '@/storage/queue/queue-manager';
+
+import { useRef, useState, useEffect, useCallback } from 'react';
+
+import { useACube } from './ACubeProvider';
 
 export interface OfflineOptions {
   enabled?: boolean;
@@ -39,20 +41,20 @@ export interface OfflineResult {
   isOnline: boolean;
   isOffline: boolean;
   networkStatus: 'online' | 'offline' | 'reconnecting';
-  
+
   // Queue state
   queueStats: QueueStats;
   queuedOperations: QueueItem[];
-  
+
   // Sync state
   isSyncing: boolean;
   syncProgress: number;
   lastSyncTime: Date | null;
   lastSyncResults: SyncResults | null;
-  
+
   // Storage state
   storageStatus: OfflineStatus;
-  
+
   // Actions
   sync: () => Promise<SyncResults>;
   clearQueue: () => Promise<void>;
@@ -61,7 +63,7 @@ export interface OfflineResult {
   forceSync: (queueId?: string) => Promise<void>;
   enableOfflineMode: () => Promise<void>;
   disableOfflineMode: () => void;
-  
+
   // Advanced features
   exportOfflineData: () => Promise<string>;
   importOfflineData: (data: string) => Promise<void>;
@@ -81,19 +83,19 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
   } = options;
 
   // Get SDK and offline systems from context
-  const { 
-    storage, 
-    queueManager, 
+  const {
+    storage,
+    queueManager,
     syncEngine,
     isOnline: contextIsOnline,
     isOfflineEnabled,
-    isSyncEnabled 
+    isSyncEnabled,
   } = useACube();
 
   // Local state
   const [isOnline, setIsOnline] = useState(contextIsOnline);
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'reconnecting'>(
-    contextIsOnline ? 'online' : 'offline'
+    contextIsOnline ? 'online' : 'offline',
   );
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
@@ -140,11 +142,11 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
   useEffect(() => {
     const newStatus = contextIsOnline;
     setIsOnline(newStatus);
-    
+
     // Handle status transitions
     if (lastNetworkStatusRef.current !== newStatus) {
       setNetworkStatus(newStatus ? 'online' : 'offline');
-      
+
       // Reconnection logic
       if (!lastNetworkStatusRef.current && newStatus && syncOnReconnect) {
         setNetworkStatus('reconnecting');
@@ -152,7 +154,7 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
           setNetworkStatus('online');
         });
       }
-      
+
       // Notify about offline changes
       onOfflineChange?.(!newStatus);
       lastNetworkStatusRef.current = newStatus;
@@ -161,7 +163,7 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
 
   // Update stats periodically
   const updateStats = useCallback(async () => {
-    if (!enabled || !isOfflineEnabled) return;
+    if (!enabled || !isOfflineEnabled) {return;}
 
     try {
       // Update queue stats
@@ -212,7 +214,7 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
 
   // Setup background sync
   useEffect(() => {
-    if (!enabled || !backgroundSync || !isOnline) return;
+    if (!enabled || !backgroundSync || !isOnline) {return;}
 
     syncIntervalRef.current = setInterval(() => {
       if (!isSyncing) {
@@ -276,7 +278,7 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
             direction: 'bidirectional',
             strategy: 'immediate',
           });
-          
+
           results.successful += syncResult.statistics.recordsSynced;
           results.conflicts += syncResult.statistics.conflictsDetected;
           if (syncResult.errors.length > 0) {
@@ -290,11 +292,11 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
 
       setSyncProgress(100);
       results.duration = Date.now() - startTime;
-      
+
       setLastSyncTime(new Date());
       setLastSyncResults(results);
       await updateStats();
-      
+
       onSyncComplete?.(results);
       return results;
 
@@ -310,8 +312,8 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
 
   // Get queued operations
   const getQueuedOperations = useCallback((): QueueItem[] => {
-    if (!queueManager) return [];
-    
+    if (!queueManager) {return [];}
+
     try {
       return queueManager.getQueueItems();
     } catch (error) {
@@ -322,8 +324,8 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
 
   // Clear queue
   const clearQueue = useCallback(async (): Promise<void> => {
-    if (!queueManager) return;
-    
+    if (!queueManager) {return;}
+
     try {
       await queueManager.clear();
       await updateStats();
@@ -335,8 +337,8 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
 
   // Clear cache
   const clearCache = useCallback(async (): Promise<void> => {
-    if (!storage) return;
-    
+    if (!storage) {return;}
+
     try {
       const cacheEntries = await storage.query({ keyPrefix: 'api_cache:' });
       for (const entry of cacheEntries) {
@@ -351,8 +353,8 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
 
   // Get specific queued operation
   const getQueuedOperation = useCallback((id: string): QueueItem | undefined => {
-    if (!queueManager) return undefined;
-    
+    if (!queueManager) {return undefined;}
+
     try {
       const items = queueManager.getQueueItems();
       return items.find(item => item.id === id);
@@ -364,8 +366,8 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
 
   // Force sync specific item
   const forceSync = useCallback(async (queueId?: string): Promise<void> => {
-    if (!queueManager) return;
-    
+    if (!queueManager) {return;}
+
     try {
       if (queueId) {
         const item = getQueuedOperation(queueId);
@@ -409,13 +411,13 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
 
   // Export offline data
   const exportOfflineData = useCallback(async (): Promise<string> => {
-    if (!storage) throw new Error('Storage not available');
-    
+    if (!storage) {throw new Error('Storage not available');}
+
     try {
       const offlineEntries = await storage.query({ keyPrefix: 'offline:' });
       const cacheEntries = await storage.query({ keyPrefix: 'api_cache:' });
       const queueItems = queueManager ? queueManager.getQueueItems() : [];
-      
+
       const exportData = {
         timestamp: new Date().toISOString(),
         version: '2.0.0',
@@ -424,7 +426,7 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
         queue: queueItems,
         stats: storageStatus,
       };
-      
+
       return JSON.stringify(exportData, null, 2);
     } catch (error) {
       console.error('Failed to export offline data:', error);
@@ -434,30 +436,30 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
 
   // Import offline data
   const importOfflineData = useCallback(async (data: string): Promise<void> => {
-    if (!storage) throw new Error('Storage not available');
-    
+    if (!storage) {throw new Error('Storage not available');}
+
     try {
       const importData = JSON.parse(data);
-      
+
       // Import offline entries
       for (const entry of importData.offline || []) {
         await storage.set(entry.key, entry.value);
       }
-      
+
       // Import cache entries (with expiration check)
       for (const entry of importData.cache || []) {
         if (entry.value?.expiresAt && new Date(entry.value.expiresAt) > new Date()) {
           await storage.set(entry.key, entry.value);
         }
       }
-      
+
       // Import queue items
       if (queueManager && importData.queue) {
         for (const item of importData.queue) {
           await queueManager.add(item);
         }
       }
-      
+
       await updateStats();
     } catch (error) {
       console.error('Failed to import offline data:', error);
@@ -476,20 +478,20 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
     isOnline,
     isOffline: !isOnline,
     networkStatus,
-    
+
     // Queue state
     queueStats,
     queuedOperations: getQueuedOperations(),
-    
+
     // Sync state
     isSyncing,
     syncProgress,
     lastSyncTime,
     lastSyncResults,
-    
+
     // Storage state
     storageStatus,
-    
+
     // Actions
     sync,
     clearQueue,
@@ -498,7 +500,7 @@ export function useACubeOffline(options: OfflineOptions = {}): OfflineResult {
     forceSync,
     enableOfflineMode,
     disableOfflineMode,
-    
+
     // Advanced features
     exportOfflineData,
     importOfflineData,

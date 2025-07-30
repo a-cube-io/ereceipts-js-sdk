@@ -4,25 +4,26 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
-import { PriorityQueue } from './priority-queue';
-import { BatchProcessor } from './batch-processor';
+
+import { createQueueItemId } from './types';
 // import { ConflictResolverManager } from './conflict-resolver'; // TODO: Re-enable when implementing conflict resolution
 import { RetryManager } from './retry-manager';
+import { PriorityQueue } from './priority-queue';
+import { BatchProcessor } from './batch-processor';
 import { QueueAnalytics } from './queue-analytics';
 
-import type { 
-  QueueItem, 
-  QueueItemId, 
-  QueuePriority, 
-  QueueOperationType,
-  ResourceType,
+import type {
+  QueueItem,
+  QueueStats,
   QueueConfig,
   QueueEvents,
-  QueueStats,
+  QueueItemId,
+  ResourceType,
+  QueuePriority,
   BatchOperation,
-  QueueProcessor 
+  QueueProcessor,
+  QueueOperationType,
 } from './types';
-import { createQueueItemId } from './types';
 
 export interface QueueManagerConfig extends QueueConfig {
   storageKey: string;
@@ -42,21 +43,29 @@ export interface ProcessingResult {
 
 export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
   private config: QueueManagerConfig;
+
   private priorityQueue: PriorityQueue;
+
   private batchProcessor: BatchProcessor;
+
   // private _conflictResolver: ConflictResolverManager;  // TODO: Implement conflict resolution
   private retryManager: RetryManager;
+
   private analytics: QueueAnalytics;
-  
+
   private processors: Map<string, QueueProcessor> = new Map();
+
   private processingItems: Set<QueueItemId> = new Set();
+
   private processingTimer: NodeJS.Timeout | null = null;
+
   private isProcessing = false;
+
   private itemCounter = 0;
 
   constructor(config: Partial<QueueManagerConfig> = {}) {
     super();
-    
+
     this.config = {
       maxSize: 10000,
       maxRetries: 3,
@@ -91,7 +100,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
 
     this.initializeComponents();
     this.setupEventHandlers();
-    
+
     if (this.config.autoProcessing) {
       this.startAutoProcessing();
     }
@@ -111,10 +120,10 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
       dependencies?: QueueItemId[];
       metadata?: Record<string, unknown>;
       scheduledAt?: number;
-    } = {}
+    } = {},
   ): Promise<QueueItemId> {
     const id = createQueueItemId(`${resource}_${operation}_${++this.itemCounter}_${Date.now()}`);
-    
+
     const item: QueueItem = {
       id,
       priority: options.priority || this.config.defaultPriority,
@@ -164,7 +173,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
    */
   async dequeue(id: QueueItemId): Promise<boolean> {
     const success = this.priorityQueue.remove(id);
-    
+
     if (success && this.config.enablePersistence) {
       await this.persistQueue();
     }
@@ -183,9 +192,9 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
    * Update item status
    */
   async updateItemStatus(
-    id: QueueItemId, 
-    status: QueueItem['status'], 
-    error?: string
+    id: QueueItemId,
+    status: QueueItem['status'],
+    error?: string,
   ): Promise<boolean> {
     const item = this.priorityQueue.get(id);
     if (!item) {
@@ -212,11 +221,11 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
     };
 
     const success = this.priorityQueue.updateItem(id, updatedItem);
-    
+
     if (success) {
       // Handle status-specific logic
       await this.handleStatusChange(id, status, error);
-      
+
       if (this.config.enablePersistence) {
         await this.persistQueue();
       }
@@ -231,7 +240,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
   registerProcessor(
     resource: ResourceType,
     operation: QueueOperationType,
-    processor: QueueProcessor
+    processor: QueueProcessor,
   ): void {
     const key = `${resource}:${operation}`;
     this.processors.set(key, processor);
@@ -251,7 +260,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
     try {
       const availableSlots = Math.min(
         maxItems,
-        this.config.maxConcurrentProcessing - this.processingItems.size
+        this.config.maxConcurrentProcessing - this.processingItems.size,
       );
 
       if (availableSlots <= 0) {
@@ -260,7 +269,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
 
       // Get ready items
       const readyItems = this.priorityQueue.getReadyItems(availableSlots);
-      
+
       if (readyItems.length === 0) {
         return results;
       }
@@ -291,10 +300,10 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
    */
   async processAll(): Promise<ProcessingResult[]> {
     const allResults: ProcessingResult[] = [];
-    
+
     while (this.priorityQueue.getReadyItems(1).length > 0) {
       const results = await this.processNext(this.config.maxConcurrentProcessing);
-      if (results.length === 0) break;
+      if (results.length === 0) {break;}
       allResults.push(...results);
     }
 
@@ -375,10 +384,10 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
   async initialize(): Promise<void> {
     // Initialize components if needed
     this.initializeComponents();
-    
+
     // Load persisted queue if available
     // await this._loadPersistedQueue(); // TODO: Implement when storage is ready
-    
+
     this.emit('queue:initialized', {});
   }
 
@@ -390,7 +399,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
     if (!success) {
       throw new Error('Failed to add item to queue');
     }
-    
+
     if (this.config.enablePersistence) {
       await this.persistQueue();
     }
@@ -415,7 +424,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
    */
   async destroy(): Promise<void> {
     this.pause();
-    
+
     // Wait for current processing to complete
     while (this.isProcessing) {
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -425,7 +434,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
     this.batchProcessor.destroy();
     this.retryManager.destroy();
     this.analytics.destroy();
-    
+
     this.removeAllListeners();
   }
 
@@ -485,7 +494,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
     this.retryManager.on('item:retry-ready', async ({ itemId }) => {
       const item = this.priorityQueue.get(itemId);
       if (item) {
-        await this.priorityQueue.updateItem(itemId, { 
+        await this.priorityQueue.updateItem(itemId, {
           status: 'pending',
           retryCount: item.retryCount + 1,
         });
@@ -509,7 +518,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
 
   private async processBatched(items: QueueItem[]): Promise<ProcessingResult[]> {
     const results: ProcessingResult[] = [];
-    
+
     // Group items for batching
     const batches = this.batchProcessor.addToBatch(items, {
       groupByResource: true,
@@ -531,13 +540,11 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
 
   private async processIndividually(items: QueueItem[]): Promise<ProcessingResult[]> {
     const results: ProcessingResult[] = [];
-    
-    const processingPromises = items.map(async (item) => {
-      return this.processItemInternal(item);
-    });
+
+    const processingPromises = items.map(async (item) => this.processItemInternal(item));
 
     const batchResults = await Promise.allSettled(processingPromises);
-    
+
     for (const result of batchResults) {
       if (result.status === 'fulfilled') {
         results.push(result.value);
@@ -555,13 +562,13 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
 
   private async processBatch(batch: BatchOperation): Promise<ProcessingResult[]> {
     const results: ProcessingResult[] = [];
-    
+
     try {
       await this.batchProcessor.processBatch(batch.id, async (items) => {
         const batchResults = await Promise.allSettled(
-          items.map(item => this.processItemInternal(item))
+          items.map(item => this.processItemInternal(item)),
         );
-        
+
         for (const result of batchResults) {
           if (result.status === 'fulfilled') {
             results.push(result.value);
@@ -599,7 +606,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
       // Get processor
       const processorKey = `${item.resource}:${item.operation}`;
       const processor = this.processors.get(processorKey);
-      
+
       if (!processor) {
         throw new Error(`No processor registered for ${processorKey}`);
       }
@@ -609,7 +616,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
 
       // Record success
       this.retryManager.recordSuccess(item.resource);
-      
+
       if (this.config.enableAnalytics) {
         this.analytics.recordProcessingComplete(item.id, true);
       }
@@ -626,10 +633,10 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+
       // Record failure
       this.retryManager.recordFailure(item.resource, errorMessage);
-      
+
       if (this.config.enableAnalytics) {
         this.analytics.recordProcessingComplete(item.id, false);
       }
@@ -659,12 +666,12 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
   }
 
   private async handleStatusChange(
-    id: QueueItemId, 
-    status: QueueItem['status'], 
-    _error?: string
+    id: QueueItemId,
+    status: QueueItem['status'],
+    _error?: string,
   ): Promise<void> {
     const item = this.priorityQueue.get(id);
-    if (!item) return;
+    if (!item) {return;}
 
     switch (status) {
       case 'failed':
@@ -688,15 +695,15 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
   }
 
   private isDuplicate(item: QueueItem): boolean {
-    if (!this.config.deduplicationEnabled) return false;
+    if (!this.config.deduplicationEnabled) {return false;}
 
     const cutoffTime = Date.now() - this.config.deduplicationWindow;
     const existingItems = this.priorityQueue.getByResource(item.resource);
 
-    return existingItems.some(existing => 
+    return existingItems.some(existing =>
       existing.operation === item.operation &&
       existing.createdAt >= cutoffTime &&
-      JSON.stringify(existing.data) === JSON.stringify(item.data)
+      JSON.stringify(existing.data) === JSON.stringify(item.data),
     );
   }
 
@@ -713,7 +720,7 @@ export class EnterpriseQueueManager extends EventEmitter<QueueEvents> {
   }
 
   private async persistQueue(): Promise<void> {
-    if (!this.config.enablePersistence) return;
+    if (!this.config.enablePersistence) {return;}
 
     try {
       const queueData = {

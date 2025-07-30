@@ -3,15 +3,18 @@
  * Enterprise-grade offline state management with the new queue system
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { EnterpriseQueueManager } from './queue-manager';
 import type { ACubeSDK } from '@/core/sdk';
-import type { 
-  QueueItemId, 
-  QueuePriority, 
-  ResourceType, 
+
+import { useRef, useState, useEffect, useCallback } from 'react';
+
+import { EnterpriseQueueManager } from './queue-manager';
+
+import type {
+  QueueStats,
+  QueueItemId,
+  ResourceType,
+  QueuePriority,
   QueueOperationType,
-  QueueStats
 } from './types';
 
 export interface ProcessingResult {
@@ -43,7 +46,7 @@ export interface EnhancedOfflineResult {
   // Connection state
   isOnline: boolean;
   isOffline: boolean;
-  
+
   // Queue state
   queueSize: number;
   queueStats: QueueStats;
@@ -53,7 +56,7 @@ export interface EnhancedOfflineResult {
     autoProcessing: boolean;
     readyItems: number;
   };
-  
+
   // Queue operations
   addToQueue: (
     operation: QueueOperationType,
@@ -66,20 +69,20 @@ export interface EnhancedOfflineResult {
       scheduledAt?: number;
     }
   ) => Promise<QueueItemId>;
-  
+
   removeFromQueue: (id: QueueItemId) => Promise<boolean>;
   getQueuedOperation: (id: QueueItemId) => any;
   clearQueue: () => Promise<void>;
-  
+
   // Processing control
   sync: () => Promise<ProcessingResult[]>;
   pause: () => void;
   resume: () => void;
-  
+
   // Analytics and insights
   getInsights: () => any;
   getTrendAnalysis: () => any;
-  
+
   // Advanced features
   scheduleOperation: (
     operation: QueueOperationType,
@@ -88,7 +91,7 @@ export interface EnhancedOfflineResult {
     scheduledAt: number,
     options?: { priority?: QueuePriority }
   ) => Promise<QueueItemId>;
-  
+
   batchOperations: (
     operations: Array<{
       operation: QueueOperationType;
@@ -97,7 +100,7 @@ export interface EnhancedOfflineResult {
       priority?: QueuePriority;
     }>
   ) => Promise<QueueItemId[]>;
-  
+
   // Event subscriptions
   onQueueEvent: (event: string, handler: Function) => void;
   offQueueEvent: (event: string, handler: Function) => void;
@@ -126,10 +129,10 @@ const DEFAULT_OPTIONS: Required<EnhancedOfflineOptions> = {
 };
 
 export function useEnhancedACubeOffline(
-  options: EnhancedOfflineOptions = {}
+  options: EnhancedOfflineOptions = {},
 ): EnhancedOfflineResult {
   const config = { ...DEFAULT_OPTIONS, ...options };
-  
+
   const [state, setState] = useState(() => ({
     isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
     queueStats: {
@@ -144,13 +147,13 @@ export function useEnhancedACubeOffline(
       lastProcessedAt: null,
       throughputPerMinute: 0,
       priorityDistribution: { critical: 0, high: 0, normal: 0, low: 0 },
-      resourceDistribution: { 
-        receipts: 0, 
-        cashiers: 0, 
-        merchants: 0, 
-        'cash-registers': 0, 
-        'point-of-sales': 0, 
-        pems: 0 
+      resourceDistribution: {
+        receipts: 0,
+        cashiers: 0,
+        merchants: 0,
+        'cash-registers': 0,
+        'point-of-sales': 0,
+        pems: 0,
       },
     } as QueueStats,
     processingStatus: {
@@ -166,7 +169,7 @@ export function useEnhancedACubeOffline(
 
   // Initialize queue manager
   useEffect(() => {
-    if (!config.enabled || !sdk) return;
+    if (!config.enabled || !sdk) {return;}
 
     const queueManager = new EnterpriseQueueManager({
       maxSize: config.maxQueueSize,
@@ -197,11 +200,11 @@ export function useEnhancedACubeOffline(
 
   // Monitor online/offline status
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {return;}
 
     const handleOnline = () => {
       setState(prev => ({ ...prev, isOnline: true }));
-      
+
       if (config.syncOnReconnect && queueManagerRef.current) {
         // Delay sync to allow connection to stabilize
         setTimeout(() => {
@@ -212,7 +215,7 @@ export function useEnhancedACubeOffline(
 
     const handleOffline = () => {
       setState(prev => ({ ...prev, isOnline: false }));
-      
+
       // Pause auto-processing when offline
       if (queueManagerRef.current) {
         queueManagerRef.current.pause();
@@ -238,16 +241,16 @@ export function useEnhancedACubeOffline(
       optimisticId?: string;
       metadata?: Record<string, unknown>;
       scheduledAt?: number;
-    } = {}
+    } = {},
   ): Promise<QueueItemId> => {
     if (!queueManagerRef.current) {
       throw new Error('Queue manager not initialized');
     }
 
     // Auto-determine priority if not specified
-    const priority = options.priority || 
-      config.priorityMapping[operation] || 
-      config.priorityMapping[resource] || 
+    const priority = options.priority ||
+      config.priorityMapping[operation] ||
+      config.priorityMapping[resource] ||
       'normal';
 
     return queueManagerRef.current.enqueue(operation, resource, data, {
@@ -257,17 +260,17 @@ export function useEnhancedACubeOffline(
   }, [config.priorityMapping]);
 
   const removeFromQueue = useCallback(async (id: QueueItemId): Promise<boolean> => {
-    if (!queueManagerRef.current) return false;
+    if (!queueManagerRef.current) {return false;}
     return queueManagerRef.current.dequeue(id);
   }, []);
 
   const getQueuedOperation = useCallback((id: QueueItemId) => {
-    if (!queueManagerRef.current) return null;
+    if (!queueManagerRef.current) {return null;}
     return queueManagerRef.current.getItem(id);
   }, []);
 
   const clearQueue = useCallback(async (): Promise<void> => {
-    if (!queueManagerRef.current) return;
+    if (!queueManagerRef.current) {return;}
     await queueManagerRef.current.clear();
   }, []);
 
@@ -288,23 +291,23 @@ export function useEnhancedACubeOffline(
   }, [state.isOnline]);
 
   const pause = useCallback(() => {
-    if (!queueManagerRef.current) return;
+    if (!queueManagerRef.current) {return;}
     queueManagerRef.current.pause();
   }, []);
 
   const resume = useCallback(() => {
-    if (!queueManagerRef.current) return;
+    if (!queueManagerRef.current) {return;}
     queueManagerRef.current.resume();
   }, []);
 
   // Analytics
   const getInsights = useCallback(() => {
-    if (!queueManagerRef.current) return null;
+    if (!queueManagerRef.current) {return null;}
     return queueManagerRef.current.getInsights();
   }, []);
 
   const getTrendAnalysis = useCallback(() => {
-    if (!queueManagerRef.current) return null;
+    if (!queueManagerRef.current) {return null;}
     return queueManagerRef.current.getTrendAnalysis();
   }, []);
 
@@ -314,13 +317,11 @@ export function useEnhancedACubeOffline(
     resource: ResourceType,
     data: any,
     scheduledAt: number,
-    options: { priority?: QueuePriority } = {}
-  ): Promise<QueueItemId> => {
-    return addToQueue(operation, resource, data, {
+    options: { priority?: QueuePriority } = {},
+  ): Promise<QueueItemId> => addToQueue(operation, resource, data, {
       ...options,
       scheduledAt,
-    });
-  }, [addToQueue]);
+    }), [addToQueue]);
 
   const batchOperations = useCallback(async (
     operations: Array<{
@@ -328,17 +329,17 @@ export function useEnhancedACubeOffline(
       resource: ResourceType;
       data: any;
       priority?: QueuePriority;
-    }>
+    }>,
   ): Promise<QueueItemId[]> => {
     // Generate batch ID for tracking (not currently used but reserved for future batch operations)
     // const batchId = `batch_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-    
+
     const ids = await Promise.all(
-      operations.map(op => 
+      operations.map(op =>
         addToQueue(op.operation, op.resource, op.data, {
           ...(op.priority && { priority: op.priority }),
-        })
-      )
+        }),
+      ),
     );
 
     return ids;
@@ -346,12 +347,12 @@ export function useEnhancedACubeOffline(
 
   // Event subscriptions
   const onQueueEvent = useCallback((event: string, handler: Function) => {
-    if (!queueManagerRef.current) return;
+    if (!queueManagerRef.current) {return;}
     queueManagerRef.current.on(event as any, handler as any);
   }, []);
 
   const offQueueEvent = useCallback((event: string, handler: Function) => {
-    if (!queueManagerRef.current) return;
+    if (!queueManagerRef.current) {return;}
     queueManagerRef.current.off(event as any, handler as any);
   }, []);
 
@@ -380,42 +381,36 @@ export function useEnhancedACubeOffline(
 // Helper functions
 function registerSDKProcessors(queueManager: EnterpriseQueueManager, sdk: ACubeSDK): void {
   // Register processors for each resource type
-  
+
   // Receipts
-  queueManager.registerProcessor('receipts', 'create', async (item) => {
-    return sdk.receipts.create(item.data as any);
-  });
-  
+  queueManager.registerProcessor('receipts', 'create', async (item) => sdk.receipts.create(item.data as any));
+
   queueManager.registerProcessor('receipts', 'update', async (item) => {
     const data = item.data as any;
     return sdk.receipts.update(data.id, data);
   });
-  
+
   queueManager.registerProcessor('receipts', 'delete', async (item) => {
     const data = item.data as any;
     return sdk.receipts.delete(data.id);
   });
 
   // Cashiers
-  queueManager.registerProcessor('cashiers', 'create', async (item) => {
-    return sdk.cashiers.create(item.data as any);
-  });
-  
+  queueManager.registerProcessor('cashiers', 'create', async (item) => sdk.cashiers.create(item.data as any));
+
   queueManager.registerProcessor('cashiers', 'update', async (item) => {
     const data = item.data as any;
     return sdk.cashiers.update(data.id, data);
   });
-  
+
   queueManager.registerProcessor('cashiers', 'delete', async (item) => {
     const data = item.data as any;
     return sdk.cashiers.delete(data.id);
   });
 
   // Merchants
-  queueManager.registerProcessor('merchants', 'create', async (item) => {
-    return sdk.merchants.create(item.data as any);
-  });
-  
+  queueManager.registerProcessor('merchants', 'create', async (item) => sdk.merchants.create(item.data as any));
+
   queueManager.registerProcessor('merchants', 'update', async (item) => {
     const data = item.data as any;
     return sdk.merchants.update(data.id, data);
@@ -425,8 +420,8 @@ function registerSDKProcessors(queueManager: EnterpriseQueueManager, sdk: ACubeS
 }
 
 function setupQueueEventListeners(
-  queueManager: EnterpriseQueueManager, 
-  setState: React.Dispatch<React.SetStateAction<any>>
+  queueManager: EnterpriseQueueManager,
+  setState: React.Dispatch<React.SetStateAction<any>>,
 ): void {
   // Update stats on queue changes
   const updateStats = () => {

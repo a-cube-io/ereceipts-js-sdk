@@ -4,12 +4,15 @@
  */
 
 import { AdvancedEncryption } from '../security/encryption';
-import { 
-  StorageValue, 
-  StorageEntry, 
-  // StorageError, 
+import {
+  // StorageError,
   StorageEncryptionError,
-  StorageKey 
+} from './unified-storage';
+
+import type {
+  StorageKey,
+  StorageEntry,
+  StorageValue,
 } from './unified-storage';
 
 // Encryption configuration for storage
@@ -50,11 +53,12 @@ export interface EncryptionKeyManager {
  */
 class DefaultKeyManager implements EncryptionKeyManager {
   private currentKeyId: string | null = null;
+
   private keyCache = new Map<string, { keyId: string; created: number; expires?: number }>();
 
   constructor(
     private encryption: AdvancedEncryption,
-    private config: StorageEncryptionConfig
+    private config: StorageEncryptionConfig,
   ) {}
 
   async getCurrentKeyId(): Promise<string> {
@@ -92,7 +96,7 @@ class DefaultKeyManager implements EncryptionKeyManager {
 
   async deriveKey(password: string, keyId?: string): Promise<string> {
     const derivedKeyId = await this.encryption.deriveKeyFromPassword(password);
-    
+
     const finalKeyId = keyId || derivedKeyId;
     const keyInfo2: any = {
       keyId: finalKeyId,
@@ -108,13 +112,13 @@ class DefaultKeyManager implements EncryptionKeyManager {
 
   async rotateKey(): Promise<string> {
     const oldKeyId = this.currentKeyId;
-    
+
     // Generate new key
     const newKeyId = await this.encryption.generateSymmetricKey();
-    
+
     // Update current key
     this.currentKeyId = newKeyId;
-    
+
     // Cache new key info
     const keyInfo3: any = {
       keyId: newKeyId,
@@ -160,7 +164,7 @@ class DefaultKeyManager implements EncryptionKeyManager {
   async cleanup(): Promise<number> {
     const now = Date.now();
     let cleanedCount = 0;
-    
+
     const expiredKeys = Array.from(this.keyCache.entries())
       .filter(([_, info]) => info.expires && info.expires < now)
       .map(([keyId]) => keyId);
@@ -180,7 +184,9 @@ class DefaultKeyManager implements EncryptionKeyManager {
  */
 export class StorageEncryptionService {
   private encryption: AdvancedEncryption;
+
   private keyManager: EncryptionKeyManager;
+
   private config: StorageEncryptionConfig;
 
   constructor(config: Partial<StorageEncryptionConfig> = {}) {
@@ -220,9 +226,9 @@ export class StorageEncryptionService {
    * Encrypt storage value if encryption is enabled
    */
   async encryptValue<T extends StorageValue>(
-    value: T, 
-    key: StorageKey, 
-    forceEncrypt: boolean = false
+    value: T,
+    key: StorageKey,
+    forceEncrypt: boolean = false,
   ): Promise<{ data: T | string; metadata: EncryptionMetadata }> {
     if (!this.config.enabled && !forceEncrypt) {
       return {
@@ -238,13 +244,13 @@ export class StorageEncryptionService {
       // Serialize value for encryption
       const serialized = JSON.stringify(value);
       const keyId = await this.keyManager.getCurrentKeyId();
-      
+
       // Encrypt the serialized data
       const encryptedData = await this.encryption.encryptSymmetric(serialized, keyId);
-      
+
       // Convert to base64 for storage
       const encryptedString = AdvancedEncryption.encryptedDataToJSON(encryptedData);
-      
+
       // Generate checksum for integrity verification
       const checksum = await this.generateChecksum(serialized);
 
@@ -267,9 +273,9 @@ export class StorageEncryptionService {
    * Decrypt storage value if it was encrypted
    */
   async decryptValue<T extends StorageValue>(
-    data: T | string, 
-    metadata: EncryptionMetadata, 
-    key: StorageKey
+    data: T | string,
+    metadata: EncryptionMetadata,
+    key: StorageKey,
   ): Promise<T> {
     if (!metadata.encrypted) {
       return data as T;
@@ -278,11 +284,11 @@ export class StorageEncryptionService {
     try {
       // Parse encrypted data from JSON
       const encryptedData = AdvancedEncryption.encryptedDataFromJSON(data as string);
-      
+
       // Decrypt the data
       const decryptedBuffer = await this.encryption.decryptSymmetric(encryptedData);
       const decryptedString = new TextDecoder().decode(decryptedBuffer);
-      
+
       // Verify checksum if available
       if (metadata.checksum) {
         const actualChecksum = await this.generateChecksum(decryptedString);
@@ -290,7 +296,7 @@ export class StorageEncryptionService {
           throw new Error('Checksum verification failed - data may be corrupted');
         }
       }
-      
+
       // Deserialize the decrypted data
       return JSON.parse(decryptedString) as T;
     } catch (error) {
@@ -302,24 +308,24 @@ export class StorageEncryptionService {
    * Process storage entry for encryption
    */
   async encryptStorageEntry<T extends StorageValue>(
-    entry: StorageEntry<T>, 
-    forceEncrypt: boolean = false
+    entry: StorageEntry<T>,
+    forceEncrypt: boolean = false,
   ): Promise<StorageEntry<T | string>> {
     const { data, metadata: encryptionMetadata } = await this.encryptValue(
-      entry.data, 
-      entry.metadata.key, 
-      forceEncrypt
+      entry.data,
+      entry.metadata.key,
+      forceEncrypt,
     );
 
     const resultMetadata: any = {
       ...entry.metadata,
       encrypted: encryptionMetadata.encrypted,
     };
-    
+
     if (encryptionMetadata.checksum !== undefined) {
       resultMetadata.checksum = encryptionMetadata.checksum;
     }
-    
+
     return {
       data,
       metadata: resultMetadata,
@@ -330,26 +336,26 @@ export class StorageEncryptionService {
    * Process storage entry for decryption
    */
   async decryptStorageEntry<T extends StorageValue>(
-    entry: StorageEntry<T | string>
+    entry: StorageEntry<T | string>,
   ): Promise<StorageEntry<T>> {
     const encryptionMetadata: any = {
       encrypted: entry.metadata.encrypted,
       algorithm: this.config.algorithm,
       version: entry.metadata.version,
     };
-    
+
     if (this.config.keyId) {
       encryptionMetadata.keyId = this.config.keyId;
     }
-    
+
     if (entry.metadata.checksum !== undefined) {
       encryptionMetadata.checksum = entry.metadata.checksum;
     }
 
     const decryptedData = await this.decryptValue(
-      entry.data, 
-      encryptionMetadata, 
-      entry.metadata.key
+      entry.data,
+      encryptionMetadata,
+      entry.metadata.key,
     );
 
     return {
@@ -386,7 +392,7 @@ export class StorageEncryptionService {
     if (newConfig.algorithm !== oldConfig.algorithm ||
         newConfig.keyLength !== oldConfig.keyLength ||
         newConfig.keyDerivation !== oldConfig.keyDerivation) {
-      
+
       this.encryption = new AdvancedEncryption({
         algorithm: this.config.algorithm,
         keyLength: this.config.keyLength,
@@ -428,7 +434,7 @@ export class StorageEncryptionService {
   }> {
     const currentKeyId = await this.keyManager.getCurrentKeyId();
     const keyInfo = await this.keyManager.getKeyInfo(currentKeyId);
-    
+
     const result: any = {
       enabled: this.config.enabled,
       algorithm: this.config.algorithm,
@@ -436,11 +442,11 @@ export class StorageEncryptionService {
       currentKeyId,
       keyAge: keyInfo ? Date.now() - keyInfo.created : 0,
     };
-    
+
     if (keyInfo?.expires !== undefined) {
       result.nextRotation = keyInfo.expires;
     }
-    
+
     return result;
   }
 
@@ -458,13 +464,13 @@ export class StorageEncryptionService {
     try {
       const testData = { test: 'encryption_test', timestamp: Date.now() };
       const testKey = 'test:encryption' as StorageKey;
-      
+
       // Test encryption
       const { data: encrypted, metadata } = await this.encryptValue(testData, testKey, true);
-      
+
       // Test decryption
       const decrypted = await this.decryptValue(encrypted, metadata, testKey);
-      
+
       // Verify data integrity
       return JSON.stringify(testData) === JSON.stringify(decrypted);
     } catch (error) {
@@ -483,10 +489,10 @@ export class StorageEncryptionService {
       const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    } else {
+    } 
       // Fallback for environments without Web Crypto API
       return this.simpleHash(data);
-    }
+    
   }
 
   /**
@@ -497,7 +503,7 @@ export class StorageEncryptionService {
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash &= hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(16);
   }
@@ -511,18 +517,14 @@ export class StorageEncryptionService {
 }
 
 // Export convenience functions
-export const createEncryptionService = (config?: Partial<StorageEncryptionConfig>): StorageEncryptionService => {
-  return new StorageEncryptionService(config);
-};
+export const createEncryptionService = (config?: Partial<StorageEncryptionConfig>): StorageEncryptionService => new StorageEncryptionService(config);
 
-export const createSecureEncryptionService = (masterPassword: string): StorageEncryptionService => {
-  return new StorageEncryptionService({
+export const createSecureEncryptionService = (masterPassword: string): StorageEncryptionService => new StorageEncryptionService({
     enabled: true,
     masterPassword,
     keyRotationInterval: 7 * 24 * 60 * 60 * 1000, // 7 days
     compression: true,
   });
-};
 
 export const createMinimalEncryptionService = (): StorageEncryptionService => {
   const config: any = {
@@ -532,6 +534,6 @@ export const createMinimalEncryptionService = (): StorageEncryptionService => {
     compression: false,
   };
   // keyRotationInterval omitted for no automatic rotation
-  
+
   return new StorageEncryptionService(config);
 };

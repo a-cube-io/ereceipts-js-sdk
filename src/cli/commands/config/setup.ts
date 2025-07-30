@@ -5,19 +5,21 @@
 
 import chalk from 'chalk';
 import inquirer from 'inquirer';
+
 import { BaseCommand } from '../base/command.js';
-import { saveConfig, loadConfig } from '../../config/index.js';
+import { loadConfig, saveConfig } from '../../config/index.js';
+
 import type { BaseCommandOptions } from '../../types.js';
 
 export class SetupCommand extends BaseCommand {
   protected commandName = 'setup';
-  
+
   protected async executeCommand(_options: BaseCommandOptions): Promise<void> {
     console.log(chalk.blue('A-Cube E-Receipt CLI Setup'));
     console.log(chalk.gray('Configure your CLI settings\n'));
-    
+
     const config = await loadConfig();
-    
+
     // Environment configuration
     const envAnswers = await inquirer.prompt([
       {

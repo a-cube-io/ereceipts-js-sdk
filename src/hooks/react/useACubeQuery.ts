@@ -3,9 +3,11 @@
  * Inspired by React Query but tailored for A-Cube SDK
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useACube } from './ACubeProvider';
 import type { ACubeSDK } from '@/core/sdk';
+
+import { useRef, useState, useEffect, useCallback } from 'react';
+
+import { useACube } from './ACubeProvider';
 
 export interface QueryOptions<TData> {
   enabled?: boolean;
@@ -66,19 +68,19 @@ const queryCache = new Map<string, QueryCache<any>>();
 let cacheCleanupInterval: NodeJS.Timeout | null = null;
 
 function startCacheCleanup() {
-  if (cacheCleanupInterval) return;
-  
+  if (cacheCleanupInterval) {return;}
+
   cacheCleanupInterval = setInterval(() => {
     const now = Date.now();
     const staleEntries: string[] = [];
-    
+
     queryCache.forEach((cache, key) => {
       // Remove entries older than default cache time (5 minutes)
       if (now - cache.timestamp > 300000) {
         staleEntries.push(key);
       }
     });
-    
+
     staleEntries.forEach(key => queryCache.delete(key));
   }, 60000) as unknown as NodeJS.Timeout; // Run every minute
 }
@@ -89,7 +91,7 @@ startCacheCleanup();
 export function useACubeQuery<TData = unknown>(
   queryKey: string | string[],
   queryFn: (sdk: ACubeSDK) => Promise<TData>,
-  options: QueryOptions<TData> = {}
+  options: QueryOptions<TData> = {},
 ): QueryResult<TData> {
   const {
     enabled = true,
@@ -108,7 +110,7 @@ export function useACubeQuery<TData = unknown>(
   } = options;
 
   const key = Array.isArray(queryKey) ? queryKey.join(':') : queryKey;
-  
+
   const [state, setState] = useState<{
     data: TData | undefined;
     error: Error | null;
@@ -124,7 +126,7 @@ export function useACubeQuery<TData = unknown>(
   }>(() => {
     const cached = queryCache.get(key);
     const now = Date.now();
-    
+
     if (cached && (now - cached.timestamp) < staleTime) {
       return {
         data: select ? select(cached.data) : cached.data,
@@ -140,7 +142,7 @@ export function useACubeQuery<TData = unknown>(
         syncStatus: 'synced',
       };
     }
-    
+
     return {
       data: initialData || placeholderData,
       error: null,
@@ -161,15 +163,15 @@ export function useACubeQuery<TData = unknown>(
   const refetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get SDK and offline systems from context
-  const { 
-    sdk, 
-    storage, 
-    isOnline, 
-    isOfflineEnabled 
+  const {
+    sdk,
+    storage,
+    isOnline,
+    isOfflineEnabled,
   } = useACube();
 
   const fetchData = useCallback(async (isRefetch = false, forceNetwork = false) => {
-    if (!enabled || !sdk) return;
+    if (!enabled || !sdk) {return;}
 
     const {
       offlineFallback = true,
@@ -204,7 +206,7 @@ export function useACubeQuery<TData = unknown>(
     if (cached && !forceNetwork) {
       const now = Date.now();
       const isCacheValid = (now - cached.timestamp) < staleTime;
-      
+
       if (isCacheValid || (networkPolicy === 'cache-first' && !isOnline)) {
         cacheData = cached.data;
         isFromCache = true;
@@ -231,7 +233,7 @@ export function useACubeQuery<TData = unknown>(
     if (cacheData && (!isOnline || !shouldTryNetwork)) {
       const processedData = select ? select(cacheData) : cacheData;
       const now = Date.now();
-      
+
       setState({
         data: processedData,
         error: null,
@@ -265,7 +267,7 @@ export function useACubeQuery<TData = unknown>(
       try {
         const data = await queryFn(sdk);
         const now = Date.now();
-        
+
         // Update memory cache
         queryCache.set(key, {
           data,
@@ -304,11 +306,11 @@ export function useACubeQuery<TData = unknown>(
       } catch (error) {
         const now = Date.now();
         const err = error instanceof Error ? error : new Error(String(error));
-        
+
         // Try to fall back to cached/offline data on network error
         if (cacheData && offlineFallback) {
           const processedData = select ? select(cacheData) : cacheData;
-          
+
           setState({
             data: processedData,
             error: err,
@@ -326,20 +328,20 @@ export function useACubeQuery<TData = unknown>(
           onSuccess?.(cacheData);
           return;
         }
-        
+
         setState(prev => {
           const newFailureCount = prev.failureCount + 1;
-          const shouldRetry = typeof retry === 'function' 
+          const shouldRetry = typeof retry === 'function'
             ? retry(newFailureCount, err)
-            : typeof retry === 'number' 
+            : typeof retry === 'number'
               ? newFailureCount < retry
               : retry && newFailureCount < 3;
 
           if (shouldRetry && isOnline) {
-            const delay = typeof retryDelay === 'function' 
-              ? retryDelay(newFailureCount) 
+            const delay = typeof retryDelay === 'function'
+              ? retryDelay(newFailureCount)
               : retryDelay;
-            
+
             retryTimeoutRef.current = setTimeout(() => {
               fetchData(true);
             }, delay) as unknown as NodeJS.Timeout;
@@ -379,7 +381,7 @@ export function useACubeQuery<TData = unknown>(
       // Offline but have cached data
       const processedData = select ? select(cacheData) : cacheData;
       const now = Date.now();
-      
+
       setState({
         data: processedData,
         error: null,
@@ -433,7 +435,7 @@ export function useACubeQuery<TData = unknown>(
     if (enabled) {
       fetchData();
     }
-    
+
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -461,7 +463,7 @@ export function useACubeQuery<TData = unknown>(
 
   // Window focus refetch
   useEffect(() => {
-    if (!refetchOnWindowFocus) return;
+    if (!refetchOnWindowFocus) {return;}
 
     const handleFocus = () => {
       if (enabled && state.status === 'success') {
@@ -475,7 +477,7 @@ export function useACubeQuery<TData = unknown>(
 
   // Network reconnect refetch
   useEffect(() => {
-    if (!refetchOnReconnect) return;
+    if (!refetchOnReconnect) {return;}
 
     const handleOnline = () => {
       if (enabled && state.status === 'success') {
@@ -493,7 +495,7 @@ export function useACubeQuery<TData = unknown>(
       const timeout = setTimeout(() => {
         setState(prev => ({ ...prev, isStale: true }));
       }, staleTime) as unknown as NodeJS.Timeout;
-      
+
       return () => clearTimeout(timeout);
     }
     // Schedule cache cleanup based on cacheTime
@@ -501,7 +503,7 @@ export function useACubeQuery<TData = unknown>(
       const cleanupTimeout = setTimeout(() => {
         queryCache.delete(key);
       }, cacheTime) as unknown as NodeJS.Timeout;
-      
+
       return () => clearTimeout(cleanupTimeout);
     }
     // Return empty cleanup function for all code paths
@@ -528,7 +530,7 @@ export const queryUtils = {
     const cacheKey = Array.isArray(key) ? key.join(':') : key;
     return queryCache.get(cacheKey)?.data;
   },
-  
+
   setQueryData: <T>(key: string | string[], data: T): void => {
     const cacheKey = Array.isArray(key) ? key.join(':') : key;
     queryCache.set(cacheKey, {
@@ -538,7 +540,7 @@ export const queryUtils = {
       isStale: false,
     });
   },
-  
+
   invalidateQueries: (keyPrefix?: string): void => {
     if (keyPrefix) {
       queryCache.forEach((_, key) => {
@@ -550,7 +552,7 @@ export const queryUtils = {
       queryCache.clear();
     }
   },
-  
+
   removeQuery: (key: string | string[]): void => {
     const cacheKey = Array.isArray(key) ? key.join(':') : key;
     queryCache.delete(cacheKey);

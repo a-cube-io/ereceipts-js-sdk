@@ -9,7 +9,7 @@ import { loadConfig, saveConfig, ensureConfigDir } from '../../cli/config/index.
 jest.mock('../../cli/config/constants.js', () => {
   const { join } = require('path');
   const { tmpdir } = require('os');
-  const testDir = join(tmpdir(), 'acube-test-' + Math.random().toString(36));
+  const testDir = join(tmpdir(), `acube-test-${  Math.random().toString(36)}`);
   return {
     CONFIG_DIR: testDir,
     CONFIG_FILE: join(testDir, 'config.json'),
@@ -22,7 +22,7 @@ jest.mock('../../cli/config/constants.js', () => {
       includeContext: true,
       includeTimestamp: true,
       outputFormat: 'pretty',
-    }
+    },
   };
 });
 
@@ -34,7 +34,7 @@ describe('CLI Configuration Management', () => {
   describe('loadConfig', () => {
     it('should return default config when no config file exists', async () => {
       const config = await loadConfig();
-      
+
       expect(config).toEqual({
         environment: 'sandbox',
         trace: {
@@ -44,7 +44,7 @@ describe('CLI Configuration Management', () => {
           includeContext: true,
           includeTimestamp: true,
           outputFormat: 'pretty',
-        }
+        },
       });
     });
   });
@@ -65,7 +65,7 @@ describe('CLI Configuration Management', () => {
           includeContext: true,
           includeTimestamp: true,
           outputFormat: 'json' as const,
-        }
+        },
       };
 
       await saveConfig(testConfig);

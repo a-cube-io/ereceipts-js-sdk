@@ -1,10 +1,10 @@
 /**
  * Runtime Validation System
  * Enterprise-grade validation framework with Zod integration support
- * 
+ *
  * Features:
  * - Schema-based validation for OpenAPI types
- * - Branded type validation 
+ * - Branded type validation
  * - Italian fiscal compliance rules
  * - Configurable validation levels
  * - Detailed error reporting
@@ -86,7 +86,7 @@ export class ValidationEngine {
         message: error instanceof Error ? error.message : 'Unknown validation error',
         code: 'VALIDATION_INTERNAL_ERROR',
         severity: 'error',
-        value
+        value,
       });
     }
 
@@ -96,7 +96,7 @@ export class ValidationEngine {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -105,7 +105,7 @@ export class ValidationEngine {
    */
   validateOrThrow<T>(value: unknown, schema: SchemaDefinition, operation: string, options?: ValidationOptions): T {
     const result = this.validate(value, schema, options);
-    
+
     if (!result.isValid) {
       throw new ValidationError(
         `Validation failed for ${operation}`,
@@ -113,8 +113,8 @@ export class ValidationEngine {
         result.errors.map(error => ({
           field: error.field,
           message: error.message,
-          code: error.code
-        }))
+          code: error.code,
+        })),
       );
     }
 
@@ -122,11 +122,11 @@ export class ValidationEngine {
   }
 
   private validateValue(
-    value: unknown, 
-    schema: SchemaDefinition, 
-    path: string, 
+    value: unknown,
+    schema: SchemaDefinition,
+    path: string,
     issues: ValidationIssue[],
-    options: ValidationOptions
+    options: ValidationOptions,
   ): void {
     // Handle required validation
     if (schema.required && (value === undefined || value === null)) {
@@ -135,7 +135,7 @@ export class ValidationEngine {
         message: 'Required field is missing',
         code: 'REQUIRED',
         severity: 'error',
-        value
+        value,
       });
       return;
     }
@@ -172,16 +172,16 @@ export class ValidationEngine {
       const customIssues = schema.customValidation(value);
       issues.push(...customIssues.map(issue => ({
         ...issue,
-        field: path ? `${path}.${issue.field}` : issue.field
+        field: path ? `${path}.${issue.field}` : issue.field,
       })));
     }
   }
 
   private validateString(
-    value: unknown, 
-    schema: SchemaDefinition, 
-    path: string, 
-    issues: ValidationIssue[]
+    value: unknown,
+    schema: SchemaDefinition,
+    path: string,
+    issues: ValidationIssue[],
   ): void {
     if (typeof value !== 'string') {
       issues.push({
@@ -189,7 +189,7 @@ export class ValidationEngine {
         message: 'Expected string',
         code: 'INVALID_TYPE',
         severity: 'error',
-        value
+        value,
       });
       return;
     }
@@ -200,7 +200,7 @@ export class ValidationEngine {
         message: `String too short (minimum ${schema.minLength} characters)`,
         code: 'TOO_SHORT',
         severity: 'error',
-        value
+        value,
       });
     }
 
@@ -210,7 +210,7 @@ export class ValidationEngine {
         message: `String too long (maximum ${schema.maxLength} characters)`,
         code: 'TOO_LONG',
         severity: 'error',
-        value
+        value,
       });
     }
 
@@ -220,7 +220,7 @@ export class ValidationEngine {
         message: 'String does not match required pattern',
         code: 'PATTERN_MISMATCH',
         severity: 'error',
-        value
+        value,
       });
     }
 
@@ -230,16 +230,16 @@ export class ValidationEngine {
         message: `Value must be one of: ${schema.enum.join(', ')}`,
         code: 'ENUM_MISMATCH',
         severity: 'error',
-        value
+        value,
       });
     }
   }
 
   private validateNumber(
-    value: unknown, 
-    schema: SchemaDefinition, 
-    path: string, 
-    issues: ValidationIssue[]
+    value: unknown,
+    schema: SchemaDefinition,
+    path: string,
+    issues: ValidationIssue[],
   ): void {
     if (typeof value !== 'number' || isNaN(value)) {
       issues.push({
@@ -247,7 +247,7 @@ export class ValidationEngine {
         message: 'Expected valid number',
         code: 'INVALID_TYPE',
         severity: 'error',
-        value
+        value,
       });
       return;
     }
@@ -258,7 +258,7 @@ export class ValidationEngine {
         message: `Number too small (minimum ${schema.min})`,
         code: 'TOO_SMALL',
         severity: 'error',
-        value
+        value,
       });
     }
 
@@ -268,16 +268,16 @@ export class ValidationEngine {
         message: `Number too large (maximum ${schema.max})`,
         code: 'TOO_LARGE',
         severity: 'error',
-        value
+        value,
       });
     }
   }
 
   private validateBoolean(
-    value: unknown, 
-    _schema: SchemaDefinition, 
-    path: string, 
-    issues: ValidationIssue[]
+    value: unknown,
+    _schema: SchemaDefinition,
+    path: string,
+    issues: ValidationIssue[],
   ): void {
     if (typeof value !== 'boolean') {
       issues.push({
@@ -285,17 +285,17 @@ export class ValidationEngine {
         message: 'Expected boolean',
         code: 'INVALID_TYPE',
         severity: 'error',
-        value
+        value,
       });
     }
   }
 
   private validateObject(
-    value: unknown, 
-    schema: SchemaDefinition, 
-    path: string, 
+    value: unknown,
+    schema: SchemaDefinition,
+    path: string,
     issues: ValidationIssue[],
-    options: ValidationOptions
+    options: ValidationOptions,
   ): void {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
       issues.push({
@@ -303,14 +303,14 @@ export class ValidationEngine {
         message: 'Expected object',
         code: 'INVALID_TYPE',
         severity: 'error',
-        value
+        value,
       });
       return;
     }
 
     if (schema.properties) {
       const obj = value as Record<string, unknown>;
-      
+
       for (const [key, propSchema] of Object.entries(schema.properties)) {
         const propPath = path ? `${path}.${key}` : key;
         this.validateValue(obj[key], propSchema, propPath, issues, options);
@@ -320,7 +320,7 @@ export class ValidationEngine {
       if (options.strict) {
         const allowedKeys = Object.keys(schema.properties);
         const actualKeys = Object.keys(obj);
-        
+
         for (const key of actualKeys) {
           if (!allowedKeys.includes(key)) {
             issues.push({
@@ -328,7 +328,7 @@ export class ValidationEngine {
               message: 'Unexpected property',
               code: 'UNEXPECTED_PROPERTY',
               severity: options.enableWarnings ? 'warning' : 'error',
-              value: obj[key]
+              value: obj[key],
             });
           }
         }
@@ -337,11 +337,11 @@ export class ValidationEngine {
   }
 
   private validateArray(
-    value: unknown, 
-    schema: SchemaDefinition, 
-    path: string, 
+    value: unknown,
+    schema: SchemaDefinition,
+    path: string,
     issues: ValidationIssue[],
-    options: ValidationOptions
+    options: ValidationOptions,
   ): void {
     if (!Array.isArray(value)) {
       issues.push({
@@ -349,7 +349,7 @@ export class ValidationEngine {
         message: 'Expected array',
         code: 'INVALID_TYPE',
         severity: 'error',
-        value
+        value,
       });
       return;
     }
@@ -363,10 +363,10 @@ export class ValidationEngine {
   }
 
   private validateBranded(
-    value: unknown, 
-    schema: SchemaDefinition, 
-    path: string, 
-    issues: ValidationIssue[]
+    value: unknown,
+    schema: SchemaDefinition,
+    path: string,
+    issues: ValidationIssue[],
   ): void {
     if (schema.brandValidator && !schema.brandValidator(value)) {
       issues.push({
@@ -374,7 +374,7 @@ export class ValidationEngine {
         message: 'Invalid branded type format',
         code: 'INVALID_BRANDED_TYPE',
         severity: 'error',
-        value
+        value,
       });
     }
   }
@@ -383,7 +383,7 @@ export class ValidationEngine {
 // Global validation engine instance
 export const defaultValidator = new ValidationEngine({
   strict: false,
-  enableWarnings: true
+  enableWarnings: true,
 });
 
 /**
@@ -402,7 +402,7 @@ export class ItalianFiscalValidator {
         message: 'VAT number must be a string',
         code: 'INVALID_TYPE',
         severity: 'error',
-        value: vatNumber
+        value: vatNumber,
       });
       return { isValid: false, errors: issues, warnings: [] };
     }
@@ -417,7 +417,7 @@ export class ItalianFiscalValidator {
         message: 'Italian VAT number must be exactly 11 digits',
         code: 'INVALID_VAT_FORMAT',
         severity: 'error',
-        value: vatNumber
+        value: vatNumber,
       });
       return { isValid: false, errors: issues, warnings: [] };
     }
@@ -429,14 +429,14 @@ export class ItalianFiscalValidator {
         message: 'Invalid Italian VAT number checksum',
         code: 'INVALID_VAT_CHECKSUM',
         severity: 'error',
-        value: vatNumber
+        value: vatNumber,
       });
     }
 
     return {
       isValid: issues.length === 0,
       errors: issues,
-      warnings: []
+      warnings: [],
     };
   }
 
@@ -452,7 +452,7 @@ export class ItalianFiscalValidator {
         message: 'Postal code must be a string',
         code: 'INVALID_TYPE',
         severity: 'error',
-        value: postalCode
+        value: postalCode,
       });
       return { isValid: false, errors: issues, warnings: [] };
     }
@@ -464,14 +464,14 @@ export class ItalianFiscalValidator {
         message: 'Italian postal code must be exactly 5 digits',
         code: 'INVALID_POSTAL_CODE',
         severity: 'error',
-        value: postalCode
+        value: postalCode,
       });
     }
 
     return {
       isValid: issues.length === 0,
       errors: issues,
-      warnings: []
+      warnings: [],
     };
   }
 
@@ -487,7 +487,7 @@ export class ItalianFiscalValidator {
         message: 'Province code must be a string',
         code: 'INVALID_TYPE',
         severity: 'error',
-        value: provinceCode
+        value: provinceCode,
       });
       return { isValid: false, errors: issues, warnings: [] };
     }
@@ -499,7 +499,7 @@ export class ItalianFiscalValidator {
         message: 'Italian province code must be exactly 2 uppercase letters',
         code: 'INVALID_PROVINCE_CODE',
         severity: 'error',
-        value: provinceCode
+        value: provinceCode,
       });
     }
 
@@ -511,7 +511,7 @@ export class ItalianFiscalValidator {
       'MT', 'VS', 'ME', 'MI', 'MO', 'MB', 'NA', 'NO', 'NU', 'OG', 'OT', 'OR', 'PD', 'PA', 'PR', 'PV', 'PG', 'PU',
       'PE', 'PC', 'PI', 'PT', 'PN', 'PZ', 'PO', 'RG', 'RA', 'RC', 'RE', 'RI', 'RN', 'RM', 'RO', 'SA', 'SS', 'SV',
       'SI', 'SR', 'SO', 'TA', 'TE', 'TR', 'TO', 'TP', 'TN', 'TV', 'TS', 'UD', 'VA', 'VE', 'VB', 'VC', 'VR', 'VV',
-      'VI', 'VT'
+      'VI', 'VT',
     ];
 
     if (validProvinceCodes.length > 0 && !validProvinceCodes.includes(provinceCode)) {
@@ -520,25 +520,25 @@ export class ItalianFiscalValidator {
         message: 'Unknown Italian province code',
         code: 'UNKNOWN_PROVINCE_CODE',
         severity: 'warning',
-        value: provinceCode
+        value: provinceCode,
       });
     }
 
     return {
       isValid: issues.filter(i => i.severity === 'error').length === 0,
       errors: issues.filter(i => i.severity === 'error'),
-      warnings: issues.filter(i => i.severity === 'warning')
+      warnings: issues.filter(i => i.severity === 'warning'),
     };
   }
 
   private static luhnCheck(vatNumber: string): boolean {
     const digits = vatNumber.split('').map(Number);
     let sum = 0;
-    
+
     for (let i = 0; i < 10; i++) {
       const digit = digits[i];
-      if (digit === undefined || isNaN(digit)) continue;
-      
+      if (digit === undefined || isNaN(digit)) {continue;}
+
       let processedDigit = digit;
       if (i % 2 === 1) {
         processedDigit *= 2;
@@ -548,7 +548,7 @@ export class ItalianFiscalValidator {
       }
       sum += processedDigit;
     }
-    
+
     const checkDigit = (10 - (sum % 10)) % 10;
     const lastDigit = digits[10];
     return lastDigit !== undefined && !isNaN(lastDigit) && checkDigit === lastDigit;
@@ -557,5 +557,5 @@ export class ItalianFiscalValidator {
 
 // Export utility functions and modules
 export * from './schemas';
-export * from './branded-validators';
 export * from './middleware';
+export * from './branded-validators';

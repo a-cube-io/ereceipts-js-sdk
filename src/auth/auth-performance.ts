@@ -4,25 +4,26 @@
  */
 
 import { LRUCache } from 'lru-cache';
-import type { PermissionCheck, PermissionResult, AuthUser, UserRole } from './types';
+
+import type { AuthUser, UserRole, PermissionCheck, PermissionResult } from './types';
 
 export interface AuthPerformanceConfig {
   // Permission caching
   permissionCacheSize: number;
   permissionCacheTTL: number; // milliseconds
-  
+
   // Role computation caching
   roleCacheSize: number;
   roleCacheTTL: number;
-  
+
   // Token validation caching
   tokenValidationCacheSize: number;
   tokenValidationCacheTTL: number;
-  
+
   // Batch processing
   maxBatchSize: number;
   batchTimeoutMs: number;
-  
+
   // Performance monitoring
   enableMetrics: boolean;
   metricsRetentionMs: number;
@@ -78,12 +79,14 @@ export interface AuthPerformanceMetrics {
  */
 export class AuthPerformanceOptimizer {
   private config: AuthPerformanceConfig;
-  
+
   // Permission caching
   private permissionCache: LRUCache<string, PermissionResult>;
+
   private roleCache: LRUCache<string, UserRole[]>;
+
   private tokenValidationCache: LRUCache<string, boolean>;
-  
+
   // Batch processing
   private pendingPermissionChecks: Map<string, {
     checks: Array<{
@@ -93,13 +96,13 @@ export class AuthPerformanceOptimizer {
     }>;
     timer: NodeJS.Timeout;
   }> = new Map();
-  
+
   // Performance metrics
   private metrics: AuthPerformanceMetrics = this.createEmptyMetrics();
-  
+
   constructor(config: Partial<AuthPerformanceConfig> = {}) {
     this.config = { ...DEFAULT_PERFORMANCE_CONFIG, ...config };
-    
+
     // Initialize caches
     this.permissionCache = new LRUCache({
       max: this.config.permissionCacheSize,
@@ -107,52 +110,52 @@ export class AuthPerformanceOptimizer {
       updateAgeOnGet: true,
       updateAgeOnHas: true,
     });
-    
+
     this.roleCache = new LRUCache({
       max: this.config.roleCacheSize,
       ttl: this.config.roleCacheTTL,
       updateAgeOnGet: true,
       updateAgeOnHas: true,
     });
-    
+
     this.tokenValidationCache = new LRUCache({
       max: this.config.tokenValidationCacheSize,
       ttl: this.config.tokenValidationCacheTTL,
       updateAgeOnGet: true,
       updateAgeOnHas: true,
     });
-    
+
     // Initialize metrics
     this.resetMetrics();
-    
+
     // Setup cache cleanup
     this.setupCacheCleanup();
   }
-  
+
   /**
    * Cache-aware permission checking with intelligent batching
    */
   async checkPermissionOptimized(
     user: AuthUser,
     permission: PermissionCheck,
-    checkFn: (permission: PermissionCheck) => Promise<PermissionResult>
+    checkFn: (permission: PermissionCheck) => Promise<PermissionResult>,
   ): Promise<PermissionResult> {
     const startTime = performance.now();
-    
+
     // Generate cache key
     const cacheKey = this.generatePermissionCacheKey(user, permission);
-    
+
     // Check cache first
     const cached = this.permissionCache.get(cacheKey);
     if (cached) {
       this.updateMetrics('permissionChecks', startTime, true);
       return cached;
     }
-    
+
     // Add to batch for processing
     return new Promise((resolve, reject) => {
       const userKey = user.id;
-      
+
       if (!this.pendingPermissionChecks.has(userKey)) {
         this.pendingPermissionChecks.set(userKey, {
           checks: [],
@@ -161,10 +164,10 @@ export class AuthPerformanceOptimizer {
           }, this.config.batchTimeoutMs) as unknown as NodeJS.Timeout,
         });
       }
-      
+
       const pending = this.pendingPermissionChecks.get(userKey)!;
       pending.checks.push({ permission, resolve, reject });
-      
+
       // Process immediately if batch is full
       if (pending.checks.length >= this.config.maxBatchSize) {
         clearTimeout(pending.timer);
@@ -172,85 +175,85 @@ export class AuthPerformanceOptimizer {
       }
     });
   }
-  
+
   /**
    * Cache-aware role computation with memoization
    */
   getEffectiveRolesOptimized(
     user: AuthUser,
-    getRolesFn: (user: AuthUser) => UserRole[]
+    getRolesFn: (user: AuthUser) => UserRole[],
   ): UserRole[] {
     const startTime = performance.now();
-    
+
     // Generate cache key based on user roles and context
     const cacheKey = this.generateRoleCacheKey(user);
-    
+
     // Check cache first
     const cached = this.roleCache.get(cacheKey);
     if (cached) {
       this.updateMetrics('roleComputations', startTime, true);
       return cached;
     }
-    
+
     // Compute roles
     const roles = getRolesFn(user);
-    
+
     // Cache result
     this.roleCache.set(cacheKey, roles);
     this.updateMetrics('roleComputations', startTime, false);
-    
+
     return roles;
   }
-  
+
   /**
    * Optimized token validation with caching
    */
   async validateTokenOptimized(
     token: string,
-    validateFn: (token: string) => Promise<boolean>
+    validateFn: (token: string) => Promise<boolean>,
   ): Promise<boolean> {
     const startTime = performance.now();
-    
+
     // Generate cache key (hash the token for security)
     const cacheKey = this.hashToken(token);
-    
+
     // Check cache first
     const cached = this.tokenValidationCache.get(cacheKey);
     if (cached !== undefined) {
       this.updateMetrics('tokenValidations', startTime, true);
       return cached;
     }
-    
+
     // Validate token
     const isValid = await validateFn(token);
-    
+
     // Cache result
     this.tokenValidationCache.set(cacheKey, isValid);
     this.updateMetrics('tokenValidations', startTime, false);
-    
+
     return isValid;
   }
-  
+
   /**
    * Preload common permissions for a user
    */
   async preloadUserPermissions(
     user: AuthUser,
     commonPermissions: PermissionCheck[],
-    checkFn: (permission: PermissionCheck) => Promise<PermissionResult>
+    checkFn: (permission: PermissionCheck) => Promise<PermissionResult>,
   ): Promise<void> {
     const uncachedPermissions = commonPermissions.filter(permission => {
       const cacheKey = this.generatePermissionCacheKey(user, permission);
       return !this.permissionCache.has(cacheKey);
     });
-    
-    if (uncachedPermissions.length === 0) return;
-    
+
+    if (uncachedPermissions.length === 0) {return;}
+
     // Batch preload permissions
     const results = await Promise.allSettled(
-      uncachedPermissions.map(permission => checkFn(permission))
+      uncachedPermissions.map(permission => checkFn(permission)),
     );
-    
+
     // Cache results
     results.forEach((result, index) => {
       const permission = uncachedPermissions[index];
@@ -260,7 +263,7 @@ export class AuthPerformanceOptimizer {
       }
     });
   }
-  
+
   /**
    * Clear user-specific caches (on logout, role change, etc.)
    */
@@ -271,7 +274,7 @@ export class AuthPerformanceOptimizer {
         this.permissionCache.delete(key);
       }
     }
-    
+
     // Clear role cache entries for user
     for (const [key] of this.roleCache.entries()) {
       if (key.startsWith(`user:${userId}:`)) {
@@ -279,7 +282,7 @@ export class AuthPerformanceOptimizer {
       }
     }
   }
-  
+
   /**
    * Get current performance metrics
    */
@@ -294,7 +297,7 @@ export class AuthPerformanceOptimizer {
       },
     };
   }
-  
+
   /**
    * Create empty metrics object
    */
@@ -338,7 +341,7 @@ export class AuthPerformanceOptimizer {
   resetMetrics(): void {
     this.metrics = this.createEmptyMetrics();
   }
-  
+
   /**
    * Cleanup resources
    */
@@ -351,59 +354,59 @@ export class AuthPerformanceOptimizer {
       });
     }
     this.pendingPermissionChecks.clear();
-    
+
     // Clear caches
     this.permissionCache.clear();
     this.roleCache.clear();
     this.tokenValidationCache.clear();
   }
-  
+
   // Private methods
-  
+
   private async processPendingPermissionChecks(
     userKey: string,
-    checkFn: (permission: PermissionCheck) => Promise<PermissionResult>
+    checkFn: (permission: PermissionCheck) => Promise<PermissionResult>,
   ): Promise<void> {
     const pending = this.pendingPermissionChecks.get(userKey);
-    if (!pending) return;
-    
+    if (!pending) {return;}
+
     this.pendingPermissionChecks.delete(userKey);
     clearTimeout(pending.timer);
-    
+
     const batchStartTime = performance.now();
-    
+
     try {
       // Process batch
       const results = await Promise.allSettled(
-        pending.checks.map(({ permission }) => checkFn(permission))
+        pending.checks.map(({ permission }) => checkFn(permission)),
       );
-      
+
       // Update metrics
       this.metrics.batchOperations.totalBatches++;
-      this.metrics.batchOperations.avgBatchSize = 
-        (this.metrics.batchOperations.avgBatchSize * (this.metrics.batchOperations.totalBatches - 1) + 
+      this.metrics.batchOperations.avgBatchSize =
+        (this.metrics.batchOperations.avgBatchSize * (this.metrics.batchOperations.totalBatches - 1) +
          pending.checks.length) / this.metrics.batchOperations.totalBatches;
-      
+
       const batchTime = performance.now() - batchStartTime;
-      this.metrics.batchOperations.avgBatchTime = 
-        (this.metrics.batchOperations.avgBatchTime * (this.metrics.batchOperations.totalBatches - 1) + 
+      this.metrics.batchOperations.avgBatchTime =
+        (this.metrics.batchOperations.avgBatchTime * (this.metrics.batchOperations.totalBatches - 1) +
          batchTime) / this.metrics.batchOperations.totalBatches;
-      
+
       // Resolve individual promises and cache results
       results.forEach((result, index) => {
         const check = pending.checks[index];
-        if (!check) return;
-        
+        if (!check) {return;}
+
         const { permission, resolve, reject } = check;
-        
+
         if (result.status === 'fulfilled') {
           // Cache the result
           const cacheKey = this.generatePermissionCacheKey(
-            { id: userKey } as AuthUser, 
-            permission
+            { id: userKey } as AuthUser,
+            permission,
           );
           this.permissionCache.set(cacheKey, result.value);
-          
+
           resolve(result.value);
         } else {
           reject(result.reason);
@@ -416,7 +419,7 @@ export class AuthPerformanceOptimizer {
       });
     }
   }
-  
+
   private generatePermissionCacheKey(user: AuthUser, permission: PermissionCheck): string {
     // Include user context that affects permissions
     const context = [
@@ -428,10 +431,10 @@ export class AuthPerformanceOptimizer {
       permission.action,
       JSON.stringify(permission.context || {}),
     ].join(':');
-    
+
     return `perm:${this.hashString(context)}`;
   }
-  
+
   private generateRoleCacheKey(user: AuthUser): string {
     // Include user context that affects role computation
     const context = [
@@ -441,48 +444,48 @@ export class AuthPerformanceOptimizer {
       JSON.stringify(user.roles.sort()),
       user.attributes?.primaryRole || '',
     ].join(':');
-    
+
     return `role:${this.hashString(context)}`;
   }
-  
+
   private hashToken(token: string): string {
     // Simple hash for caching (not cryptographic)
     return `token:${this.hashString(token)}`;
   }
-  
+
   private hashString(str: string): string {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash &= hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(36);
   }
-  
+
   private updateMetrics(
     type: 'permissionChecks' | 'roleComputations' | 'tokenValidations',
     startTime: number,
-    fromCache: boolean
+    fromCache: boolean,
   ): void {
-    if (!this.config.enableMetrics) return;
-    
+    if (!this.config.enableMetrics) {return;}
+
     const responseTime = performance.now() - startTime;
     const metric = this.metrics[type];
-    
+
     metric.total++;
     if (fromCache) {
       metric.cached++;
     }
-    
+
     // Update cache hit rate
     metric.cacheHitRate = metric.cached / metric.total;
-    
+
     // Update average response time
-    metric.avgResponseTime = 
+    metric.avgResponseTime =
       (metric.avgResponseTime * (metric.total - 1) + responseTime) / metric.total;
   }
-  
+
   private setupCacheCleanup(): void {
     // Periodic cache cleanup to prevent memory leaks
     setInterval(() => {
@@ -503,7 +506,7 @@ export const COMMON_PERMISSION_SETS = {
     { resource: 'receipts', action: 'void' },
     { resource: 'pointOfSales', action: 'read' },
   ] as PermissionCheck[],
-  
+
   MERCHANT: [
     { resource: 'receipts', action: 'create' },
     { resource: 'receipts', action: 'read' },
@@ -515,7 +518,7 @@ export const COMMON_PERMISSION_SETS = {
     { resource: 'merchants', action: 'read' },
     { resource: 'merchants', action: 'update' },
   ] as PermissionCheck[],
-  
+
   SUPPLIER: [
     { resource: 'receipts', action: 'create' },
     { resource: 'receipts', action: 'read' },

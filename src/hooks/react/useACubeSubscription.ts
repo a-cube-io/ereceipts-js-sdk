@@ -3,8 +3,9 @@
  * Handles WebSocket connections and real-time updates
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ACubeSDK } from '@/core/sdk';
+
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 export interface SubscriptionOptions<TData> {
   enabled?: boolean;
@@ -34,7 +35,7 @@ export interface SubscriptionResult<TData> {
 
 export function useACubeSubscription<TData = unknown>(
   subscriptionKey: string,
-  options: SubscriptionOptions<TData> = {}
+  options: SubscriptionOptions<TData> = {},
 ): SubscriptionResult<TData> {
   const {
     enabled = true,
@@ -72,7 +73,7 @@ export function useACubeSubscription<TData = unknown>(
   const sdk = useACubeSDK(); // Would need to be implemented
 
   const connect = useCallback(() => {
-    if (!sdk || !enabled) return;
+    if (!sdk || !enabled) {return;}
 
     setState(prev => ({
       ...prev,
@@ -103,7 +104,7 @@ export function useACubeSubscription<TData = unknown>(
         try {
           const rawData = JSON.parse(event.data);
           const processedData = transform ? transform(rawData) : rawData;
-          
+
           // Apply filter if provided
           if (filter && !filter(processedData)) {
             return;
@@ -135,8 +136,8 @@ export function useACubeSubscription<TData = unknown>(
 
         // Attempt reconnection if not manually disconnected
         if (!isManuallyDisconnected.current && reconnect && state.reconnectCount < maxReconnectAttempts) {
-          const delay = reconnectDelay * Math.pow(2, state.reconnectCount);
-          
+          const delay = reconnectDelay * 2**state.reconnectCount;
+
           reconnectTimeoutRef.current = setTimeout(() => {
             setState(prev => ({
               ...prev,
@@ -173,7 +174,7 @@ export function useACubeSubscription<TData = unknown>(
 
   const disconnect = useCallback(() => {
     isManuallyDisconnected.current = true;
-    
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
@@ -224,11 +225,9 @@ export function useACubeSubscription<TData = unknown>(
   }, [enabled, connect, disconnect]);
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(() => () => {
       disconnect();
-    };
-  }, [disconnect]);
+    }, [disconnect]);
 
   return {
     ...state,

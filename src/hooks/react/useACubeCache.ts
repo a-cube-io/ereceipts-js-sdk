@@ -3,7 +3,8 @@
  * Provides enterprise-grade cache management with intelligent compression and storage optimization
  */
 
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
+
 import { useACube } from './ACubeProvider';
 
 export interface CacheOptions {
@@ -109,7 +110,7 @@ let globalMetrics: CacheMetrics = {
 };
 
 export function useACubeCache<TData = unknown>(
-  options: CacheOptions = {}
+  options: CacheOptions = {},
 ): CacheResult<TData> {
   const {
     staleTime = 300000, // 5 minutes
@@ -146,9 +147,9 @@ export function useACubeCache<TData = unknown>(
   });
 
   // Get offline systems from context
-  const { 
-    storage: unifiedStorage, 
-    isOfflineEnabled 
+  const {
+    storage: unifiedStorage,
+    isOfflineEnabled,
   } = useACube();
 
   // Compression utilities
@@ -156,13 +157,13 @@ export function useACubeCache<TData = unknown>(
     try {
       const jsonString = JSON.stringify(data);
       const originalSize = new TextEncoder().encode(jsonString).length;
-      
+
       // Simple compression simulation (in real implementation, use pako or similar)
       // Higher compression levels provide better compression (simulated)
       const compressionFactor = Math.max(0.1, 1 - (compressionLevelParam * 0.1));
       const compressed = btoa(jsonString); // Base64 encoding as placeholder
       const compressedSize = Math.floor(new TextEncoder().encode(compressed).length * compressionFactor);
-      
+
       return {
         compressed,
         originalSize,
@@ -194,19 +195,19 @@ export function useACubeCache<TData = unknown>(
     const jsonString = JSON.stringify(data);
     const encoder = new TextEncoder();
     const dataBuffer = encoder.encode(jsonString);
-    
+
     if (typeof crypto !== 'undefined' && crypto.subtle) {
       const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
-    
+
     // Fallback simple checksum
     let hash = 0;
     for (let i = 0; i < jsonString.length; i++) {
       const char = jsonString.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash &= hash; // Convert to 32-bit integer
     }
     return hash.toString(16);
   }, []);
@@ -227,12 +228,12 @@ export function useACubeCache<TData = unknown>(
           compressionSavings += (entry.originalSize - entry.size);
         }
       }
-      if (entry.timestamp < oldestTimestamp) oldestTimestamp = entry.timestamp;
-      if (entry.timestamp > newestTimestamp) newestTimestamp = entry.timestamp;
+      if (entry.timestamp < oldestTimestamp) {oldestTimestamp = entry.timestamp;}
+      if (entry.timestamp > newestTimestamp) {newestTimestamp = entry.timestamp;}
     });
 
-    const hitRate = globalMetrics.hits + globalMetrics.misses > 0 
-      ? (globalMetrics.hits / (globalMetrics.hits + globalMetrics.misses)) * 100 
+    const hitRate = globalMetrics.hits + globalMetrics.misses > 0
+      ? (globalMetrics.hits / (globalMetrics.hits + globalMetrics.misses)) * 100
       : 0;
 
     const averageAccessTime = performanceRef.current.accessTimes.length > 0
@@ -266,11 +267,11 @@ export function useACubeCache<TData = unknown>(
   // Load cache from storage on mount
   useEffect(() => {
     const loadFromStorage = async () => {
-      if (!persistToStorage) return;
+      if (!persistToStorage) {return;}
 
       try {
         let stored: string | null = null;
-        
+
         // Try unified storage first if available
         if (syncWithStorage && unifiedStorage && isOfflineEnabled) {
           try {
@@ -280,7 +281,7 @@ export function useACubeCache<TData = unknown>(
             console.warn('Failed to load from unified storage, falling back to localStorage:', error);
           }
         }
-        
+
         // Fallback to localStorage
         if (!stored && typeof window !== 'undefined') {
           stored = localStorage.getItem(storageKey);
@@ -289,10 +290,10 @@ export function useACubeCache<TData = unknown>(
         if (stored) {
           const data = JSON.parse(stored);
           let loadedCount = 0;
-          
+
           for (const [key, entry] of Object.entries(data)) {
             const cacheEntry = entry as CacheEntry<any>;
-            
+
             // Validate entry integrity
             if (cacheEntry.checksum) {
               const currentChecksum = await generateChecksum(cacheEntry.data);
@@ -301,17 +302,17 @@ export function useACubeCache<TData = unknown>(
                 continue;
               }
             }
-            
+
             // Check if entry is expired
             const now = Date.now();
             if (cacheEntry.ttl && (now - cacheEntry.timestamp) > cacheEntry.ttl) {
               continue; // Skip expired entries
             }
-            
+
             globalCache.set(key, cacheEntry);
             loadedCount++;
           }
-          
+
           console.log(`Loaded ${loadedCount} cache entries from storage`);
           updateMetrics();
         }
@@ -325,7 +326,7 @@ export function useACubeCache<TData = unknown>(
 
   // Enhanced save to storage method
   const saveToStorage = useCallback(async () => {
-    if (!persistToStorage) return;
+    if (!persistToStorage) {return;}
 
     try {
       const cacheData = Object.fromEntries(globalCache);
@@ -360,7 +361,7 @@ export function useACubeCache<TData = unknown>(
         // Remove least recently used entries
         entries.sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed);
         const toEvict = Math.ceil(entries.length * 0.2); // Evict 20%
-        
+
         for (let i = 0; i < toEvict && globalCache.size > 0; i++) {
           const entry = entries[i];
           if (entry) {
@@ -370,12 +371,12 @@ export function useACubeCache<TData = unknown>(
         }
         break;
       }
-      
+
       case 'lfu': {
         // Remove least frequently used entries
         entries.sort(([, a], [, b]) => a.accessCount - b.accessCount);
         const toEvict = Math.ceil(entries.length * 0.2);
-        
+
         for (let i = 0; i < toEvict && globalCache.size > 0; i++) {
           const entry = entries[i];
           if (entry) {
@@ -385,12 +386,12 @@ export function useACubeCache<TData = unknown>(
         }
         break;
       }
-      
+
       case 'fifo': {
         // Remove oldest entries
         entries.sort(([, a], [, b]) => a.timestamp - b.timestamp);
         const toEvict = Math.ceil(entries.length * 0.2);
-        
+
         for (let i = 0; i < toEvict && globalCache.size > 0; i++) {
           const entry = entries[i];
           if (entry) {
@@ -400,13 +401,13 @@ export function useACubeCache<TData = unknown>(
         }
         break;
       }
-      
+
       case 'random':
       default: {
         // Remove random entries
         const toEvict = Math.ceil(entries.length * 0.2);
         const shuffled = entries.sort(() => Math.random() - 0.5);
-        
+
         for (let i = 0; i < toEvict && globalCache.size > 0; i++) {
           const entry = shuffled[i];
           if (entry) {
@@ -453,7 +454,7 @@ export function useACubeCache<TData = unknown>(
             finalData = compressed.compressed as TData;
             isCompressed = true;
             compressionLevel = compressionLevel;
-            
+
             // Update compression savings metric
             globalMetrics.compressionSavings += (originalSize - compressed.compressedSize);
           }
@@ -470,7 +471,7 @@ export function useACubeCache<TData = unknown>(
       // Check cache size limits and evict if necessary
       let currentSize = 0;
       globalCache.forEach(entry => currentSize += entry.size);
-      
+
       if (currentSize + originalSize > maxSize || globalCache.size >= maxEntries) {
         await performEviction();
       }
@@ -525,7 +526,7 @@ export function useACubeCache<TData = unknown>(
   const get = useCallback(async (key: string): Promise<TData | undefined> => {
     const startTime = performance.now();
     const entry = globalCache.get(key);
-    
+
     if (!entry) {
       // Cache miss
       if (enableMetrics) {
@@ -535,7 +536,7 @@ export function useACubeCache<TData = unknown>(
     }
 
     const now = Date.now();
-    
+
     // Check TTL based on strategy
     let isExpired = false;
     if (entry.ttl) {
@@ -547,12 +548,12 @@ export function useACubeCache<TData = unknown>(
         isExpired = (now - entry.timestamp) > entry.ttl;
       }
     }
-    
+
     if (isExpired) {
       globalCache.delete(key);
       updateMetrics();
       await saveToStorage();
-      
+
       if (enableMetrics) {
         globalMetrics.misses++;
       }
@@ -573,7 +574,7 @@ export function useACubeCache<TData = unknown>(
       }
     }
 
-    let data = entry.data;
+    let {data} = entry;
 
     // Decompress if needed
     if (entry.isCompressed && typeof entry.data === 'string') {
@@ -618,7 +619,7 @@ export function useACubeCache<TData = unknown>(
   // Enhanced clear method
   const clear = useCallback(async (): Promise<void> => {
     globalCache.clear();
-    
+
     // Reset metrics
     globalMetrics = {
       totalEntries: 0,
@@ -632,7 +633,7 @@ export function useACubeCache<TData = unknown>(
       oldestEntry: undefined,
       newestEntry: undefined,
     };
-    
+
     setCacheStats({
       size: 0,
       lastUpdated: Date.now(),
@@ -641,7 +642,7 @@ export function useACubeCache<TData = unknown>(
       hitRate: 0,
       isCompressed: false,
     });
-    
+
     await saveToStorage();
   }, [saveToStorage]);
 
@@ -658,7 +659,7 @@ export function useACubeCache<TData = unknown>(
     } else {
       globalCache.clear();
     }
-    
+
     updateMetrics();
     await saveToStorage();
   }, [updateMetrics, saveToStorage]);
@@ -697,7 +698,7 @@ export function useACubeCache<TData = unknown>(
           isExpired = (now - entry.timestamp) > entry.ttl;
         }
       }
-      
+
       if (isExpired) {
         keysToDelete.push(key);
       }
@@ -746,10 +747,10 @@ export function useACubeCache<TData = unknown>(
       globalCache.set(key, updatedEntry);
       globalMetrics.compressionSavings += (originalSize - compressed.compressedSize);
       globalMetrics.compressedEntries++;
-      
+
       updateMetrics();
       await saveToStorage();
-      
+
       return true;
     } catch (error) {
       console.error(`Failed to compress ${key}:`, error);
@@ -760,13 +761,13 @@ export function useACubeCache<TData = unknown>(
   // Advanced decompression method
   const decompress = useCallback(async (key: string): Promise<boolean> => {
     const entry = globalCache.get(key);
-    if (!entry || !entry.isCompressed) {
+    if (!entry?.isCompressed) {
       return false;
     }
 
     try {
       const decompressed = await decompressData(entry.data as unknown as string);
-      
+
       // Update entry with decompressed data
       const updatedEntry: CacheEntry<TData> = {
         ...entry,
@@ -781,10 +782,10 @@ export function useACubeCache<TData = unknown>(
       if (globalMetrics.compressedEntries > 0) {
         globalMetrics.compressedEntries--;
       }
-      
+
       updateMetrics();
       await saveToStorage();
-      
+
       return true;
     } catch (error) {
       console.error(`Failed to decompress ${key}:`, error);
@@ -804,7 +805,7 @@ export function useACubeCache<TData = unknown>(
     for (const [key, entry] of entries) {
       if (!entry.isCompressed && entry.size >= compressionThreshold) {
         const success = await compress(key);
-        if (success) optimized++;
+        if (success) {optimized++;}
       }
     }
 
@@ -813,7 +814,7 @@ export function useACubeCache<TData = unknown>(
       const sortedEntries = entries
         .filter(([, entry]) => entry.priority === 'low')
         .sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed);
-      
+
       const toRemove = Math.min(sortedEntries.length, Math.ceil(globalCache.size * 0.1));
       for (let i = 0; i < toRemove; i++) {
         const entryToDelete = sortedEntries[i];
@@ -838,7 +839,7 @@ export function useACubeCache<TData = unknown>(
       metrics: globalMetrics,
       entries: Object.fromEntries(globalCache),
     };
-    
+
     return JSON.stringify(exportData, null, 2);
   }, []);
 
@@ -846,36 +847,34 @@ export function useACubeCache<TData = unknown>(
   const importCache = useCallback(async (data: string): Promise<void> => {
     try {
       const importData = JSON.parse(data);
-      
+
       if (importData.version !== '1.0') {
         throw new Error('Unsupported cache export version');
       }
 
       // Clear existing cache
       await clear();
-      
+
       // Import entries
       for (const [key, entry] of Object.entries(importData.entries)) {
         globalCache.set(key, entry as CacheEntry<any>);
       }
-      
+
       // Import metrics
       if (importData.metrics) {
         Object.assign(globalMetrics, importData.metrics);
       }
-      
+
       updateMetrics();
       await saveToStorage();
-      
+
     } catch (error) {
       throw new Error(`Failed to import cache data: ${error}`);
     }
   }, [clear, updateMetrics, saveToStorage]);
 
   // Get cache statistics
-  const getStats = useCallback((): CacheMetrics => {
-    return { ...globalMetrics };
-  }, []);
+  const getStats = useCallback((): CacheMetrics => ({ ...globalMetrics }), []);
 
   // Warmup cache with multiple keys
   const warmup = useCallback(async (keys: string[], fetcher: (key: string) => Promise<TData>): Promise<void> => {
@@ -887,7 +886,7 @@ export function useACubeCache<TData = unknown>(
         console.warn(`Failed to warmup ${key}:`, error);
       }
     });
-    
+
     await Promise.allSettled(promises);
   }, [set]);
 
@@ -899,7 +898,7 @@ export function useACubeCache<TData = unknown>(
 
   // Background refetch for stale data
   useEffect(() => {
-    if (!backgroundRefetch) return;
+    if (!backgroundRefetch) {return;}
 
     const interval = setInterval(() => {
       // This would trigger background refetches for stale queries

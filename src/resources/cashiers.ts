@@ -1,7 +1,7 @@
 /**
  * Cashiers Resource - OpenAPI Implementation
  * Type-safe implementation based on OpenAPI specification
- * 
+ *
  * Features:
  * - Full CRUD operations for cashier management
  * - Type-safe input/output with branded types
@@ -10,14 +10,15 @@
  * - Email management and formatting
  */
 
-import { BaseOpenAPIResource, type RequestOptions } from '@/resources/base-openapi';
-import { CashierEndpoints } from '@/generated/endpoints';
 import type { HttpClient } from '@/http/client';
 import type { CashierId } from '@/types/branded';
 import type { components } from '@/types/generated';
 import type { UnifiedStorage } from '@/storage/unified-storage';
 import type { EnterpriseQueueManager } from '@/storage/queue/queue-manager';
+
 import { ValidationError } from '@/errors/index';
+import { CashierEndpoints } from '@/generated/endpoints';
+import { BaseOpenAPIResource, type RequestOptions } from '@/resources/base-openapi';
 
 // Extract types from OpenAPI generated types
 type CashierCreateInput = components['schemas']['E-Receipt_IT_API_CashierCreateInput'];
@@ -53,14 +54,14 @@ export class CashiersResource extends BaseOpenAPIResource {
         me: CashierEndpoints.ME,
         getById: CashierEndpoints.GET_BY_ID,
         delete: CashierEndpoints.DELETE,
-      }
+      },
     });
   }
 
   /**
    * Get a list of cashiers with pagination
    * Enhanced with offline-first capabilities
-   * 
+   *
    * @param params - Pagination parameters
    * @param options - Request options including offline preferences
    * @returns Promise resolving to paginated cashier list
@@ -74,23 +75,23 @@ export class CashiersResource extends BaseOpenAPIResource {
       metadata: {
         operation: 'list_cashiers',
         ...options.metadata,
-      }
+      },
     });
   }
 
   /**
    * Create a new cashier
    * Enhanced with offline queuing and optimistic updates
-   * 
+   *
    * @param data - Cashier creation input data
    * @param validationOptions - Validation options
    * @param requestOptions - Request options including offline preferences
    * @returns Promise resolving to created cashier
    */
   async create(
-    data: CashierCreateInput, 
+    data: CashierCreateInput,
     validationOptions: CashierValidationOptions = {},
-    requestOptions: Partial<RequestOptions> = {}
+    requestOptions: Partial<RequestOptions> = {},
   ): Promise<CashierOutput> {
     // Validate input with custom business rules
     await this.validateCashierInput(data, validationOptions);
@@ -103,14 +104,14 @@ export class CashiersResource extends BaseOpenAPIResource {
         operation: 'create_cashier',
         email: data.email,
         ...requestOptions.metadata,
-      }
+      },
     });
   }
 
   /**
    * Get current cashier information
    * Enhanced with intelligent caching
-   * 
+   *
    * @param options - Request options including offline preferences
    * @returns Promise resolving to current cashier details
    */
@@ -122,13 +123,13 @@ export class CashiersResource extends BaseOpenAPIResource {
       metadata: {
         operation: 'get_current_cashier',
         ...options.metadata,
-      }
+      },
     });
   }
 
   /**
    * Get a specific cashier by ID
-   * 
+   *
    * @param cashierId - Cashier ID (branded or number)
    * @returns Promise resolving to cashier details
    */
@@ -138,13 +139,13 @@ export class CashiersResource extends BaseOpenAPIResource {
       metadata: {
         operation: 'get_cashier',
         cashierId,
-      }
+      },
     });
   }
 
   /**
    * Delete a cashier
-   * 
+   *
    * @param cashierId - Cashier ID (branded or number)
    * @returns Promise resolving when deletion is complete
    */
@@ -154,7 +155,7 @@ export class CashiersResource extends BaseOpenAPIResource {
       metadata: {
         operation: 'delete_cashier',
         cashierId,
-      }
+      },
     });
   }
 
@@ -166,13 +167,13 @@ export class CashiersResource extends BaseOpenAPIResource {
     if (!this.hasOperation('update')) {
       throw this.createUnsupportedOperationError('update');
     }
-    
+
     return this.executeRequest<Partial<CashierCreateInput>, CashierOutput>('update', data, {
       pathParams: { cashier_id: cashierId },
       metadata: {
         operation: 'update_cashier',
         cashierId,
-      }
+      },
     });
   }
 
@@ -182,8 +183,8 @@ export class CashiersResource extends BaseOpenAPIResource {
    * Comprehensive cashier input validation
    */
   private async validateCashierInput(
-    data: CashierCreateInput, 
-    options: CashierValidationOptions = {}
+    data: CashierCreateInput,
+    options: CashierValidationOptions = {},
   ): Promise<void> {
     const errors: Array<{ field: string; message: string; code: string }> = [];
 
@@ -192,7 +193,7 @@ export class CashiersResource extends BaseOpenAPIResource {
       errors.push({
         field: 'email',
         message: 'Invalid email format',
-        code: 'INVALID_EMAIL'
+        code: 'INVALID_EMAIL',
       });
     } else {
       // Domain validation if specified
@@ -201,7 +202,7 @@ export class CashiersResource extends BaseOpenAPIResource {
           errors.push({
             field: 'email',
             message: `Email domain not allowed. Allowed domains: ${options.allowedEmailDomains.join(', ')}`,
-            code: 'DOMAIN_NOT_ALLOWED'
+            code: 'DOMAIN_NOT_ALLOWED',
           });
         }
       }
@@ -213,7 +214,7 @@ export class CashiersResource extends BaseOpenAPIResource {
           errors.push({
             field: 'email',
             message: 'Email address is already in use',
-            code: 'EMAIL_EXISTS'
+            code: 'EMAIL_EXISTS',
           });
         }
       }
@@ -226,7 +227,7 @@ export class CashiersResource extends BaseOpenAPIResource {
         errors.push({
           field: 'password',
           message: passwordCheck.message || 'Password does not meet security requirements',
-          code: 'WEAK_PASSWORD'
+          code: 'WEAK_PASSWORD',
         });
       } else {
         // Just warn for weak passwords if not enforcing
@@ -279,24 +280,24 @@ export class CashiersResource extends BaseOpenAPIResource {
     let score = 0;
 
     // Length checks
-    if (password.length >= 8) score++;
-    if (password.length >= 12) score++;
+    if (password.length >= 8) {score++;}
+    if (password.length >= 12) {score++;}
     if (password.length < 8) {
       suggestions.push('Use at least 8 characters');
     }
 
     // Character variety checks
-    if (/[a-z]/.test(password)) score++;
-    else suggestions.push('Include lowercase letters');
+    if (/[a-z]/.test(password)) {score++;}
+    else {suggestions.push('Include lowercase letters');}
 
-    if (/[A-Z]/.test(password)) score++;
-    else suggestions.push('Include uppercase letters');
+    if (/[A-Z]/.test(password)) {score++;}
+    else {suggestions.push('Include uppercase letters');}
 
-    if (/\d/.test(password)) score++;
-    else suggestions.push('Include numbers');
+    if (/\d/.test(password)) {score++;}
+    else {suggestions.push('Include numbers');}
 
-    if (/[^a-zA-Z0-9]/.test(password)) score++;
-    else suggestions.push('Include special characters');
+    if (/[^a-zA-Z0-9]/.test(password)) {score++;}
+    else {suggestions.push('Include special characters');}
 
     // Common patterns to avoid
     if (/(.)\\1{2,}/.test(password)) {
@@ -306,10 +307,10 @@ export class CashiersResource extends BaseOpenAPIResource {
 
     // Common passwords check
     const commonPasswords = [
-      'password', 'password123', '12345678', 'qwerty', 'abc123', 
-      'password1', '123456789', 'welcome', 'admin', 'letmein'
+      'password', 'password123', '12345678', 'qwerty', 'abc123',
+      'password1', '123456789', 'welcome', 'admin', 'letmein',
     ];
-    
+
     if (commonPasswords.some(common => password.toLowerCase().includes(common.toLowerCase()))) {
       score = 0;
       suggestions.push('Avoid common passwords');
@@ -335,21 +336,21 @@ export class CashiersResource extends BaseOpenAPIResource {
     const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const numbers = '0123456789';
     const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
-    
+
     const allChars = lowercase + uppercase + numbers + symbols;
-    
+
     // Ensure at least one character from each category
     let password = '';
     password += lowercase[Math.floor(Math.random() * lowercase.length)];
     password += uppercase[Math.floor(Math.random() * uppercase.length)];
     password += numbers[Math.floor(Math.random() * numbers.length)];
     password += symbols[Math.floor(Math.random() * symbols.length)];
-    
+
     // Fill the rest randomly
     for (let i = password.length; i < length; i++) {
       password += allChars[Math.floor(Math.random() * allChars.length)];
     }
-    
+
     // Shuffle the password
     return password.split('').sort(() => Math.random() - 0.5).join('');
   }
@@ -359,7 +360,7 @@ export class CashiersResource extends BaseOpenAPIResource {
    */
   static formatEmailForDisplay(email: string): string {
     const [localPart, domain] = email.split('@');
-    if (!localPart || !domain) return email;
+    if (!localPart || !domain) {return email;}
 
     if (localPart.length <= 3) {
       return `${localPart[0]}**@${domain}`;
@@ -367,7 +368,7 @@ export class CashiersResource extends BaseOpenAPIResource {
 
     const visibleChars = Math.min(3, Math.floor(localPart.length / 2));
     const maskedPart = '*'.repeat(localPart.length - visibleChars);
-    
+
     return `${localPart.substring(0, visibleChars)}${maskedPart}@${domain}`;
   }
 
@@ -392,8 +393,8 @@ export class CashiersResource extends BaseOpenAPIResource {
    */
   static generateUsername(email: string): string {
     const [localPart] = email.split('@');
-    if (!localPart) return 'user';
-    
+    if (!localPart) {return 'user';}
+
     // Clean up the local part for username
     return localPart
       .toLowerCase()
@@ -455,7 +456,7 @@ export { CashiersResource as Cashiers };
 
 // Export types for external use
 export type {
-  CashierCreateInput,
-  CashierOutput,
   CashierPage,
+  CashierOutput,
+  CashierCreateInput,
 };

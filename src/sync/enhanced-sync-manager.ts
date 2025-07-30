@@ -3,43 +3,47 @@
  * Integrates traditional sync engine with real-time components for comprehensive sync management
  */
 
+import type { ResourceType } from '@/storage/queue/types';
+
 import { EventEmitter } from 'eventemitter3';
+
 import { ProgressiveSyncEngine, type SyncEngineConfig } from './sync-engine';
 import { BackgroundSyncService, type BackgroundSyncServiceConfig } from './background-sync';
-import { WebhookManager, createWebhookManager, type WebhookManagerConfig } from './webhook-manager';
-import { ConflictResolutionEngine, createConflictResolutionEngine, type ConflictResolutionEngineConfig } from './conflict-resolution-engine';
-import { RealtimeSyncCoordinator, createRealtimeSyncCoordinator, type SyncCoordinatorConfig } from './realtime-sync-coordinator';
-import type { ResourceType } from '@/storage/queue/types';
+import type { WebhookManager } from './webhook-manager';
+import { createWebhookManager, type WebhookManagerConfig      } from './webhook-manager';
+import { createConflictResolutionEngine, type ConflictResolutionEngineConfig  , ConflictResolutionEngine } from './conflict-resolution-engine';
+import { type SyncCoordinatorConfig, createRealtimeSyncCoordinator  , RealtimeSyncCoordinator } from './realtime-sync-coordinator';
+
 import type {
-  SyncOptions,
   SyncResult,
-  SyncEventTypeMap,
   SyncStatus,
+  SyncOptions,
+  SyncEventTypeMap,
 } from './types';
 
 export interface EnhancedSyncManagerConfig {
   // Core sync engine configuration
   syncEngine: Partial<SyncEngineConfig>;
-  
+
   // Background sync configuration
   backgroundSync: Partial<BackgroundSyncServiceConfig>;
-  
+
   // Real-time components configuration
   webhooks: Partial<WebhookManagerConfig>;
   conflictResolution: Partial<ConflictResolutionEngineConfig>;
   realtimeSync: Partial<SyncCoordinatorConfig>;
-  
+
   // Enhanced sync manager specific settings
   enableRealtimeSync: boolean;
   enableConflictResolution: boolean;
   enableWebhooks: boolean;
   enableBackgroundSync: boolean;
-  
+
   // Integration settings
   autoResolveConflicts: boolean;
   realtimePriority: 'high' | 'normal' | 'low';
   syncCoordination: 'sequential' | 'parallel' | 'adaptive';
-  
+
   // Performance settings
   maxConcurrentSessions: number;
   sessionTimeout: number;
@@ -89,17 +93,23 @@ export interface EnhancedSyncManagerEvents extends SyncEventTypeMap {
  */
 export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents> {
   private config: EnhancedSyncManagerConfig;
+
   private isInitialized = false;
 
   // Core components
   private syncEngine: ProgressiveSyncEngine;
+
   private backgroundSync: BackgroundSyncService;
+
   private webhookManager?: WebhookManager;
+
   private conflictEngine?: ConflictResolutionEngine;
+
   private realtimeCoordinator?: RealtimeSyncCoordinator;
 
   // State tracking
   private activeSessions = new Map<string, SyncSessionInfo>();
+
   private metrics: SyncManagerMetrics = {
     totalSyncs: 0,
     successfulSyncs: 0,
@@ -115,11 +125,12 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
 
   // Performance monitoring
   private metricsInterval: NodeJS.Timeout | null = null;
+
   private performanceMonitor: NodeJS.Timeout | null = null;
 
   constructor(config: Partial<EnhancedSyncManagerConfig> = {}) {
     super();
-    
+
     this.config = {
       syncEngine: {},
       backgroundSync: {},
@@ -185,7 +196,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
         this.realtimeCoordinator = createRealtimeSyncCoordinator(
           this.config.realtimeSync,
           this.webhookManager,
-          this.conflictEngine
+          this.conflictEngine,
         );
         await this.realtimeCoordinator.initialize();
         this.setupRealtimeCoordinatorListeners();
@@ -197,7 +208,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
 
       this.isInitialized = true;
       this.emit('manager:initialized', { config: this.config });
-      
+
       console.log('Enhanced Sync Manager initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Enhanced Sync Manager:', error);
@@ -241,7 +252,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
 
       this.isInitialized = false;
       this.emit('manager:destroyed', { reason });
-      
+
       console.log(`Enhanced Sync Manager destroyed: ${reason}`);
     } catch (error) {
       console.error('Error during Enhanced Sync Manager destruction:', error);
@@ -297,7 +308,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
       session.status = 'error';
       this.activeSessions.set(sessionId, session);
       this.emit('session:updated', { session });
-      
+
       this.metrics.failedSyncs++;
       throw error;
     } finally {
@@ -312,7 +323,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
   async createRealtimeSession(
     resourceType: ResourceType,
     resourceId: string,
-    strategy: 'optimistic' | 'pessimistic' | 'collaborative' = 'collaborative'
+    strategy: 'optimistic' | 'pessimistic' | 'collaborative' = 'collaborative',
   ): Promise<string> {
     if (!this.isInitialized || !this.realtimeCoordinator) {
       throw new Error('Realtime sync not available');
@@ -321,7 +332,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
     const realtimeSession = await this.realtimeCoordinator.createSession(
       resourceType,
       resourceId,
-      strategy
+      strategy,
     );
 
     const session: SyncSessionInfo = {
@@ -346,13 +357,13 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
    */
   async scheduleBackgroundSync(
     options: SyncOptions,
-    trigger: 'periodic' | 'connectivity' | 'data-change' | 'user-action' = 'user-action'
+    trigger: 'periodic' | 'connectivity' | 'data-change' | 'user-action' = 'user-action',
   ): Promise<string> {
     if (!this.isInitialized || !this.config.enableBackgroundSync) {
       throw new Error('Background sync not available');
     }
 
-    return await this.backgroundSync.scheduleSync(options, trigger);
+    return this.backgroundSync.scheduleSync(options, trigger);
   }
 
   /**
@@ -361,7 +372,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
   async subscribeToWebhooks(
     eventTypes: string[],
     url: string,
-    options: { headers?: Record<string, string>; secret?: string } = {}
+    options: { headers?: Record<string, string>; secret?: string } = {},
   ): Promise<string> {
     if (!this.isInitialized || !this.webhookManager) {
       throw new Error('Webhook manager not available');
@@ -370,7 +381,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
     const subscription = await this.webhookManager.createSubscription(
       eventTypes as any,
       url,
-      options
+      options,
     );
 
     this.emit('webhook:subscribed', { eventTypes, url });
@@ -451,24 +462,24 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
   // Private methods for component integration
 
   private async preProcessConflicts(options: SyncOptions): Promise<void> {
-    if (!this.conflictEngine) return;
+    if (!this.conflictEngine) {return;}
 
     // Check for existing conflicts that might affect this sync
     const activeConflicts = this.conflictEngine.getActiveConflicts();
-    const relevantConflicts = activeConflicts.filter(conflict => 
-      options.resources?.includes(conflict.context.resourceType as string)
+    const relevantConflicts = activeConflicts.filter(conflict =>
+      options.resources?.includes(conflict.context.resourceType as string),
     );
 
     if (relevantConflicts.length > 0 && this.config.autoResolveConflicts) {
       console.log(`Auto-resolving ${relevantConflicts.length} conflicts before sync`);
-      
+
       for (const conflict of relevantConflicts) {
         try {
           const resolution = await this.conflictEngine.resolveConflict(
             conflict.id,
-            conflict.suggestedResolution || 'server-wins'
+            conflict.suggestedResolution || 'server-wins',
           );
-          
+
           if (resolution) {
             this.emit('conflict:auto-resolved', {
               conflictId: conflict.id,
@@ -483,12 +494,12 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
   }
 
   private async coordinateRealtimeSync(_result: SyncResult, options: SyncOptions): Promise<void> {
-    if (!this.realtimeCoordinator) return;
+    if (!this.realtimeCoordinator) {return;}
 
     // Find relevant real-time sessions
     const activeSessions = this.realtimeCoordinator.getActiveSessions();
     const relevantSessions = activeSessions.filter(session =>
-      options.resources?.includes(session.resourceType as string)
+      options.resources?.includes(session.resourceType as string),
     );
 
     // Broadcast sync results to relevant sessions
@@ -505,7 +516,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
 
   private updateSyncMetrics(result: SyncResult): void {
     this.metrics.totalSyncs++;
-    
+
     if (result.status === 'success') {
       this.metrics.successfulSyncs++;
     } else {
@@ -555,7 +566,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
   }
 
   private setupWebhookListeners(): void {
-    if (!this.webhookManager) return;
+    if (!this.webhookManager) {return;}
 
     this.webhookManager.on('delivery:success', (_data) => {
       this.metrics.webhookDeliveries++;
@@ -567,7 +578,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
   }
 
   private setupConflictResolutionListeners(): void {
-    if (!this.conflictEngine) return;
+    if (!this.conflictEngine) {return;}
 
     this.conflictEngine.on('conflict:detected', (data) => {
       this.metrics.pendingConflicts++;
@@ -581,7 +592,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
   }
 
   private setupRealtimeCoordinatorListeners(): void {
-    if (!this.realtimeCoordinator) return;
+    if (!this.realtimeCoordinator) {return;}
 
     this.realtimeCoordinator.on('session:created', (data) => {
       this.metrics.activeRealtimeSessions++;
@@ -599,7 +610,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
   // Performance monitoring
 
   private startPerformanceMonitoring(): void {
-    if (!this.config.metricsEnabled) return;
+    if (!this.config.metricsEnabled) {return;}
 
     this.performanceMonitor = setInterval(() => {
       this.updateSystemLoad();
@@ -615,7 +626,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
   }
 
   private startMetricsCollection(): void {
-    if (!this.config.metricsEnabled) return;
+    if (!this.config.metricsEnabled) {return;}
 
     this.metricsInterval = setInterval(() => {
       this.updateRealtimeMetrics();
@@ -633,9 +644,9 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
   private updateSystemLoad(): void {
     // Calculate system load based on active sessions and pending operations
     const sessionLoad = (this.activeSessions.size / this.config.maxConcurrentSessions) * 100;
-    const conflictLoad = this.conflictEngine ? 
+    const conflictLoad = this.conflictEngine ?
       (this.conflictEngine.getActiveConflicts().length / 10) * 100 : 0;
-    
+
     this.metrics.systemLoad = Math.min(100, Math.max(sessionLoad, conflictLoad));
   }
 
@@ -657,10 +668,10 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
 
   private checkSystemOverload(): void {
     if (this.metrics.systemLoad > 90) {
-      const recommendedAction = this.activeSessions.size > 5 
+      const recommendedAction = this.activeSessions.size > 5
         ? 'Reduce concurrent sessions'
         : 'Increase resource allocation';
-        
+
       this.emit('system:overload', {
         load: this.metrics.systemLoad,
         recommendedAction,
@@ -673,7 +684,7 @@ export class EnhancedSyncManager extends EventEmitter<EnhancedSyncManagerEvents>
  * Create enhanced sync manager with default configuration
  */
 export function createEnhancedSyncManager(
-  config: Partial<EnhancedSyncManagerConfig> = {}
+  config: Partial<EnhancedSyncManagerConfig> = {},
 ): EnhancedSyncManager {
   return new EnhancedSyncManager(config);
 }

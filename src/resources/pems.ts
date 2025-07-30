@@ -1,7 +1,7 @@
 /**
  * PEMs Resource - OpenAPI Implementation
  * Type-safe implementation for Point of Sale Module certificate management
- * 
+ *
  * Features:
  * - PEM certificate lifecycle management
  * - Point of Sale creation and configuration
@@ -9,12 +9,13 @@
  * - Compliance and audit tracking
  */
 
-import { BaseOpenAPIResource } from '@/resources/base-openapi';
-import { PEMEndpoints } from '@/generated/endpoints';
-import type { HttpClient } from '@/http/client';
 import type { PEMId } from '@/types/branded';
+import type { HttpClient } from '@/http/client';
 import type { components } from '@/types/generated';
-import { ValidationError, FiscalError } from '@/errors/index';
+
+import { PEMEndpoints } from '@/generated/endpoints';
+import { FiscalError, ValidationError } from '@/errors/index';
+import { BaseOpenAPIResource } from '@/resources/base-openapi';
 
 // Extract types from OpenAPI generated types
 type PointOfSaleCreateInput = components['schemas']['A-Cube_GOV-IT_PEL_Platform_Pem.PemCreateInput'];
@@ -86,20 +87,20 @@ export class PEMsResource extends BaseOpenAPIResource {
       endpoints: {
         createPOS: PEMEndpoints.CREATE_POS,
         getCertificates: PEMEndpoints.GET_CERTIFICATES,
-      }
+      },
     });
   }
 
   /**
    * Create a new Point of Sale
-   * 
+   *
    * @param data - Point of Sale creation input data
    * @param options - Validation options
    * @returns Promise resolving to created Point of Sale
    */
   async createPointOfSale(
-    data: PointOfSaleCreateInput, 
-    options: PEMValidationOptions = {}
+    data: PointOfSaleCreateInput,
+    options: PEMValidationOptions = {},
   ): Promise<PointOfSaleOutput> {
     // Validate input
     await this.validatePointOfSaleInput(data, options);
@@ -109,13 +110,13 @@ export class PEMsResource extends BaseOpenAPIResource {
         operation: 'create_point_of_sale',
         merchantUuid: data.merchant_uuid,
         addressProvided: !!data.address,
-      }
+      },
     });
   }
 
   /**
    * Get certificates for a Point of Sale
-   * 
+   *
    * @param posId - Point of Sale ID
    * @returns Promise resolving to certificate information
    */
@@ -125,7 +126,7 @@ export class PEMsResource extends BaseOpenAPIResource {
       metadata: {
         operation: 'get_pem_certificates',
         posId,
-      }
+      },
     });
 
     // Transform response to CertificateInfo format
@@ -134,7 +135,7 @@ export class PEMsResource extends BaseOpenAPIResource {
 
   /**
    * Validate certificate chain for a PEM device
-   * 
+   *
    * @param posId - Point of Sale ID
    * @returns Promise resolving to certificate chain validation
    */
@@ -145,7 +146,7 @@ export class PEMsResource extends BaseOpenAPIResource {
 
   /**
    * Get PEM configuration and status
-   * 
+   *
    * @param posId - Point of Sale ID
    * @returns Promise resolving to PEM configuration
    */
@@ -156,7 +157,7 @@ export class PEMsResource extends BaseOpenAPIResource {
 
   /**
    * Check compliance status for a PEM device
-   * 
+   *
    * @param posId - Point of Sale ID
    * @returns Promise resolving to compliance assessment
    */
@@ -174,14 +175,14 @@ export class PEMsResource extends BaseOpenAPIResource {
 
   /**
    * Request certificate renewal for a PEM device
-   * 
+   *
    * @param posId - Point of Sale ID
    * @param certificateType - Type of certificate to renew
    * @returns Promise resolving when renewal is initiated
    */
   async requestCertificateRenewal(
-    _posId: PEMId | string, 
-    _certificateType: CertificateType = 'device'
+    _posId: PEMId | string,
+    _certificateType: CertificateType = 'device',
   ): Promise<{ renewalId: string; estimatedCompletion: string }> {
     // This would typically call a specific renewal endpoint
     // For now, return a mock response
@@ -197,8 +198,8 @@ export class PEMsResource extends BaseOpenAPIResource {
    * Validate Point of Sale input
    */
   private async validatePointOfSaleInput(
-    data: PointOfSaleCreateInput, 
-    _options: PEMValidationOptions = {}
+    data: PointOfSaleCreateInput,
+    _options: PEMValidationOptions = {},
   ): Promise<void> {
     const errors: Array<{ field: string; message: string; code: string }> = [];
 
@@ -207,7 +208,7 @@ export class PEMsResource extends BaseOpenAPIResource {
       errors.push({
         field: 'merchant_uuid',
         message: 'Merchant UUID is required',
-        code: 'REQUIRED'
+        code: 'REQUIRED',
       });
     }
 
@@ -215,7 +216,7 @@ export class PEMsResource extends BaseOpenAPIResource {
       errors.push({
         field: 'address',
         message: 'Address is required for PEM registration',
-        code: 'REQUIRED'
+        code: 'REQUIRED',
       });
     } else {
       const addressErrors = this.validateAddress(data.address);
@@ -244,7 +245,7 @@ export class PEMsResource extends BaseOpenAPIResource {
       errors.push({
         field: 'address.street_address',
         message: 'Street address is required',
-        code: 'REQUIRED'
+        code: 'REQUIRED',
       });
     }
 
@@ -252,7 +253,7 @@ export class PEMsResource extends BaseOpenAPIResource {
       errors.push({
         field: 'address.city',
         message: 'City is required',
-        code: 'REQUIRED'
+        code: 'REQUIRED',
       });
     }
 
@@ -260,7 +261,7 @@ export class PEMsResource extends BaseOpenAPIResource {
       errors.push({
         field: 'address.zip_code',
         message: 'Valid 5-digit ZIP code is required',
-        code: 'INVALID_FORMAT'
+        code: 'INVALID_FORMAT',
       });
     }
 
@@ -268,7 +269,7 @@ export class PEMsResource extends BaseOpenAPIResource {
       errors.push({
         field: 'address.province',
         message: 'Valid 2-character province code is required',
-        code: 'INVALID_FORMAT'
+        code: 'INVALID_FORMAT',
       });
     }
 
@@ -285,7 +286,7 @@ export class PEMsResource extends BaseOpenAPIResource {
   //   for (let i = 0; i < certificates.length; i++) {
   //     const cert = certificates[i];
   //     if (!cert) continue;
-      
+
   //     if (!cert.type || !['root', 'intermediate', 'device', 'signing', 'encryption'].includes(cert.type)) {
   //       errors.push({
   //         field: `certificates[${i}].type`,
@@ -316,7 +317,7 @@ export class PEMsResource extends BaseOpenAPIResource {
     }
 
     const certificates: CertificateInfo[] = [];
-    
+
     // Parse the MTLS certificate if available
     if (response.mtls_certificate) {
       certificates.push({
@@ -389,8 +390,8 @@ export class PEMsResource extends BaseOpenAPIResource {
     // Check chain completeness
     const hasRoot = certificates.some(cert => cert.type === 'root');
     const hasLeaf = certificates.some(cert => cert.type === 'device');
-    if (!hasRoot) issues.push('Missing root certificate');
-    if (!hasLeaf) issues.push('Missing device certificate');
+    if (!hasRoot) {issues.push('Missing root certificate');}
+    if (!hasLeaf) {issues.push('Missing device certificate');}
 
     return {
       chainValid: hasRoot && hasLeaf && issues.length === 0,
@@ -433,15 +434,15 @@ export class PEMsResource extends BaseOpenAPIResource {
 
     // Check for expired certificates
     const hasExpired = certificates.some(cert => new Date(cert.validTo) <= now);
-    if (hasExpired) return 'maintenance';
+    if (hasExpired) {return 'maintenance';}
 
     // Check for certificates expiring soon
     const hasExpiringSoon = certificates.some(cert => new Date(cert.validTo) <= thirtyDaysFromNow);
-    if (hasExpiringSoon) return 'certificate_renewal';
+    if (hasExpiringSoon) {return 'certificate_renewal';}
 
     // Check for revoked certificates
     const hasRevoked = certificates.some(cert => cert.status === 'revoked');
-    if (hasRevoked) return 'compliance_check';
+    if (hasRevoked) {return 'compliance_check';}
 
     return 'active';
   }
@@ -450,7 +451,7 @@ export class PEMsResource extends BaseOpenAPIResource {
    * Calculate next certificate renewal date
    */
   private static calculateNextRenewal(certificates: CertificateInfo[]): string {
-    if (certificates.length === 0) return new Date().toISOString();
+    if (certificates.length === 0) {return new Date().toISOString();}
 
     const earliestExpiry = certificates
       .map(cert => new Date(cert.validTo))
@@ -504,7 +505,7 @@ export class PEMsResource extends BaseOpenAPIResource {
     if (config.lastAudit) {
       const lastAuditDate = new Date(config.lastAudit);
       const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
-      
+
       if (lastAuditDate < sixMonthsAgo) {
         score -= 20;
         issues.push('Audit overdue (last audit more than 6 months ago)');
@@ -518,9 +519,9 @@ export class PEMsResource extends BaseOpenAPIResource {
 
     // Determine compliance level
     let level: ComplianceLevel = 'full';
-    if (score < 70) level = 'non_compliant';
-    else if (score < 85) level = 'partial';
-    else if (issues.length > 0) level = 'under_review';
+    if (score < 70) {level = 'non_compliant';}
+    else if (score < 85) {level = 'partial';}
+    else if (issues.length > 0) {level = 'under_review';}
 
     const now = new Date();
     return {
@@ -629,7 +630,7 @@ export class PEMsResource extends BaseOpenAPIResource {
 
     // Mock validation logic
     const isValid = cert.fingerprint && cert.fingerprint !== 'unknown';
-    
+
     return {
       valid: !!isValid,
       ...(isValid ? {} : { error: 'Invalid certificate signature' }),
@@ -651,9 +652,9 @@ export class PEMsResource extends BaseOpenAPIResource {
     const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
     let urgency: 'low' | 'medium' | 'high' | 'critical' = 'low';
-    if (daysUntilExpiry <= 0) urgency = 'critical';
-    else if (daysUntilExpiry <= 7) urgency = 'high';
-    else if (daysUntilExpiry <= 30) urgency = 'medium';
+    if (daysUntilExpiry <= 0) {urgency = 'critical';}
+    else if (daysUntilExpiry <= 7) {urgency = 'high';}
+    else if (daysUntilExpiry <= 30) {urgency = 'medium';}
 
     return {
       certificateId: cert.id,
@@ -670,6 +671,6 @@ export { PEMsResource as PEMs };
 
 // Export types for external use
 export type {
-  PointOfSaleCreateInput,
   PointOfSaleOutput,
+  PointOfSaleCreateInput,
 };

@@ -3,9 +3,11 @@
  * Provides comprehensive performance tracking and optimization recommendations
  */
 
+import type { HttpResponse, RequestOptions } from '@/http/client';
+
 import { BasePlugin } from '../core/base-plugin';
+
 import type { PluginContext, PluginManifest } from '../core/plugin-manager';
-import type { RequestOptions, HttpResponse } from '@/http/client';
 
 export interface PerformanceMetric {
   id: string;
@@ -83,11 +85,17 @@ export class PerformancePlugin extends BasePlugin {
   };
 
   private metrics: PerformanceMetric[] = [];
+
   private alerts: PerformanceAlert[] = [];
+
   private budgets: PerformanceBudget[] = [];
+
   private requestStartTimes = new Map<string, number>();
+
   private memoryMonitor?: NodeJS.Timeout;
+
   private isEnabled: boolean = true;
+
   private maxMetrics: number = 5000;
 
   protected async initialize(_context: PluginContext): Promise<void> {
@@ -133,7 +141,7 @@ export class PerformancePlugin extends BasePlugin {
 
     // Track plugin initialization performance
     if (this.context?.sdk) {
-      const sdk = this.context.sdk;
+      const {sdk} = this.context;
       this.recordMetric({
         id: `plugin_init_${Date.now()}`,
         timestamp: Date.now(),
@@ -142,16 +150,16 @@ export class PerformancePlugin extends BasePlugin {
         value: 0, // Plugin initialization complete
         unit: 'ms',
         category: 'computation',
-        metadata: { 
+        metadata: {
           environment: sdk.getConfig()?.environment || 'unknown',
-          version: '2.0.0' 
+          version: '2.0.0',
         },
       });
     }
 
-    this.log('info', 'Performance plugin initialized', { 
+    this.log('info', 'Performance plugin initialized', {
       budgets: this.budgets.length,
-      memoryMonitoring: config.memoryMonitoring 
+      memoryMonitoring: config.memoryMonitoring,
     });
   }
 
@@ -172,7 +180,7 @@ export class PerformancePlugin extends BasePlugin {
   }
 
   protected override async processRequest(_context: PluginContext, options: RequestOptions): Promise<RequestOptions> {
-    if (!this.isEnabled) return options;
+    if (!this.isEnabled) {return options;}
 
     // Record request start time
     const requestId = `${options.method}_${options.url}_${Date.now()}`;
@@ -207,7 +215,7 @@ export class PerformancePlugin extends BasePlugin {
   }
 
   protected override async processResponse(_context: PluginContext, response: HttpResponse<any>): Promise<HttpResponse<any>> {
-    if (!this.isEnabled) return response;
+    if (!this.isEnabled) {return response;}
 
     const requestId = Object.keys(Object.fromEntries(this.requestStartTimes))
       .find(key => key.includes(response.config?.url || ''));
@@ -265,7 +273,7 @@ export class PerformancePlugin extends BasePlugin {
   }
 
   protected override async handleError(_context: PluginContext, error: Error): Promise<Error> {
-    if (!this.isEnabled) return error;
+    if (!this.isEnabled) {return error;}
 
     // Record error metric
     this.recordMetric({
@@ -338,25 +346,25 @@ export class PerformancePlugin extends BasePlugin {
       if (filter.type) {
         filteredMetrics = filteredMetrics.filter(m => filter.type!.includes(m.type));
       }
-      
+
       if (filter.category) {
         filteredMetrics = filteredMetrics.filter(m => filter.category!.includes(m.category));
       }
-      
+
       if (filter.timeRange) {
-        filteredMetrics = filteredMetrics.filter(m => 
-          m.timestamp >= filter.timeRange!.start && 
-          m.timestamp <= filter.timeRange!.end
+        filteredMetrics = filteredMetrics.filter(m =>
+          m.timestamp >= filter.timeRange!.start &&
+          m.timestamp <= filter.timeRange!.end,
         );
       }
-      
+
       if (filter.name) {
         filteredMetrics = filteredMetrics.filter(m => m.name.includes(filter.name!));
       }
-      
+
       if (filter.tags) {
-        filteredMetrics = filteredMetrics.filter(m => 
-          filter.tags!.some(tag => m.tags?.includes(tag))
+        filteredMetrics = filteredMetrics.filter(m =>
+          filter.tags!.some(tag => m.tags?.includes(tag)),
         );
       }
     }
@@ -369,11 +377,11 @@ export class PerformancePlugin extends BasePlugin {
    */
   public getAlerts(level?: PerformanceAlert['level']): PerformanceAlert[] {
     let alerts = [...this.alerts];
-    
+
     if (level) {
       alerts = alerts.filter(a => a.level === level);
     }
-    
+
     return alerts.sort((a, b) => b.timestamp - a.timestamp);
   }
 
@@ -383,15 +391,15 @@ export class PerformancePlugin extends BasePlugin {
   public generateReport(timeRangeMs: number = 3600000): PerformanceReport {
     const now = Date.now();
     const start = now - timeRangeMs;
-    
+
     const periodMetrics = this.getMetrics({
-      timeRange: { start, end: now }
+      timeRange: { start, end: now },
     });
 
     // Request metrics
     const requestMetrics = periodMetrics.filter(m => m.name === 'request_duration');
     const requestDurations = requestMetrics.map(m => m.value).sort((a, b) => a - b);
-    
+
     const requests = {
       total: requestMetrics.length,
       average: requestDurations.length > 0 ? requestDurations.reduce((a, b) => a + b, 0) / requestDurations.length : 0,
@@ -406,7 +414,7 @@ export class PerformancePlugin extends BasePlugin {
     // Memory metrics
     const memoryMetrics = periodMetrics.filter(m => m.name === 'memory_usage');
     const memoryValues = memoryMetrics.map(m => m.value);
-    
+
     const memory = {
       peak: memoryValues.length > 0 ? Math.max(...memoryValues) : 0,
       average: memoryValues.length > 0 ? memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length : 0,
@@ -459,7 +467,7 @@ export class PerformancePlugin extends BasePlugin {
     memoryUsage: number;
   } {
     const recentMetrics = this.getMetrics({
-      timeRange: { start: Date.now() - 300000, end: Date.now() } // Last 5 minutes
+      timeRange: { start: Date.now() - 300000, end: Date.now() }, // Last 5 minutes
     });
 
     const requestMetrics = recentMetrics.filter(m => m.name === 'request_duration');
@@ -487,7 +495,7 @@ export class PerformancePlugin extends BasePlugin {
 
   private checkBudgets(metricName: string, value: number, unit: string): void {
     const budget = this.budgets.find(b => b.metric === metricName && b.unit === unit);
-    if (!budget) return;
+    if (!budget) {return;}
 
     let alertLevel: PerformanceAlert['level'] | null = null;
     let threshold = 0;
@@ -514,7 +522,7 @@ export class PerformancePlugin extends BasePlugin {
 
       this.alerts.push(alert);
       this.emitEvent('performance_alert', alert);
-      
+
       this.log(alertLevel === 'critical' ? 'error' : 'warn', alert.message, alert);
     }
   }
@@ -522,7 +530,7 @@ export class PerformancePlugin extends BasePlugin {
   private startMemoryMonitoring(): void {
     if (typeof window !== 'undefined' && 'performance' in window && 'memory' in performance) {
       this.memoryMonitor = setInterval(() => {
-        const memory = (performance as any).memory;
+        const {memory} = (performance as any);
         if (memory) {
           this.recordMetric({
             type: 'memory',
@@ -549,12 +557,12 @@ export class PerformancePlugin extends BasePlugin {
   }
 
   private calculateSize(data: any): number {
-    if (!data) return 0;
-    
+    if (!data) {return 0;}
+
     if (typeof data === 'string') {
       return new Blob([data]).size;
     }
-    
+
     try {
       return new Blob([JSON.stringify(data)]).size;
     } catch {
@@ -574,51 +582,51 @@ export class PerformancePlugin extends BasePlugin {
   }
 
   private percentile(values: number[], p: number): number {
-    if (values.length === 0) return 0;
+    if (values.length === 0) {return 0;}
     const index = Math.ceil(values.length * p / 100) - 1;
     return values[Math.max(0, index)] || 0;
   }
 
   private calculateTrend(values: number[]): string {
-    if (values.length < 2) return 'stable';
-    
+    if (values.length < 2) {return 'stable';}
+
     const first = values.slice(0, Math.ceil(values.length / 3));
     const last = values.slice(-Math.ceil(values.length / 3));
-    
+
     const firstAvg = first.reduce((a, b) => a + b, 0) / first.length;
     const lastAvg = last.reduce((a, b) => a + b, 0) / last.length;
-    
+
     const change = (lastAvg - firstAvg) / firstAvg;
-    
-    if (change > 0.1) return 'increasing';
-    if (change < -0.1) return 'decreasing';
+
+    if (change > 0.1) {return 'increasing';}
+    if (change < -0.1) {return 'decreasing';}
     return 'stable';
   }
 
   private generateRecommendations(metrics: PerformanceMetric[], alerts: PerformanceAlert[]): string[] {
     const recommendations: string[] = [];
-    
+
     // Request performance recommendations
     const slowRequests = metrics.filter(m => m.name === 'request_duration' && m.value > 2000);
     if (slowRequests.length > 0) {
       recommendations.push('Consider implementing request caching for slow endpoints');
       recommendations.push('Review API payload sizes and optimize data transfer');
     }
-    
+
     // Memory recommendations
     const memoryAlerts = alerts.filter(a => a.metric === 'memory_usage');
     if (memoryAlerts.length > 0) {
       recommendations.push('Monitor for memory leaks and optimize object lifecycle');
       recommendations.push('Consider implementing pagination for large datasets');
     }
-    
+
     // Error rate recommendations
     const errorMetrics = metrics.filter(m => m.tags?.includes('error'));
     if (errorMetrics.length > metrics.length * 0.05) {
       recommendations.push('Implement retry logic for failed requests');
       recommendations.push('Review error handling and add circuit breakers');
     }
-    
+
     return recommendations;
   }
 
@@ -635,7 +643,7 @@ export class PerformancePlugin extends BasePlugin {
         default: 'Optimize algorithms, reduce computational complexity, or implement background processing',
       },
     };
-    
+
     return recommendations[category]?.[metric] || recommendations[category]?.default || 'Review and optimize this metric';
   }
 
@@ -643,15 +651,15 @@ export class PerformancePlugin extends BasePlugin {
     try {
       const persistedMetrics = this.getFromStorage<PerformanceMetric[]>('metrics');
       const persistedAlerts = this.getFromStorage<PerformanceAlert[]>('alerts');
-      
+
       if (persistedMetrics) {
         this.metrics = persistedMetrics.slice(-this.maxMetrics);
       }
-      
+
       if (persistedAlerts) {
         this.alerts = persistedAlerts;
       }
-      
+
       this.log('debug', 'Loaded persisted performance data', {
         metrics: this.metrics.length,
         alerts: this.alerts.length,
@@ -665,7 +673,7 @@ export class PerformancePlugin extends BasePlugin {
     try {
       this.setInStorage('metrics', this.metrics);
       this.setInStorage('alerts', this.alerts);
-      
+
       this.log('debug', 'Persisted performance data', {
         metrics: this.metrics.length,
         alerts: this.alerts.length,

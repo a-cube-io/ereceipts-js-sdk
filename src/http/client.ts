@@ -4,20 +4,21 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
+
+import { ACubeSDKError, createErrorFromResponse } from '../errors/index.js';
 import { CircuitBreaker, type CircuitBreakerConfig } from './circuit-breaker';
 import { RetryHandler, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry';
-import { 
-  MiddlewareStack, 
-  type RequestContext, 
-  type ResponseContext,
-  AuthenticationMiddleware,
+import {
+  type Middleware,
+  MiddlewareStack,
+  LoggingMiddleware,
+  type RequestContext,
   RequestIdMiddleware,
   UserAgentMiddleware,
+  type ResponseContext,
   ContentTypeMiddleware,
-  LoggingMiddleware,
-  type Middleware,
+  AuthenticationMiddleware,
 } from './middleware.js';
-import { createErrorFromResponse, ACubeSDKError } from '../errors/index.js';
 
 export interface HttpClientConfig {
   baseUrl: string;
@@ -57,17 +58,20 @@ export interface HttpResponse<T = unknown> {
 
 export class HttpClient extends EventEmitter {
   private middlewareStack: MiddlewareStack;
+
   private circuitBreaker: CircuitBreaker;
+
   private retryHandler: RetryHandler;
+
   private requestCounter = 0;
 
   constructor(private config: HttpClientConfig) {
     super();
-    
+
     this.middlewareStack = new MiddlewareStack();
     this.circuitBreaker = new CircuitBreaker(config.circuitBreakerConfig);
     this.retryHandler = new RetryHandler(config.retryConfig);
-    
+
     this.setupDefaultMiddlewares();
   }
 
@@ -99,7 +103,7 @@ export class HttpClient extends EventEmitter {
           logResponses: true,
           logHeaders: false,
           logBody: false,
-        }
+        },
       ));
     }
   }
@@ -126,16 +130,16 @@ export class HttpClient extends EventEmitter {
       try {
         // Execute before request middlewares
         const processedContext = await this.middlewareStack.executeBeforeRequest(context);
-        
+
         // Make the actual HTTP request
         const response = await this.makeHttpRequest(processedContext, options.timeout);
-        
+
         // Execute after response middlewares
         const processedResponse = await this.middlewareStack.executeAfterResponse(
           processedContext,
-          response
+          response,
         );
-        
+
         return {
           data: processedResponse.data as T,
           status: processedResponse.status,
@@ -148,7 +152,7 @@ export class HttpClient extends EventEmitter {
         // Execute error middlewares
         const processedError = await this.middlewareStack.executeOnError(
           context,
-          error as Error
+          error as Error,
         );
         throw processedError;
       }
@@ -161,25 +165,25 @@ export class HttpClient extends EventEmitter {
           // Both circuit breaker and retry
           return await this.circuitBreaker.execute(
             () => this.retryHandler.execute(() => executeRequest(), `${options.method} ${options.url}`),
-            `${options.method} ${options.url}`
+            `${options.method} ${options.url}`,
           );
-        } else {
+        } 
           // Circuit breaker only
           return await this.circuitBreaker.execute(
             executeRequest,
-            `${options.method} ${options.url}`
+            `${options.method} ${options.url}`,
           );
-        }
-      } else if (this.config.enableRetry && !options.skipRetry) {
+        
+      } if (this.config.enableRetry && !options.skipRetry) {
         // Retry only
         return await this.retryHandler.execute(
           executeRequest,
-          `${options.method} ${options.url}`
+          `${options.method} ${options.url}`,
         );
-      } else {
+      } 
         // No circuit breaker or retry
         return await executeRequest();
-      }
+      
     } catch (error) {
       // Emit error event for monitoring
       this.emit('requestError', {
@@ -189,14 +193,14 @@ export class HttpClient extends EventEmitter {
         error: error instanceof Error ? error.message : 'Unknown error',
         duration: Date.now() - startTime,
       });
-      
+
       throw error;
     }
   }
 
   private async makeHttpRequest(
     context: RequestContext,
-    timeoutOverride?: number
+    timeoutOverride?: number,
   ): Promise<ResponseContext> {
     const timeout = timeoutOverride || this.config.timeout;
     const controller = new AbortController();
@@ -210,8 +214,8 @@ export class HttpClient extends EventEmitter {
       };
 
       if (context.body && context.method !== 'GET') {
-        fetchOptions.body = typeof context.body === 'string' 
-          ? context.body 
+        fetchOptions.body = typeof context.body === 'string'
+          ? context.body
           : JSON.stringify(context.body);
       }
 
@@ -224,7 +228,7 @@ export class HttpClient extends EventEmitter {
       // Parse response data
       let data: unknown;
       const contentType = response.headers.get('content-type') || '';
-      
+
       if (contentType.includes('application/json')) {
         data = await response.json();
       } else if (contentType.includes('application/pdf')) {
@@ -260,7 +264,7 @@ export class HttpClient extends EventEmitter {
             data,
           },
           `${context.method} ${context.url}`,
-          context.requestId
+          context.requestId,
         );
         throw error;
       }
@@ -277,7 +281,7 @@ export class HttpClient extends EventEmitter {
       return responseContext;
     } catch (error) {
       clearTimeout(timeoutId);
-      
+
       if (error instanceof ACubeSDKError) {
         throw error;
       }
@@ -292,10 +296,10 @@ export class HttpClient extends EventEmitter {
               data: { message: 'Request timeout' },
             },
             `${context.method} ${context.url}`,
-            context.requestId
+            context.requestId,
           );
         }
-        
+
         throw createErrorFromResponse(
           {
             status: 0,
@@ -303,17 +307,17 @@ export class HttpClient extends EventEmitter {
             data: { message: error.message },
           },
           `${context.method} ${context.url}`,
-          context.requestId
+          context.requestId,
         );
       }
-      
+
       throw error;
     }
   }
 
   private buildUrl(path: string, params?: Record<string, unknown>): string {
     const url = new URL(path, this.config.baseUrl);
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -321,7 +325,7 @@ export class HttpClient extends EventEmitter {
         }
       });
     }
-    
+
     return url.toString();
   }
 
@@ -331,8 +335,8 @@ export class HttpClient extends EventEmitter {
 
   // Convenience methods
   async get<T = unknown>(
-    url: string, 
-    options: Omit<RequestOptions, 'method' | 'url'> = {}
+    url: string,
+    options: Omit<RequestOptions, 'method' | 'url'> = {},
   ): Promise<HttpResponse<T>> {
     return this.request<T>({ ...options, method: 'GET', url });
   }
@@ -340,7 +344,7 @@ export class HttpClient extends EventEmitter {
   async post<T = unknown>(
     url: string,
     data?: unknown,
-    options: Omit<RequestOptions, 'method' | 'url' | 'data'> = {}
+    options: Omit<RequestOptions, 'method' | 'url' | 'data'> = {},
   ): Promise<HttpResponse<T>> {
     return this.request<T>({ ...options, method: 'POST', url, data });
   }
@@ -348,14 +352,14 @@ export class HttpClient extends EventEmitter {
   async put<T = unknown>(
     url: string,
     data?: unknown,
-    options: Omit<RequestOptions, 'method' | 'url' | 'data'> = {}
+    options: Omit<RequestOptions, 'method' | 'url' | 'data'> = {},
   ): Promise<HttpResponse<T>> {
     return this.request<T>({ ...options, method: 'PUT', url, data });
   }
 
   async delete<T = unknown>(
     url: string,
-    options: Omit<RequestOptions, 'method' | 'url'> = {}
+    options: Omit<RequestOptions, 'method' | 'url'> = {},
   ): Promise<HttpResponse<T>> {
     return this.request<T>({ ...options, method: 'DELETE', url });
   }
@@ -363,7 +367,7 @@ export class HttpClient extends EventEmitter {
   async patch<T = unknown>(
     url: string,
     data?: unknown,
-    options: Omit<RequestOptions, 'method' | 'url' | 'data'> = {}
+    options: Omit<RequestOptions, 'method' | 'url' | 'data'> = {},
   ): Promise<HttpResponse<T>> {
     return this.request<T>({ ...options, method: 'PATCH', url, data });
   }
@@ -391,7 +395,7 @@ export class HttpClient extends EventEmitter {
   getMetrics() {
     const circuitBreakerMetrics = this.circuitBreaker.getMetrics();
     const retryMetrics = this.retryHandler.getMetrics();
-    
+
     return {
       requestCount: circuitBreakerMetrics.totalRequests,
       successCount: circuitBreakerMetrics.successfulRequests,
@@ -404,7 +408,7 @@ export class HttpClient extends EventEmitter {
 
   getHealth() {
     const circuitBreakerHealth = this.circuitBreaker.getHealthStatus();
-    
+
     return {
       status: circuitBreakerHealth.isHealthy ? 'healthy' : 'unhealthy',
       circuitBreakerState: this.circuitBreaker.getState(),

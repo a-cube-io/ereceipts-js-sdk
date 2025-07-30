@@ -3,13 +3,13 @@
  * Enterprise-grade batching with resource and time-based strategies
  */
 
-import type { 
-  QueueItem, 
-  // QueueItemId, 
-  BatchOperation, 
-  ResourceType,
+import type {
+  QueueItem,
   QueueEvents,
-  QueuePriority
+  ResourceType,
+  QueuePriority,
+  // QueueItemId,
+  BatchOperation,
 } from './types';
 
 export interface BatchProcessorConfig {
@@ -40,10 +40,15 @@ export interface BatchGroupKey {
 
 export class BatchProcessor {
   private config: BatchProcessorConfig;
+
   private pendingBatches: Map<string, BatchOperation> = new Map();
+
   private batchTimers: Map<string, NodeJS.Timeout> = new Map();
+
   private processingBatches: Set<string> = new Set();
+
   private eventHandlers: Map<keyof QueueEvents, Set<Function>> = new Map();
+
   private batchCounter = 0;
 
   constructor(config: Partial<BatchProcessorConfig> = {}) {
@@ -81,7 +86,7 @@ export class BatchProcessor {
    */
   async processBatch(
     batchId: string,
-    processor: (items: QueueItem[]) => Promise<void>
+    processor: (items: QueueItem[]) => Promise<void>,
   ): Promise<BatchOperation | null> {
     const batch = this.pendingBatches.get(batchId);
     if (!batch || this.processingBatches.has(batchId)) {
@@ -123,7 +128,7 @@ export class BatchProcessor {
 
       this.pendingBatches.delete(batchId);
       this.processingBatches.delete(batchId);
-      
+
       this.emit('batch:completed', { batch: completedBatch });
       return completedBatch;
 
@@ -136,7 +141,7 @@ export class BatchProcessor {
 
       this.pendingBatches.set(batchId, failedBatch);
       this.processingBatches.delete(batchId);
-      
+
       this.emit('batch:failed', { batch: failedBatch });
       throw error;
     }
@@ -153,7 +158,7 @@ export class BatchProcessor {
       if (batch.status === 'pending') {
         const isFullBatch = batch.items.length >= this.config.maxBatchSize;
         const isTimedOut = (now - batch.createdAt) >= this.config.maxWaitTime;
-        
+
         if (isFullBatch || isTimedOut) {
           readyBatches.push(batch);
         }
@@ -167,7 +172,7 @@ export class BatchProcessor {
    * Force process all pending batches
    */
   async flushAllBatches(
-    processor: (items: QueueItem[]) => Promise<void>
+    processor: (items: QueueItem[]) => Promise<void>,
   ): Promise<BatchOperation[]> {
     const allBatches = Array.from(this.pendingBatches.values())
       .filter(batch => batch.status === 'pending');
@@ -231,7 +236,7 @@ export class BatchProcessor {
     for (const timer of this.batchTimers.values()) {
       clearTimeout(timer);
     }
-    
+
     this.batchTimers.clear();
     this.pendingBatches.clear();
     this.processingBatches.clear();
@@ -242,13 +247,13 @@ export class BatchProcessor {
    */
   getStats() {
     const pendingBatches = this.getPendingBatches();
-    
+
     return {
       totalBatches: this.pendingBatches.size,
       pendingBatches: pendingBatches.length,
       processingBatches: this.processingBatches.size,
       totalItemsInBatches: pendingBatches.reduce((sum, batch) => sum + batch.items.length, 0),
-      averageBatchSize: pendingBatches.length > 0 
+      averageBatchSize: pendingBatches.length > 0
         ? pendingBatches.reduce((sum, batch) => sum + batch.items.length, 0) / pendingBatches.length
         : 0,
     };
@@ -289,11 +294,11 @@ export class BatchProcessor {
 
     for (const item of items) {
       const groupKey = this.generateGroupKey(item, strategy);
-      
+
       if (!groups.has(groupKey)) {
         groups.set(groupKey, []);
       }
-      
+
       const group = groups.get(groupKey)!;
       if (group.length < strategy.maxItemsPerBatch) {
         group.push(item);
@@ -329,11 +334,11 @@ export class BatchProcessor {
   private createOrUpdateBatch(
     groupKey: string,
     items: QueueItem[],
-    strategy: BatchingStrategy
+    strategy: BatchingStrategy,
   ): BatchOperation | null {
     // Check if there's an existing batch for this group
     let existingBatch: BatchOperation | null = null;
-    
+
     for (const batch of this.pendingBatches.values()) {
       if (batch.status === 'pending') {
         const batchGroupKey = this.generateBatchGroupKey(batch, strategy);
@@ -347,7 +352,7 @@ export class BatchProcessor {
     if (existingBatch) {
       // Add items to existing batch
       const updatedItems = [...existingBatch.items, ...items];
-      
+
       // Check if batch is full
       if (updatedItems.length >= strategy.maxItemsPerBatch) {
         // Split into current batch and new batch
@@ -367,7 +372,7 @@ export class BatchProcessor {
         }
 
         return updatedBatch;
-      } else {
+      } 
         // Update existing batch
         const updatedBatch: BatchOperation = {
           ...existingBatch,
@@ -375,16 +380,16 @@ export class BatchProcessor {
         };
         this.pendingBatches.set(existingBatch.id, updatedBatch);
         return updatedBatch;
-      }
-    } else {
+      
+    } 
       // Create new batch
       return this.createNewBatch(items, strategy);
-    }
+    
   }
 
   private createNewBatch(items: QueueItem[], strategy: BatchingStrategy): BatchOperation {
     const batchId = `batch_${++this.batchCounter}_${Date.now()}`;
-    
+
     const batch: BatchOperation = {
       id: batchId,
       items: items.slice(0, strategy.maxItemsPerBatch),
@@ -418,10 +423,10 @@ export class BatchProcessor {
   }
 
   private generateBatchGroupKey(batch: BatchOperation, strategy: BatchingStrategy): string {
-    if (batch.items.length === 0) return 'empty';
-    
+    if (batch.items.length === 0) {return 'empty';}
+
     const firstItem = batch.items[0];
-    if (!firstItem) return 'empty';
+    if (!firstItem) {return 'empty';}
     return this.generateGroupKey(firstItem, strategy);
   }
 
@@ -432,28 +437,28 @@ export class BatchProcessor {
 
     if (hasDependencies) {
       return 'sequential'; // Dependencies require sequential processing
-    } else if (hasHighPriority && items.length <= 10) {
+    } if (hasHighPriority && items.length <= 10) {
       return 'parallel'; // Small high-priority batches can be parallelized
-    } else {
+    } 
       return 'sequential'; // Default to sequential for reliability
-    }
+    
   }
 
   private async processParallel(
     items: QueueItem[],
     processor: (items: QueueItem[]) => Promise<void>,
-    maxConcurrency: number = 5
+    maxConcurrency: number = 5,
   ): Promise<void> {
     const chunks = this.chunkArray(items, Math.max(1, Math.floor(items.length / maxConcurrency)));
-    
+
     await Promise.all(
-      chunks.map(chunk => processor(chunk))
+      chunks.map(chunk => processor(chunk)),
     );
   }
 
   private async processSequential(
     items: QueueItem[],
-    processor: (items: QueueItem[]) => Promise<void>
+    processor: (items: QueueItem[]) => Promise<void>,
   ): Promise<void> {
     // Process each item individually in sequence
     for (const item of items) {

@@ -3,15 +3,15 @@
  * Enterprise-grade priority-based queue with efficient operations
  */
 
-import type { 
-  QueueItem, 
-  QueueItemId, 
-  QueuePriority, 
-  QueueItemStatus,
+import type {
+  QueueItem,
   QueueStats,
-  InternalQueueStats,
   QueueEvents,
-  // createQueueItemId 
+  QueueItemId,
+  QueuePriority,
+  QueueItemStatus,
+  InternalQueueStats,
+  // createQueueItemId
 } from './types';
 
 // Priority levels mapped to numeric values for sorting
@@ -30,11 +30,17 @@ export interface PriorityQueueConfig {
 
 export class PriorityQueue {
   private items: Map<QueueItemId, QueueItem> = new Map();
+
   private priorityIndex: Map<QueuePriority, Set<QueueItemId>> = new Map();
+
   private statusIndex: Map<QueueItemStatus, Set<QueueItemId>> = new Map();
+
   private resourceIndex: Map<string, Set<QueueItemId>> = new Map();
+
   private metrics: InternalQueueStats;
+
   private config: PriorityQueueConfig;
+
   private eventHandlers: Map<keyof QueueEvents, Set<Function>> = new Map();
 
   constructor(config: Partial<PriorityQueueConfig> = {}) {
@@ -96,9 +102,9 @@ export class PriorityQueue {
    */
   enqueue(item: QueueItem): boolean {
     if (this.items.size >= this.config.maxSize) {
-      this.emit('queue:backpressure', { 
-        queueSize: this.items.size, 
-        threshold: this.config.maxSize 
+      this.emit('queue:backpressure', {
+        queueSize: this.items.size,
+        threshold: this.config.maxSize,
       });
       return false;
     }
@@ -163,17 +169,17 @@ export class PriorityQueue {
     const priorities = priority ? [priority] : ['critical', 'high', 'normal', 'low'] as QueuePriority[];
 
     for (const pri of priorities) {
-      if (items.length >= count) break;
+      if (items.length >= count) {break;}
 
       const prioritySet = this.priorityIndex.get(pri);
-      if (!prioritySet) continue;
+      if (!prioritySet) {continue;}
 
       for (const itemId of prioritySet) {
-        if (items.length >= count) break;
+        if (items.length >= count) {break;}
 
         const item = this.items.get(itemId);
-        if (item && 
-            item.status === status && 
+        if (item &&
+            item.status === status &&
             (!item.scheduledAt || item.scheduledAt <= now)) {
           items.push(item);
         }
@@ -188,7 +194,7 @@ export class PriorityQueue {
    */
   updateItem(id: QueueItemId, updates: Partial<QueueItem>): boolean {
     const item = this.items.get(id);
-    if (!item) return false;
+    if (!item) {return false;}
 
     // Remove from old indexes
     this.removeFromIndex(item);
@@ -221,7 +227,7 @@ export class PriorityQueue {
    */
   remove(id: QueueItemId): boolean {
     const item = this.items.get(id);
-    if (!item) return false;
+    if (!item) {return false;}
 
     // Remove from main storage
     this.items.delete(id);
@@ -254,7 +260,7 @@ export class PriorityQueue {
    */
   getByStatus(status: QueueItemStatus): QueueItem[] {
     const statusSet = this.statusIndex.get(status);
-    if (!statusSet) return [];
+    if (!statusSet) {return [];}
 
     return Array.from(statusSet)
       .map(id => this.items.get(id))
@@ -266,7 +272,7 @@ export class PriorityQueue {
    */
   getByPriority(priority: QueuePriority): QueueItem[] {
     const prioritySet = this.priorityIndex.get(priority);
-    if (!prioritySet) return [];
+    if (!prioritySet) {return [];}
 
     return Array.from(prioritySet)
       .map(id => this.items.get(id))
@@ -278,7 +284,7 @@ export class PriorityQueue {
    */
   getByResource(resource: string): QueueItem[] {
     const resourceSet = this.resourceIndex.get(resource);
-    if (!resourceSet) return [];
+    if (!resourceSet) {return [];}
 
     return Array.from(resourceSet)
       .map(id => this.items.get(id))
@@ -293,13 +299,13 @@ export class PriorityQueue {
     const readyItems: QueueItem[] = [];
 
     for (const priority of ['critical', 'high', 'normal', 'low'] as QueuePriority[]) {
-      if (limit && readyItems.length >= limit) break;
+      if (limit && readyItems.length >= limit) {break;}
 
       const items = this.getByPriority(priority);
       for (const item of items) {
-        if (limit && readyItems.length >= limit) break;
+        if (limit && readyItems.length >= limit) {break;}
 
-        if (item.status === 'pending' && 
+        if (item.status === 'pending' &&
             (!item.scheduledAt || item.scheduledAt <= now)) {
           readyItems.push(item);
         }
@@ -352,7 +358,7 @@ export class PriorityQueue {
    * Event subscription
    */
   on<K extends keyof QueueEvents>(event: K, handler: (data: QueueEvents[K]) => void): void {
-    if (!this.config.enableEvents) return;
+    if (!this.config.enableEvents) {return;}
 
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, new Set());
@@ -374,7 +380,7 @@ export class PriorityQueue {
    * Emit event
    */
   private emit<K extends keyof QueueEvents>(event: K, data: QueueEvents[K]): void {
-    if (!this.config.enableEvents) return;
+    if (!this.config.enableEvents) {return;}
 
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
@@ -434,7 +440,7 @@ export class PriorityQueue {
   }
 
   private updateMetricsOnAdd(item: QueueItem): void {
-    if (!this.config.enableMetrics) return;
+    if (!this.config.enableMetrics) {return;}
 
     this.metrics.totalItems++;
     this.metrics.pendingItems++;
@@ -443,7 +449,7 @@ export class PriorityQueue {
   }
 
   private updateMetricsOnUpdate(oldItem: QueueItem, newItem: QueueItem): void {
-    if (!this.config.enableMetrics) return;
+    if (!this.config.enableMetrics) {return;}
 
     // Update status counts
     if (oldItem.status !== newItem.status) {
@@ -458,7 +464,7 @@ export class PriorityQueue {
   }
 
   private updateMetricsOnRemove(item: QueueItem): void {
-    if (!this.config.enableMetrics) return;
+    if (!this.config.enableMetrics) {return;}
 
     this.metrics.totalItems--;
     this.decrementStatusCount(item.status);
@@ -522,13 +528,13 @@ export class PriorityQueue {
         this.emit('item:completed', { item });
         break;
       case 'failed':
-        this.emit('item:failed', { 
-          item, 
+        this.emit('item:failed', {
+          item,
           error: item.errorHistory?.[item.errorHistory.length - 1] || {
             timestamp: Date.now(),
             error: 'Unknown error',
-            retryable: false
-          }
+            retryable: false,
+          },
         });
         break;
       case 'retry':

@@ -3,18 +3,19 @@
  * Auto-generated validation schemas based on OpenAPI specification
  */
 
-import type { SchemaDefinition } from './index';
 import { ItalianFiscalValidator } from './index';
-import { 
-  isReceiptId, 
-  isCashierId, 
-  isMerchantId, 
-  isFiscalId, 
-  isSerialNumber, 
-  isPEMId, 
-  isAmount, 
-  isQuantity 
+import {
+  isPEMId,
+  isAmount,
+  isFiscalId,
+  isQuantity,
+  isCashierId,
+  isReceiptId,
+  isMerchantId,
+  isSerialNumber,
 } from '../types/branded';
+
+import type { SchemaDefinition } from './index';
 
 /**
  * Address validation schema
@@ -27,13 +28,13 @@ export const AddressSchema: SchemaDefinition = {
       type: 'string',
       required: true,
       minLength: 1,
-      maxLength: 255
+      maxLength: 255,
     },
     city: {
       type: 'string',
       required: true,
       minLength: 1,
-      maxLength: 100
+      maxLength: 100,
     },
     zip_code: {
       type: 'string',
@@ -42,7 +43,7 @@ export const AddressSchema: SchemaDefinition = {
       customValidation: (value) => {
         const result = ItalianFiscalValidator.validatePostalCode(value as string);
         return result.errors.concat(result.warnings);
-      }
+      },
     },
     province: {
       type: 'string',
@@ -51,9 +52,9 @@ export const AddressSchema: SchemaDefinition = {
       customValidation: (value) => {
         const result = ItalianFiscalValidator.validateProvinceCode(value as string);
         return result.errors.concat(result.warnings);
-      }
-    }
-  }
+      },
+    },
+  },
 };
 
 /**
@@ -67,46 +68,46 @@ export const ReceiptItemSchema: SchemaDefinition = {
       type: 'string',
       required: true,
       minLength: 1,
-      maxLength: 255
+      maxLength: 255,
     },
     quantity: {
       type: 'branded',
       required: true,
-      brandValidator: isQuantity
+      brandValidator: isQuantity,
     },
     unit_price: {
       type: 'branded',
       required: true,
-      brandValidator: isAmount
+      brandValidator: isAmount,
     },
     good_or_service: {
       type: 'string',
       required: true,
-      enum: ['B', 'S'] as const
+      enum: ['B', 'S'] as const,
     },
     vat_rate_code: {
       type: 'string',
       required: true,
-      enum: ['0', '4', '5', '10', '22'] as const
+      enum: ['0', '4', '5', '10', '22'] as const,
     },
     discount: {
       type: 'branded',
       required: false,
-      brandValidator: isAmount
+      brandValidator: isAmount,
     },
     simplified_vat_allocation: {
       type: 'boolean',
-      required: false
+      required: false,
     },
     is_down_payment_or_voucher_redemption: {
       type: 'boolean',
-      required: false
+      required: false,
     },
     complimentary: {
       type: 'boolean',
-      required: false
-    }
-  }
+      required: false,
+    },
+  },
 };
 
 /**
@@ -119,52 +120,52 @@ export const ReceiptInputSchema: SchemaDefinition = {
     items: {
       type: 'array',
       required: true,
-      items: ReceiptItemSchema
+      items: ReceiptItemSchema,
     },
     cash_payment_amount: {
       type: 'branded',
       required: true,
-      brandValidator: isAmount
+      brandValidator: isAmount,
     },
     electronic_payment_amount: {
       type: 'branded',
       required: true,
-      brandValidator: isAmount
+      brandValidator: isAmount,
     },
     discount: {
       type: 'branded',
       required: false,
-      brandValidator: isAmount
+      brandValidator: isAmount,
     },
     invoice_issuing: {
       type: 'boolean',
-      required: false
+      required: false,
     },
     uncollected_dcr_to_ssn: {
       type: 'boolean',
-      required: false
+      required: false,
     },
     services_uncollected_amount: {
       type: 'branded',
       required: false,
-      brandValidator: isAmount
+      brandValidator: isAmount,
     },
     goods_uncollected_amount: {
       type: 'branded',
       required: false,
-      brandValidator: isAmount
+      brandValidator: isAmount,
     },
     ticket_restaurant_payment_amount: {
       type: 'branded',
       required: false,
-      brandValidator: isAmount
+      brandValidator: isAmount,
     },
     ticket_restaurant_quantity: {
       type: 'number',
       required: false,
-      min: 0
-    }
-  }
+      min: 0,
+    },
+  },
 };
 
 /**
@@ -178,7 +179,7 @@ export const CashierInputSchema: SchemaDefinition = {
       type: 'string',
       required: true,
       pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-      maxLength: 255
+      maxLength: 255,
     },
     password: {
       type: 'string',
@@ -188,47 +189,47 @@ export const CashierInputSchema: SchemaDefinition = {
       customValidation: (value) => {
         const password = value as string;
         const issues = [];
-        
+
         if (!/[A-Z]/.test(password)) {
           issues.push({
             field: 'password',
             message: 'Password must contain at least one uppercase letter',
             code: 'PASSWORD_MISSING_UPPERCASE',
-            severity: 'error' as const
+            severity: 'error' as const,
           });
         }
-        
+
         if (!/[a-z]/.test(password)) {
           issues.push({
             field: 'password',
             message: 'Password must contain at least one lowercase letter',
             code: 'PASSWORD_MISSING_LOWERCASE',
-            severity: 'error' as const
+            severity: 'error' as const,
           });
         }
-        
+
         if (!/\d/.test(password)) {
           issues.push({
             field: 'password',
             message: 'Password must contain at least one number',
             code: 'PASSWORD_MISSING_NUMBER',
-            severity: 'error' as const
+            severity: 'error' as const,
           });
         }
-        
+
         if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
           issues.push({
             field: 'password',
             message: 'Password must contain at least one special character',
             code: 'PASSWORD_MISSING_SPECIAL',
-            severity: 'warning' as const
+            severity: 'warning' as const,
           });
         }
-        
+
         return issues;
-      }
-    }
-  }
+      },
+    },
+  },
 };
 
 /**
@@ -245,28 +246,28 @@ export const MerchantInputSchema: SchemaDefinition = {
       customValidation: (value) => {
         const result = ItalianFiscalValidator.validateVATNumber(value as string);
         return result.errors.concat(result.warnings);
-      }
+      },
     },
     name: {
       type: 'string',
       required: true,
       minLength: 1,
-      maxLength: 255
+      maxLength: 255,
     },
     email: {
       type: 'string',
       required: true,
       pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-      maxLength: 255
+      maxLength: 255,
     },
     password: {
       type: 'string',
       required: true,
       minLength: 8,
-      maxLength: 128
+      maxLength: 128,
     },
-    address: AddressSchema
-  }
+    address: AddressSchema,
+  },
 };
 
 /**
@@ -279,31 +280,31 @@ export const CashRegisterInputSchema: SchemaDefinition = {
     serial_number: {
       type: 'branded',
       required: true,
-      brandValidator: isSerialNumber
+      brandValidator: isSerialNumber,
     },
     model: {
       type: 'string',
       required: true,
       minLength: 1,
-      maxLength: 100
+      maxLength: 100,
     },
     manufacturer: {
       type: 'string',
       required: true,
       minLength: 1,
-      maxLength: 100
+      maxLength: 100,
     },
     merchant_uuid: {
       type: 'branded',
       required: true,
-      brandValidator: isMerchantId
+      brandValidator: isMerchantId,
     },
     location: {
       type: 'string',
       required: false,
-      maxLength: 255
-    }
-  }
+      maxLength: 255,
+    },
+  },
 };
 
 /**
@@ -316,10 +317,10 @@ export const PointOfSaleInputSchema: SchemaDefinition = {
     merchant_uuid: {
       type: 'branded',
       required: true,
-      brandValidator: isMerchantId
+      brandValidator: isMerchantId,
     },
-    address: AddressSchema
-  }
+    address: AddressSchema,
+  },
 };
 
 /**
@@ -336,29 +337,29 @@ export const ActivationRequestSchema: SchemaDefinition = {
       customValidation: (value) => {
         const key = value as string;
         const issues = [];
-        
+
         if (key.length < 16) {
           issues.push({
             field: 'registration_key',
             message: 'Registration key must be at least 16 characters',
             code: 'REGISTRATION_KEY_TOO_SHORT',
-            severity: 'error' as const
+            severity: 'error' as const,
           });
         }
-        
+
         if (!/^[A-Z0-9-]+$/.test(key)) {
           issues.push({
             field: 'registration_key',
             message: 'Registration key contains invalid characters',
             code: 'REGISTRATION_KEY_INVALID_CHARS',
-            severity: 'error' as const
+            severity: 'error' as const,
           });
         }
-        
+
         return issues;
-      }
-    }
-  }
+      },
+    },
+  },
 };
 
 /**
@@ -375,7 +376,7 @@ export const InactivityRequestSchema: SchemaDefinition = {
       customValidation: (value) => {
         const timestamp = value as string;
         const issues = [];
-        
+
         try {
           const date = new Date(timestamp);
           if (isNaN(date.getTime())) {
@@ -383,17 +384,17 @@ export const InactivityRequestSchema: SchemaDefinition = {
               field: 'timestamp',
               message: 'Invalid timestamp format',
               code: 'INVALID_TIMESTAMP',
-              severity: 'error' as const
+              severity: 'error' as const,
             });
           }
-          
+
           // Check if timestamp is in the future
           if (date > new Date()) {
             issues.push({
               field: 'timestamp',
               message: 'Timestamp cannot be in the future',
               code: 'TIMESTAMP_FUTURE',
-              severity: 'error' as const
+              severity: 'error' as const,
             });
           }
         } catch (error) {
@@ -401,20 +402,20 @@ export const InactivityRequestSchema: SchemaDefinition = {
             field: 'timestamp',
             message: 'Invalid timestamp format',
             code: 'INVALID_TIMESTAMP',
-            severity: 'error' as const
+            severity: 'error' as const,
           });
         }
-        
+
         return issues;
-      }
+      },
     },
     reason: {
       type: 'string',
       required: true,
       minLength: 1,
-      maxLength: 500
-    }
-  }
+      maxLength: 500,
+    },
+  },
 };
 
 /**
@@ -423,46 +424,46 @@ export const InactivityRequestSchema: SchemaDefinition = {
 export const CommonSchemas = {
   ReceiptId: {
     type: 'branded' as const,
-    brandValidator: isReceiptId
+    brandValidator: isReceiptId,
   },
   CashierId: {
     type: 'branded' as const,
-    brandValidator: isCashierId
+    brandValidator: isCashierId,
   },
   MerchantId: {
     type: 'branded' as const,
-    brandValidator: isMerchantId
+    brandValidator: isMerchantId,
   },
   FiscalId: {
     type: 'branded' as const,
-    brandValidator: isFiscalId
+    brandValidator: isFiscalId,
   },
   SerialNumber: {
     type: 'branded' as const,
-    brandValidator: isSerialNumber
+    brandValidator: isSerialNumber,
   },
   PEMId: {
     type: 'branded' as const,
-    brandValidator: isPEMId
+    brandValidator: isPEMId,
   },
   Amount: {
     type: 'branded' as const,
-    brandValidator: isAmount
+    brandValidator: isAmount,
   },
   Quantity: {
     type: 'branded' as const,
-    brandValidator: isQuantity
+    brandValidator: isQuantity,
   },
   Email: {
     type: 'string' as const,
     pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-    maxLength: 255
+    maxLength: 255,
   },
   Password: {
     type: 'string' as const,
     minLength: 8,
-    maxLength: 128
-  }
+    maxLength: 128,
+  },
 } as const;
 
 /**
@@ -470,7 +471,7 @@ export const CommonSchemas = {
  */
 export const PEMStatusSchema: SchemaDefinition = {
   type: 'string',
-  enum: ['NEW', 'REGISTERED', 'ACTIVE', 'ONLINE', 'OFFLINE', 'DISCARDED'] as const
+  enum: ['NEW', 'REGISTERED', 'ACTIVE', 'ONLINE', 'OFFLINE', 'DISCARDED'] as const,
 };
 
 /**
@@ -478,7 +479,7 @@ export const PEMStatusSchema: SchemaDefinition = {
  */
 export const ReceiptTypeSchema: SchemaDefinition = {
   type: 'string',
-  enum: ['sale', 'return', 'void'] as const
+  enum: ['sale', 'return', 'void'] as const,
 };
 
 /**
@@ -496,7 +497,7 @@ export const ValidationSchemas = {
   InactivityRequest: InactivityRequestSchema,
   PEMStatus: PEMStatusSchema,
   ReceiptType: ReceiptTypeSchema,
-  ...CommonSchemas
+  ...CommonSchemas,
 } as const;
 
 export type ValidationSchemaName = keyof typeof ValidationSchemas;

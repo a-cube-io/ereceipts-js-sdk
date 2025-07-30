@@ -4,22 +4,23 @@
  * Ensures optimal performance with enterprise-scale datasets
  */
 
-import { EventEmitter } from 'eventemitter3';
 import type { ResourceType } from '@/storage/queue/types';
 
-export type OptimizationStrategy = 
+import { EventEmitter } from 'eventemitter3';
+
+export type OptimizationStrategy =
   | 'memory-efficient'     // Minimize memory usage
   | 'performance-first'    // Maximize speed
   | 'balanced'            // Balance memory and speed
   | 'bandwidth-conservative'; // Minimize network usage
 
-export type DataLoadingStrategy = 
+export type DataLoadingStrategy =
   | 'lazy'                // Load data only when needed
   | 'eager'               // Preload data aggressively
   | 'progressive'         // Load data progressively
   | 'predictive';         // Use ML to predict data needs
 
-export type CacheEvictionPolicy = 
+export type CacheEvictionPolicy =
   | 'lru'                 // Least Recently Used
   | 'lfu'                 // Least Frequently Used
   | 'ttl'                 // Time To Live
@@ -62,36 +63,36 @@ export interface OptimizationConfig {
   strategy: OptimizationStrategy;
   dataLoading: DataLoadingStrategy;
   cacheEviction: CacheEvictionPolicy;
-  
+
   // Memory management
   maxMemoryUsage: number; // MB
   memoryPressureThreshold: number; // 0-1
   garbageCollectionTrigger: number; // 0-1
-  
+
   // Batch processing
   batchSize: number;
   maxConcurrentBatches: number;
   batchTimeout: number; // ms
   adaptiveBatchSizing: boolean;
-  
+
   // Data virtualization
   virtualScrollEnabled: boolean;
   virtualScrollBuffer: number;
   lazyLoadingThreshold: number;
   preloadDistance: number;
-  
+
   // Indexing and search
   enableIndexing: boolean;
   indexingStrategy: 'btree' | 'hash' | 'bitmap' | 'adaptive';
   fullTextSearch: boolean;
   searchCacheSize: number;
-  
+
   // Network optimization
   compressionEnabled: boolean;
   compressionLevel: number; // 1-9
   requestCoalescing: boolean;
   prefetchingEnabled: boolean;
-  
+
   // Monitoring
   metricsEnabled: boolean;
   metricsInterval: number; // ms
@@ -189,22 +190,28 @@ export interface PerformanceOptimizerEvents {
  */
 export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvents> {
   private config: OptimizationConfig;
+
   private isInitialized = false;
 
   // Data management
   private chunks = new Map<string, DataChunk>();
+
   private chunksLRU: string[] = []; // For LRU cache management
+
   private chunkAccess = new Map<string, number>(); // For LFU tracking
-  
+
   // Batch processing
   private batchQueue: BatchOperation[] = [];
+
   private activeBatches = new Map<string, BatchOperation>();
+
   private batchProcessor?: NodeJS.Timeout;
-  
+
   // Indexing system
   private indexes = new Map<string, IndexDefinition>();
+
   private indexData = new Map<string, Map<string, Set<string>>>(); // indexId -> fieldValue -> recordIds
-  
+
   // Performance monitoring
   private metrics: PerformanceMetrics = {
     memoryUsage: {
@@ -239,12 +246,14 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
 
   // Monitoring intervals
   private metricsInterval?: NodeJS.Timeout;
+
   private memoryMonitor?: NodeJS.Timeout;
+
   private performanceProfiler?: NodeJS.Timeout;
 
   constructor(config: Partial<OptimizationConfig> = {}) {
     super();
-    
+
     this.config = {
       enabled: true,
       strategy: 'balanced',
@@ -290,21 +299,21 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     try {
       // Start batch processor
       this.startBatchProcessor();
-      
+
       // Initialize indexing system
       if (this.config.enableIndexing) {
         await this.initializeIndexing();
       }
-      
+
       // Start monitoring
       if (this.config.metricsEnabled) {
         this.startMetricsCollection();
       }
-      
+
       if (this.config.memoryProfiler) {
         this.startMemoryMonitoring();
       }
-      
+
       this.isInitialized = true;
       console.log('Performance Optimizer initialized');
     } catch (error) {
@@ -355,7 +364,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     resourceType: ResourceType,
     totalCount: number,
     loadFunction: (startIndex: number, count: number) => Promise<T[]>,
-    window?: VirtualizationWindow
+    window?: VirtualizationWindow,
   ): Promise<DataChunk<T>[]> {
     if (!this.isInitialized) {
       throw new Error('Performance Optimizer not initialized');
@@ -363,10 +372,10 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
 
     const effectiveWindow = window || this.calculateOptimalWindow(totalCount);
     const chunks: DataChunk<T>[] = [];
-    
+
     // Determine chunk strategy based on configuration and data size
     const chunkStrategy = this.determineChunkStrategy(totalCount, effectiveWindow);
-    
+
     // Load chunks progressively
     for (const chunkSpec of chunkStrategy.chunks) {
       const chunk = await this.loadChunk(
@@ -374,14 +383,14 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
         chunkSpec.startIndex,
         chunkSpec.count,
         loadFunction,
-        chunkSpec.priority
+        chunkSpec.priority,
       );
       chunks.push(chunk);
     }
 
     // Update virtualization metrics
     this.updateVirtualizationMetrics(effectiveWindow, chunks.length);
-    
+
     return chunks;
   }
 
@@ -392,12 +401,12 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     scrollTop: number,
     containerHeight: number,
     itemHeight: number,
-    totalCount: number
+    totalCount: number,
   ): VirtualizationWindow {
     const visibleCount = Math.ceil(containerHeight / itemHeight);
     const startIndex = Math.floor(scrollTop / itemHeight);
     const bufferSize = this.config.virtualScrollBuffer;
-    
+
     const window: VirtualizationWindow = {
       startIndex: Math.max(0, startIndex - bufferSize),
       endIndex: Math.min(totalCount - 1, startIndex + visibleCount + bufferSize),
@@ -424,7 +433,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     // Add to queue
     this.batchQueue.push(batchOp);
     this.batchQueue.sort((a, b) => b.priority - a.priority);
-    
+
     this.emit('batch:started', { operation: batchOp });
 
     return new Promise((resolve, reject) => {
@@ -445,11 +454,11 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     resourceType: ResourceType,
     fields: string[],
     strategy: 'btree' | 'hash' | 'bitmap' | 'fulltext' = 'btree',
-    data?: unknown[]
+    data?: unknown[],
   ): Promise<string> {
     const indexId = `idx_${resourceType}_${fields.join('_')}_${Date.now()}`;
     const startTime = Date.now();
-    
+
     const index: IndexDefinition = {
       id: indexId,
       resourceType,
@@ -468,7 +477,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
 
     // Build index data structure
     const indexMap = new Map<string, Set<string>>();
-    
+
     if (data) {
       await this.buildIndexData(indexMap, data, fields, 'test_chunk');
     }
@@ -479,7 +488,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
 
     this.indexes.set(indexId, index);
     this.indexData.set(indexId, indexMap);
-    
+
     this.emit('index:built', { index });
     return indexId;
   }
@@ -490,7 +499,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
   async queryWithIndex<T>(
     indexId: string,
     fieldValue: string,
-    chunks: DataChunk<T>[]
+    chunks: DataChunk<T>[],
   ): Promise<T[]> {
     const index = this.indexes.get(indexId);
     if (!index) {
@@ -500,13 +509,13 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     const startTime = Date.now();
     const indexMap = this.indexData.get(indexId);
     const recordIds = indexMap?.get(fieldValue) || new Set();
-    
+
     // Collect matching records from chunks
     const results: T[] = [];
     for (const chunk of chunks) {
       if (chunk.state === 'loaded') {
-        const chunkResults = (chunk.data as T[]).filter((_, index) => 
-          recordIds.has(`${chunk.id}_${index}`)
+        const chunkResults = (chunk.data).filter((_, index) =>
+          recordIds.has(`${chunk.id}_${index}`),
         );
         results.push(...chunkResults);
       }
@@ -528,11 +537,11 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
 
     // Check memory pressure
     const memoryPressure = await this.calculateMemoryPressure();
-    
+
     if (memoryPressure >= this.config.memoryPressureThreshold) {
       // Apply eviction strategy
       const chunksToEvict = this.selectChunksForEviction(memoryPressure);
-      
+
       for (const chunkId of chunksToEvict) {
         const chunk = this.chunks.get(chunkId);
         if (chunk) {
@@ -544,7 +553,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
 
     const cleanupTime = Date.now() - startTime;
     this.emit('memory:cleanup', { freedBytes, cleanupTime });
-    
+
     return { freedBytes, cleanupTime };
   }
 
@@ -621,10 +630,10 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     startIndex: number,
     count: number,
     loadFunction: (startIndex: number, count: number) => Promise<T[]>,
-    priority: number
+    priority: number,
   ): Promise<DataChunk<T>> {
     const chunkId = `chunk_${resourceType}_${startIndex}_${count}`;
-    
+
     // Check if chunk already exists
     const existingChunk = this.chunks.get(chunkId) as DataChunk<T>;
     if (existingChunk && existingChunk.state === 'loaded') {
@@ -654,20 +663,20 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     try {
       // Load data
       const data = await loadFunction(startIndex, count);
-      
+
       // Update chunk with loaded data
       chunk.data = data;
       chunk.metadata.size = this.calculateDataSize(data);
       chunk.state = 'loaded';
-      
+
       // Apply compression if enabled
       if (this.config.compressionEnabled) {
         await this.compressChunk(chunk);
       }
-      
+
       this.updateChunkAccess(chunkId);
       this.emit('chunk:loaded', { chunk });
-      
+
       return chunk;
     } catch (error) {
       chunk.state = 'error';
@@ -680,7 +689,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     strategy: string;
   } {
     const chunks = [];
-    const chunkSize = this.config.adaptiveBatchSizing 
+    const chunkSize = this.config.adaptiveBatchSizing
       ? this.calculateOptimalChunkSize(totalCount)
       : this.config.batchSize;
 
@@ -712,34 +721,34 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     // Adaptive chunk sizing based on total count and available memory
     const baseSize = this.config.batchSize;
     const memoryPressure = this.metrics.memoryUsage.pressure;
-    
+
     if (totalCount < 1000) {
       return Math.min(baseSize, totalCount);
     }
-    
+
     if (memoryPressure === 'high' || memoryPressure === 'critical') {
       return Math.max(100, baseSize / 2);
     }
-    
+
     if (memoryPressure === 'low') {
       return Math.min(baseSize * 2, 5000);
     }
-    
+
     return baseSize;
   }
 
   private calculatePrefetchChunks(
     window: VirtualizationWindow,
-    chunkSize: number
+    chunkSize: number,
   ): Array<{ startIndex: number; count: number; priority: number }> {
     const chunks = [];
     const prefetchDistance = this.config.preloadDistance;
-    
+
     // Prefetch before current window
     for (let i = 1; i <= prefetchDistance; i++) {
       const startIndex = Math.max(0, window.startIndex - (i * chunkSize));
       const endIndex = window.startIndex - ((i - 1) * chunkSize) - 1;
-      
+
       if (startIndex < window.startIndex) {
         chunks.push({
           startIndex,
@@ -748,12 +757,12 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
         });
       }
     }
-    
+
     // Prefetch after current window
     for (let i = 1; i <= prefetchDistance; i++) {
       const startIndex = window.endIndex + ((i - 1) * chunkSize) + 1;
       const count = Math.min(chunkSize, window.totalCount - startIndex);
-      
+
       if (startIndex < window.totalCount) {
         chunks.push({
           startIndex,
@@ -762,7 +771,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
         });
       }
     }
-    
+
     return chunks;
   }
 
@@ -770,7 +779,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     const defaultItemHeight = 50; // pixels
     const defaultContainerHeight = 600; // pixels
     const visibleCount = Math.ceil(defaultContainerHeight / defaultItemHeight);
-    
+
     return {
       startIndex: 0,
       endIndex: Math.min(visibleCount + this.config.virtualScrollBuffer, totalCount - 1),
@@ -785,12 +794,12 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     indexMap: Map<string, Set<string>>,
     data: unknown[],
     fields: string[],
-    chunkId = 'test_chunk' // Default for testing
+    chunkId = 'test_chunk', // Default for testing
   ): Promise<void> {
     for (let i = 0; i < data.length; i++) {
       const record = data[i] as Record<string, unknown>;
       const recordId = `${chunkId}_${i}`;
-      
+
       for (const field of fields) {
         const value = String(record[field] || '');
         if (!indexMap.has(value)) {
@@ -812,7 +821,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
 
   private updateIndexPerformance(indexId: string, queryTime: number, hit: boolean): void {
     const index = this.indexes.get(indexId);
-    if (!index) return;
+    if (!index) {return;}
 
     const perf = index.queryPerformance;
     perf.totalQueries++;
@@ -824,18 +833,18 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
 
   private updateChunkAccess(chunkId: string): void {
     const chunk = this.chunks.get(chunkId);
-    if (!chunk) return;
+    if (!chunk) {return;}
 
     chunk.metadata.lastAccessed = Date.now();
     chunk.metadata.accessCount++;
-    
+
     // Update LRU ordering
     const lruIndex = this.chunksLRU.indexOf(chunkId);
     if (lruIndex > -1) {
       this.chunksLRU.splice(lruIndex, 1);
     }
     this.chunksLRU.push(chunkId);
-    
+
     // Update LFU tracking
     this.chunkAccess.set(chunkId, chunk.metadata.accessCount);
   }
@@ -846,53 +855,53 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     for (const chunk of this.chunks.values()) {
       totalMemory += chunk.metadata.size;
     }
-    
+
     const maxMemory = this.config.maxMemoryUsage * 1024 * 1024; // Convert to bytes
     const pressure = totalMemory / maxMemory;
-    
+
     // Update metrics
     this.metrics.memoryUsage = {
       total: maxMemory,
       used: totalMemory,
       free: maxMemory - totalMemory,
       threshold: this.config.memoryPressureThreshold * maxMemory,
-      pressure: pressure > 0.9 ? 'critical' : 
-                pressure > 0.8 ? 'high' : 
+      pressure: pressure > 0.9 ? 'critical' :
+                pressure > 0.8 ? 'high' :
                 pressure > 0.6 ? 'medium' : 'low',
     };
-    
+
     if (pressure >= this.config.memoryPressureThreshold) {
-      this.emit('memory:pressure', { 
-        level: this.metrics.memoryUsage.pressure as 'medium' | 'high' | 'critical', 
-        metrics: this.metrics 
+      this.emit('memory:pressure', {
+        level: this.metrics.memoryUsage.pressure as 'medium' | 'high' | 'critical',
+        metrics: this.metrics,
       });
     }
-    
+
     return pressure;
   }
 
   private selectChunksForEviction(memoryPressure: number): string[] {
     const chunksToEvict: string[] = [];
     const targetEviction = Math.ceil(this.chunks.size * (memoryPressure - this.config.memoryPressureThreshold));
-    
+
     switch (this.config.cacheEviction) {
       case 'lru':
         chunksToEvict.push(...this.chunksLRU.slice(0, targetEviction));
         break;
-        
+
       case 'lfu':
         const sortedByAccess = Array.from(this.chunks.keys())
           .sort((a, b) => (this.chunkAccess.get(a) || 0) - (this.chunkAccess.get(b) || 0));
         chunksToEvict.push(...sortedByAccess.slice(0, targetEviction));
         break;
-        
+
       case 'size-based':
         const sortedBySize = Array.from(this.chunks.entries())
           .sort((a, b) => b[1].metadata.size - a[1].metadata.size)
           .map(([id]) => id);
         chunksToEvict.push(...sortedBySize.slice(0, targetEviction));
         break;
-        
+
       case 'ttl':
         const now = Date.now();
         const ttl = 300000; // 5 minutes
@@ -902,7 +911,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
           }
         }
         break;
-        
+
       case 'adaptive':
         // Combine LRU and size-based eviction
         const adaptiveScore = Array.from(this.chunks.entries()).map(([id, chunk]) => ({
@@ -913,27 +922,27 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
         chunksToEvict.push(...adaptiveScore.slice(0, targetEviction).map(item => item.id));
         break;
     }
-    
+
     return chunksToEvict.slice(0, targetEviction);
   }
 
   private evictChunk(chunkId: string): void {
     const chunk = this.chunks.get(chunkId);
-    if (!chunk) return;
+    if (!chunk) {return;}
 
     // Mark as evicted
     chunk.state = 'evicted';
-    
+
     // Remove from data structures
     this.chunks.delete(chunkId);
-    
+
     const lruIndex = this.chunksLRU.indexOf(chunkId);
     if (lruIndex > -1) {
       this.chunksLRU.splice(lruIndex, 1);
     }
-    
+
     this.chunkAccess.delete(chunkId);
-    
+
     this.emit('chunk:evicted', { chunkId, reason: 'memory_pressure' });
   }
 
@@ -947,7 +956,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
     // In a real implementation, this would use a compression library
     const originalSize = chunk.metadata.size;
     const compressionRatio = 0.7; // Simulated 30% compression
-    
+
     chunk.metadata.size = Math.round(originalSize * compressionRatio);
     chunk.metadata.compressionRatio = compressionRatio;
   }
@@ -974,12 +983,12 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
   private async processBatchQueue(): Promise<void> {
     // Process batch queue with concurrency limits
     while (
-      this.batchQueue.length > 0 && 
+      this.batchQueue.length > 0 &&
       this.activeBatches.size < this.config.maxConcurrentBatches
     ) {
       const batch = this.batchQueue.shift()!;
       this.activeBatches.set(batch.id, batch);
-      
+
       // Process batch asynchronously
       this.processBatch(batch).finally(() => {
         this.activeBatches.delete(batch.id);
@@ -992,7 +1001,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
       const startTime = Date.now();
       let processedChunks = 0;
       const errors: Array<{ chunkId: string; error: Error }> = [];
-      
+
       // Process each chunk in the batch
       for (const chunkId of batch.chunks) {
         try {
@@ -1008,11 +1017,11 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
           errors.push({ chunkId, error: error as Error });
         }
       }
-      
+
       const duration = Date.now() - startTime;
       const result: BatchResult = {
         id: batch.id,
-        status: errors.length === 0 ? 'success' : 
+        status: errors.length === 0 ? 'success' :
                 errors.length < batch.chunks.length ? 'partial' : 'failed',
         processedChunks,
         totalChunks: batch.chunks.length,
@@ -1024,10 +1033,10 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
           networkBytes: 0, // Calculate network usage
         },
       };
-      
+
       batch.callback?.(result);
       this.emit('batch:completed', { operation: batch, result });
-      
+
     } catch (error) {
       // Ensure callback is called even on failure
       const failureResult: BatchResult = {
@@ -1043,7 +1052,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
           networkBytes: 0,
         },
       };
-      
+
       batch.callback?.(failureResult);
       this.emit('batch:failed', { operation: batch, error: error as Error });
     }
@@ -1063,7 +1072,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
   private startMemoryMonitoring(): void {
     this.memoryMonitor = setInterval(async () => {
       await this.calculateMemoryPressure();
-      
+
       // Trigger cleanup if necessary
       if (this.metrics.memoryUsage.pressure === 'high' || this.metrics.memoryUsage.pressure === 'critical') {
         await this.optimizeMemory();
@@ -1074,26 +1083,26 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
   private updateMetrics(): void {
     // Update processing metrics
     this.metrics.processingMetrics.queueLength = this.batchQueue.length;
-    
+
     // Update data metrics
     this.metrics.dataMetrics.loadedRecords = Array.from(this.chunks.values())
       .filter(chunk => chunk.state === 'loaded')
       .reduce((sum, chunk) => sum + chunk.data.length, 0);
-    
-    this.metrics.dataMetrics.virtualizationRatio = 
+
+    this.metrics.dataMetrics.virtualizationRatio =
       this.chunks.size > 0 ? this.metrics.dataMetrics.loadedRecords / this.chunks.size : 0;
-    
+
     // Calculate indexing efficiency
     const totalIndexes = this.indexes.size;
     const efficientIndexes = Array.from(this.indexes.values())
       .filter(index => index.queryPerformance.hitRate > 0.8).length;
-    
-    this.metrics.dataMetrics.indexingEfficiency = 
+
+    this.metrics.dataMetrics.indexingEfficiency =
       totalIndexes > 0 ? efficientIndexes / totalIndexes : 0;
   }
 
   private updateVirtualizationMetrics(window: VirtualizationWindow, _chunksLoaded: number): void {
-    this.metrics.dataMetrics.virtualizationRatio = 
+    this.metrics.dataMetrics.virtualizationRatio =
       window.totalCount > 0 ? (window.endIndex - window.startIndex + 1) / window.totalCount : 0;
   }
 }
@@ -1102,7 +1111,7 @@ export class PerformanceOptimizer extends EventEmitter<PerformanceOptimizerEvent
  * Create performance optimizer with default configuration
  */
 export function createPerformanceOptimizer(
-  config: Partial<OptimizationConfig> = {}
+  config: Partial<OptimizationConfig> = {},
 ): PerformanceOptimizer {
   return new PerformanceOptimizer(config);
 }

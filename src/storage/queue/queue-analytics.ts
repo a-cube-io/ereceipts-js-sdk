@@ -3,12 +3,12 @@
  * Enterprise-grade monitoring and insights for queue performance
  */
 
-import type { 
-  // QueueItem, 
+import type {
+  // QueueItem,
   QueueStats,
-  QueuePriority,
   ResourceType,
-  QueueOperationType
+  QueuePriority,
+  QueueOperationType,
   // QueueItemStatus
 } from './types';
 
@@ -87,10 +87,15 @@ export interface PerformanceForecast {
 
 export class QueueAnalytics {
   private config: AnalyticsConfig;
+
   private metricsHistory: PerformanceMetrics[] = [];
+
   private realtimeMetrics: PerformanceMetrics | null = null;
+
   private aggregatedMetrics: Map<number, PerformanceMetrics[]> = new Map();
+
   private itemTimings: Map<string, number> = new Map();
+
   private processingStartTimes: Map<string, number> = new Map();
 
   constructor(config: Partial<AnalyticsConfig> = {}) {
@@ -114,8 +119,8 @@ export class QueueAnalytics {
    * Record item processing start
    */
   recordProcessingStart(itemId: string): void {
-    if (!this.config.enabled || Math.random() > this.config.sampleRate) return;
-    
+    if (!this.config.enabled || Math.random() > this.config.sampleRate) {return;}
+
     this.processingStartTimes.set(itemId, Date.now());
   }
 
@@ -123,7 +128,7 @@ export class QueueAnalytics {
    * Record item processing completion
    */
   recordProcessingComplete(itemId: string, _success: boolean): void {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     const startTime = this.processingStartTimes.get(itemId);
     if (startTime) {
@@ -137,7 +142,7 @@ export class QueueAnalytics {
    * Record queue snapshot for metrics
    */
   recordQueueSnapshot(stats: QueueStats): void {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     const metrics: PerformanceMetrics = {
       timestamp: Date.now(),
@@ -151,7 +156,7 @@ export class QueueAnalytics {
     };
 
     this.addMetricsPoint(metrics);
-    
+
     if (this.config.enableRealTimeMetrics) {
       this.realtimeMetrics = metrics;
     }
@@ -224,7 +229,7 @@ export class QueueAnalytics {
    */
   getAggregatedMetrics(intervalMs: number, timeRangeMs: number = 86400000): PerformanceMetrics[] {
     const aggregated = this.aggregatedMetrics.get(intervalMs);
-    if (!aggregated) return [];
+    if (!aggregated) {return [];}
 
     const cutoffTime = Date.now() - timeRangeMs;
     return aggregated.filter(m => m.timestamp >= cutoffTime);
@@ -234,13 +239,13 @@ export class QueueAnalytics {
    * Clear old metrics data
    */
   cleanup(): void {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     const cutoffTime = Date.now() - (this.config.retentionDays * 24 * 60 * 60 * 1000);
-    
+
     // Clean main metrics history
     this.metricsHistory = this.metricsHistory.filter(m => m.timestamp >= cutoffTime);
-    
+
     // Clean aggregated metrics
     for (const [interval, metrics] of this.aggregatedMetrics) {
       this.aggregatedMetrics.set(interval, metrics.filter(m => m.timestamp >= cutoffTime));
@@ -270,7 +275,7 @@ export class QueueAnalytics {
   }
 
   private startRealtimeMetrics(): void {
-    if (!this.config.enableRealTimeMetrics) return;
+    if (!this.config.enableRealTimeMetrics) {return;}
 
     // Update real-time metrics every 30 seconds
     setInterval(() => {
@@ -300,10 +305,10 @@ export class QueueAnalytics {
 
   private addToAggregatedMetrics(metrics: PerformanceMetrics, intervalMs: number): void {
     const aggregated = this.aggregatedMetrics.get(intervalMs);
-    if (!aggregated) return;
+    if (!aggregated) {return;}
 
     const bucketTime = Math.floor(metrics.timestamp / intervalMs) * intervalMs;
-    
+
     // Find or create bucket
     let bucket = aggregated.find(m => m.timestamp === bucketTime);
     if (!bucket) {
@@ -324,8 +329,8 @@ export class QueueAnalytics {
   }
 
   private calculateAverageProcessingTime(): number {
-    if (this.itemTimings.size === 0) return 0;
-    
+    if (this.itemTimings.size === 0) {return 0;}
+
     const timings = Array.from(this.itemTimings.values());
     return timings.reduce((sum, time) => sum + time, 0) / timings.length;
   }
@@ -335,14 +340,14 @@ export class QueueAnalytics {
     const oneMinuteAgo = Date.now() - 60000;
     const recentTimings = Array.from(this.itemTimings.entries())
       .filter(([_, time]) => time >= oneMinuteAgo);
-    
+
     return recentTimings.length;
   }
 
   private calculateErrorRate(stats: QueueStats): number {
     const total = stats.completedItems + stats.failedItems + stats.deadItems;
-    if (total === 0) return 0;
-    
+    if (total === 0) {return 0;}
+
     return ((stats.failedItems + stats.deadItems) / total) * 100;
   }
 
@@ -360,7 +365,7 @@ export class QueueAnalytics {
   private analyzeBottlenecks(metrics: PerformanceMetrics[]): BottleneckAnalysis[] {
     const bottlenecks: BottleneckAnalysis[] = [];
 
-    if (metrics.length === 0) return bottlenecks;
+    if (metrics.length === 0) {return bottlenecks;}
 
     // Analyze queue size growth
     const avgQueueSize = metrics.reduce((sum, m) => sum + m.queueSize, 0) / metrics.length;
@@ -391,7 +396,7 @@ export class QueueAnalytics {
 
   private identifyPatterns(metrics: PerformanceMetrics[]): UsagePattern[] {
     const patterns: UsagePattern[] = [];
-    
+
     // Simple pattern detection - would be more sophisticated in real implementation
     const highThroughputPeriods = metrics.filter(m => m.throughput > 50);
     if (highThroughputPeriods.length > metrics.length * 0.3) {
@@ -409,13 +414,13 @@ export class QueueAnalytics {
 
   private detectAnomalies(metrics: PerformanceMetrics[]): Anomaly[] {
     const anomalies: Anomaly[] = [];
-    
-    if (metrics.length < 10) return anomalies;
+
+    if (metrics.length < 10) {return anomalies;}
 
     // Detect throughput anomalies
     const avgThroughput = metrics.reduce((sum, m) => sum + m.throughput, 0) / metrics.length;
     const throughputStdDev = this.calculateStandardDeviation(metrics.map(m => m.throughput));
-    
+
     const recentMetrics = metrics.slice(-5);
     for (const metric of recentMetrics) {
       const deviation = Math.abs(metric.throughput - avgThroughput);
@@ -437,13 +442,13 @@ export class QueueAnalytics {
 
   private generateForecasts(metrics: PerformanceMetrics[]): PerformanceForecast[] {
     const forecasts: PerformanceForecast[] = [];
-    
-    if (metrics.length < 20) return forecasts;
+
+    if (metrics.length < 20) {return forecasts;}
 
     // Simple linear trend forecasting
     const queueSizes = metrics.map(m => m.queueSize);
     const queueTrend = this.calculateTrend(queueSizes);
-    
+
     forecasts.push({
       metric: 'queue_size',
       timeHorizon: 3600000, // 1 hour
@@ -456,10 +461,10 @@ export class QueueAnalytics {
   }
 
   private calculateHealthScore(metrics: PerformanceMetrics[]): number {
-    if (metrics.length === 0) return 100;
+    if (metrics.length === 0) {return 100;}
 
     let score = 100;
-    
+
     // Deduct points for high error rate
     const avgErrorRate = metrics.reduce((sum, m) => sum + m.errorRate, 0) / metrics.length;
     score -= avgErrorRate * 2;
@@ -480,14 +485,14 @@ export class QueueAnalytics {
   }
 
   private calculateErrorRateChange(metrics: PerformanceMetrics[]): number {
-    if (metrics.length < 2) return 0;
-    
+    if (metrics.length < 2) {return 0;}
+
     const firstHalf = metrics.slice(0, Math.floor(metrics.length / 2));
     const secondHalf = metrics.slice(Math.floor(metrics.length / 2));
-    
+
     const firstAvg = firstHalf.reduce((sum, m) => sum + m.errorRate, 0) / firstHalf.length;
     const secondAvg = secondHalf.reduce((sum, m) => sum + m.errorRate, 0) / secondHalf.length;
-    
+
     return secondAvg - firstAvg;
   }
 
@@ -497,8 +502,8 @@ export class QueueAnalytics {
 
   private generateRecommendations(metrics: PerformanceMetrics[]): string[] {
     const recommendations: string[] = [];
-    
-    if (metrics.length === 0) return recommendations;
+
+    if (metrics.length === 0) {return recommendations;}
 
     const avgQueueSize = metrics.reduce((sum, m) => sum + m.queueSize, 0) / metrics.length;
     if (avgQueueSize > 100) {
@@ -520,20 +525,20 @@ export class QueueAnalytics {
 
   private calculateStandardDeviation(values: number[]): number {
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+    const variance = values.reduce((sum, val) => sum + (val - mean)**2, 0) / values.length;
     return Math.sqrt(variance);
   }
 
   private calculateTrend(values: number[]): number {
-    if (values.length < 2) return 0;
-    
+    if (values.length < 2) {return 0;}
+
     // Simple linear regression slope
     const n = values.length;
     const sumX = (n * (n - 1)) / 2;
     const sumY = values.reduce((sum, val) => sum + val, 0);
     const sumXY = values.reduce((sum, val, index) => sum + val * index, 0);
     const sumX2 = values.reduce((sum, _, index) => sum + index * index, 0);
-    
+
     return (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
   }
 

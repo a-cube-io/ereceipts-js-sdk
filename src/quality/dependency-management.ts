@@ -131,9 +131,12 @@ export interface UpdatePlan {
 
 export class DependencyManager {
   private config: DependencyConfig;
+
   // private _dependencies = new Map<string, DependencyInfo>();
   private vulnerabilities = new Map<string, SecurityVulnerability>();
+
   private updatePlans = new Map<string, UpdatePlan>();
+
   private scanHistory: DependencyReport[] = [];
 
   constructor(config?: Partial<DependencyConfig>) {
@@ -182,25 +185,25 @@ export class DependencyManager {
     try {
       // Load package.json and lock files
       const packageInfo = await this.loadPackageInfo();
-      
+
       // Scan for updates
       const updateInfo = await this.scanForUpdates(packageInfo);
-      
+
       // Scan for vulnerabilities
       const vulnerabilityInfo = await this.scanVulnerabilities(packageInfo);
-      
+
       // Check license compliance
       const licenseInfo = await this.scanLicenses(packageInfo);
-      
+
       // Analyze usage patterns
       const usageInfo = await this.analyzeUsage(packageInfo);
-      
+
       // Generate recommendations
       const recommendations = await this.generateRecommendations(
         updateInfo,
         vulnerabilityInfo,
         licenseInfo,
-        usageInfo
+        usageInfo,
       );
 
       // Create report
@@ -240,13 +243,13 @@ export class DependencyManager {
    */
   async createUpdatePlan(
     packages?: string[],
-    strategy: UpdatePlan['strategy'] = 'incremental'
+    strategy: UpdatePlan['strategy'] = 'incremental',
   ): Promise<string> {
     const report = await this.scanDependencies();
-    
-    const outdatedDeps = report.dependencies.filter(d => 
+
+    const outdatedDeps = report.dependencies.filter(d =>
       d.updates.current !== d.updates.latest &&
-      (!packages || packages.includes(d.name))
+      (!packages || packages.includes(d.name)),
     );
 
     const updates = outdatedDeps.map(dep => ({
@@ -316,8 +319,8 @@ export class DependencyManager {
     requiresManualReview: string[];
   }> {
     const report = await this.scanDependencies();
-    const vulnerableDeps = report.dependencies.filter(d => 
-      d.security.vulnerabilities.length > 0
+    const vulnerableDeps = report.dependencies.filter(d =>
+      d.security.vulnerabilities.length > 0,
     );
 
     const fixed: string[] = [];
@@ -359,8 +362,8 @@ export class DependencyManager {
     kept: Array<{ package: string; reason: string }>;
   }> {
     const report = await this.scanDependencies();
-    const unusedDeps = report.dependencies.filter(d => 
-      !d.usage.imported && d.type === 'dependency'
+    const unusedDeps = report.dependencies.filter(d =>
+      !d.usage.imported && d.type === 'dependency',
     );
 
     const removed: string[] = [];
@@ -400,7 +403,7 @@ export class DependencyManager {
     };
   } {
     const latest = this.scanHistory[this.scanHistory.length - 1];
-    
+
     return {
       current: latest?.metrics || {
         bundleSize: 0,
@@ -482,7 +485,7 @@ export class DependencyManager {
     ..._dependencyArrays: DependencyInfo[][]
   ): Promise<DependencyRecommendation[]> {
     const recommendations: DependencyRecommendation[] = [];
-    
+
     // Example recommendation for unused dependency
     recommendations.push({
       type: 'remove',
@@ -533,9 +536,9 @@ export class DependencyManager {
   private calculatePlanRisk(updates: UpdatePlan['updates']): UpdatePlan['estimatedRisk'] {
     const hasBreaking = updates.some(u => u.breaking);
     const hasMajor = updates.some(u => u.type === 'major');
-    
-    if (hasBreaking || hasMajor) return 'high';
-    if (updates.some(u => u.type === 'minor')) return 'medium';
+
+    if (hasBreaking || hasMajor) {return 'high';}
+    if (updates.some(u => u.type === 'minor')) {return 'medium';}
     return 'low';
   }
 
@@ -563,10 +566,10 @@ export class DependencyManager {
   }
 
   private getKeepReason(dep: DependencyInfo): string {
-    if (dep.name.startsWith('@types/')) return 'TypeScript type definitions';
-    if (dep.name.includes('eslint')) return 'ESLint configuration';
-    if (dep.name.includes('babel')) return 'Babel configuration';
-    if (dep.name.includes('webpack')) return 'Webpack configuration';
+    if (dep.name.startsWith('@types/')) {return 'TypeScript type definitions';}
+    if (dep.name.includes('eslint')) {return 'ESLint configuration';}
+    if (dep.name.includes('babel')) {return 'Babel configuration';}
+    if (dep.name.includes('webpack')) {return 'Webpack configuration';}
     return 'Build tool dependency';
   }
 

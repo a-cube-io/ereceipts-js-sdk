@@ -1,7 +1,7 @@
 /**
  * Receipts Resource - OpenAPI Implementation
  * Type-safe implementation for electronic receipt management
- * 
+ *
  * Features:
  * - Complete electronic receipt lifecycle management
  * - Type-safe input/output with branded types
@@ -11,15 +11,16 @@
  * - Return and void operations
  */
 
-import { BaseOpenAPIResource } from '@/resources/base-openapi';
-import { ReceiptEndpoints } from '@/generated/endpoints';
 import type { HttpClient } from '@/http/client';
-import type { ReceiptId, Amount } from '@/types/branded';
 import type { components } from '@/types/generated';
+import type { Amount, ReceiptId } from '@/types/branded';
+import type { RequestOptions } from '@/resources/base-openapi';
 import type { UnifiedStorage } from '@/storage/unified-storage';
 import type { EnterpriseQueueManager } from '@/storage/queue/queue-manager';
-import type { RequestOptions } from '@/resources/base-openapi';
+
 import { ValidationError } from '@/errors/index';
+import { ReceiptEndpoints } from '@/generated/endpoints';
+import { BaseOpenAPIResource } from '@/resources/base-openapi';
 
 // Extract types from OpenAPI generated types
 type ReceiptInput = components['schemas']['E-Receipt_IT_API_ReceiptInput'];
@@ -84,14 +85,14 @@ export class ReceiptsResource extends BaseOpenAPIResource {
         getDetails: ReceiptEndpoints.GET_DETAILS,
         returnItems: ReceiptEndpoints.RETURN_ITEMS,
         returnItemsWithProof: ReceiptEndpoints.RETURN_ITEMS_WITH_PROOF,
-      }
+      },
     });
   }
 
   /**
    * Get a list of receipts with filtering and pagination
    * Enhanced with offline-first capabilities
-   * 
+   *
    * @param params - List parameters including filters and pagination
    * @param options - Request options including offline preferences
    * @returns Promise resolving to paginated receipt list
@@ -106,23 +107,23 @@ export class ReceiptsResource extends BaseOpenAPIResource {
         operation: 'list_receipts',
         dateRange: params?.start_date && params?.end_date ? `${params.start_date} to ${params.end_date}` : undefined,
         ...options.metadata,
-      }
+      },
     });
   }
 
   /**
    * Create a new electronic receipt
    * Enhanced with offline queuing and optimistic updates
-   * 
+   *
    * @param data - Receipt input data with items and payment information
    * @param validationOptions - Validation options for fiscal compliance
    * @param requestOptions - Request options including offline preferences
    * @returns Promise resolving to created receipt
    */
   async create(
-    data: ReceiptInput, 
+    data: ReceiptInput,
     validationOptions: ReceiptValidationOptions = {},
-    requestOptions: Partial<RequestOptions> = {}
+    requestOptions: Partial<RequestOptions> = {},
   ): Promise<ReceiptOutput> {
     // Validate input with Italian fiscal rules
     await this.validateReceiptInput(data, validationOptions);
@@ -135,14 +136,14 @@ export class ReceiptsResource extends BaseOpenAPIResource {
         operation: 'create_receipt',
         itemCount: data.items.length,
         totalAmount: this.calculateTotalAmount(data).totalAmount,
-      }
+      },
     });
   }
 
   /**
    * Void an electronic receipt
    * Enhanced with offline queuing for critical operations
-   * 
+   *
    * @param voidData - Void request data
    * @param options - Request options including offline preferences
    * @returns Promise resolving to void confirmation
@@ -155,14 +156,14 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       metadata: {
         operation: 'void_receipt',
         ...options.metadata,
-      }
+      },
     });
   }
 
   /**
    * Get a specific receipt by UUID
    * Enhanced with intelligent caching for frequent lookups
-   * 
+   *
    * @param receiptId - Receipt UUID
    * @param options - Request options including offline preferences
    * @returns Promise resolving to receipt details
@@ -177,13 +178,13 @@ export class ReceiptsResource extends BaseOpenAPIResource {
         operation: 'get_receipt',
         receiptId,
         ...options.metadata,
-      }
+      },
     });
   }
 
   /**
    * Void a receipt using proof of purchase
-   * 
+   *
    * @param voidData - Void request with proof data
    * @returns Promise resolving to void confirmation
    */
@@ -191,20 +192,20 @@ export class ReceiptsResource extends BaseOpenAPIResource {
     return this.executeRequest<VoidReceiptWithProofRequest, VoidReceiptOutput>('voidWithProof', voidData, {
       metadata: {
         operation: 'void_receipt_with_proof',
-      }
+      },
     });
   }
 
   /**
    * Get receipt details or PDF
-   * 
+   *
    * @param receiptId - Receipt UUID
    * @param format - Response format ('json' or 'pdf')
    * @returns Promise resolving to receipt details or PDF blob
    */
   async getDetails(receiptId: ReceiptId | string, format: 'json' | 'pdf' = 'json'): Promise<components['schemas']['E-Receipt_IT_API_ReceiptDetailsOutput'] | Blob> {
     const acceptHeader = format === 'pdf' ? 'application/pdf' : 'application/json';
-    
+
     return this.executeRequest<void, components['schemas']['E-Receipt_IT_API_ReceiptDetailsOutput'] | Blob>('getDetails', undefined, {
       pathParams: { receipt_uuid: receiptId },
       headers: { Accept: acceptHeader },
@@ -212,13 +213,13 @@ export class ReceiptsResource extends BaseOpenAPIResource {
         operation: 'get_receipt_details',
         receiptId,
         format,
-      }
+      },
     });
   }
 
   /**
    * Return items from a receipt
-   * 
+   *
    * @param returnData - Return request data
    * @returns Promise resolving to return receipt
    */
@@ -226,13 +227,13 @@ export class ReceiptsResource extends BaseOpenAPIResource {
     return this.executeRequest<ReturnRequest, ReceiptOutput>('returnItems', returnData, {
       metadata: {
         operation: 'return_receipt_items',
-      }
+      },
     });
   }
 
   /**
    * Return items from a receipt using proof of purchase
-   * 
+   *
    * @param returnData - Return request with proof data
    * @returns Promise resolving to return receipt
    */
@@ -240,13 +241,13 @@ export class ReceiptsResource extends BaseOpenAPIResource {
     return this.executeRequest<ReturnWithProofRequest, ReceiptOutput>('returnItemsWithProof', returnData, {
       metadata: {
         operation: 'return_receipt_items_with_proof',
-      }
+      },
     });
   }
 
   /**
    * Update an existing receipt
-   * 
+   *
    * @param receiptId - The receipt ID to update
    * @param updateData - Update data for the receipt
    * @returns Promise resolving to updated receipt
@@ -257,18 +258,18 @@ export class ReceiptsResource extends BaseOpenAPIResource {
     }
     return this.executeRequest<{id: string} & Partial<ReceiptInput>, ReceiptOutput>('updateReceipt', {
       id: String(receiptId),
-      ...updateData
+      ...updateData,
     }, {
       metadata: {
         operation: 'update_receipt',
         receiptId: String(receiptId),
-      }
+      },
     });
   }
 
   /**
    * Delete a receipt
-   * 
+   *
    * @param receiptId - The receipt ID to delete
    * @returns Promise resolving to deletion confirmation
    */
@@ -277,12 +278,12 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       throw this.createUnsupportedOperationError('deleteReceipt');
     }
     return this.executeRequest<{id: string}, { success: boolean; message?: string }>('deleteReceipt', {
-      id: String(receiptId)
+      id: String(receiptId),
     }, {
       metadata: {
         operation: 'delete_receipt',
         receiptId: String(receiptId),
-      }
+      },
     });
   }
 
@@ -292,8 +293,8 @@ export class ReceiptsResource extends BaseOpenAPIResource {
    * Comprehensive receipt input validation
    */
   private async validateReceiptInput(
-    data: ReceiptInput, 
-    options: ReceiptValidationOptions = {}
+    data: ReceiptInput,
+    options: ReceiptValidationOptions = {},
   ): Promise<void> {
     const errors: Array<{ field: string; message: string; code: string }> = [];
 
@@ -302,7 +303,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       errors.push({
         field: 'items',
         message: 'Receipt must contain at least one item',
-        code: 'NO_ITEMS'
+        code: 'NO_ITEMS',
       });
     }
 
@@ -311,14 +312,14 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       errors.push({
         field: 'items',
         message: `Receipt cannot contain more than ${options.maxReceiptItems} items`,
-        code: 'TOO_MANY_ITEMS'
+        code: 'TOO_MANY_ITEMS',
       });
     }
 
     // Validate each item
     for (let i = 0; i < data.items.length; i++) {
       const item = data.items[i];
-      if (!item) continue;
+      if (!item) {continue;}
       const itemErrors = this.validateReceiptItem(item, i, options);
       errors.push(...itemErrors);
     }
@@ -348,9 +349,9 @@ export class ReceiptsResource extends BaseOpenAPIResource {
    * Validate individual receipt item
    */
   private validateReceiptItem(
-    item: components['schemas']['E-Receipt_IT_API_ReceiptItem'], 
-    index: number, 
-    options: ReceiptValidationOptions
+    item: components['schemas']['E-Receipt_IT_API_ReceiptItem'],
+    index: number,
+    options: ReceiptValidationOptions,
   ): Array<{ field: string; message: string; code: string }> {
     const errors: Array<{ field: string; message: string; code: string }> = [];
     const prefix = `items[${index}]`;
@@ -360,7 +361,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       errors.push({
         field: `${prefix}.description`,
         message: 'Item description is required',
-        code: 'REQUIRED'
+        code: 'REQUIRED',
       });
     }
 
@@ -368,7 +369,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       errors.push({
         field: `${prefix}.quantity`,
         message: 'Item quantity must be greater than 0',
-        code: 'INVALID_QUANTITY'
+        code: 'INVALID_QUANTITY',
       });
     }
 
@@ -376,7 +377,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       errors.push({
         field: `${prefix}.unit_price`,
         message: 'Item unit price cannot be negative',
-        code: 'INVALID_PRICE'
+        code: 'INVALID_PRICE',
       });
     }
 
@@ -387,7 +388,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
         errors.push({
           field: `${prefix}.vat_rate_code`,
           message: `Invalid VAT rate. Valid rates: ${validVATRates.join(', ')}`,
-          code: 'INVALID_VAT_RATE'
+          code: 'INVALID_VAT_RATE',
         });
       }
     }
@@ -397,7 +398,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       errors.push({
         field: `${prefix}.description`,
         message: 'Item description cannot exceed 200 characters',
-        code: 'DESCRIPTION_TOO_LONG'
+        code: 'DESCRIPTION_TOO_LONG',
       });
     }
 
@@ -419,7 +420,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       errors.push({
         field: 'payment',
         message: 'At least one payment method must have a positive amount',
-        code: 'NO_PAYMENT'
+        code: 'NO_PAYMENT',
       });
     }
 
@@ -428,7 +429,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       errors.push({
         field: 'cash_payment_amount',
         message: 'Cash payment amount cannot be negative',
-        code: 'NEGATIVE_AMOUNT'
+        code: 'NEGATIVE_AMOUNT',
       });
     }
 
@@ -436,7 +437,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       errors.push({
         field: 'electronic_payment_amount',
         message: 'Electronic payment amount cannot be negative',
-        code: 'NEGATIVE_AMOUNT'
+        code: 'NEGATIVE_AMOUNT',
       });
     }
 
@@ -444,7 +445,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       errors.push({
         field: 'ticket_restaurant_payment_amount',
         message: 'Ticket restaurant payment amount cannot be negative',
-        code: 'NEGATIVE_AMOUNT'
+        code: 'NEGATIVE_AMOUNT',
       });
     }
 
@@ -459,8 +460,8 @@ export class ReceiptsResource extends BaseOpenAPIResource {
 
     try {
       const calculated = this.calculateTotalAmount(data);
-      const totalPayments = parseFloat(data.cash_payment_amount || '0') + 
-                           parseFloat(data.electronic_payment_amount || '0') + 
+      const totalPayments = parseFloat(data.cash_payment_amount || '0') +
+                           parseFloat(data.electronic_payment_amount || '0') +
                            parseFloat(data.ticket_restaurant_payment_amount || '0');
 
       // Check if total payments match calculated total (with small tolerance for rounding)
@@ -469,14 +470,14 @@ export class ReceiptsResource extends BaseOpenAPIResource {
         errors.push({
           field: 'payment_total',
           message: `Payment total (${totalPayments.toFixed(2)}) does not match calculated total (${calculated.totalAmount})`,
-          code: 'PAYMENT_MISMATCH'
+          code: 'PAYMENT_MISMATCH',
         });
       }
     } catch (error) {
       errors.push({
         field: 'calculation',
         message: 'Failed to validate receipt calculations',
-        code: 'CALCULATION_ERROR'
+        code: 'CALCULATION_ERROR',
       });
     }
 
@@ -499,7 +500,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
         errors.push({
           field: 'cash_payment_amount',
           message: 'Cash payments over €1000 require additional documentation for transactions above €3000',
-          code: 'HIGH_VALUE_CASH_LIMIT'
+          code: 'HIGH_VALUE_CASH_LIMIT',
         });
       }
     }
@@ -509,7 +510,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       errors.push({
         field: 'customer_lottery_code',
         message: 'Lottery code must be 16 alphanumeric characters',
-        code: 'INVALID_LOTTERY_CODE'
+        code: 'INVALID_LOTTERY_CODE',
       });
     }
 
@@ -524,8 +525,8 @@ export class ReceiptsResource extends BaseOpenAPIResource {
   public calculateTotalAmount(data: ReceiptInput): ReceiptCalculationResult {
     let subtotal = 0;
     let totalVAT = 0;
-    let totalDiscount = parseFloat(data.discount || '0');
-    
+    const totalDiscount = parseFloat(data.discount || '0');
+
     const vatBreakdown = new Map<string, { net: number; vat: number; gross: number }>();
 
     // Calculate item totals
@@ -587,7 +588,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
     itemSummary: string;
   } {
     const date = new Date(receipt.created_at);
-    
+
     return {
       receiptNumber: receipt.uuid.split('-')[0]?.toUpperCase() || 'UNKNOWN',
       date: date.toLocaleDateString('it-IT'),
@@ -632,7 +633,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       dateRange: { from: '', to: '' },
     };
 
-    if (receipts.length === 0) return summary;
+    if (receipts.length === 0) {return summary;}
 
     let totalAmount = 0;
     let totalVAT = 0;
@@ -641,13 +642,13 @@ export class ReceiptsResource extends BaseOpenAPIResource {
     for (const receipt of receipts) {
       const amount = parseFloat(receipt.total_amount);
       totalAmount += amount;
-      
+
       // Estimate VAT (simplified calculation)
       totalVAT += amount * 0.15; // Rough estimate
 
       const paymentMethod = this.determinePaymentMethod(receipt);
       summary.paymentMethodBreakdown[paymentMethod].count++;
-      summary.paymentMethodBreakdown[paymentMethod].amount = 
+      summary.paymentMethodBreakdown[paymentMethod].amount =
         (parseFloat(summary.paymentMethodBreakdown[paymentMethod].amount) + amount).toFixed(2) as Amount;
     }
 
@@ -679,7 +680,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
       };
     }
 
-    if (receipt.document_number && receipt.document_number.includes('VOID')) {
+    if (receipt.document_number?.includes('VOID')) {
       return {
         eligible: false,
         reason: 'Receipt has already been voided',
@@ -718,7 +719,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
         canCreateOffline: this.isQueueEnabled(),
         canReadOffline: this.isOfflineEnabled(),
         canCacheReceipts: this.isOfflineEnabled(),
-      }
+      },
     };
   }
 
@@ -728,7 +729,7 @@ export class ReceiptsResource extends BaseOpenAPIResource {
   async syncQueuedReceipts(): Promise<void> {
     if (!this.isQueueEnabled()) {
       throw new ValidationError('Queue not enabled', 'sync_error', [
-        { field: 'queue', message: 'Offline queue is not configured', code: 'QUEUE_NOT_ENABLED' }
+        { field: 'queue', message: 'Offline queue is not configured', code: 'QUEUE_NOT_ENABLED' },
       ]);
     }
 
@@ -756,10 +757,10 @@ export { ReceiptsResource as Receipts };
 
 // Export types for external use
 export type {
+  ReceiptPage,
   ReceiptInput,
   ReceiptOutput,
-  ReceiptPage,
-  VoidReceiptRequest,
-  VoidReceiptOutput,
   ReturnRequest,
+  VoidReceiptOutput,
+  VoidReceiptRequest,
 };

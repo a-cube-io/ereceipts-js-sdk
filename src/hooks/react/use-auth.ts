@@ -3,18 +3,20 @@
  * Convenient hooks for authentication functionality in React applications
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import { useAuthContext } from './auth-provider';
 import type {
-  LoginCredentials,
-  LogoutOptions,
   AuthUser,
-  AuthError,
   UserRole,
-  PermissionCheck,
-  PermissionResult,
+  AuthError,
   SessionInfo,
+  LogoutOptions,
+  PermissionCheck,
+  LoginCredentials,
+  PermissionResult,
 } from '@/auth/types';
+
+import { useState, useEffect, useCallback } from 'react';
+
+import { useAuthContext } from './auth-provider';
 
 /**
  * Main authentication hook
@@ -28,13 +30,13 @@ export function useAuth() {
     isAuthenticated: context.isAuthenticated,
     isLoading: context.isLoading,
     error: context.error,
-    
+
     // Actions
     login: context.login,
     logout: context.logout,
     refreshSession: context.refreshSession,
     clearError: context.clearError,
-    
+
     // Role Management
     hasRole: context.hasRole,
     hasAnyRole: context.hasAnyRole,
@@ -42,10 +44,10 @@ export function useAuth() {
     getPrimaryRole: context.getPrimaryRole,
     getSimpleRole: context.getSimpleRole,
     switchRole: context.switchRole,
-    
+
     // Permissions
     checkPermission: context.checkPermission,
-    
+
     // Session
     getSessionInfo: context.getSessionInfo,
   };
@@ -150,7 +152,7 @@ export function useRoles() {
       merchant_id?: import('@/types/branded').MerchantId;
       cashier_id?: import('@/types/branded').CashierId;
       point_of_sale_id?: import('@/types/branded').PointOfSaleId;
-    }
+    },
   ): Promise<boolean> => {
     try {
       setIsSwitchingRole(true);
@@ -188,10 +190,10 @@ export function usePermissions() {
 
   const checkPermissionWithCache = useCallback(async (
     permission: PermissionCheck,
-    useCache = true
+    useCache = true,
   ): Promise<PermissionResult> => {
     const cacheKey = `${permission.resource}:${permission.action}:${JSON.stringify(permission.context || {})}`;
-    
+
     // Return cached result if available and cache is enabled
     if (useCache && permissionCache.has(cacheKey)) {
       return permissionCache.get(cacheKey)!;
@@ -215,12 +217,12 @@ export function usePermissions() {
     try {
       setCheckingPermissions(prev => new Set(prev).add(cacheKey));
       const result = await checkPermission(permission);
-      
+
       // Cache successful results
       if (useCache) {
         setPermissionCache(prev => new Map(prev).set(cacheKey, result));
       }
-      
+
       return result;
     } finally {
       setCheckingPermissions(prev => {
@@ -295,7 +297,7 @@ export function useSession() {
 
   // Auto-refresh session before expiration
   useEffect(() => {
-    if (!sessionInfo?.expiresAt || !isAuthenticated) return;
+    if (!sessionInfo?.expiresAt || !isAuthenticated) {return;}
 
     const expiresAt = sessionInfo.expiresAt.getTime();
     const now = Date.now();
@@ -311,7 +313,7 @@ export function useSession() {
 
       return () => clearTimeout(refreshTimeout);
     }
-    
+
     return undefined;
   }, [sessionInfo, isAuthenticated, refresh]);
 
@@ -353,7 +355,7 @@ export function useRequireAuth(redirectTo?: string) {
 export function useRequireRole(requiredRole: UserRole | UserRole[], fallbackComponent?: React.ComponentType) {
   const { hasRole, hasAnyRole, isAuthenticated, isLoading } = useAuthContext();
 
-  const hasRequiredRole = Array.isArray(requiredRole) 
+  const hasRequiredRole = Array.isArray(requiredRole)
     ? hasAnyRole(requiredRole)
     : hasRole(requiredRole);
 

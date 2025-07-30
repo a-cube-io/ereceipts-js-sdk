@@ -1,7 +1,7 @@
 /**
  * PWA Manifest Generator for A-Cube E-Receipt SDK
  * Generates Progressive Web App manifest.json files with Italian e-receipt specific configuration
- * 
+ *
  * Features:
  * - Dynamic manifest generation
  * - Italian localization support
@@ -16,37 +16,37 @@
 export interface PWAManifestConfig {
   /** App name */
   name?: string;
-  
+
   /** Short app name for home screen */
   shortName?: string;
-  
+
   /** App description */
   description?: string;
-  
+
   /** App start URL */
   startUrl?: string;
-  
+
   /** App scope */
   scope?: string;
-  
+
   /** Display mode */
   display?: 'standalone' | 'fullscreen' | 'minimal-ui' | 'browser';
-  
+
   /** Orientation preference */
   orientation?: 'any' | 'natural' | 'landscape' | 'portrait';
-  
+
   /** Theme color */
   themeColor?: string;
-  
+
   /** Background color */
   backgroundColor?: string;
-  
+
   /** App language */
   lang?: string;
-  
+
   /** App categories */
   categories?: string[];
-  
+
   /** Screenshots for app stores */
   screenshots?: Array<{
     src: string;
@@ -55,7 +55,7 @@ export interface PWAManifestConfig {
     platform?: 'narrow' | 'wide';
     label?: string;
   }>;
-  
+
   /** App shortcuts */
   shortcuts?: Array<{
     name: string;
@@ -67,7 +67,7 @@ export interface PWAManifestConfig {
       type?: string;
     }>;
   }>;
-  
+
   /** Custom icons */
   icons?: Array<{
     src: string;
@@ -361,10 +361,10 @@ export class ManifestGenerator {
     tags.push('<meta name="apple-mobile-web-app-status-bar-style" content="default">');
 
     // Apple touch icons
-    const appleIcons = manifest.icons.filter(icon => 
-      ['152x152', '180x180', '192x192'].includes(icon.sizes)
+    const appleIcons = manifest.icons.filter(icon =>
+      ['152x152', '180x180', '192x192'].includes(icon.sizes),
     );
-    
+
     appleIcons.forEach(icon => {
       tags.push(`<link rel="apple-touch-icon" sizes="${icon.sizes}" href="${icon.src}">`);
     });
@@ -547,8 +547,8 @@ export class ManifestGenerator {
     if (!manifest.icons || manifest.icons.length === 0) {
       errors.push('At least one icon is required');
     } else {
-      const hasRequiredSizes = manifest.icons.some(icon => 
-        ['192x192', '512x512'].includes(icon.sizes)
+      const hasRequiredSizes = manifest.icons.some(icon =>
+        ['192x192', '512x512'].includes(icon.sizes),
       );
       if (!hasRequiredSizes) {
         errors.push('Icons with sizes 192x192 and 512x512 are recommended');
@@ -570,9 +570,9 @@ export class ManifestGenerator {
   /**
    * Generate complete PWA setup files
    */
-  generatePWAFiles(): { 
-    manifest: string; 
-    html: string; 
+  generatePWAFiles(): {
+    manifest: string;
+    html: string;
     serviceWorkerScript: string;
     validation: { isValid: boolean; errors: string[] };
   } {

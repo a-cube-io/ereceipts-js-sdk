@@ -4,10 +4,11 @@
  * Provides intelligent strategies for resolving conflicts based on business rules
  */
 
-import { EventEmitter } from 'events';
 import type { ResourceType, ConflictResolutionStrategy } from '@/storage/queue/types';
 
-export type ConflictType = 
+import { EventEmitter } from 'events';
+
+export type ConflictType =
   | 'version_mismatch'
   | 'concurrent_edit'
   | 'deleted_modified'
@@ -18,7 +19,7 @@ export type ConflictType =
 
 export type ConflictSeverity = 'low' | 'medium' | 'high' | 'critical';
 
-export type ConflictResolutionResult = 
+export type ConflictResolutionResult =
   | 'client_wins'
   | 'server_wins'
   | 'merged'
@@ -134,8 +135,11 @@ export interface ConflictEvents {
  */
 export class ConflictResolutionEngine extends EventEmitter {
   private conflicts = new Map<string, ConflictData>();
+
   private resolutions = new Map<string, ConflictResolution>();
+
   private rules = new Map<string, ConflictRule>();
+
   private stats: ConflictStats = {
     totalConflicts: 0,
     resolvedConflicts: 0,
@@ -161,6 +165,7 @@ export class ConflictResolutionEngine extends EventEmitter {
   };
 
   private isInitialized = false;
+
   private cleanupInterval?: NodeJS.Timeout;
 
   constructor(private config: ConflictResolutionEngineConfig) {
@@ -213,7 +218,7 @@ export class ConflictResolutionEngine extends EventEmitter {
     context: ConflictContext,
     clientData: { value: unknown; version: VersionInfo },
     serverData: { value: unknown; version: VersionInfo },
-    commonAncestor?: { value: unknown; version: VersionInfo }
+    commonAncestor?: { value: unknown; version: VersionInfo },
   ): Promise<ConflictData | null> {
     try {
       // Check if versions actually conflict
@@ -224,22 +229,22 @@ export class ConflictResolutionEngine extends EventEmitter {
       // Determine conflict type and severity
       const conflictType = this.determineConflictType(context, clientData, serverData, commonAncestor);
       const severity = this.assessConflictSeverity(conflictType, context, clientData, serverData);
-      
+
       // Check for field-level conflicts
       const conflictingFields = this.identifyConflictingFields(clientData.value, serverData.value);
-      
+
       // Validate business rules
       const businessRules = this.validateBusinessRules(context, clientData.value, serverData.value);
-      
+
       // Determine if auto-resolvable
       const autoResolvable = this.isAutoResolvable(conflictType, severity, conflictingFields);
-      
+
       // Suggest resolution strategy
       const suggestedResolution = this.suggestResolutionStrategy(
         conflictType,
         severity,
         context,
-        conflictingFields
+        conflictingFields,
       );
 
       const conflict: ConflictData = {
@@ -287,7 +292,7 @@ export class ConflictResolutionEngine extends EventEmitter {
   async resolveConflict(
     conflictId: string,
     strategy: ConflictResolutionStrategy,
-    customResolver?: (conflict: ConflictData) => Promise<unknown>
+    customResolver?: (conflict: ConflictData) => Promise<unknown>,
   ): Promise<ConflictResolution | null> {
     const conflict = this.conflicts.get(conflictId);
     if (!conflict) {
@@ -362,13 +367,13 @@ export class ConflictResolutionEngine extends EventEmitter {
       this.stats.resolvedConflicts++;
       this.stats.resolutionsByStrategy[strategy]++;
       this.stats.resolutionsByType[conflict.type]++;
-      
+
       const resolutionTime = Date.now() - startTime;
-      this.stats.averageResolutionTime = 
-        (this.stats.averageResolutionTime * (this.stats.resolvedConflicts - 1) + resolutionTime) / 
+      this.stats.averageResolutionTime =
+        (this.stats.averageResolutionTime * (this.stats.resolvedConflicts - 1) + resolutionTime) /
         this.stats.resolvedConflicts;
 
-      this.stats.autoResolutionRate = 
+      this.stats.autoResolutionRate =
         (this.stats.resolvedConflicts / this.stats.totalConflicts) * 100;
 
       if (result === 'manual_required') {
@@ -441,9 +446,9 @@ export class ConflictResolutionEngine extends EventEmitter {
     }
 
     // Checksum mismatch
-    if (this.config.checksumValidation && 
-        clientVersion.checksum && 
-        serverVersion.checksum && 
+    if (this.config.checksumValidation &&
+        clientVersion.checksum &&
+        serverVersion.checksum &&
         clientVersion.checksum !== serverVersion.checksum) {
       return true;
     }
@@ -458,13 +463,13 @@ export class ConflictResolutionEngine extends EventEmitter {
     context: ConflictContext,
     clientData: { value: unknown; version: VersionInfo },
     serverData: { value: unknown; version: VersionInfo },
-    _commonAncestor?: { value: unknown; version: VersionInfo }
+    _commonAncestor?: { value: unknown; version: VersionInfo },
   ): ConflictType {
     // Check for deletion conflicts
     if (context.operation === 'delete' && serverData.value !== null) {
       return 'deleted_modified';
     }
-    
+
     if (context.operation === 'update' && serverData.value === null) {
       return 'modified_deleted';
     }
@@ -507,7 +512,7 @@ export class ConflictResolutionEngine extends EventEmitter {
     type: ConflictType,
     _context: ConflictContext,
     clientData: { value: unknown; version: VersionInfo },
-    serverData: { value: unknown; version: VersionInfo }
+    serverData: { value: unknown; version: VersionInfo },
   ): ConflictSeverity {
     // Critical conflicts
     if (type === 'business_rule_violation' || type === 'schema_conflict') {
@@ -523,7 +528,7 @@ export class ConflictResolutionEngine extends EventEmitter {
     const conflictingFields = this.identifyConflictingFields(clientData.value, serverData.value);
     if (conflictingFields.length > 5) {
       return 'high';
-    } else if (conflictingFields.length > 2) {
+    } if (conflictingFields.length > 2) {
       return 'medium';
     }
 
@@ -535,7 +540,7 @@ export class ConflictResolutionEngine extends EventEmitter {
    */
   private identifyConflictingFields(clientValue: unknown, serverValue: unknown): string[] {
     const conflicts: string[] = [];
-    
+
     if (typeof clientValue !== 'object' || typeof serverValue !== 'object' ||
         clientValue === null || serverValue === null) {
       return [];
@@ -543,18 +548,18 @@ export class ConflictResolutionEngine extends EventEmitter {
 
     const clientObj = clientValue as Record<string, unknown>;
     const serverObj = serverValue as Record<string, unknown>;
-    
+
     const allFields = new Set([...Object.keys(clientObj), ...Object.keys(serverObj)]);
-    
+
     for (const field of allFields) {
       const clientVal = clientObj[field];
       const serverVal = serverObj[field];
-      
+
       if (JSON.stringify(clientVal) !== JSON.stringify(serverVal)) {
         conflicts.push(field);
       }
     }
-    
+
     return conflicts;
   }
 
@@ -565,23 +570,23 @@ export class ConflictResolutionEngine extends EventEmitter {
     if (typeof clientValue !== typeof serverValue) {
       return true;
     }
-    
+
     if (Array.isArray(clientValue) !== Array.isArray(serverValue)) {
       return true;
     }
-    
+
     // Check for structural differences in objects
     if (typeof clientValue === 'object' && clientValue !== null && serverValue !== null) {
-      const clientKeys = Object.keys(clientValue as object);
+      const clientKeys = Object.keys(clientValue);
       const serverKeys = Object.keys(serverValue as object);
-      
+
       // Check for significantly different key sets
       const keyDiff = Math.abs(clientKeys.length - serverKeys.length);
       if (keyDiff > clientKeys.length * 0.3) { // 30% difference threshold
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -591,10 +596,10 @@ export class ConflictResolutionEngine extends EventEmitter {
   private validateBusinessRules(
     context: ConflictContext,
     clientValue: unknown,
-    serverValue: unknown
+    serverValue: unknown,
   ): string[] {
     const violations: string[] = [];
-    
+
     if (!this.config.businessRulesEnabled) {
       return violations;
     }
@@ -605,12 +610,12 @@ export class ConflictResolutionEngine extends EventEmitter {
         // Receipt amount cannot be negative
         const clientAmount = this.getFieldValue(clientValue, 'amount');
         const serverAmount = this.getFieldValue(serverValue, 'amount');
-        if ((typeof clientAmount === 'number' && clientAmount < 0) || 
+        if ((typeof clientAmount === 'number' && clientAmount < 0) ||
             (typeof serverAmount === 'number' && serverAmount < 0)) {
           violations.push('receipt_amount_negative');
         }
         break;
-        
+
       case 'cashiers':
         // Cashier must have valid credentials
         const clientStatus = this.getFieldValue(clientValue, 'status');
@@ -619,10 +624,10 @@ export class ConflictResolutionEngine extends EventEmitter {
           violations.push('cashier_deactivation_conflict');
         }
         break;
-        
+
       // Add more business rules as needed
     }
-    
+
     return violations;
   }
 
@@ -632,7 +637,7 @@ export class ConflictResolutionEngine extends EventEmitter {
   private isAutoResolvable(
     type: ConflictType,
     severity: ConflictSeverity,
-    conflictingFields: string[]
+    conflictingFields: string[],
   ): boolean {
     // Never auto-resolve critical conflicts
     if (severity === 'critical') {
@@ -659,7 +664,7 @@ export class ConflictResolutionEngine extends EventEmitter {
     type: ConflictType,
     severity: ConflictSeverity,
     _context: ConflictContext,
-    conflictingFields: string[]
+    conflictingFields: string[],
   ): ConflictResolutionStrategy {
     // Always manual for critical conflicts
     if (severity === 'critical') {
@@ -671,20 +676,20 @@ export class ConflictResolutionEngine extends EventEmitter {
       case 'version_mismatch':
         // Newer version wins for simple version conflicts
         return 'server-wins';
-        
+
       case 'concurrent_edit':
         // Try merging for concurrent edits
         return conflictingFields.length <= 2 ? 'merge' : 'manual';
-        
+
       case 'field_conflict':
         // Merge if only a few fields conflict
         return conflictingFields.length <= 1 ? 'merge' : 'manual';
-        
+
       case 'deleted_modified':
       case 'modified_deleted':
         // Always manual for deletion conflicts
         return 'manual';
-        
+
       default:
         return 'manual';
     }
@@ -701,7 +706,7 @@ export class ConflictResolutionEngine extends EventEmitter {
     try {
       const clientObj = conflict.clientData.value as Record<string, unknown>;
       const serverObj = conflict.serverData.value as Record<string, unknown>;
-      
+
       if (typeof clientObj !== 'object' || typeof serverObj !== 'object' ||
           clientObj === null || serverObj === null) {
         return {
@@ -713,7 +718,7 @@ export class ConflictResolutionEngine extends EventEmitter {
 
       const merged: Record<string, unknown> = { ...serverObj };
       const conflictingFields = conflict.conflictingFields || [];
-      
+
       // Simple merge strategy: use client values for non-critical fields
       for (const field of conflictingFields) {
         if (this.isNonCriticalField(field, conflict.context.resourceType)) {
@@ -742,11 +747,11 @@ export class ConflictResolutionEngine extends EventEmitter {
    */
   private async applyResolutionRules(conflict: ConflictData): Promise<ConflictResolution | null> {
     const applicableRules = Array.from(this.rules.values())
-      .filter(rule => 
+      .filter(rule =>
         rule.enabled &&
         rule.resourceTypes.includes(conflict.context.resourceType) &&
         rule.conflictTypes.includes(conflict.type) &&
-        rule.condition(conflict)
+        rule.condition(conflict),
       )
       .sort((a, b) => b.priority - a.priority);
 
@@ -773,7 +778,7 @@ export class ConflictResolutionEngine extends EventEmitter {
   private generateNewVersion(conflict: ConflictData, resolvedValue: unknown): VersionInfo {
     const maxVersion = Math.max(
       conflict.clientData.version.version,
-      conflict.serverData.version.version
+      conflict.serverData.version.version,
     );
 
     return {
@@ -794,7 +799,7 @@ export class ConflictResolutionEngine extends EventEmitter {
     for (let i = 0; i < jsonString.length; i++) {
       const char = jsonString.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
+      hash &= hash;
     }
     return hash.toString(16);
   }
@@ -841,9 +846,9 @@ export class ConflictResolutionEngine extends EventEmitter {
       resolver: async (conflict) => {
         const clientTime = conflict.clientData.version.lastModifiedAt || 0;
         const serverTime = conflict.serverData.version.lastModifiedAt || 0;
-        
+
         const useClient = clientTime > serverTime;
-        
+
         return {
           conflictId: conflict.id,
           strategy: useClient ? 'client-wins' : 'server-wins',
@@ -851,7 +856,7 @@ export class ConflictResolutionEngine extends EventEmitter {
           resolvedValue: useClient ? conflict.clientData.value : conflict.serverData.value,
           resolvedVersion: this.generateNewVersion(
             conflict,
-            useClient ? conflict.clientData.value : conflict.serverData.value
+            useClient ? conflict.clientData.value : conflict.serverData.value,
           ),
           appliedAt: Date.now(),
           reasoning: `Last writer wins: ${useClient ? 'client' : 'server'} data is more recent`,
@@ -902,7 +907,7 @@ export class ConflictResolutionEngine extends EventEmitter {
       if (this.resolutions.size > this.config.maxConflictHistory) {
         const sortedResolutions = Array.from(this.resolutions.entries())
           .sort(([, a], [, b]) => b.appliedAt - a.appliedAt);
-        
+
         const toDelete = sortedResolutions.slice(this.config.maxConflictHistory);
         for (const [id] of toDelete) {
           this.resolutions.delete(id);
@@ -912,9 +917,9 @@ export class ConflictResolutionEngine extends EventEmitter {
 
       // Auto-resolve timed-out conflicts
       const timedOutConflicts = Array.from(this.conflicts.values())
-        .filter(conflict => 
+        .filter(conflict =>
           Date.now() - conflict.detectedAt > this.config.conflictTimeout &&
-          conflict.autoResolvable
+          conflict.autoResolvable,
         );
 
       for (const conflict of timedOutConflicts) {
@@ -933,7 +938,7 @@ export class ConflictResolutionEngine extends EventEmitter {
  * Create conflict resolution engine with default configuration
  */
 export function createConflictResolutionEngine(
-  config: Partial<ConflictResolutionEngineConfig> = {}
+  config: Partial<ConflictResolutionEngineConfig> = {},
 ): ConflictResolutionEngine {
   const defaultConfig: ConflictResolutionEngineConfig = {
     enabled: true,

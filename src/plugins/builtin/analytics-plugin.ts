@@ -3,9 +3,11 @@
  * Provides comprehensive analytics for A-Cube SDK usage
  */
 
+import type { HttpResponse, RequestOptions } from '@/http/client';
+
 import { BasePlugin } from '../core/base-plugin';
+
 import type { PluginContext, PluginManifest } from '../core/plugin-manager';
-import type { RequestOptions, HttpResponse } from '@/http/client';
 
 export interface AnalyticsEvent {
   event: string;
@@ -53,15 +55,19 @@ export class AnalyticsPlugin extends BasePlugin {
   };
 
   private sessionId: string = '';
+
   private requestMetrics: Map<string, { startTime: number; options: RequestOptions }> = new Map();
+
   private eventQueue: AnalyticsEvent[] = [];
+
   private performanceMetrics: PerformanceMetric[] = [];
+
   private flushInterval?: NodeJS.Timeout;
 
   protected async initialize(context: PluginContext): Promise<void> {
     // Generate session ID
     this.sessionId = this.generateSessionId();
-    
+
     // Load configuration
     const config = this.getConfig<{
       enabled: boolean;
@@ -101,7 +107,7 @@ export class AnalyticsPlugin extends BasePlugin {
   protected async cleanup(_context: PluginContext): Promise<void> {
     // Flush remaining events
     await this.flushEvents();
-    
+
     // Clear interval
     if (this.flushInterval) {
       clearInterval(this.flushInterval);
@@ -123,11 +129,11 @@ export class AnalyticsPlugin extends BasePlugin {
 
   protected override async processRequest(_context: PluginContext, options: RequestOptions): Promise<RequestOptions> {
     const config = this.getConfig<{ trackPerformance: boolean }>('settings');
-    if (!config?.trackPerformance) return options;
+    if (!config?.trackPerformance) {return options;}
 
     // Generate request ID for tracking
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-    
+
     // Store request start time
     this.requestMetrics.set(requestId, {
       startTime: Date.now(),
@@ -152,13 +158,13 @@ export class AnalyticsPlugin extends BasePlugin {
 
   protected override async processResponse(_context: PluginContext, response: HttpResponse<any>): Promise<HttpResponse<any>> {
     const config = this.getConfig<{ trackPerformance: boolean }>('settings');
-    if (!config?.trackPerformance) return response;
+    if (!config?.trackPerformance) {return response;}
 
-    const requestId = response.requestId;
+    const {requestId} = response;
     const requestData = this.requestMetrics.get(requestId);
 
     if (requestData) {
-      const duration = response.duration;
+      const {duration} = response;
       const success = response.status >= 200 && response.status < 400;
 
       // Record performance metric
@@ -233,9 +239,9 @@ export class AnalyticsPlugin extends BasePlugin {
   public getUsageStats(timeRangeMs: number = 3600000): UsageStats {
     const now = Date.now();
     const startTime = now - timeRangeMs;
-    
+
     const relevantMetrics = this.performanceMetrics.filter(
-      m => m.timestamp >= startTime
+      m => m.timestamp >= startTime,
     );
 
     const totalRequests = relevantMetrics.length;
@@ -294,7 +300,7 @@ export class AnalyticsPlugin extends BasePlugin {
     this.eventQueue = [];
     this.performanceMetrics = [];
     this.requestMetrics.clear();
-    
+
     // Clear storage
     const keys = this.context?.storage.keys() || [];
     keys.forEach(key => {
@@ -307,7 +313,7 @@ export class AnalyticsPlugin extends BasePlugin {
   }
 
   private async flushEvents(): Promise<void> {
-    if (this.eventQueue.length === 0) return;
+    if (this.eventQueue.length === 0) {return;}
 
     const events = [...this.eventQueue];
     this.eventQueue = [];

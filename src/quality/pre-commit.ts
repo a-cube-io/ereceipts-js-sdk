@@ -68,7 +68,9 @@ export interface CommitValidation {
 
 export class PreCommitManager {
   private config: QualityGateConfig;
+
   private hooks: Map<string, QualityHook> = new Map();
+
   private cache: Map<string, QualityCheckResult> = new Map();
 
   constructor(config?: Partial<QualityGateConfig>) {
@@ -125,10 +127,10 @@ export class PreCommitManager {
       if (this.config.parallel && !this.config.failFast) {
         // Run all checks in parallel
         const promises = enabledChecks.map(({ name, config }) =>
-          this.runQualityCheck(name, config, stagedFiles)
+          this.runQualityCheck(name, config, stagedFiles),
         );
         const checkResults = await Promise.allSettled(promises);
-        
+
         checkResults.forEach((result, index) => {
           if (result.status === 'fulfilled') {
             results.push(result.value);
@@ -167,10 +169,10 @@ export class PreCommitManager {
 
       // Calculate overall validation result
       const validation = this.calculateCommitValidation(results);
-      
+
       // Cache results for performance
       this.cacheResults(results);
-      
+
       // Send notifications if needed
       if (!validation.isValid || validation.issues.length > 0) {
         await this.sendNotifications(validation, results);
@@ -210,10 +212,10 @@ export class PreCommitManager {
     const remainingIssues: QualityIssue[] = [];
 
     for (const [checkName, config] of Object.entries(this.config.checks)) {
-      if (!config.enabled || !config.autofix) continue;
+      if (!config.enabled || !config.autofix) {continue;}
 
       const hook = this.hooks.get(checkName);
-      if (!hook?.autofix) continue;
+      if (!hook?.autofix) {continue;}
 
       try {
         const result = await hook.autofix(stagedFiles, config);
@@ -296,7 +298,7 @@ export class PreCommitManager {
         const stats = await fs.promises.stat(file);
         const ext = file.substring(file.lastIndexOf('.'));
         const maxSize = maxSizes[ext as keyof typeof maxSizes];
-        
+
         if (maxSize && stats.size > maxSize) {
           issues.push({
             file,
@@ -342,23 +344,23 @@ export class PreCommitManager {
     const passed = results.filter(r => r.status === 'pass').length;
     const failed = results.filter(r => r.status === 'fail').length;
     const warnings = results.filter(r => r.status === 'warning').length;
-    
+
     const score = Math.round((passed / results.length) * 100);
-    
+
     const recommendations: string[] = [];
-    
+
     if (failed > 0) {
       recommendations.push('Fix critical issues before committing');
     }
-    
+
     if (warnings > 0) {
       recommendations.push('Consider addressing warnings to improve code quality');
     }
 
-    const securityIssues = results.some(r => 
-      r.details.issues.some(i => i.category === 'security')
+    const securityIssues = results.some(r =>
+      r.details.issues.some(i => i.category === 'security'),
     );
-    
+
     if (securityIssues) {
       recommendations.push('Review and fix security vulnerabilities immediately');
     }
@@ -379,11 +381,11 @@ export class PreCommitManager {
   private async runQualityCheck(
     name: string,
     config: QualityCheckConfig,
-    files: string[]
+    files: string[],
   ): Promise<QualityCheckResult> {
     const startTime = Date.now();
     const hook = this.hooks.get(name);
-    
+
     if (!hook) {
       return {
         check: name,
@@ -402,7 +404,7 @@ export class PreCommitManager {
       const result = await Promise.race([
         hook.execute(files, config),
         new Promise<QualityCheckResult>((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout')), config.timeout)
+          setTimeout(() => reject(new Error('Timeout')), config.timeout),
         ),
       ]);
 
@@ -433,13 +435,13 @@ export class PreCommitManager {
   private calculateCommitValidation(results: QualityCheckResult[]): CommitValidation {
     const issues: QualityIssue[] = [];
     const suggestions: string[] = [];
-    
+
     let score = 100;
     let hasErrors = false;
 
     for (const result of results) {
       issues.push(...result.details.issues);
-      
+
       if (result.status === 'fail') {
         const errorIssues = result.details.issues.filter(i => i.severity === 'error');
         if (errorIssues.length > 0) {
@@ -447,7 +449,7 @@ export class PreCommitManager {
           score -= errorIssues.length * 10;
         }
       }
-      
+
       if (result.status === 'warning') {
         score -= result.details.issues.length * 2;
       }
@@ -458,7 +460,7 @@ export class PreCommitManager {
     if (hasErrors) {
       suggestions.push('Fix all error-level issues before committing');
     }
-    
+
     if (issues.some(i => i.fixable)) {
       suggestions.push('Run auto-fix to resolve fixable issues');
     }
@@ -485,7 +487,7 @@ export class PreCommitManager {
         warnings: results.flatMap(r => r.details.warnings),
       },
     });
-    
+
     // Keep only last 10 results
     if (this.cache.size > 10) {
       const firstKey = this.cache.keys().next().value;
@@ -497,7 +499,7 @@ export class PreCommitManager {
 
   private async sendNotifications(
     validation: CommitValidation,
-    results: QualityCheckResult[]
+    results: QualityCheckResult[],
   ): Promise<void> {
     if (!validation.isValid && this.config.notifications.slack) {
       // Send Slack notification for failed commits
@@ -508,11 +510,11 @@ export class PreCommitManager {
 
   private formatSlackMessage(
     validation: CommitValidation,
-    _results: QualityCheckResult[]
+    _results: QualityCheckResult[],
   ): string {
     const errorCount = validation.issues.filter(i => i.severity === 'error').length;
     const warningCount = validation.issues.filter(i => i.severity === 'warning').length;
-    
+
     return `🚨 Pre-commit Quality Check Failed
 Score: ${validation.score}/100
 Errors: ${errorCount}
@@ -528,21 +530,21 @@ Status: ${validation.isValid ? '✅ Passed' : '❌ Failed'}`;
   private logQualitySummary(results: QualityCheckResult[], duration: number): void {
     console.log('\n📊 Quality Check Summary');
     console.log('─'.repeat(50));
-    
+
     for (const result of results) {
-      const icon = result.status === 'pass' ? '✅' : 
-                   result.status === 'fail' ? '❌' : 
+      const icon = result.status === 'pass' ? '✅' :
+                   result.status === 'fail' ? '❌' :
                    result.status === 'warning' ? '⚠️' : '⏭️';
-      
+
       console.log(`${icon} ${result.check}: ${result.status} (${result.duration}ms)`);
-      
+
       if (result.details.issues.length > 0) {
         result.details.issues.forEach(issue => {
           console.log(`   └─ ${issue.file}: ${issue.message}`);
         });
       }
     }
-    
+
     console.log('─'.repeat(50));
     console.log(`Total duration: ${duration}ms`);
   }

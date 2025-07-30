@@ -1,16 +1,16 @@
 /**
  * ACubeProvider - React Context System for A-Cube SDK
  * Enterprise-grade provider with offline capabilities, sync management, and error boundaries
- * 
+ *
  * @module ACubeProvider
  * @description
  * The ACubeProvider is a cross-platform React context provider that initializes
  * and manages the A-Cube SDK instance across your application. It automatically
  * detects the runtime environment and configures appropriate network management:
- * 
+ *
  * - **Web**: Uses NetworkManager with browser online/offline event monitoring
  * - **React Native**: Uses ConnectivityManager with advanced mobile network detection
- * 
+ *
  * Features:
  * - Automatic platform detection and configuration
  * - Intelligent network status monitoring
@@ -18,14 +18,14 @@
  * - Sync engine integration
  * - Error boundary protection
  * - TypeScript support with full type safety
- * 
+ *
  * @example
  * ```typescript
  * import { ACubeProvider, useACube } from '@a-cube-io/cli/hooks/react';
- * 
+ *
  * function App() {
  *   return (
- *     <ACubeProvider 
+ *     <ACubeProvider
  *       config={{
  *         apiKey: process.env.ACUBE_API_KEY,
  *         environment: 'production',
@@ -39,23 +39,26 @@
  *     </ACubeProvider>
  *   );
  * }
- * 
+ *
  * function MyApp() {
  *   const { sdk, isOnline, isInitialized } = useACube();
  *   // Use SDK...
  * }
  * ```
- * 
+ *
  * @see {@link file://./docs/CROSS_PLATFORM_GUIDE.md} for cross-platform setup
  */
 
-import React, { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
-import { ACubeSDK, type ACubeSDKConfig } from '@/core/sdk';
+import type { ReactNode } from 'react';
 import type { ProgressiveSyncEngine } from '@/sync/sync-engine';
 import type { UnifiedStorage } from '@/storage/unified-storage';
 import type { EnterpriseQueueManager } from '@/storage/queue/queue-manager';
+
+import { ACubeSDK, type ACubeSDKConfig } from '@/core/sdk';
+import React, { useRef, useState, useEffect, useContext, createContext } from 'react';
+
 // Types for network managers are imported dynamically
-import { isReactNative, isWeb, PlatformView, PlatformText } from './platform-components';
+import { isWeb, PlatformText, PlatformView, isReactNative } from './platform-components';
 
 // Common interface for network managers
 interface INetworkManager {
@@ -76,7 +79,7 @@ export interface ACubeContextValue {
   isOfflineEnabled: boolean;
   isSyncEnabled: boolean;
   initializationError?: Error | undefined;
-  
+
   // Utility methods
   enableOffline: () => Promise<void>;
   enableSync: () => Promise<void>;
@@ -126,25 +129,25 @@ class ACubeErrorBoundary extends React.Component<
   override render() {
     if (this.state.hasError) {
       return this.props.fallback || (
-        <PlatformView 
-          role="alert" 
-          style={{ 
-            padding: '20px', 
+        <PlatformView
+          role="alert"
+          style={{
+            padding: '20px',
             alignItems: 'center',
             justifyContent: 'center',
             flex: 1,
           }}
         >
-          <PlatformText style={{ 
-            fontSize: 18, 
-            fontWeight: 'bold', 
+          <PlatformText style={{
+            fontSize: 18,
+            fontWeight: 'bold',
             marginBottom: 10,
             textAlign: 'center',
           }}>
             Something went wrong with the ACube SDK
           </PlatformText>
-          <PlatformText style={{ 
-            fontSize: 12, 
+          <PlatformText style={{
+            fontSize: 12,
             color: '#666',
             marginTop: 10,
             textAlign: 'center',
@@ -180,16 +183,16 @@ export const ACubeProvider: React.FC<ACubeProviderProps> = ({
     return true;
   });
   const [initializationError, setInitializationError] = useState<Error>();
-  
+
   // SDK instance (created once)
   const sdkRef = useRef<ACubeSDK | undefined>(undefined);
   const networkManagerRef = useRef<INetworkManager | undefined>(undefined);
-  
+
   // Initialize SDK instance
   if (!sdkRef.current) {
     sdkRef.current = new ACubeSDK(config);
   }
-  
+
   const sdk = sdkRef.current;
 
   // Initialize platform-specific network manager
@@ -201,13 +204,13 @@ export const ACubeProvider: React.FC<ACubeProviderProps> = ({
             // Use React Native connectivity manager for better network detection
             const { ConnectivityManager } = await import('@/react-native/connectivity-manager');
             const manager = new ConnectivityManager();
-            
+
             // Create a unified interface wrapper for ConnectivityManager
             const wrappedManager: INetworkManager = {
-              initialize: async () => {
+              initialize: async () =>
                 // ConnectivityManager initializes automatically in constructor
-                return Promise.resolve();
-              },
+                 Promise.resolve()
+              ,
               getConnectionInfo: () => {
                 const state = manager.getNetworkState();
                 return {
@@ -229,15 +232,15 @@ export const ACubeProvider: React.FC<ACubeProviderProps> = ({
               },
               destroy: () => {
                 manager.destroy();
-              }
+              },
             };
-            
+
             networkManagerRef.current = wrappedManager;
           } else {
             // Use simple network manager for web
             const { NetworkManager } = await import('@/sync/network-manager-simple');
             const manager = new NetworkManager();
-            
+
             // Create a unified interface wrapper for NetworkManager
             const wrappedManager: INetworkManager = {
               initialize: () => manager.initialize(),
@@ -255,24 +258,24 @@ export const ACubeProvider: React.FC<ACubeProviderProps> = ({
               },
               destroy: () => {
                 manager.stopMonitoring();
-              }
+              },
             };
-            
+
             networkManagerRef.current = wrappedManager;
           }
-          
+
           // Initialize the wrapped manager
           if (networkManagerRef.current.initialize) {
             await networkManagerRef.current.initialize();
           }
-          
+
           // Listen for network changes
           if (networkManagerRef.current.onConnectionChange) {
             networkManagerRef.current.onConnectionChange((info: any) => {
               setIsOnline(info.isOnline || info.isConnected);
             });
           }
-          
+
           // Get initial network status
           if (networkManagerRef.current.getConnectionInfo) {
             const initialInfo = networkManagerRef.current.getConnectionInfo();
@@ -289,7 +292,7 @@ export const ACubeProvider: React.FC<ACubeProviderProps> = ({
     };
 
     initializeNetworkManager();
-    
+
     return () => {
       if (networkManagerRef.current?.destroy) {
         networkManagerRef.current.destroy();
@@ -299,7 +302,7 @@ export const ACubeProvider: React.FC<ACubeProviderProps> = ({
 
   // Handle browser online/offline events (web only)
   useEffect(() => {
-    if (!isWeb) return;
+    if (!isWeb) {return;}
 
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -313,7 +316,7 @@ export const ACubeProvider: React.FC<ACubeProviderProps> = ({
         window.removeEventListener('offline', handleOffline);
       };
     }
-    
+
     return undefined;
   }, []);
 
@@ -322,18 +325,18 @@ export const ACubeProvider: React.FC<ACubeProviderProps> = ({
     let mounted = true;
 
     const initializeSDK = async () => {
-      if (!autoInitialize) return;
+      if (!autoInitialize) {return;}
 
       try {
         await sdk.initialize();
-        
+
         if (mounted) {
           setIsInitialized(true);
           setInitializationError(undefined);
         }
       } catch (error) {
         const initError = error instanceof Error ? error : new Error('SDK initialization failed');
-        
+
         if (mounted) {
           setInitializationError(initError);
           onInitializationError?.(initError);
@@ -357,7 +360,7 @@ export const ACubeProvider: React.FC<ACubeProviderProps> = ({
         offline: { ...config.offline, enabled: true },
         features: { ...config.features, enableOfflineQueue: true },
       });
-      
+
       // Initialize storage and queue if not already done
       if (sdk.storage && sdk.queue) {
         await sdk.storage.initialize?.();
@@ -375,7 +378,7 @@ export const ACubeProvider: React.FC<ACubeProviderProps> = ({
         ...config,
         features: { ...config.features, enableSync: true },
       });
-      
+
       // Initialize sync engine
       if (sdk.sync) {
         await sdk.sync.initialize?.();
@@ -449,11 +452,11 @@ export const ACubeProvider: React.FC<ACubeProviderProps> = ({
  */
 export const useACube = (): ACubeContextValue => {
   const context = useContext(ACubeContext);
-  
+
   if (context === undefined) {
     throw new Error('useACube must be used within an ACubeProvider');
   }
-  
+
   return context;
 };
 
@@ -470,11 +473,11 @@ export const useACubeSDK = (): ACubeSDK => {
  */
 export const useACubeStorage = (): UnifiedStorage => {
   const { storage } = useACube();
-  
+
   if (!storage) {
     throw new Error('Offline storage is not enabled. Set offline.enabled to true in ACubeProvider config.');
   }
-  
+
   return storage;
 };
 
@@ -483,11 +486,11 @@ export const useACubeStorage = (): UnifiedStorage => {
  */
 export const useACubeQueueManager = (): EnterpriseQueueManager => {
   const { queueManager } = useACube();
-  
+
   if (!queueManager) {
     throw new Error('Offline queue is not enabled. Set features.enableOfflineQueue to true in ACubeProvider config.');
   }
-  
+
   return queueManager;
 };
 
@@ -496,11 +499,11 @@ export const useACubeQueueManager = (): EnterpriseQueueManager => {
  */
 export const useACubeSyncEngine = (): ProgressiveSyncEngine => {
   const { syncEngine } = useACube();
-  
+
   if (!syncEngine) {
     throw new Error('Sync is not enabled. Set features.enableSync to true in ACubeProvider config.');
   }
-  
+
   return syncEngine;
 };
 
@@ -536,7 +539,7 @@ export const useACubeNetworkStatus = () => {
       if (networkManager.onConnectionChange) {
         networkManager.onConnectionChange(updateConnectionInfo);
       }
-      
+
       // Get initial status
       if (networkManager.getConnectionInfo) {
         const currentInfo = networkManager.getConnectionInfo();

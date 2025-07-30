@@ -2,7 +2,7 @@
  * React Native Background Processor
  * Handles background tasks, sync operations, and app lifecycle management
  * with intelligent scheduling and resource management
- * 
+ *
  * Features:
  * - Background task scheduling and execution
  * - App state-aware processing
@@ -15,17 +15,17 @@
 import { EventEmitter } from 'eventemitter3';
 
 // Platform detection
-const isReactNative = typeof navigator !== 'undefined' && 
+const isReactNative = typeof navigator !== 'undefined' &&
   ((navigator as any).product === 'ReactNative' || (global as any).__REACT_NATIVE__);
 
 /**
  * Background task types
  */
-export type BackgroundTaskType = 
-  | 'sync' 
-  | 'upload' 
-  | 'cleanup' 
-  | 'analytics' 
+export type BackgroundTaskType =
+  | 'sync'
+  | 'upload'
+  | 'cleanup'
+  | 'analytics'
   | 'cache_warmup'
   | 'notification'
   | 'custom';
@@ -86,34 +86,34 @@ export interface BatteryState {
 export interface BackgroundProcessorConfig {
   /** Maximum concurrent background tasks */
   maxConcurrentTasks?: number;
-  
+
   /** Default task timeout in ms */
   defaultTaskTimeout?: number;
-  
+
   /** Enable battery optimization */
   enableBatteryOptimization?: boolean;
-  
+
   /** Minimum battery level for non-critical tasks */
   minBatteryLevel?: number;
-  
+
   /** Enable app state management */
   enableAppStateManagement?: boolean;
-  
+
   /** Maximum background execution time in ms */
   maxBackgroundTime?: number;
-  
+
   /** Enable task persistence */
   enableTaskPersistence?: boolean;
-  
+
   /** Storage key for task persistence */
   persistenceKey?: string;
-  
+
   /** Enable resource monitoring */
   enableResourceMonitoring?: boolean;
-  
+
   /** CPU usage threshold for throttling */
   cpuThrottleThreshold?: number;
-  
+
   /** Memory usage threshold for throttling */
   memoryThrottleThreshold?: number;
 }
@@ -161,23 +161,33 @@ const DEFAULT_CONFIG: Required<BackgroundProcessorConfig> = {
  */
 export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents> {
   private config: Required<BackgroundProcessorConfig>;
+
   private taskQueue: BackgroundTask[] = [];
+
   private activeTasks = new Map<string, { task: BackgroundTask; controller: AbortController }>();
+
   private taskExecutors = new Map<BackgroundTaskType, TaskExecutor>();
+
   private isInitialized = false;
+
   private isPaused = false;
-  
+
   // React Native modules
   private AppState: any;
+
   private BackgroundTask: any;
+
   private AsyncStorage: any;
-  
+
   // State tracking
   private currentAppState: AppState = 'active';
+
   private batteryState: BatteryState = { level: 1, isCharging: false };
+
   private backgroundTaskId: number | undefined;
+
   private resourceMonitorTimer?: NodeJS.Timeout;
-  
+
   // Performance tracking
   private executionStats = {
     totalTasks: 0,
@@ -190,12 +200,12 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
   constructor(config: BackgroundProcessorConfig = {}) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
-    
+
     this.initialize();
   }
 
   private async initialize(): Promise<void> {
-    if (this.isInitialized || !isReactNative) return;
+    if (this.isInitialized || !isReactNative) {return;}
 
     try {
       // Import React Native modules
@@ -238,7 +248,7 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
   }
 
   private setupAppStateListener(): void {
-    if (!this.AppState) return;
+    if (!this.AppState) {return;}
 
     this.AppState.addEventListener('change', (nextAppState: AppState) => {
       const previousAppState = this.currentAppState;
@@ -256,12 +266,12 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
     try {
       // Try to import battery monitoring
       const DeviceInfo = await import('react-native-device-info');
-      
+
       // Initial battery state
       const batteryLevel = await DeviceInfo.default.getBatteryLevel();
       const isCharging = (await DeviceInfo.default.getPowerState()).batteryState === 'charging';
       const isPowerSaveMode = (await DeviceInfo.default.getPowerState()).lowPowerMode;
-      
+
       this.batteryState = {
         level: batteryLevel,
         isCharging,
@@ -333,7 +343,7 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
 
   private handleAppBackground(): void {
     console.log('App went to background');
-    
+
     // Start background task to extend execution time
     if (this.BackgroundTask && this.taskQueue.length > 0) {
       this.backgroundTaskId = this.BackgroundTask.start({
@@ -348,14 +358,14 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
     }
 
     this.emit('app:background', { remainingTime: this.config.maxBackgroundTime });
-    
+
     // Process critical tasks immediately
     this.processCriticalTasks();
   }
 
   private handleAppForeground(): void {
     console.log('App came to foreground');
-    
+
     // End background task
     if (this.backgroundTaskId && this.BackgroundTask) {
       this.BackgroundTask.finish(this.backgroundTaskId);
@@ -363,7 +373,7 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
     }
 
     this.emit('app:foreground', {});
-    
+
     // Resume normal processing
     this.resumeExecution();
     this.processQueue();
@@ -371,7 +381,7 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
 
   private handleBackgroundTimeExpired(): void {
     console.log('Background time expired, pausing non-critical tasks');
-    
+
     // Cancel non-critical tasks
     for (const [taskId, { task, controller }] of this.activeTasks) {
       if (task.priority !== 'critical') {
@@ -389,7 +399,7 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
 
   private async processCriticalTasks(): Promise<void> {
     const criticalTasks = this.taskQueue.filter(task => task.priority === 'critical');
-    
+
     for (const task of criticalTasks) {
       if (this.activeTasks.size < this.config.maxConcurrentTasks) {
         await this.executeTask(task);
@@ -399,7 +409,7 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
 
   private pauseNonCriticalTasks(): void {
     this.isPaused = true;
-    
+
     // Cancel non-critical running tasks
     for (const [taskId, { task, controller }] of this.activeTasks) {
       if (task.priority !== 'critical') {
@@ -428,12 +438,12 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
     // Sync task executor
     this.registerExecutor('sync', async (_task: BackgroundTask, signal: AbortSignal) => {
       const startTime = Date.now();
-      
+
       try {
         // Simulate sync operation
         await new Promise((resolve, reject) => {
           const timeout = setTimeout(resolve, Math.random() * 2000 + 1000);
-          
+
           signal.addEventListener('abort', () => {
             clearTimeout(timeout);
             reject(new Error('Task aborted'));
@@ -457,12 +467,12 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
     // Cleanup task executor
     this.registerExecutor('cleanup', async (_task: BackgroundTask, signal: AbortSignal) => {
       const startTime = Date.now();
-      
+
       try {
         // Simulate cleanup operation
         await new Promise((resolve, reject) => {
           const timeout = setTimeout(resolve, 500);
-          
+
           signal.addEventListener('abort', () => {
             clearTimeout(timeout);
             reject(new Error('Task aborted'));
@@ -551,11 +561,11 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
     if (this.taskQueue.some(task => task.id === taskId)) {
       return 'queued';
     }
-    
+
     if (this.activeTasks.has(taskId)) {
       return 'running';
     }
-    
+
     return 'not_found';
   }
 
@@ -580,32 +590,32 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
       const priorityOrder = { critical: 4, high: 3, normal: 2, low: 1 };
       const aPriority = priorityOrder[a.priority];
       const bPriority = priorityOrder[b.priority];
-      
+
       if (aPriority !== bPriority) {
         return bPriority - aPriority; // Higher priority first
       }
-      
+
       // If same priority, sort by execution time
       const aTime = a.executionTime || (a.createdAt + (a.delay || 0));
       const bTime = b.executionTime || (b.createdAt + (b.delay || 0));
-      
+
       return aTime - bTime; // Earlier time first
     });
   }
 
   private async processQueue(): Promise<void> {
-    if (this.isPaused || this.taskQueue.length === 0) return;
+    if (this.isPaused || this.taskQueue.length === 0) {return;}
 
     const now = Date.now();
-    
+
     while (
-      this.taskQueue.length > 0 && 
+      this.taskQueue.length > 0 &&
       this.activeTasks.size < this.config.maxConcurrentTasks &&
       !this.isPaused
     ) {
       const task = this.taskQueue[0];
-      if (!task) break;
-      
+      if (!task) {break;}
+
       // Check if task is ready to execute
       const executionTime = task.executionTime || (task.createdAt + (task.delay || 0));
       if (executionTime > now) {
@@ -628,7 +638,7 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
       if (nextTask) {
         const nextExecutionTime = nextTask.executionTime || (nextTask.createdAt + (nextTask.delay || 0));
         const delay = Math.max(0, nextExecutionTime - now);
-        
+
         setTimeout(() => this.processQueue(), delay);
       }
     } else {
@@ -649,7 +659,7 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
 
     // Check network requirements (would need ConnectivityManager integration)
     // This is a placeholder for network checks
-    
+
     // Check if device should be idle (placeholder)
     if (task.requiresDeviceIdle && this.currentAppState === 'active') {
       return false;
@@ -692,7 +702,7 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
   private handleTaskResult(task: BackgroundTask, result: TaskResult): void {
     this.executionStats.totalTasks++;
     this.executionStats.totalExecutionTime += result.executionTime;
-    this.executionStats.avgExecutionTime = 
+    this.executionStats.avgExecutionTime =
       this.executionStats.totalExecutionTime / this.executionStats.totalTasks;
 
     if (result.success) {
@@ -712,12 +722,12 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
       const retryTask: BackgroundTask = {
         ...task,
         retryCount: retryCount + 1,
-        delay: Math.pow(2, retryCount) * 1000, // Exponential backoff
+        delay: 2**retryCount * 1000, // Exponential backoff
       };
 
       this.taskQueue.unshift(retryTask);
       this.emit('task:retry', { task: retryTask, attempt: retryCount + 1 });
-      
+
       // Process queue after a delay
       setTimeout(() => this.processQueue(), 1000);
     } else {
@@ -731,17 +741,17 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
   }
 
   private async persistTasks(): Promise<void> {
-    if (!this.AsyncStorage) return;
+    if (!this.AsyncStorage) {return;}
 
     try {
-      const tasksToSave = this.taskQueue.filter(task => 
+      const tasksToSave = this.taskQueue.filter(task =>
         // Only persist tasks that should survive app restarts
-        task.type === 'sync' || task.priority === 'critical'
+        task.type === 'sync' || task.priority === 'critical',
       );
 
       await this.AsyncStorage.setItem(
         this.config.persistenceKey,
-        JSON.stringify(tasksToSave)
+        JSON.stringify(tasksToSave),
       );
     } catch (error) {
       console.warn('Failed to persist tasks:', error);
@@ -749,7 +759,7 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
   }
 
   private async loadPersistedTasks(): Promise<void> {
-    if (!this.AsyncStorage) return;
+    if (!this.AsyncStorage) {return;}
 
     try {
       const persistedTasks = await this.AsyncStorage.getItem(this.config.persistenceKey);
@@ -757,7 +767,7 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
         const tasks: BackgroundTask[] = JSON.parse(persistedTasks);
         this.taskQueue.push(...tasks);
         this.sortTaskQueue();
-        
+
         // Clear persisted tasks
         await this.AsyncStorage.removeItem(this.config.persistenceKey);
       }
@@ -771,12 +781,12 @@ export class BackgroundProcessor extends EventEmitter<BackgroundProcessorEvents>
    */
   async processCriticalTasksImmediately(): Promise<void> {
     const criticalTasks = this.taskQueue.filter(task => task.priority === 'critical');
-    
+
     for (const task of criticalTasks) {
       await this.executeTask(task);
       this.taskQueue = this.taskQueue.filter(t => t.id !== task.id);
     }
-    
+
     await this.persistTasks();
   }
 

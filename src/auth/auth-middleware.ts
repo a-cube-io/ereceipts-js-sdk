@@ -4,12 +4,15 @@
  */
 
 import type { Middleware, RequestContext, ResponseContext } from '@/http/middleware';
-import { AuthService } from './auth-service';
-import { TokenManager } from './token-manager';
-import type { AuthMiddlewareConfig, AuthError, UserRole } from './types';
+
+import { EventEmitter } from 'eventemitter3';
+
 import { AuthErrorType } from './types';
 import { AuthEventType, createAuthEvent } from './auth-events';
-import { EventEmitter } from 'eventemitter3';
+
+import type { AuthService } from './auth-service';
+import type { TokenManager } from './token-manager';
+import type { UserRole, AuthError, AuthMiddlewareConfig } from './types';
 
 interface QueuedRequest {
   context: RequestContext;
@@ -41,19 +44,25 @@ const DEFAULT_CONFIG: Required<AuthMiddlewareConfig> = {
  */
 export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
   readonly name = 'enhanced-auth';
+
   readonly priority = 100; // Highest priority for auth
 
   private config: Required<AuthMiddlewareConfig>;
+
   private authService: AuthService;
+
   private tokenManager: TokenManager;
+
   private isRefreshing = false;
+
   private requestQueue: QueuedRequest[] = [];
+
   private readonly queueTimeout = 30000; // 30 seconds
 
   constructor(
     authService: AuthService,
     tokenManager: TokenManager,
-    config: Partial<AuthMiddlewareConfig> = {}
+    config: Partial<AuthMiddlewareConfig> = {},
   ) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -80,7 +89,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
 
     // Get current authentication state
     const authState = this.authService.getState();
-    
+
     // If not authenticated, return as-is (let the endpoint decide how to handle)
     if (!authState.isAuthenticated || !authState.accessToken) {
       return context;
@@ -99,7 +108,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
 
     // Add authentication headers
     const updatedContext = await this.addAuthHeaders(context);
-    
+
     return updatedContext;
   }
 
@@ -108,14 +117,14 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
    */
   async afterResponse(
     context: RequestContext,
-    response: ResponseContext
+    response: ResponseContext,
   ): Promise<ResponseContext> {
     // Handle 401 Unauthorized responses
     if (response.status === 401 && this.shouldRetryWithRefresh(context)) {
       try {
         // Attempt token refresh
         await this.refreshTokensWithQueue();
-        
+
         // Retry the original request with new token
         return this.retryRequestWithNewToken(context, response);
       } catch (refreshError) {
@@ -140,7 +149,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
     // Handle network errors that might be auth-related
     if (this.isAuthRelatedError(error)) {
       const authError = this.createAuthError(error, context);
-      
+
       // Emit auth error event
       this.emit(AuthEventType.NETWORK_ERROR, createAuthEvent(
         AuthEventType.NETWORK_ERROR,
@@ -150,7 +159,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
           endpoint: context.url,
           statusCode: (error as any).statusCode,
           willRetry: false,
-        }
+        },
       ));
 
       return authError;
@@ -170,7 +179,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
     if (authState.accessToken) {
       const authHeader = `${this.config.authScheme} ${authState.accessToken}`;
       updatedContext.headers[this.config.authHeaderName] = authHeader;
-      
+
       /* // Debug: Log request headers for API server debugging
       console.log('🔧 API Request Debug:', {
         url: `${context.method} ${context.url}`,
@@ -187,20 +196,20 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
         authState: {
           isAuthenticated: authState.isAuthenticated,
           hasUser: !!authState.user,
-          hasToken: !!authState.accessToken
-        }
+          hasToken: !!authState.accessToken,
+        },
       });
     }
 
     // Add role headers
     if (this.config.includeRoleHeaders && authState.user?.roles) {
-      updatedContext.headers[this.config.roleHeaderName] = 
+      updatedContext.headers[this.config.roleHeaderName] =
         authState.user.roles.join(',');
     }
 
     // Add permission headers
     if (this.config.includePermissionHeaders && authState.user?.permissions) {
-      updatedContext.headers[this.config.permissionHeaderName] = 
+      updatedContext.headers[this.config.permissionHeaderName] =
         authState.user.permissions.join(',');
     }
 
@@ -208,7 +217,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
     if (this.config.includeRequestContext && authState.user) {
       Object.entries(this.config.contextHeaders).forEach(([headerName, contextKey]) => {
         let value: string | undefined;
-        
+
         switch (contextKey) {
           case 'deviceId':
             value = authState.user?.attributes?.deviceId as string;
@@ -242,7 +251,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
       permissions: authState.user?.permissions,
     };
 
-    /* // Debug: Log ALL headers being sent to API server  
+    /* // Debug: Log ALL headers being sent to API server
     const allHeaders: Record<string, string> = {};
     Object.entries(updatedContext.headers).forEach(([key, value]) => {
       if (typeof value === 'string') {
@@ -254,7 +263,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
         }
       }
     });
-    
+
     if (Object.keys(allHeaders).length > 0) {
       console.log('📋 ALL Request Headers:', allHeaders);
     } */
@@ -301,7 +310,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
             setTimeout(checkRefresh, 100);
           }
         };
-        
+
         setTimeout(() => reject(new Error('Token refresh timeout')), this.queueTimeout);
         checkRefresh();
       });
@@ -312,7 +321,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
     try {
       // Perform token refresh
       await this.authService.refreshSession();
-      
+
       // Process queued requests
       await this.processQueuedRequests();
     } finally {
@@ -343,12 +352,12 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
    */
   private async retryRequestWithNewToken(
     _context: RequestContext,
-    originalResponse: ResponseContext
+    originalResponse: ResponseContext,
   ): Promise<ResponseContext> {
     // This would typically involve re-executing the HTTP request
     // For now, we'll return a modified response indicating retry should happen
     // The actual retry logic would be handled by the HTTP client
-    
+
     const retryResponse: ResponseContext = {
       ...originalResponse,
       status: 200, // Assume retry would succeed
@@ -375,7 +384,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
         resource: 'api',
         action: 'request',
         reason: 'Token refresh failed',
-      }
+      },
     ));
 
     // Auto-logout user
@@ -392,10 +401,10 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
    */
   private handleAuthorizationFailure(
     context: RequestContext,
-    _response: ResponseContext
+    _response: ResponseContext,
   ): void {
     const user = this.authService.getCurrentUser();
-    
+
     // Emit unauthorized access event
     this.emit(AuthEventType.UNAUTHORIZED_ACCESS, createAuthEvent(
       AuthEventType.UNAUTHORIZED_ACCESS,
@@ -404,7 +413,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
         resource: context.url,
         action: context.method,
         reason: 'Insufficient permissions',
-      }
+      },
     ));
 
     // Check if this indicates role/permission changes
@@ -423,7 +432,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
       const user = this.authService.getCurrentUser();
 
       // check if user roles have changed
-      if (!user || !user.roles || user.roles.length === 0) {
+      if (!user?.roles || user.roles.length === 0) {
         console.warn('User roles are empty or user is not authenticated');
         return;
       }
@@ -504,8 +513,8 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
    */
   private isAuthRelatedError(error: Error): boolean {
     const authStatusCodes = [401, 403];
-    const statusCode = (error as any).statusCode;
-    
+    const {statusCode} = (error as any);
+
     return authStatusCodes.includes(statusCode) ||
            error.message.toLowerCase().includes('auth') ||
            error.message.toLowerCase().includes('token') ||
@@ -516,11 +525,11 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
    * Create auth error from generic error
    */
   private createAuthError(error: Error, context: RequestContext): AuthError {
-    const statusCode = (error as any).statusCode;
-    
+    const {statusCode} = (error as any);
+
     let type: AuthErrorType;
-    let message = error.message;
-    
+    let {message} = error;
+
     switch (statusCode) {
       case 401:
         type = AuthErrorType.TOKEN_EXPIRED;
@@ -561,8 +570,8 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
     averageQueueTime: number;
   } {
     const queueTimes = this.requestQueue.map(req => Date.now() - req.timestamp);
-    const averageQueueTime = queueTimes.length > 0 
-      ? queueTimes.reduce((sum, time) => sum + time, 0) / queueTimes.length 
+    const averageQueueTime = queueTimes.length > 0
+      ? queueTimes.reduce((sum, time) => sum + time, 0) / queueTimes.length
       : 0;
 
     return {
@@ -599,7 +608,7 @@ export class EnhancedAuthMiddleware extends EventEmitter implements Middleware {
 export function createEnhancedAuthMiddleware(
   authService: AuthService,
   tokenManager: TokenManager,
-  config?: Partial<AuthMiddlewareConfig>
+  config?: Partial<AuthMiddlewareConfig>,
 ): EnhancedAuthMiddleware {
   return new EnhancedAuthMiddleware(authService, tokenManager, config);
 }
@@ -609,7 +618,7 @@ export function createEnhancedAuthMiddleware(
  */
 export function hasRequiredRole(
   userRoles: UserRole[],
-  requiredRoles: UserRole | UserRole[]
+  requiredRoles: UserRole | UserRole[],
 ): boolean {
   const required = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
   return required.some(role => userRoles.includes(role));
@@ -620,7 +629,7 @@ export function hasRequiredRole(
  */
 export function hasRequiredPermission(
   userPermissions: string[],
-  requiredPermission: string | string[]
+  requiredPermission: string | string[],
 ): boolean {
   const required = Array.isArray(requiredPermission) ? requiredPermission : [requiredPermission];
   return required.some(permission => userPermissions.includes(permission));

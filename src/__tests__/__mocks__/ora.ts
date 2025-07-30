@@ -16,19 +16,19 @@ interface MockSpinner {
 const createMockSpinner = (text?: string): MockSpinner => ({
   start: () => mockSpinner,
   succeed: (text?: string) => {
-    if (text) mockSpinner.text = text;
+    if (text) {mockSpinner.text = text;}
     return mockSpinner;
   },
   fail: (text?: string) => {
-    if (text) mockSpinner.text = text;
+    if (text) {mockSpinner.text = text;}
     return mockSpinner;
   },
   warn: (text?: string) => {
-    if (text) mockSpinner.text = text;
+    if (text) {mockSpinner.text = text;}
     return mockSpinner;
   },
   info: (text?: string) => {
-    if (text) mockSpinner.text = text;
+    if (text) {mockSpinner.text = text;}
     return mockSpinner;
   },
   stop: () => mockSpinner,

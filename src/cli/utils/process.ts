@@ -4,6 +4,7 @@
  */
 
 import chalk from 'chalk';
+
 import type { ProcessStatus } from '../types.js';
 
 // Process status stamping utility
@@ -11,8 +12,8 @@ export function stampProcessStatus(commandName: string, status: ProcessStatus, d
   const timestamp = new Date().toISOString();
   const statusIcon = status === 'success' ? '✅' : status === 'error' ? '❌' : '⚠️';
   const statusColor = status === 'success' ? 'green' : status === 'error' ? 'red' : 'yellow';
-  
-  console.log(chalk.gray('\n' + '─'.repeat(60)));
+
+  console.log(chalk.gray(`\n${  '─'.repeat(60)}`));
   console.log(chalk[statusColor](`${statusIcon} Process: ${commandName}`));
   console.log(chalk.gray(`   Status: ${status.toUpperCase()}`));
   console.log(chalk.gray(`   Time: ${timestamp}`));
@@ -23,15 +24,15 @@ export function stampProcessStatus(commandName: string, status: ProcessStatus, d
 }
 
 export function exitWithStatus(
-  commandName: string, 
-  status: ProcessStatus, 
-  details?: string, 
-  exitCode = 0
+  commandName: string,
+  status: ProcessStatus,
+  details?: string,
+  exitCode = 0,
 ): never {
   stampProcessStatus(commandName, status, details);
-  
+
   // In CLI environments, we need to force exit to prevent hanging
-  // This is necessary because HTTP clients, timers, or other resources 
+  // This is necessary because HTTP clients, timers, or other resources
   // might keep the event loop alive
   process.exit(exitCode);
 }

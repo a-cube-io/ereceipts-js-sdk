@@ -3,9 +3,11 @@
  * Provides detailed audit trails, compliance reporting, and security monitoring
  */
 
+import type { HttpResponse, RequestOptions } from '@/http/client';
+
 import { BasePlugin } from '../core/base-plugin';
+
 import type { PluginContext, PluginManifest } from '../core/plugin-manager';
-import type { RequestOptions, HttpResponse } from '@/http/client';
 
 export interface AuditEvent {
   id: string;
@@ -96,11 +98,17 @@ export class AuditPlugin extends BasePlugin {
   };
 
   private events: AuditEvent[] = [];
+
   private sessionId: string = '';
+
   private currentUser?: { id: string; role: string };
+
   private suspiciousActivity = new Map<string, number>();
+
   private isEnabled: boolean = true;
+
   private maxEvents: number = 10000;
+
   private retentionPeriods = {
     low: 30,      // 30 days
     medium: 90,   // 90 days
@@ -168,7 +176,7 @@ export class AuditPlugin extends BasePlugin {
       compliance: { gdpr: false, fiscal: false, internal: true },
     });
 
-    this.log('info', 'Audit plugin initialized', { 
+    this.log('info', 'Audit plugin initialized', {
       sessionId: this.sessionId,
       maxEvents: this.maxEvents,
       complianceMode: config.complianceMode,
@@ -201,10 +209,10 @@ export class AuditPlugin extends BasePlugin {
   }
 
   protected override async processRequest(_context: PluginContext, options: RequestOptions): Promise<RequestOptions> {
-    if (!this.isEnabled) return options;
+    if (!this.isEnabled) {return options;}
 
     // Extract user context
-    const authorization = options.headers?.['Authorization'] || options.headers?.['authorization'];
+    const authorization = options.headers?.Authorization || options.headers?.authorization;
     const userId = this.extractUserIdFromAuth(authorization);
 
     // Record request audit event
@@ -237,12 +245,12 @@ export class AuditPlugin extends BasePlugin {
   }
 
   protected override async processResponse(_context: PluginContext, response: HttpResponse<any>): Promise<HttpResponse<any>> {
-    if (!this.isEnabled) return response;
+    if (!this.isEnabled) {return response;}
 
     const correlationId = response.headers?.['x-audit-correlation-id'];
     // Defensive typing for config property that may exist on extended response objects
     const responseConfig = (response as any).config;
-    const userId = this.extractUserIdFromAuth(responseConfig?.headers?.['Authorization']);
+    const userId = this.extractUserIdFromAuth(responseConfig?.headers?.Authorization);
 
     // Record response audit event
     this.recordAuditEvent({
@@ -274,7 +282,7 @@ export class AuditPlugin extends BasePlugin {
   }
 
   protected override async handleError(_context: PluginContext, error: Error): Promise<Error> {
-    if (!this.isEnabled) return error;
+    if (!this.isEnabled) {return error;}
 
     // Record error audit event
     this.recordAuditEvent({
@@ -304,7 +312,7 @@ export class AuditPlugin extends BasePlugin {
    */
   public recordAuditEvent(
     event: Omit<AuditEvent, 'id' | 'timestamp' | 'actor' | 'retention'>,
-    userId?: string
+    userId?: string,
   ): void {
     const auditEvent: AuditEvent = {
       id: this.generateEventId(),
@@ -379,42 +387,42 @@ export class AuditPlugin extends BasePlugin {
       if (filter.type) {
         filteredEvents = filteredEvents.filter(e => filter.type!.includes(e.type));
       }
-      
+
       if (filter.action) {
-        filteredEvents = filteredEvents.filter(e => 
-          filter.action!.some(action => e.action.includes(action))
+        filteredEvents = filteredEvents.filter(e =>
+          filter.action!.some(action => e.action.includes(action)),
         );
       }
-      
+
       if (filter.outcome) {
         filteredEvents = filteredEvents.filter(e => filter.outcome!.includes(e.outcome));
       }
-      
+
       if (filter.risk) {
         filteredEvents = filteredEvents.filter(e => filter.risk!.includes(e.risk));
       }
-      
+
       if (filter.timeRange) {
-        filteredEvents = filteredEvents.filter(e => 
-          e.timestamp >= filter.timeRange!.start && 
-          e.timestamp <= filter.timeRange!.end
+        filteredEvents = filteredEvents.filter(e =>
+          e.timestamp >= filter.timeRange!.start &&
+          e.timestamp <= filter.timeRange!.end,
         );
       }
-      
+
       if (filter.userId) {
         filteredEvents = filteredEvents.filter(e => e.actor.userId === filter.userId);
       }
-      
+
       if (filter.resource) {
-        filteredEvents = filteredEvents.filter(e => 
-          e.resource.type.includes(filter.resource!) || 
-          e.resource.path?.includes(filter.resource!)
+        filteredEvents = filteredEvents.filter(e =>
+          e.resource.type.includes(filter.resource!) ||
+          e.resource.path?.includes(filter.resource!),
         );
       }
-      
+
       if (filter.compliance) {
-        filteredEvents = filteredEvents.filter(e => 
-          filter.compliance!.some(comp => e.compliance[comp])
+        filteredEvents = filteredEvents.filter(e =>
+          filter.compliance!.some(comp => e.compliance[comp]),
         );
       }
     }
@@ -428,9 +436,9 @@ export class AuditPlugin extends BasePlugin {
   public generateComplianceReport(timeRangeMs: number = 86400000): ComplianceReport {
     const now = Date.now();
     const start = now - timeRangeMs;
-    
+
     const periodEvents = this.getAuditEvents({
-      timeRange: { start, end: now }
+      timeRange: { start, end: now },
     });
 
     // Event statistics
@@ -469,8 +477,8 @@ export class AuditPlugin extends BasePlugin {
     };
 
     // Violations (high risk events with failures)
-    const violations = periodEvents.filter(e => 
-      (e.risk === 'high' || e.risk === 'critical') && e.outcome === 'failure'
+    const violations = periodEvents.filter(e =>
+      (e.risk === 'high' || e.risk === 'critical') && e.outcome === 'failure',
     );
 
     // Recommendations
@@ -497,7 +505,7 @@ export class AuditPlugin extends BasePlugin {
     events: AuditEvent[];
   } {
     const events = this.getAuditEvents(filter);
-    
+
     this.recordAuditEvent({
       type: 'data',
       action: 'audit_data_export',
@@ -555,7 +563,7 @@ export class AuditPlugin extends BasePlugin {
       compliance: { gdpr: true, fiscal: true, internal: true },
     });
 
-    this.log('info', `Cleared ${deletedCount} audit events`, { 
+    this.log('info', `Cleared ${deletedCount} audit events`, {
       preserveCompliance,
       remaining: this.events.length,
     });
@@ -568,12 +576,12 @@ export class AuditPlugin extends BasePlugin {
     if (options.url.includes('/auth') || options.url.includes('/config')) {
       return 'high';
     }
-    
+
     // Medium risk for data modification
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method)) {
       return 'medium';
     }
-    
+
     return 'low';
   }
 
@@ -582,17 +590,17 @@ export class AuditPlugin extends BasePlugin {
     if (response.status === 401 || response.status === 403) {
       return 'critical';
     }
-    
+
     // High risk for server errors
     if (response.status >= 500) {
       return 'high';
     }
-    
+
     // Medium risk for client errors
     if (response.status >= 400) {
       return 'medium';
     }
-    
+
     return 'low';
   }
 
@@ -601,13 +609,13 @@ export class AuditPlugin extends BasePlugin {
     if (error.message.includes('unauthorized') || error.message.includes('forbidden')) {
       return 'critical';
     }
-    
+
     return 'high';
   }
 
   private assessRequestCompliance(options: RequestOptions): AuditEvent['compliance'] {
     const path = options.url.toLowerCase();
-    
+
     return {
       gdpr: path.includes('/user') || path.includes('/profile') || path.includes('/data'),
       fiscal: path.includes('/receipt') || path.includes('/payment') || path.includes('/fiscal'),
@@ -617,7 +625,7 @@ export class AuditPlugin extends BasePlugin {
 
   private assessResponseCompliance(response: HttpResponse<any>): AuditEvent['compliance'] {
     const path = (response as any).config?.url?.toLowerCase() || '';
-    
+
     return {
       gdpr: path.includes('/user') || path.includes('/profile') || path.includes('/data'),
       fiscal: path.includes('/receipt') || path.includes('/payment') || path.includes('/fiscal'),
@@ -626,12 +634,12 @@ export class AuditPlugin extends BasePlugin {
   }
 
   private checkSuspiciousActivity(userId?: string, response?: HttpResponse<any>): void {
-    if (!userId) return;
+    if (!userId) {return;}
 
     const key = `${userId}_failures`;
     const failures = this.suspiciousActivity.get(key) || 0;
     const newFailures = failures + 1;
-    
+
     this.suspiciousActivity.set(key, newFailures);
 
     // Alert on multiple failures
@@ -708,10 +716,10 @@ export class AuditPlugin extends BasePlugin {
     const recommendations: string[] = [];
 
     // Security recommendations
-    const authFailures = events.filter(e => 
-      e.action.includes('auth') && e.outcome === 'failure'
+    const authFailures = events.filter(e =>
+      e.action.includes('auth') && e.outcome === 'failure',
     ).length;
-    
+
     if (authFailures > 10) {
       recommendations.push('Implement stronger authentication mechanisms (MFA, rate limiting)');
     }
@@ -719,16 +727,16 @@ export class AuditPlugin extends BasePlugin {
     // Compliance recommendations
     const gdprEvents = events.filter(e => e.compliance.gdpr);
     const undocumentedGdprEvents = gdprEvents.filter(e => !e.details || Object.keys(e.details).length === 0);
-    
+
     if (undocumentedGdprEvents.length > 0) {
       recommendations.push('Enhance GDPR event documentation and data processing records');
     }
 
     // Performance recommendations
-    const slowRequests = events.filter(e => 
-      e.type === 'response' && e.details?.duration > 5000
+    const slowRequests = events.filter(e =>
+      e.type === 'response' && e.details?.duration > 5000,
     ).length;
-    
+
     if (slowRequests > events.length * 0.1) {
       recommendations.push('Review and optimize slow API endpoints affecting audit performance');
     }
@@ -749,13 +757,13 @@ export class AuditPlugin extends BasePlugin {
   }
 
   private extractUserIdFromAuth(authorization?: string): string | undefined {
-    if (!authorization) return undefined;
-    
+    if (!authorization) {return undefined;}
+
     try {
       // Simple JWT extraction - in production, use proper JWT library
       const token = authorization.replace('Bearer ', '');
       const payloadPart = token.split('.')[1];
-      if (!payloadPart) return undefined;
+      if (!payloadPart) {return undefined;}
       const payload = JSON.parse(atob(payloadPart));
       return payload.sub || payload.userId;
     } catch {
@@ -795,19 +803,19 @@ export class AuditPlugin extends BasePlugin {
   private sanitizeHeaders(headers: Record<string, any> = {}): Record<string, any> {
     const sanitized = { ...headers };
     const sensitiveHeaders = ['authorization', 'x-api-key', 'cookie'];
-    
+
     for (const header of sensitiveHeaders) {
       if (sanitized[header]) {
         sanitized[header] = '[REDACTED]';
       }
     }
-    
+
     return sanitized;
   }
 
   private calculateSize(data: any): number {
-    if (!data) return 0;
-    
+    if (!data) {return 0;}
+
     try {
       return new Blob([JSON.stringify(data)]).size;
     } catch {
@@ -827,7 +835,7 @@ export class AuditPlugin extends BasePlugin {
     const now = new Date();
     const hour = now.getHours();
     const day = now.getDay();
-    
+
     // Outside 9-17 Monday-Friday
     return hour < 9 || hour >= 17 || day === 0 || day === 6;
   }
@@ -835,14 +843,14 @@ export class AuditPlugin extends BasePlugin {
   private cleanupExpiredEvents(): void {
     const now = Date.now();
     const initialCount = this.events.length;
-    
+
     this.events = this.events.filter(event => {
       const retentionEnd = event.timestamp + (event.retention * 24 * 60 * 60 * 1000);
       return now < retentionEnd;
     });
-    
+
     const deletedCount = initialCount - this.events.length;
-    
+
     if (deletedCount > 0) {
       this.log('debug', `Cleaned up ${deletedCount} expired audit events`);
     }
@@ -851,7 +859,7 @@ export class AuditPlugin extends BasePlugin {
   private async loadPersistedEvents(): Promise<void> {
     try {
       const persistedEvents = this.getFromStorage<AuditEvent[]>('audit_events');
-      
+
       if (persistedEvents) {
         // Only load non-expired events
         const now = Date.now();
@@ -860,7 +868,7 @@ export class AuditPlugin extends BasePlugin {
           return now < retentionEnd;
         });
       }
-      
+
       this.log('debug', 'Loaded persisted audit events', {
         events: this.events.length,
       });
@@ -872,7 +880,7 @@ export class AuditPlugin extends BasePlugin {
   private async persistEvents(): Promise<void> {
     try {
       this.setInStorage('audit_events', this.events);
-      
+
       this.log('debug', 'Persisted audit events', {
         events: this.events.length,
       });

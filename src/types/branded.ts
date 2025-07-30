@@ -39,29 +39,29 @@ export const createVATRate = (rate: string): VATRate => rate as VATRate;
 export const createQuantity = (qty: string): Quantity => qty as Quantity;
 
 // Type guards
-export const isReceiptId = (value: unknown): value is ReceiptId => 
+export const isReceiptId = (value: unknown): value is ReceiptId =>
   typeof value === 'string' && value.length > 0;
 
-export const isCashierId = (value: unknown): value is CashierId => 
+export const isCashierId = (value: unknown): value is CashierId =>
   typeof value === 'number' && value > 0;
 
-export const isFiscalId = (value: unknown): value is FiscalId => 
+export const isFiscalId = (value: unknown): value is FiscalId =>
   typeof value === 'string' && /^\d{11}$/.test(value);
 
-export const isAmount = (value: unknown): value is Amount => 
+export const isAmount = (value: unknown): value is Amount =>
   typeof value === 'string' && /^\d+\.\d{2,8}$/.test(value);
 
-export const isMerchantId = (value: unknown): value is MerchantId => 
+export const isMerchantId = (value: unknown): value is MerchantId =>
   typeof value === 'string' && value.length > 0;
 
-export const isPointOfSaleId = (value: unknown): value is PointOfSaleId => 
+export const isPointOfSaleId = (value: unknown): value is PointOfSaleId =>
   typeof value === 'string' && value.length > 0;
 
-export const isSerialNumber = (value: unknown): value is SerialNumber => 
+export const isSerialNumber = (value: unknown): value is SerialNumber =>
   typeof value === 'string' && value.length > 0;
 
-export const isPEMId = (value: unknown): value is PEMId => 
+export const isPEMId = (value: unknown): value is PEMId =>
   typeof value === 'string' && value.length > 0;
 
-export const isQuantity = (value: unknown): value is Quantity => 
+export const isQuantity = (value: unknown): value is Quantity =>
   typeof value === 'string' && /^\d+(\.\d{1,6})?$/.test(value);

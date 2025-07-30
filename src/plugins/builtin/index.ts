@@ -3,25 +3,18 @@
  * Complete suite of enterprise-grade plugins for analytics, debugging, performance, caching, and auditing
  */
 
-import { AnalyticsPlugin } from '@/plugins/builtin/analytics-plugin';
 import { AuditPlugin } from '@/plugins/builtin/audit-plugin';
 import { CachePlugin } from '@/plugins/builtin/cache-plugin';
 import { DebugPlugin } from '@/plugins/builtin/debug-plugin';
+import { AnalyticsPlugin } from '@/plugins/builtin/analytics-plugin';
 import { PerformancePlugin } from '@/plugins/builtin/performance-plugin';
 
-// Export all built-in plugins
-export { AnalyticsPlugin } from './analytics-plugin';
 export { DebugPlugin } from './debug-plugin';
-export { PerformancePlugin } from './performance-plugin';
 export { CachePlugin } from './cache-plugin';
 export { AuditPlugin } from './audit-plugin';
-
-// Export plugin types for convenience
-export type {
-  AnalyticsEvent,
-  PerformanceMetric,
-  UsageStats,
-} from './analytics-plugin';
+// Export all built-in plugins
+export { AnalyticsPlugin } from './analytics-plugin';
+export { PerformancePlugin } from './performance-plugin';
 
 export type {
   DebugEvent,
@@ -30,11 +23,17 @@ export type {
 } from './debug-plugin';
 
 export type {
-  PerformanceMetric as PerfMetric,
-  PerformanceAlert,
-  PerformanceBudget,
-  PerformanceReport,
-} from './performance-plugin';
+  AuditEvent,
+  AuditFilter,
+  ComplianceReport,
+} from './audit-plugin';
+
+// Export plugin types for convenience
+export type {
+  UsageStats,
+  AnalyticsEvent,
+  PerformanceMetric,
+} from './analytics-plugin';
 
 export type {
   CacheEntry,
@@ -44,10 +43,11 @@ export type {
 } from './cache-plugin';
 
 export type {
-  AuditEvent,
-  ComplianceReport,
-  AuditFilter,
-} from './audit-plugin';
+  PerformanceAlert,
+  PerformanceBudget,
+  PerformanceReport,
+  PerformanceMetric as PerfMetric,
+} from './performance-plugin';
 
 /**
  * Plugin registry for easy access to all built-in plugins
@@ -81,8 +81,8 @@ export function getBuiltinPlugin(name: keyof typeof BUILTIN_PLUGINS) {
  * Utility function to get plugins by category
  */
 export function getPluginsByCategory(category: keyof typeof PLUGIN_CATEGORIES) {
-  return PLUGIN_CATEGORIES[category].map(name => 
-    BUILTIN_PLUGINS[name as keyof typeof BUILTIN_PLUGINS]()
+  return PLUGIN_CATEGORIES[category].map(name =>
+    BUILTIN_PLUGINS[name](),
   );
 }
 

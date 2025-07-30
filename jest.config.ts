@@ -2,7 +2,7 @@ import type { Config } from 'jest';
 
 const config: Config = {
   preset: 'ts-jest/presets/default-esm',
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom', // Use jsdom for all tests since we have React components
   roots: ['<rootDir>/src'],
   testMatch: [
     '**/__tests__/**/*.test.+(ts|tsx|js)',

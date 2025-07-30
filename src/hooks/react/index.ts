@@ -3,26 +3,24 @@
  * Enterprise-grade data fetching, mutations, offline support, and authentication
  */
 
-// Core Provider System
-export {
-  ACubeProvider,
-  useACube,
-  useACubeSDK,
-  useACubeStorage,
-  useACubeQueueManager,
-  useACubeSyncEngine,
-  useACubeNetworkManager,
-  useACubeNetworkStatus,
-  type ACubeContextValue,
-  type ACubeProviderProps
-} from './ACubeProvider';
+// Re-export common types for convenience
+export type {
+  ACubeSDK,
+} from '@/core/sdk';
 
+// Re-export branded types commonly used in React components
+export type {
+  CashierId,
+  MerchantId,
+  PointOfSaleId,
+} from '@/types/branded';
+export { useACubeCache, type CacheResult, type CacheOptions } from './useACubeCache';
+export { useACubeOffline, type OfflineResult, type OfflineOptions } from './useACubeOffline';
 // Data Management Hooks
-export { useACubeQuery, type QueryOptions, type QueryResult, queryUtils } from './useACubeQuery';
-export { useACubeMutation, type MutationOptions, type MutationResult } from './useACubeMutation';
-export { useACubeSubscription, type SubscriptionOptions, type SubscriptionResult } from './useACubeSubscription';
-export { useACubeCache, type CacheOptions, type CacheResult } from './useACubeCache';
-export { useACubeOffline, type OfflineOptions, type OfflineResult } from './useACubeOffline';
+export { queryUtils, useACubeQuery, type QueryResult, type QueryOptions } from './useACubeQuery';
+export { useACubeMutation, type MutationResult, type MutationOptions } from './useACubeMutation';
+
+export { useACubeSubscription, type SubscriptionResult, type SubscriptionOptions } from './useACubeSubscription';
 
 // Authentication System
 export {
@@ -30,63 +28,65 @@ export {
   AuthProvider,
   useAuthContext,
   useAuthAvailable,
-  type AuthProviderProps,
   type AuthContextValue,
+  type AuthProviderProps,
 } from './auth-provider';
 
 export {
   // Authentication Hooks
   useAuth,
-  useLogin,
-  useLogout,
   useUser,
+  useLogin,
   useRoles,
-  usePermissions,
+  useLogout,
   useSession,
+  usePermissions,
   useRequireAuth,
   useRequireRole,
 } from './use-auth';
 
+// Re-export auth types for convenience
+export type {
+  AuthUser,
+  UserRole,
+  AuthState,
+  AuthError,
+  SessionInfo,
+  LogoutOptions,
+  SimpleUserRole,
+  StoredAuthData,
+  PermissionCheck,
+  LoginCredentials,
+  PermissionResult,
+  OAuth2TokenResponse,
+} from '@/auth/types';
+
+// Core Provider System
+export {
+  useACube,
+  useACubeSDK,
+  ACubeProvider,
+  useACubeStorage,
+  useACubeSyncEngine,
+  useACubeQueueManager,
+  useACubeNetworkStatus,
+  useACubeNetworkManager,
+  type ACubeContextValue,
+  type ACubeProviderProps,
+} from './ACubeProvider';
+
 export {
   // Pre-built React Components
   LoginForm,
+  AuthStatus,
   UserProfile,
   RoleSwitcher,
-  AuthStatus,
   ProtectedRoute,
   PermissionGate,
   type LoginFormProps,
+  type AuthStatusProps,
   type UserProfileProps,
   type RoleSwitcherProps,
-  type AuthStatusProps,
   type ProtectedRouteProps,
   type PermissionGateProps,
 } from './auth-components';
-
-// Re-export auth types for convenience
-export type {
-  AuthState,
-  AuthUser,
-  LoginCredentials,
-  LogoutOptions,
-  UserRole,
-  SimpleUserRole,
-  AuthError,
-  PermissionCheck,
-  PermissionResult,
-  SessionInfo,
-  OAuth2TokenResponse,
-  StoredAuthData,
-} from '@/auth/types';
-
-// Re-export branded types commonly used in React components
-export type {
-  MerchantId,
-  CashierId,
-  PointOfSaleId,
-} from '@/types/branded';
-
-// Re-export common types for convenience
-export type {
-  ACubeSDK
-} from '@/core/sdk';

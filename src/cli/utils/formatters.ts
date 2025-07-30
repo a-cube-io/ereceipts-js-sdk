@@ -70,9 +70,9 @@ export function formatListItem(text: string, active = false): string {
 export function formatJSON(obj: any): string {
   const json = JSON.stringify(obj, null, 2);
   return json
-    .replace(/"([^"]+)":/g, chalk.blue('"$1"') + ':')
-    .replace(/: "([^"]+)"/g, ': ' + chalk.green('"$1"'))
-    .replace(/: (\d+)/g, ': ' + chalk.yellow('$1'))
-    .replace(/: (true|false)/g, ': ' + chalk.cyan('$1'))
-    .replace(/: null/g, ': ' + chalk.gray('null'));
+    .replace(/"([^"]+)":/g, `${chalk.blue('"$1"')  }:`)
+    .replace(/: "([^"]+)"/g, `: ${  chalk.green('"$1"')}`)
+    .replace(/: (\d+)/g, `: ${  chalk.yellow('$1')}`)
+    .replace(/: (true|false)/g, `: ${  chalk.cyan('$1')}`)
+    .replace(/: null/g, `: ${  chalk.gray('null')}`);
 }

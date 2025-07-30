@@ -26,7 +26,7 @@ export interface ResponseContext {
 export interface Middleware {
   name: string;
   priority: number;
-  
+
   beforeRequest?(context: RequestContext): Promise<RequestContext> | RequestContext;
   afterResponse?(
     context: RequestContext,
@@ -55,7 +55,7 @@ export class MiddlewareStack {
 
   async executeBeforeRequest(context: RequestContext): Promise<RequestContext> {
     let currentContext = context;
-    
+
     for (const middleware of this.middlewares) {
       if (middleware.beforeRequest) {
         try {
@@ -66,16 +66,16 @@ export class MiddlewareStack {
         }
       }
     }
-    
+
     return currentContext;
   }
 
   async executeAfterResponse(
     context: RequestContext,
-    response: ResponseContext
+    response: ResponseContext,
   ): Promise<ResponseContext> {
     let currentResponse = response;
-    
+
     // Execute in reverse order for response middlewares
     for (const middleware of [...this.middlewares].reverse()) {
       if (middleware.afterResponse) {
@@ -87,16 +87,16 @@ export class MiddlewareStack {
         }
       }
     }
-    
+
     return currentResponse;
   }
 
   async executeOnError(
     context: RequestContext,
-    error: Error
+    error: Error,
   ): Promise<Error> {
     let currentError = error;
-    
+
     for (const middleware of this.middlewares) {
       if (middleware.onError) {
         try {
@@ -111,7 +111,7 @@ export class MiddlewareStack {
         }
       }
     }
-    
+
     return currentError;
   }
 
@@ -130,6 +130,7 @@ export class MiddlewareStack {
 // Authentication middleware
 export class AuthenticationMiddleware implements Middleware {
   name = 'authentication';
+
   priority = 100;
 
   constructor(private getToken: () => Promise<string | null>) {}
@@ -146,6 +147,7 @@ export class AuthenticationMiddleware implements Middleware {
 // Request ID middleware
 export class RequestIdMiddleware implements Middleware {
   name = 'request-id';
+
   priority = 90;
 
   beforeRequest(context: RequestContext): RequestContext {
@@ -159,6 +161,7 @@ export class RequestIdMiddleware implements Middleware {
 // User Agent middleware
 export class UserAgentMiddleware implements Middleware {
   name = 'user-agent';
+
   priority = 80;
 
   constructor(private userAgent: string) {}
@@ -174,6 +177,7 @@ export class UserAgentMiddleware implements Middleware {
 // Content Type middleware
 export class ContentTypeMiddleware implements Middleware {
   name = 'content-type';
+
   priority = 70;
 
   beforeRequest(context: RequestContext): RequestContext {
@@ -187,6 +191,7 @@ export class ContentTypeMiddleware implements Middleware {
 // Request/Response logging middleware
 export class LoggingMiddleware implements Middleware {
   name = 'logging';
+
   priority = 10;
 
   constructor(
@@ -207,7 +212,7 @@ export class LoggingMiddleware implements Middleware {
       logHeaders: false,
       logBody: false,
       sanitizeHeaders: ['authorization', 'cookie', 'x-api-key'],
-    }
+    },
   ) {}
 
   beforeRequest(context: RequestContext): RequestContext {
@@ -233,7 +238,7 @@ export class LoggingMiddleware implements Middleware {
 
   afterResponse(
     context: RequestContext,
-    response: ResponseContext
+    response: ResponseContext,
   ): ResponseContext {
     if (this.options.logResponses) {
       const logData: Record<string, unknown> = {
@@ -270,16 +275,16 @@ export class LoggingMiddleware implements Middleware {
 
   private sanitizeHeaders(headers: Record<string, string>): Record<string, string> {
     const sanitized = { ...headers };
-    
+
     this.options.sanitizeHeaders?.forEach(header => {
-      const key = Object.keys(sanitized).find(k => 
-        k.toLowerCase() === header.toLowerCase()
+      const key = Object.keys(sanitized).find(k =>
+        k.toLowerCase() === header.toLowerCase(),
       );
       if (key) {
         sanitized[key] = '[REDACTED]';
       }
     });
-    
+
     return sanitized;
   }
 
@@ -290,13 +295,13 @@ export class LoggingMiddleware implements Middleware {
 
     const sensitiveFields = ['password', 'token', 'secret', 'key', 'auth'];
     const sanitized = { ...body as Record<string, unknown> };
-    
+
     Object.keys(sanitized).forEach(key => {
       if (sensitiveFields.some(field => key.toLowerCase().includes(field))) {
         sanitized[key] = '[REDACTED]';
       }
     });
-    
+
     return sanitized;
   }
 }
@@ -304,6 +309,7 @@ export class LoggingMiddleware implements Middleware {
 // Rate limiting middleware
 export class RateLimitingMiddleware implements Middleware {
   name = 'rate-limiting';
+
   priority = 50;
 
   private requests: Map<string, number[]> = new Map();
@@ -312,7 +318,7 @@ export class RateLimitingMiddleware implements Middleware {
     private config: {
       requestsPerMinute: number;
       keyGenerator?: (context: RequestContext) => string;
-    }
+    },
   ) {}
 
   async beforeRequest(context: RequestContext): Promise<RequestContext> {
@@ -322,19 +328,19 @@ export class RateLimitingMiddleware implements Middleware {
 
     // Get existing requests for this key
     const requests = this.requests.get(key) || [];
-    
+
     // Remove requests outside the window
     const recentRequests = requests.filter(time => time > windowStart);
-    
+
     // Check if we're over the limit
     if (recentRequests.length >= this.config.requestsPerMinute) {
       throw new Error(`Rate limit exceeded: ${this.config.requestsPerMinute} requests per minute`);
     }
-    
+
     // Add current request
     recentRequests.push(now);
     this.requests.set(key, recentRequests);
-    
+
     return context;
   }
 }
@@ -342,6 +348,7 @@ export class RateLimitingMiddleware implements Middleware {
 // Performance monitoring middleware
 export class PerformanceMiddleware implements Middleware {
   name = 'performance';
+
   priority = 5;
 
   private metrics: Map<string, {
@@ -353,25 +360,25 @@ export class PerformanceMiddleware implements Middleware {
 
   afterResponse(
     context: RequestContext,
-    response: ResponseContext
+    response: ResponseContext,
   ): ResponseContext {
     const endpoint = `${context.method} ${context.url}`;
-    const duration = response.duration;
-    
+    const {duration} = response;
+
     const existing = this.metrics.get(endpoint) || {
       count: 0,
       totalDuration: 0,
       minDuration: Infinity,
       maxDuration: 0,
     };
-    
+
     this.metrics.set(endpoint, {
       count: existing.count + 1,
       totalDuration: existing.totalDuration + duration,
       minDuration: Math.min(existing.minDuration, duration),
       maxDuration: Math.max(existing.maxDuration, duration),
     });
-    
+
     return response;
   }
 
@@ -382,7 +389,7 @@ export class PerformanceMiddleware implements Middleware {
     maxDuration: number;
   }> {
     const result: Record<string, any> = {};
-    
+
     this.metrics.forEach((value, key) => {
       result[key] = {
         count: value.count,
@@ -391,7 +398,7 @@ export class PerformanceMiddleware implements Middleware {
         maxDuration: value.maxDuration,
       };
     });
-    
+
     return result;
   }
 

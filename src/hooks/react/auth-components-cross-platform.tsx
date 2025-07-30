@@ -1,13 +1,13 @@
 /**
  * Cross-Platform React Auth Components
  * Pre-built authentication components that work seamlessly in React web and React Native
- * 
+ *
  * @module auth-components-cross-platform
  * @description
  * This module provides cross-platform authentication components built on top of
  * the platform abstraction layer. All components automatically adapt their
  * rendering and behavior based on the runtime environment (web or React Native).
- * 
+ *
  * Components included:
  * - LoginForm: Full-featured login form with role selection and remember me
  * - UserProfile: Display user information with logout functionality
@@ -15,11 +15,11 @@
  * - AuthStatus: Authentication status indicator
  * - ProtectedRoute: Route protection with authentication checks
  * - PermissionGate: Permission-based component rendering
- * 
+ *
  * @example
  * ```typescript
  * import { LoginForm, ProtectedRoute } from './auth-components';
- * 
+ *
  * function App() {
  *   return (
  *     <ProtectedRoute requiredRole="ROLE_USER" redirectTo="/login">
@@ -28,25 +28,27 @@
  *   );
  * }
  * ```
- * 
+ *
  * @see {@link file://./docs/CROSS_PLATFORM_GUIDE.md} for integration guide
  */
 
+import type { UserRole, PermissionCheck, LoginCredentials } from '@/auth/types';
+
 import React, { useState, useCallback } from 'react';
-import { useAuth, useLogin, useLogout, useRoles, useRequireRole } from './use-auth';
-import type { LoginCredentials, UserRole, PermissionCheck } from '@/auth/types';
-import { 
-  PlatformView, 
-  PlatformText, 
-  PlatformTextInput, 
-  PlatformButton, 
-  PlatformPicker, 
-  PlatformScrollView,
+
+import { useAuth, useLogin, useRoles, useLogout, useRequireRole } from './use-auth';
+import {
+  isWeb,
   showAlert,
   navigateTo,
+  PlatformText,
+  PlatformView,
   createStyles,
   isReactNative,
-  isWeb,
+  PlatformButton,
+  PlatformPicker,
+  PlatformTextInput,
+  PlatformScrollView,
 } from './platform-components';
 
 // Cross-platform styles
@@ -194,7 +196,7 @@ export function LoginForm({
   availableRoles = [],
 }: LoginFormProps) {
   const { login, isLogging, loginError, clearLoginError } = useLogin();
-  
+
   const [credentials, setCredentials] = useState<LoginCredentials>({
     username: '',
     password: '',
@@ -247,7 +249,7 @@ export function LoginForm({
           value={credentials.password}
           onChangeText={(value) => handleInputChange('password', value)}
           placeholder="Enter your password"
-          secureTextEntry={true}
+          secureTextEntry
           autoComplete={autoComplete ? 'current-password' : 'off'}
           editable={!isLogging}
           style={[styles.input, isLogging && styles.inputDisabled]}
@@ -276,7 +278,7 @@ export function LoginForm({
       {showRememberMe && (
         <PlatformView style={[styles.formGroup, styles.checkbox]}>
           <PlatformButton
-            style={styles.checkboxInput}  
+            style={styles.checkboxInput}
             onPress={() => setRememberMe(!rememberMe)}
             disabled={isLogging}
           >
@@ -333,7 +335,7 @@ export function UserProfile({
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Sign Out', style: 'destructive', onPress: logout },
-        ]
+        ],
       );
     } else {
       logout();
@@ -367,7 +369,7 @@ export function UserProfile({
             {primaryRole?.replace('ROLE_', '').toLowerCase().replace('_', ' ') || 'Unknown'}
             {' '}({simpleRole})
           </PlatformText>
-          
+
           {effectiveRoles.length > 1 && (
             <PlatformView style={{ marginTop: 8 }}>
               <PlatformText style={styles.label}>All Available Roles:</PlatformText>
@@ -440,7 +442,7 @@ export function RoleSwitcher({
     }
   }, [switchRole, onRoleSwitch]);
 
-  const switchableRoles = availableRoles.length > 0 
+  const switchableRoles = availableRoles.length > 0
     ? availableRoles.filter(role => effectiveRoles.includes(role))
     : effectiveRoles;
 
@@ -542,7 +544,7 @@ export function ProtectedRoute({
         showAlert(
           'Authentication Required',
           'Please sign in to continue',
-          [{ text: 'OK' }]
+          [{ text: 'OK' }],
         );
       } else {
         navigateTo(redirectTo);
@@ -617,9 +619,9 @@ export function PermissionGate({
     const permissionCheck: PermissionCheck = {
       resource,
       action,
-      ...(context && { context })
+      ...(context && { context }),
     };
-    
+
     checkPermission(permissionCheck)
       .then(result => setHasPermission(result.granted))
       .catch(() => setHasPermission(false));

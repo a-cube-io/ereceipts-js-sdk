@@ -1,7 +1,7 @@
 /**
  * Point of Sales Resource - OpenAPI Implementation
  * Type-safe implementation for PEM device management
- * 
+ *
  * Features:
  * - Complete PEM device lifecycle management
  * - Activation and certificate management
@@ -10,12 +10,13 @@
  * - Inactivity period management
  */
 
-import { BaseOpenAPIResource } from '@/resources/base-openapi';
-import { PointOfSalesEndpoints } from '@/generated/endpoints';
 import type { HttpClient } from '@/http/client';
 import type { SerialNumber } from '@/types/branded';
 import type { components } from '@/types/generated';
+
 import { ValidationError } from '@/errors/index';
+import { PointOfSalesEndpoints } from '@/generated/endpoints';
+import { BaseOpenAPIResource } from '@/resources/base-openapi';
 
 // Extract types from OpenAPI generated types
 type PointOfSaleOutput = components['schemas']['E-Receipt_IT_API_PointOfSaleOutput'];
@@ -73,26 +74,26 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
         activation: PointOfSalesEndpoints.ACTIVATION,
         createInactivity: PointOfSalesEndpoints.CREATE_INACTIVITY,
         setOffline: PointOfSalesEndpoints.SET_OFFLINE,
-      }
+      },
     });
   }
 
   /**
    * Get a list of Point of Sales devices
-   * 
+   *
    * @returns Promise resolving to paginated PEM list
    */
   async list(): Promise<PointOfSalePage> {
     return this.executeRequest<void, PointOfSalePage>('list', undefined, {
       metadata: {
         operation: 'list_point_of_sales',
-      }
+      },
     });
   }
 
   /**
    * Get a specific Point of Sale by serial number
-   * 
+   *
    * @param serialNumber - Device serial number
    * @returns Promise resolving to PEM details
    */
@@ -102,26 +103,26 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
       metadata: {
         operation: 'get_point_of_sale',
         serialNumber,
-      }
+      },
     });
   }
 
   /**
    * Close the daily journal for a Point of Sale
-   * 
+   *
    * @returns Promise resolving to close confirmation
    */
   async closeJournal(): Promise<CloseJournalOutput> {
     return this.executeRequest<void, CloseJournalOutput>('closeJournal', undefined, {
       metadata: {
         operation: 'close_journal',
-      }
+      },
     });
   }
 
   /**
    * Trigger activation process for a Point of Sale
-   * 
+   *
    * @param serialNumber - Device serial number
    * @param activationData - Activation request data
    * @param options - Validation options
@@ -130,7 +131,7 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
   async activate(
     serialNumber: SerialNumber | string,
     activationData: ActivationRequest,
-    options: PointOfSaleValidationOptions = {}
+    options: PointOfSaleValidationOptions = {},
   ): Promise<ActivationOutput> {
     // Validate activation request
     await this.validateActivationRequest(serialNumber, activationData, options);
@@ -141,33 +142,33 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
         operation: 'activate_point_of_sale',
         serialNumber,
         registrationKey: activationData.registration_key,
-      }
+      },
     });
   }
 
   /**
    * Create an inactivity period for a Point of Sale
-   * 
+   *
    * @param serialNumber - Device serial number
    * @param inactivityData - Inactivity period request data
    * @returns Promise resolving when inactivity period is created
    */
   async createInactivityPeriod(
     serialNumber: SerialNumber | string,
-    inactivityData: InactivityRequest
+    inactivityData: InactivityRequest,
   ): Promise<void> {
     return this.executeRequest<InactivityRequest, void>('createInactivity', inactivityData, {
       pathParams: { serial_number: serialNumber },
       metadata: {
         operation: 'create_inactivity_period',
         serialNumber,
-      }
+      },
     });
   }
 
   /**
    * Set Point of Sale status to offline
-   * 
+   *
    * @param serialNumber - Device serial number
    * @returns Promise resolving when status is updated
    */
@@ -177,13 +178,13 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
       metadata: {
         operation: 'set_point_of_sale_offline',
         serialNumber,
-      }
+      },
     });
   }
 
   /**
    * Get device status summary
-   * 
+   *
    * @param serialNumber - Device serial number
    * @returns Promise resolving to device status
    */
@@ -194,14 +195,14 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
 
   /**
    * Get journal summary for a specific date
-   * 
+   *
    * @param serialNumber - Device serial number
    * @param date - Date in YYYY-MM-DD format
    * @returns Promise resolving to journal summary
    */
   async getJournalSummary(
-    _serialNumber: SerialNumber | string, 
-    date: string = new Date().toISOString().split('T')[0]!
+    _serialNumber: SerialNumber | string,
+    date: string = new Date().toISOString().split('T')[0]!,
   ): Promise<JournalSummary> {
     // This would typically require additional API endpoints
     // For now, return a mock summary
@@ -222,7 +223,7 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
   private async validateActivationRequest(
     serialNumber: SerialNumber | string,
     activationData: ActivationRequest,
-    options: PointOfSaleValidationOptions = {}
+    options: PointOfSaleValidationOptions = {},
   ): Promise<void> {
     const errors: Array<{ field: string; message: string; code: string }> = [];
 
@@ -233,7 +234,7 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
         errors.push({
           field: 'serial_number',
           message: serialValidation.error || 'Invalid serial number format',
-          code: 'INVALID_SERIAL_NUMBER'
+          code: 'INVALID_SERIAL_NUMBER',
         });
       }
     }
@@ -243,7 +244,7 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
       errors.push({
         field: 'registration_key',
         message: 'Registration key is required',
-        code: 'REQUIRED'
+        code: 'REQUIRED',
       });
     } else {
       const keyValidation = this.validateRegistrationKey(activationData.registration_key);
@@ -251,7 +252,7 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
         errors.push({
           field: 'registration_key',
           message: keyValidation.error || 'Invalid registration key format',
-          code: 'INVALID_REGISTRATION_KEY'
+          code: 'INVALID_REGISTRATION_KEY',
         });
       }
     }
@@ -264,7 +265,7 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
           errors.push({
             field: 'status',
             message: 'Device is already activated',
-            code: 'ALREADY_ACTIVATED'
+            code: 'ALREADY_ACTIVATED',
           });
         }
       } catch (error) {
@@ -273,7 +274,7 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
           errors.push({
             field: 'device',
             message: 'Unable to verify device status',
-            code: 'STATUS_CHECK_FAILED'
+            code: 'STATUS_CHECK_FAILED',
           });
         }
       }
@@ -326,7 +327,7 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
   static analyzeDeviceStatus(device: PointOfSaleOutput): DeviceStatus {
     return {
       serialNumber: device.serial_number as SerialNumber,
-      status: device.status as PEMStatus,
+      status: device.status,
       lastSeen: new Date().toISOString(), // last_seen field not available in OpenAPI schema
       certificateExpiry: undefined, // certificate_expiry field not available in OpenAPI schema
       firmwareVersion: undefined, // firmware_version field not available in OpenAPI schema
@@ -344,8 +345,8 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
     const now = Date.now();
     const minutesSinceLastSeen = (now - lastSeenTime) / (1000 * 60);
 
-    if (minutesSinceLastSeen <= 5) return 'online';
-    if (minutesSinceLastSeen <= 30) return 'intermittent';
+    if (minutesSinceLastSeen <= 5) {return 'online';}
+    if (minutesSinceLastSeen <= 30) {return 'intermittent';}
     return 'offline';
   }
 
@@ -392,9 +393,9 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
     const uptimePercentage = Math.round((uptimeHours / 24) * 100);
 
     let availabilityStatus: 'excellent' | 'good' | 'poor' | 'critical' = 'excellent';
-    if (uptimePercentage < 95) availabilityStatus = 'good';
-    if (uptimePercentage < 85) availabilityStatus = 'poor';
-    if (uptimePercentage < 70) availabilityStatus = 'critical';
+    if (uptimePercentage < 95) {availabilityStatus = 'good';}
+    if (uptimePercentage < 85) {availabilityStatus = 'poor';}
+    if (uptimePercentage < 70) {availabilityStatus = 'critical';}
 
     return {
       uptimeHours: Math.round(uptimeHours * 100) / 100,
@@ -430,8 +431,8 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
     // Note: certificate_expiry field not available in OpenAPI schema
 
     for (const device of devices) {
-      const status = device.status as PEMStatus;
-      
+      const {status} = device;
+
       // Update status breakdown
       report.statusBreakdown[status] = (report.statusBreakdown[status] || 0) + 1;
 
@@ -455,7 +456,7 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
       totalUptime += uptime.uptimePercentage;
     }
 
-    report.avgUptimePercentage = devices.length > 0 ? 
+    report.avgUptimePercentage = devices.length > 0 ?
       Math.round(totalUptime / devices.length) : 0;
 
     return report;
@@ -503,7 +504,7 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
     estimatedDuration: string;
   } {
     const now = new Date();
-    
+
     // Note: certificate_expiry and firmware_version fields not available in OpenAPI schema
     // Using default maintenance schedule
 
@@ -533,15 +534,15 @@ export class PointOfSalesResource extends BaseOpenAPIResource {
   static generateActivationCode(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
-    
+
     // Generate in format: XXXX-XXXX-XXXX-XXXX
     for (let group = 0; group < 4; group++) {
-      if (group > 0) result += '-';
+      if (group > 0) {result += '-';}
       for (let i = 0; i < 4; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
       }
     }
-    
+
     return result;
   }
 }
@@ -551,11 +552,11 @@ export { PointOfSalesResource as PointOfSales };
 
 // Export types for external use
 export type {
-  PointOfSaleOutput,
   PointOfSalePage,
-  ActivationRequest,
   ActivationOutput,
-  CloseJournalRequest,
-  CloseJournalOutput,
+  PointOfSaleOutput,
+  ActivationRequest,
   InactivityRequest,
+  CloseJournalOutput,
+  CloseJournalRequest,
 };

@@ -2,19 +2,18 @@
  * Platform Components Tests
  * Tests for cross-platform component abstractions
  */
-
-import React from 'react';
 import { render } from '@testing-library/react';
+
 import {
-  isReactNative,
   isWeb,
-  PlatformView,
-  PlatformText,
-  PlatformTextInput,
-  PlatformButton,
-  createStyles,
   showAlert,
+  PlatformText,
+  PlatformView,
+  createStyles,
   platformInfo,
+  isReactNative,
+  PlatformButton,
+  PlatformTextInput,
 } from '../../../hooks/react/platform-components';
 
 // Mock React Native modules
@@ -58,9 +57,9 @@ describe('Platform Components', () => {
       const { container } = render(
         <PlatformView testID="test-view">
           <span>Content</span>
-        </PlatformView>
+        </PlatformView>,
       );
-      
+
       const element = container.firstChild;
       expect(element?.nodeName).toBe('DIV');
       expect(element).toHaveAttribute('data-testid', 'test-view');
@@ -71,23 +70,23 @@ describe('Platform Components', () => {
       const { container } = render(
         <PlatformView onPress={handlePress}>
           <span>Click me</span>
-        </PlatformView>
+        </PlatformView>,
       );
-      
+
       const element = container.firstChild;
       expect(element?.nodeName).toBe('BUTTON');
     });
 
     it('should handle className and style props', () => {
       const { container } = render(
-        <PlatformView 
-          className="custom-class" 
+        <PlatformView
+          className="custom-class"
           style={{ padding: 20 }}
         >
           Content
-        </PlatformView>
+        </PlatformView>,
       );
-      
+
       const element = container.firstChild as HTMLElement;
       expect(element.className).toBe('custom-class');
       expect(element.style.padding).toBe('20px');
@@ -97,9 +96,9 @@ describe('Platform Components', () => {
   describe('PlatformText', () => {
     it('should render as span on web', () => {
       const { container } = render(
-        <PlatformText>Hello World</PlatformText>
+        <PlatformText>Hello World</PlatformText>,
       );
-      
+
       expect(container.firstChild?.nodeName).toBe('SPAN');
       expect(container.textContent).toBe('Hello World');
     });
@@ -108,9 +107,9 @@ describe('Platform Components', () => {
       const { container } = render(
         <PlatformText numberOfLines={2}>
           Long text that should be truncated
-        </PlatformText>
+        </PlatformText>,
       );
-      
+
       const element = container.firstChild as HTMLElement;
       expect(element.style.display).toBe('-webkit-box');
       expect(element.style.webkitLineClamp).toBe('2');
@@ -120,12 +119,12 @@ describe('Platform Components', () => {
   describe('PlatformTextInput', () => {
     it('should render as input on web', () => {
       const { container } = render(
-        <PlatformTextInput 
-          value="test" 
+        <PlatformTextInput
+          value="test"
           placeholder="Enter text"
-        />
+        />,
       );
-      
+
       const input = container.firstChild as HTMLInputElement;
       expect(input.nodeName).toBe('INPUT');
       expect(input.value).toBe('test');
@@ -134,13 +133,13 @@ describe('Platform Components', () => {
 
     it('should render as textarea when multiline', () => {
       const { container } = render(
-        <PlatformTextInput 
-          multiline 
+        <PlatformTextInput
+          multiline
           numberOfLines={4}
           value="Multi\nLine\nText"
-        />
+        />,
       );
-      
+
       const textarea = container.firstChild as HTMLTextAreaElement;
       expect(textarea.nodeName).toBe('TEXTAREA');
       expect(textarea.rows).toBe(4);
@@ -148,18 +147,18 @@ describe('Platform Components', () => {
 
     it('should handle password input', () => {
       const { container } = render(
-        <PlatformTextInput secureTextEntry />
+        <PlatformTextInput secureTextEntry />,
       );
-      
+
       const input = container.firstChild as HTMLInputElement;
       expect(input.type).toBe('password');
     });
 
     it('should map keyboardType to input type', () => {
       const { container } = render(
-        <PlatformTextInput keyboardType="email-address" />
+        <PlatformTextInput keyboardType="email-address" />,
       );
-      
+
       const input = container.firstChild as HTMLInputElement;
       expect(input.type).toBe('email');
     });
@@ -168,16 +167,16 @@ describe('Platform Components', () => {
   describe('PlatformButton', () => {
     it('should render as button on web', () => {
       const handlePress = jest.fn();
-      const { container, getByText } = render(
+      const { container } = render(
         <PlatformButton onPress={handlePress}>
           Click Me
-        </PlatformButton>
+        </PlatformButton>,
       );
-      
+
       const button = container.firstChild as HTMLButtonElement;
       expect(button.nodeName).toBe('BUTTON');
       expect(button.type).toBe('button');
-      
+
       button.click();
       expect(handlePress).toHaveBeenCalled();
     });
@@ -186,9 +185,9 @@ describe('Platform Components', () => {
       const { container } = render(
         <PlatformButton disabled>
           Disabled Button
-        </PlatformButton>
+        </PlatformButton>,
       );
-      
+
       const button = container.firstChild as HTMLButtonElement;
       expect(button.disabled).toBe(true);
     });
@@ -197,9 +196,9 @@ describe('Platform Components', () => {
       const { container } = render(
         <PlatformButton type="submit">
           Submit
-        </PlatformButton>
+        </PlatformButton>,
       );
-      
+
       const button = container.firstChild as HTMLButtonElement;
       expect(button.type).toBe('submit');
     });
@@ -217,7 +216,7 @@ describe('Platform Components', () => {
           color: '#333',
         },
       });
-      
+
       expect(styles).toEqual({
         container: {
           padding: 20,
@@ -235,15 +234,15 @@ describe('Platform Components', () => {
     it('should use window.confirm on web', () => {
       const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
       const handleOk = jest.fn();
-      
+
       showAlert('Test Alert', 'Are you sure?', [
         { text: 'Cancel', style: 'cancel' },
         { text: 'OK', onPress: handleOk },
       ]);
-      
+
       expect(confirmSpy).toHaveBeenCalledWith('Are you sure?');
       expect(handleOk).toHaveBeenCalled();
-      
+
       confirmSpy.mockRestore();
     });
 
@@ -251,16 +250,16 @@ describe('Platform Components', () => {
       const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
       const handleCancel = jest.fn();
       const handleOk = jest.fn();
-      
+
       showAlert('Test Alert', 'Are you sure?', [
         { text: 'Cancel', style: 'cancel', onPress: handleCancel },
         { text: 'OK', onPress: handleOk },
       ]);
-      
+
       expect(confirmSpy).toHaveBeenCalledWith('Are you sure?');
       expect(handleCancel).toHaveBeenCalled();
       expect(handleOk).not.toHaveBeenCalled();
-      
+
       confirmSpy.mockRestore();
     });
   });

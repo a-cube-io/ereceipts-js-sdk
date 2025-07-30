@@ -159,11 +159,17 @@ export interface FiscalReport {
 
 export class FiscalAuditManager {
   private config: FiscalConfig;
+
   private documents = new Map<string, FiscalDocument>();
+
   private periods = new Map<string, FiscalPeriod>();
+
   private violations: FiscalViolation[] = [];
+
   private sequenceCounters = new Map<string, number>(); // type -> last sequence number
+
   private auditChain: string[] = []; // Hash chain for immutability
+
   private reports = new Map<string, FiscalReport>();
 
   constructor(config?: Partial<FiscalConfig>) {
@@ -208,7 +214,7 @@ export class FiscalAuditManager {
     items: FiscalLineItem[],
     paymentMethod: string,
     customerInfo?: FiscalDocument['customer'],
-    metadata?: FiscalDocument['metadata']
+    metadata?: FiscalDocument['metadata'],
   ): Promise<string> {
     if (!this.config.enabled) {
       throw new Error('Fiscal audit system is disabled');
@@ -217,11 +223,11 @@ export class FiscalAuditManager {
     const documentId = this.generateDocumentId();
     const timestamp = Date.now();
     const fiscalYear = new Date(timestamp).getFullYear();
-    
+
     // Generate sequence number
     const sequenceKey = `${type}_${fiscalYear}`;
     const sequenceNumber = this.getNextSequenceNumber(sequenceKey);
-    
+
     // Validate sequence if required
     if (this.config.receiptSequencing.enforceSequential) {
       await this.validateSequence(type, sequenceNumber, fiscalYear);
@@ -312,7 +318,7 @@ export class FiscalAuditManager {
   async voidFiscalDocument(
     documentId: string,
     reason: string,
-    userId: string
+    userId: string,
   ): Promise<void> {
     const document = this.documents.get(documentId);
     if (!document) {
@@ -355,7 +361,7 @@ export class FiscalAuditManager {
     type: FiscalReport['type'],
     year: number,
     month?: number,
-    quarter?: number
+    quarter?: number,
   ): Promise<string> {
     const periodKey = this.generatePeriodKey(year, month, quarter);
     const period = this.periods.get(periodKey);
@@ -467,7 +473,7 @@ export class FiscalAuditManager {
       const auditHash = await this.calculateAuditHash(
         documentId,
         entry.action,
-        entry.timestamp
+        entry.timestamp,
       );
       if (auditHash !== entry.hash) {
         issues.push(`Audit entry ${entry.id} hash mismatch`);
@@ -511,7 +517,7 @@ export class FiscalAuditManager {
   } {
     const documents = Array.from(this.documents.values());
     const periods = Array.from(this.periods.values());
-    
+
     const compliantDocs = documents.filter(d => d.compliance.fiscallyValid);
     const warningDocs = documents.filter(d => d.compliance.warnings.length > 0);
     const violationDocs = documents.filter(d => !d.compliance.fiscallyValid);
@@ -527,13 +533,13 @@ export class FiscalAuditManager {
     const sixMonthsFromNow = now + (6 * 30 * 24 * 60 * 60 * 1000);
     const retentionDeadline = now - this.config.retentionPeriod;
 
-    const expiringSoon = documents.filter(d => 
-      d.timestamp + this.config.retentionPeriod > now && 
-      d.timestamp + this.config.retentionPeriod <= sixMonthsFromNow
+    const expiringSoon = documents.filter(d =>
+      d.timestamp + this.config.retentionPeriod > now &&
+      d.timestamp + this.config.retentionPeriod <= sixMonthsFromNow,
     ).length;
 
-    const expired = documents.filter(d => 
-      d.timestamp < retentionDeadline
+    const expired = documents.filter(d =>
+      d.timestamp < retentionDeadline,
     ).length;
 
     let overall: 'compliant' | 'warnings' | 'violations' = 'compliant';
@@ -574,7 +580,7 @@ export class FiscalAuditManager {
    */
   async exportFiscalData(
     year: number,
-    format: 'xml' | 'json' = 'xml'
+    format: 'xml' | 'json' = 'xml',
   ): Promise<string> {
     const yearDocuments = Array.from(this.documents.values())
       .filter(doc => doc.fiscalYear === year);
@@ -612,9 +618,9 @@ export class FiscalAuditManager {
 
     if (format === 'xml') {
       return this.convertToAgenziaEntrateXML(exportData);
-    } else {
+    } 
       return JSON.stringify(exportData, null, 2);
-    }
+    
   }
 
   private initializeFiscalSystem(): void {
@@ -622,7 +628,7 @@ export class FiscalAuditManager {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    
+
     this.ensureFiscalPeriod(currentYear, currentMonth);
 
     // Set up periodic compliance checks
@@ -641,9 +647,9 @@ export class FiscalAuditManager {
   private async validateSequence(
     type: string,
     sequenceNumber: number,
-    fiscalYear: number
+    fiscalYear: number,
   ): Promise<void> {
-    if (!this.config.receiptSequencing.enforceSequential) return;
+    if (!this.config.receiptSequencing.enforceSequential) {return;}
 
     const sequenceKey = `${type}_${fiscalYear}`;
     const expectedNumber = (this.sequenceCounters.get(sequenceKey) || 0) + 1;
@@ -679,7 +685,7 @@ export class FiscalAuditManager {
     for (const item of items) {
       const itemNet = item.quantity * item.unitPrice;
       const itemVat = itemNet * (item.vatRate / 100);
-      
+
       netTotal += itemNet;
       vatTotal += itemVat;
 
@@ -710,16 +716,16 @@ export class FiscalAuditManager {
   }
 
   private getVATCategory(rate: number): VATBreakdown['category'] {
-    if (rate === 0) return 'zero';
-    if (rate === 22) return 'standard'; // Italy standard rate
-    if (rate === 10 || rate === 4) return 'reduced'; // Italy reduced rates
+    if (rate === 0) {return 'zero';}
+    if (rate === 22) {return 'standard';} // Italy standard rate
+    if (rate === 10 || rate === 4) {return 'reduced';} // Italy reduced rates
     return 'standard';
   }
 
   private validateVATCompliance(items: FiscalLineItem[], _vat: VATBreakdown[]): void {
     // Validate Italian VAT rates
     const validRates = [0, 4, 5, 10, 22]; // Valid Italian VAT rates
-    
+
     for (const item of items) {
       if (!validRates.includes(item.vatRate)) {
         this.recordViolation({
@@ -747,7 +753,7 @@ export class FiscalAuditManager {
     const encoder = new TextEncoder();
     const data = encoder.encode(JSON.stringify(hashData));
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    
+
     return Array.from(new Uint8Array(hashBuffer))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
@@ -756,13 +762,13 @@ export class FiscalAuditManager {
   private async calculateAuditHash(
     documentId: string,
     action: string,
-    timestamp: number
+    timestamp: number,
   ): Promise<string> {
     const hashData = `${documentId}:${action}:${timestamp}`;
     const encoder = new TextEncoder();
     const data = encoder.encode(hashData);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    
+
     return Array.from(new Uint8Array(hashBuffer))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
@@ -780,7 +786,7 @@ export class FiscalAuditManager {
     const encoder = new TextEncoder();
     const data = encoder.encode(JSON.stringify(hashData));
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    
+
     return Array.from(new Uint8Array(hashBuffer))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
@@ -808,11 +814,11 @@ export class FiscalAuditManager {
 
   private async verifyDocumentSignature(document: FiscalDocument): Promise<boolean> {
     // Simplified verification - in production, use proper PKI
-    if (!document.digitalSignature) return false;
-    
+    if (!document.digitalSignature) {return false;}
+
     const documentHash = await this.calculateDocumentHash(document);
     const expectedSignature = `signature_${documentHash.substring(0, 16)}`;
-    
+
     return document.digitalSignature === expectedSignature;
   }
 
@@ -867,12 +873,12 @@ export class FiscalAuditManager {
 
   private ensureFiscalPeriod(year: number, month?: number, quarter?: number): void {
     const periodKey = this.generatePeriodKey(year, month, quarter);
-    
+
     if (!this.periods.has(periodKey)) {
-      const startDate = month 
+      const startDate = month
         ? new Date(year, month - 1, 1).getTime()
         : new Date(year, 0, 1).getTime();
-      
+
       const endDate = month
         ? new Date(year, month, 0).getTime()
         : new Date(year + 1, 0, 0).getTime();
@@ -911,15 +917,15 @@ export class FiscalAuditManager {
     // Add document to period if not already present
     if (!period.documents.includes(document.id)) {
       period.documents.push(document.id);
-      
+
       // Update summary
       period.summary.totalDocuments++;
       period.summary.totalAmount += document.amount.total;
       period.summary.totalVAT += document.amount.vat;
-      
+
       // Update by type
       period.summary.byType[document.type] = (period.summary.byType[document.type] || 0) + 1;
-      
+
       // Update by VAT rate
       for (const vat of document.vat) {
         const rateKey = `${vat.rate}%`;
@@ -965,7 +971,7 @@ export class FiscalAuditManager {
 
   private async generateVATSummary(period: FiscalPeriod): Promise<any> {
     const documents = period.documents.map(id => this.documents.get(id)!).filter(Boolean);
-    
+
     const vatSummary = documents.reduce((summary, doc) => {
       for (const vat of doc.vat) {
         const key = `${vat.rate}%`;
@@ -998,13 +1004,13 @@ export class FiscalAuditManager {
 
   private async generateAuditTrailReport(period: FiscalPeriod): Promise<any> {
     const documents = period.documents.map(id => this.documents.get(id)!).filter(Boolean);
-    
-    const auditEntries = documents.flatMap(doc => 
+
+    const auditEntries = documents.flatMap(doc =>
       doc.auditTrail.map(entry => ({
         documentId: doc.id,
         documentNumber: doc.documentNumber,
         ...entry,
-      }))
+      })),
     );
 
     return {
@@ -1016,7 +1022,7 @@ export class FiscalAuditManager {
 
   private async generateComplianceReport(period: FiscalPeriod): Promise<any> {
     const documents = period.documents.map(id => this.documents.get(id)!).filter(Boolean);
-    
+
     const compliantDocs = documents.filter(doc => doc.compliance.fiscallyValid);
     const nonCompliantDocs = documents.filter(doc => !doc.compliance.fiscallyValid);
 
@@ -1026,8 +1032,8 @@ export class FiscalAuditManager {
       totalDocuments: documents.length,
       compliantDocuments: compliantDocs.length,
       nonCompliantDocuments: nonCompliantDocs.length,
-      violations: this.violations.filter(v => 
-        v.documentId && period.documents.includes(v.documentId)
+      violations: this.violations.filter(v =>
+        v.documentId && period.documents.includes(v.documentId),
       ),
     };
   }
@@ -1036,19 +1042,19 @@ export class FiscalAuditManager {
     // Check for documents approaching retention deadline
     const now = Date.now();
     const warningPeriod = 6 * 30 * 24 * 60 * 60 * 1000; // 6 months
-    
+
     for (const document of this.documents.values()) {
       const retentionDeadline = document.timestamp + this.config.retentionPeriod;
-      
+
       if (retentionDeadline - now <= warningPeriod && retentionDeadline > now) {
         this.recordViolation({
           type: 'retention_violation',
           severity: 'warning',
           documentId: document.id,
           description: `Document approaching retention deadline`,
-          metadata: { 
+          metadata: {
             retentionDeadline,
-            daysRemaining: Math.floor((retentionDeadline - now) / (24 * 60 * 60 * 1000))
+            daysRemaining: Math.floor((retentionDeadline - now) / (24 * 60 * 60 * 1000)),
           },
         });
       }
@@ -1065,7 +1071,7 @@ export class FiscalAuditManager {
     xml += `    <NumeroDocumenti>${data.metadata.totalDocuments}</NumeroDocumenti>\n`;
     xml += '  </DatiGenerali>\n';
     xml += '  <Documenti>\n';
-    
+
     for (const doc of data.documents) {
       xml += '    <Documento>\n';
       xml += `      <ID>${doc.id}</ID>\n`;
@@ -1075,10 +1081,10 @@ export class FiscalAuditManager {
       xml += `      <IVA>${doc.amount.vat}</IVA>\n`;
       xml += '    </Documento>\n';
     }
-    
+
     xml += '  </Documenti>\n';
     xml += '</DatiFattura>';
-    
+
     return xml;
   }
 
@@ -1090,8 +1096,8 @@ export class FiscalAuditManager {
   }
 
   private generatePeriodKey(year: number, month?: number, quarter?: number): string {
-    if (month) return `${year}-${month.toString().padStart(2, '0')}`;
-    if (quarter) return `${year}-Q${quarter}`;
+    if (month) {return `${year}-${month.toString().padStart(2, '0')}`;}
+    if (quarter) {return `${year}-Q${quarter}`;}
     return `${year}`;
   }
 

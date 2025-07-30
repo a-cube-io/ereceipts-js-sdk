@@ -3,14 +3,14 @@
  * Enterprise-grade retry logic with exponential backoff and intelligent failure handling
  */
 
-import type { 
-  QueueItem, 
-  QueueItemId, 
-  // RetryStrategy, 
+import type {
+  QueueItem,
+  QueueItemId,
+  // RetryStrategy,
   RetryPolicy,
-  CircuitBreakerState,
+  QueueEvents,
   ResourceType,
-  QueueEvents 
+  CircuitBreakerState,
 } from './types';
 
 export interface RetryManagerConfig {
@@ -57,10 +57,15 @@ export interface RetryMetrics {
 
 export class RetryManager {
   private config: RetryManagerConfig;
+
   private circuitBreakers: Map<ResourceType, CircuitBreakerState> = new Map();
+
   private activeRetries: Map<QueueItemId, RetryAttempt> = new Map();
+
   private retryTimers: Map<QueueItemId, NodeJS.Timeout> = new Map();
+
   private metrics: RetryMetrics;
+
   private eventHandlers: Map<keyof QueueEvents, Set<Function>> = new Map();
 
   constructor(config: Partial<RetryManagerConfig> = {}) {
@@ -102,9 +107,9 @@ export class RetryManager {
 
     // Check retry queue capacity
     if (this.activeRetries.size >= this.config.retryQueueSize) {
-      this.emit('retry:queue-full', { 
-        queueSize: this.activeRetries.size, 
-        maxSize: this.config.retryQueueSize 
+      this.emit('retry:queue-full', {
+        queueSize: this.activeRetries.size,
+        maxSize: this.config.retryQueueSize,
       });
       return false;
     }
@@ -164,7 +169,7 @@ export class RetryManager {
    */
   recordSuccess(resource: ResourceType): void {
     const circuitBreaker = this.circuitBreakers.get(resource);
-    if (!circuitBreaker) return;
+    if (!circuitBreaker) {return;}
 
     let updatedState: CircuitBreakerState = {
       ...circuitBreaker,
@@ -173,7 +178,7 @@ export class RetryManager {
     };
 
     // Check if we should close the circuit
-    if (circuitBreaker.state === 'half-open' && 
+    if (circuitBreaker.state === 'half-open' &&
         updatedState.successCount >= this.config.circuitBreakerConfig.successThreshold) {
       updatedState = {
         ...updatedState,
@@ -193,7 +198,7 @@ export class RetryManager {
    */
   recordFailure(resource: ResourceType, _error: string): void {
     const circuitBreaker = this.circuitBreakers.get(resource);
-    if (!circuitBreaker) return;
+    if (!circuitBreaker) {return;}
 
     const now = Date.now();
     let updatedState: CircuitBreakerState = {
@@ -204,7 +209,7 @@ export class RetryManager {
     };
 
     // Check if we should open the circuit
-    if (circuitBreaker.state === 'closed' && 
+    if (circuitBreaker.state === 'closed' &&
         updatedState.failureCount >= this.config.circuitBreakerConfig.failureThreshold) {
       updatedState = {
         ...updatedState,
@@ -223,10 +228,10 @@ export class RetryManager {
    * Check if circuit is closed for a resource
    */
   isCircuitClosed(resource: ResourceType): boolean {
-    if (!this.config.circuitBreakerConfig.enabled) return true;
+    if (!this.config.circuitBreakerConfig.enabled) {return true;}
 
     const circuitBreaker = this.circuitBreakers.get(resource);
-    if (!circuitBreaker) return true;
+    if (!circuitBreaker) {return true;}
 
     const now = Date.now();
 
@@ -339,7 +344,7 @@ export class RetryManager {
 
   private async executeRetry(itemId: QueueItemId): Promise<void> {
     const retryAttempt = this.activeRetries.get(itemId);
-    if (!retryAttempt) return;
+    if (!retryAttempt) {return;}
 
     // Clean up retry state
     this.activeRetries.delete(itemId);
@@ -355,15 +360,15 @@ export class RetryManager {
     switch (policy.strategy) {
       case 'exponential':
         delay = Math.min(
-          policy.baseDelay * Math.pow(policy.backoffFactor, attempt - 1),
-          policy.maxDelay
+          policy.baseDelay * policy.backoffFactor**(attempt - 1),
+          policy.maxDelay,
         );
         break;
 
       case 'linear':
         delay = Math.min(
           policy.baseDelay * attempt,
-          policy.maxDelay
+          policy.maxDelay,
         );
         break;
 
@@ -431,8 +436,8 @@ export class RetryManager {
 
   private initializeCircuitBreakers(): void {
     const resources: ResourceType[] = [
-      'receipts', 'cashiers', 'merchants', 
-      'cash-registers', 'point-of-sales', 'pems'
+      'receipts', 'cashiers', 'merchants',
+      'cash-registers', 'point-of-sales', 'pems',
     ];
 
     for (const resource of resources) {
@@ -453,7 +458,7 @@ export class RetryManager {
   }
 
   private updateMetricsOnRetryScheduled(resource: ResourceType, delay: number): void {
-    if (!this.config.enableMetrics) return;
+    if (!this.config.enableMetrics) {return;}
 
     this.metrics.totalRetries++;
     this.metrics.resourceMetrics[resource].retries++;
@@ -469,7 +474,7 @@ export class RetryManager {
   }
 
   private updateMetricsOnSuccess(resource: ResourceType): void {
-    if (!this.config.enableMetrics) return;
+    if (!this.config.enableMetrics) {return;}
 
     this.metrics.successfulRetries++;
     this.metrics.resourceMetrics[resource].successes++;
@@ -477,7 +482,7 @@ export class RetryManager {
   }
 
   private updateMetricsOnFailure(resource: ResourceType): void {
-    if (!this.config.enableMetrics) return;
+    if (!this.config.enableMetrics) {return;}
 
     this.metrics.failedRetries++;
     this.metrics.resourceMetrics[resource].failures++;

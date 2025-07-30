@@ -2,7 +2,7 @@
  * React Native Connectivity Manager
  * Advanced network connectivity handling with intelligent retry, quality monitoring,
  * and adaptive behavior for mobile environments
- * 
+ *
  * Features:
  * - Real-time network quality monitoring
  * - Intelligent retry strategies based on network conditions
@@ -15,7 +15,7 @@
 import { EventEmitter } from 'eventemitter3';
 
 // Platform detection
-const isReactNative = typeof navigator !== 'undefined' && 
+const isReactNative = typeof navigator !== 'undefined' &&
   ((navigator as any).product === 'ReactNative' || (global as any).__REACT_NATIVE__);
 
 /**
@@ -26,15 +26,15 @@ export type NetworkQuality = 'excellent' | 'good' | 'fair' | 'poor' | 'unknown';
 /**
  * Connection types
  */
-export type ConnectionType = 
-  | 'wifi' 
-  | 'cellular' 
-  | '2g' 
-  | '3g' 
-  | '4g' 
-  | '5g' 
-  | 'ethernet' 
-  | 'bluetooth' 
+export type ConnectionType =
+  | 'wifi'
+  | 'cellular'
+  | '2g'
+  | '3g'
+  | '4g'
+  | '5g'
+  | 'ethernet'
+  | 'bluetooth'
   | 'unknown'
   | 'none';
 
@@ -81,34 +81,34 @@ interface QualityThresholds {
 export interface ConnectivityConfig {
   /** Enable network quality monitoring */
   enableQualityMonitoring?: boolean;
-  
+
   /** Quality check interval in ms */
   qualityCheckInterval?: number;
-  
+
   /** Enable adaptive retry strategies */
   enableAdaptiveRetry?: boolean;
-  
+
   /** Enable data usage optimization */
   enableDataOptimization?: boolean;
-  
+
   /** Enable background/foreground optimization */
   enableAppStateOptimization?: boolean;
-  
+
   /** Custom quality thresholds */
   qualityThresholds?: Partial<QualityThresholds>;
-  
+
   /** Retry configurations by network quality */
   retryConfigs?: Record<NetworkQuality, RetryConfig>;
-  
+
   /** Timeout configurations by network quality (ms) */
   timeoutConfigs?: Record<NetworkQuality, number>;
-  
+
   /** Enable connection health monitoring */
   enableHealthMonitoring?: boolean;
-  
+
   /** Health check URL */
   healthCheckUrl?: string;
-  
+
   /** Health check interval in ms */
   healthCheckInterval?: number;
 }
@@ -169,27 +169,33 @@ const DEFAULT_CONFIG: Required<ConnectivityConfig> = {
  */
 export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
   private config: Required<ConnectivityConfig>;
+
   private currentState: NetworkState;
+
   private previousState?: NetworkState;
+
   private isInitialized = false;
-  
+
   // React Native modules
   private NetInfo: any;
+
   private AppState: any;
-  
+
   // Monitoring timers
   private qualityTimer?: NodeJS.Timeout;
+
   private healthTimer?: NodeJS.Timeout;
-  
+
   // Connection health tracking
   private healthHistory: boolean[] = [];
+
   private currentAppState: 'active' | 'background' | 'inactive' = 'active';
-  
+
   constructor(config: ConnectivityConfig = {}) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.currentState = this.getInitialState();
-    
+
     this.initialize();
   }
 
@@ -203,7 +209,7 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
   }
 
   private async initialize(): Promise<void> {
-    if (this.isInitialized || !isReactNative) return;
+    if (this.isInitialized || !isReactNative) {return;}
 
     try {
       // Dynamically import React Native modules
@@ -238,7 +244,7 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
   }
 
   private setupNetworkListener(): void {
-    if (!this.NetInfo) return;
+    if (!this.NetInfo) {return;}
 
     this.NetInfo.addEventListener((state: any) => {
       this.handleNetworkStateChange(state);
@@ -246,7 +252,7 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
   }
 
   private setupAppStateListener(): void {
-    if (!this.AppState) return;
+    if (!this.AppState) {return;}
 
     this.AppState.addEventListener('change', (nextAppState: string) => {
       const previousAppState = this.currentAppState;
@@ -288,7 +294,7 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
 
   private async handleNetworkStateChange(netInfoState: any): Promise<void> {
     this.previousState = { ...this.currentState };
-    
+
     const newState: NetworkState = {
       isConnected: netInfoState.isConnected,
       connectionType: this.mapConnectionType(netInfoState.type, netInfoState.details),
@@ -308,9 +314,9 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
     this.emit('network:change', { current: newState, previous: this.previousState });
 
     if (this.previousState.quality !== newState.quality) {
-      this.emit('quality:change', { 
-        quality: newState.quality, 
-        previous: this.previousState.quality 
+      this.emit('quality:change', {
+        quality: newState.quality,
+        previous: this.previousState.quality,
       });
     }
 
@@ -327,8 +333,8 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
   }
 
   private mapConnectionType(type: string, details: any): ConnectionType {
-    if (!type || type === 'none') return 'none';
-    
+    if (!type || type === 'none') {return 'none';}
+
     switch (type.toLowerCase()) {
       case 'wifi':
         return 'wifi';
@@ -355,7 +361,7 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
 
   private calculateNetworkQuality(netInfoState: any): NetworkQuality {
     const { details } = netInfoState;
-    if (!details) return 'unknown';
+    if (!details) {return 'unknown';}
 
     const downlink = details.downlink || 0;
     const rtt = details.rtt || 1000;
@@ -366,11 +372,11 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
 
     if (downlink >= qualityThresholds.excellent.minDownlink && rtt <= qualityThresholds.excellent.maxRtt) {
       return 'excellent';
-    } else if (downlink >= qualityThresholds.good.minDownlink && rtt <= qualityThresholds.good.maxRtt) {
+    } if (downlink >= qualityThresholds.good.minDownlink && rtt <= qualityThresholds.good.maxRtt) {
       return 'good';
-    } else if (downlink >= qualityThresholds.fair.minDownlink && rtt <= qualityThresholds.fair.maxRtt) {
+    } if (downlink >= qualityThresholds.fair.minDownlink && rtt <= qualityThresholds.fair.maxRtt) {
       return 'fair';
-    } else if (downlink >= qualityThresholds.poor.minDownlink && rtt <= qualityThresholds.poor.maxRtt) {
+    } if (downlink >= qualityThresholds.poor.minDownlink && rtt <= qualityThresholds.poor.maxRtt) {
       return 'poor';
     }
 
@@ -378,8 +384,8 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
   }
 
   private handleDataOptimization(networkState: NetworkState): void {
-    const shouldOptimize = 
-      networkState.saveData || 
+    const shouldOptimize =
+      networkState.saveData ||
       networkState.isExpensive ||
       networkState.quality === 'poor' ||
       ['2g', '3g'].includes(networkState.connectionType);
@@ -413,7 +419,7 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
   }
 
   private async updateNetworkState(): Promise<void> {
-    if (!this.NetInfo) return;
+    if (!this.NetInfo) {return;}
 
     try {
       const netInfoState = await this.NetInfo.fetch();
@@ -450,7 +456,7 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
       if (this.healthHistory.length > 10) {
         this.healthHistory.shift();
       }
-      
+
       this.emit('health:check', { healthy: false });
     }
   }
@@ -506,8 +512,8 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
    * Get connection health score (0-1)
    */
   getHealthScore(): number {
-    if (this.healthHistory.length === 0) return 1;
-    
+    if (this.healthHistory.length === 0) {return 1;}
+
     const successCount = this.healthHistory.filter(h => h).length;
     return successCount / this.healthHistory.length;
   }
@@ -516,7 +522,7 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
    * Wait for network connection to be restored
    */
   async waitForConnection(timeout: number = 30000): Promise<boolean> {
-    if (this.currentState.isConnected) return true;
+    if (this.currentState.isConnected) {return true;}
 
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
@@ -538,7 +544,7 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
    */
   async executeWithRetry<T>(
     operation: () => Promise<T>,
-    customRetryConfig?: Partial<RetryConfig>
+    customRetryConfig?: Partial<RetryConfig>,
   ): Promise<T> {
     const config = { ...this.getRetryConfig(), ...customRetryConfig };
     let lastError: Error;
@@ -558,12 +564,12 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
         lastError = error as Error;
 
         // Don't retry on the last attempt
-        if (attempt === config.maxRetries) break;
+        if (attempt === config.maxRetries) {break;}
 
         // Calculate delay with backoff and jitter
         let delay = Math.min(
-          config.baseDelay * Math.pow(config.backoffMultiplier, attempt),
-          config.maxDelay
+          config.baseDelay * config.backoffMultiplier**attempt,
+          config.maxDelay,
         );
 
         if (config.jitter) {

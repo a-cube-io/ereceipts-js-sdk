@@ -17,7 +17,7 @@ const mockInquirer = {
   async prompt(questions: MockPrompt | MockPrompt[]): Promise<any> {
     const questionArray = Array.isArray(questions) ? questions : [questions];
     const answers: any = {};
-    
+
     // Return mock answers for testing
     for (const question of questionArray) {
       switch (question.type) {
@@ -41,7 +41,7 @@ const mockInquirer = {
           answers[question.name] = 'test-value';
       }
     }
-    
+
     return answers;
   },
 };

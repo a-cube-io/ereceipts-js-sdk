@@ -4,10 +4,11 @@
  * Manages cascade operations and maintains referential integrity across resources
  */
 
-import { EventEmitter } from 'eventemitter3';
 import type { ResourceType } from '@/storage/queue/types';
 
-export type DependencyType = 
+import { EventEmitter } from 'eventemitter3';
+
+export type DependencyType =
   | 'requires'      // Resource A requires Resource B to exist
   | 'references'    // Resource A references Resource B (foreign key)
   | 'owns'          // Resource A owns Resource B (parent-child)
@@ -15,7 +16,7 @@ export type DependencyType =
   | 'conflicts'     // Resources conflict and cannot be synced simultaneously
   | 'triggers';     // Resource A triggers updates to Resource B
 
-export type CascadeAction = 
+export type CascadeAction =
   | 'none'          // No cascade action
   | 'update'        // Update dependent resources
   | 'delete'        // Delete dependent resources
@@ -138,15 +139,19 @@ export interface DependencyManagerEvents {
  */
 export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
   private config: DependencyManagerConfig;
+
   private isInitialized = false;
 
   // Dependency rules and graphs
   private rules = new Map<string, DependencyRule>();
+
   private graphs = new Map<string, DependencyGraph>(); // Cached dependency graphs
+
   private violations = new Map<string, DependencyViolation>();
 
   // Resource relationship tracking
   private resourceRegistry = new Map<string, Set<string>>(); // resourceType -> Set of resourceIds
+
   private relationshipCache = new Map<string, Map<string, DependencyRule[]>>();
 
   // Sync planning cache
@@ -154,7 +159,7 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
 
   constructor(config: Partial<DependencyManagerConfig> = {}) {
     super();
-    
+
     this.config = {
       enabled: true,
       enableAutoCascade: true,
@@ -217,10 +222,10 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
   addRule(rule: Omit<DependencyRule, 'id'>): string {
     const id = `rule_${Date.now()}_${Math.random().toString(36).substring(2)}`;
     const dependencyRule: DependencyRule = { ...rule, id };
-    
+
     this.rules.set(id, dependencyRule);
     this.invalidateCache();
-    
+
     this.emit('rule:added', { rule: dependencyRule });
     return id;
   }
@@ -244,9 +249,9 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
     if (!this.resourceRegistry.has(resourceType)) {
       this.resourceRegistry.set(resourceType, new Set());
     }
-    
+
     this.resourceRegistry.get(resourceType)!.add(resourceId);
-    
+
     // Invalidate relevant caches
     this.invalidateCacheForResource(resourceType, resourceId);
   }
@@ -266,11 +271,11 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
    * Build a dependency graph for given resources
    */
   async buildDependencyGraph(
-    resources: Array<{ type: ResourceType; id: string; operation?: 'create' | 'update' | 'delete' }>
+    resources: Array<{ type: ResourceType; id: string; operation?: 'create' | 'update' | 'delete' }>,
   ): Promise<DependencyGraph> {
     const startTime = Date.now();
     const cacheKey = this.generateGraphCacheKey(resources);
-    
+
     // Check cache first
     if (this.config.cacheGraphs) {
       const cached = this.graphs.get(cacheKey);
@@ -297,14 +302,14 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
         syncPriority: this.calculateSyncPriority(resource.type),
         status: 'pending',
       };
-      
+
       graph.nodes.set(nodeId, node);
     }
 
     // Build edges based on dependency rules
     for (const [_nodeId, node] of graph.nodes.entries()) {
       const applicableRules = this.getApplicableRules(node.resourceType);
-      
+
       for (const rule of applicableRules) {
         await this.buildEdgesForRule(graph, node, rule);
       }
@@ -327,7 +332,7 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
 
     const duration = Date.now() - startTime;
     this.emit('graph:built', { graph, duration });
-    
+
     return graph;
   }
 
@@ -335,10 +340,10 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
    * Create an optimized sync plan based on dependencies
    */
   async createSyncPlan(
-    resources: Array<{ type: ResourceType; id: string; operation: 'create' | 'update' | 'delete' }>
+    resources: Array<{ type: ResourceType; id: string; operation: 'create' | 'update' | 'delete' }>,
   ): Promise<SyncPlan> {
     const cacheKey = this.generatePlanCacheKey(resources);
-    
+
     // Check cache first
     const cached = this.syncPlanCache.get(cacheKey);
     if (cached) {
@@ -347,22 +352,22 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
 
     // Build dependency graph
     const graph = await this.buildDependencyGraph(resources);
-    
+
     // Topological sort to determine sync order
     const sortedNodes = this.topologicalSort(graph);
-    
+
     // Group nodes into phases
     const phases = this.createSyncPhases(sortedNodes, graph);
-    
+
     // Calculate plan metrics
     const totalResources = resources.length;
     const parallelizable = phases.reduce((sum, phase) => sum + (phase.canParallelize ? phase.resources.length : 0), 0);
     const sequential = totalResources - parallelizable;
     const estimatedDuration = phases.reduce((sum, phase) => sum + phase.estimatedDuration, 0);
-    
+
     // Assess risk level
     const riskLevel = this.assessSyncRisk(graph, phases);
-    
+
     // Detect conflicts
     const conflicts = this.detectSyncConflicts(graph, resources);
 
@@ -382,7 +387,7 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
 
     // Cache the plan
     this.syncPlanCache.set(cacheKey, plan);
-    
+
     this.emit('plan:created', { plan });
     return plan;
   }
@@ -393,7 +398,7 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
   async validateDependencies(
     resourceType: ResourceType,
     resourceId: string,
-    operation: 'create' | 'update' | 'delete'
+    operation: 'create' | 'update' | 'delete',
   ): Promise<DependencyViolation[]> {
     const violations: DependencyViolation[] = [];
     const applicableRules = this.getApplicableRules(resourceType);
@@ -416,7 +421,7 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
   async executeCascadeOperations(
     resourceType: ResourceType,
     resourceId: string,
-    _operation: 'create' | 'update' | 'delete'
+    _operation: 'create' | 'update' | 'delete',
   ): Promise<Array<{ type: ResourceType; id: string; action: CascadeAction }>> {
     if (!this.config.enableAutoCascade) {
       return [];
@@ -428,7 +433,7 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
     for (const rule of applicableRules) {
       if (rule.cascadeAction !== 'none') {
         const affectedResources = await this.findAffectedResources(rule, resourceType, resourceId);
-        
+
         for (const affectedResource of affectedResources) {
           cascadeOperations.push({
             type: affectedResource.type,
@@ -590,28 +595,28 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
 
   private getApplicableRules(resourceType: ResourceType): DependencyRule[] {
     return Array.from(this.rules.values())
-      .filter(rule => 
-        rule.enabled && 
-        (rule.sourceResource === resourceType || rule.targetResource === resourceType)
+      .filter(rule =>
+        rule.enabled &&
+        (rule.sourceResource === resourceType || rule.targetResource === resourceType),
       )
       .sort((a, b) => b.priority - a.priority);
   }
 
   private async buildEdgesForRule(graph: DependencyGraph, node: ResourceNode, rule: DependencyRule): Promise<void> {
     const nodeId = `${node.resourceType}:${node.resourceId}`;
-    
+
     if (rule.sourceResource === node.resourceType) {
       // This node depends on target resources
       const targetResources = this.resourceRegistry.get(rule.targetResource) || new Set();
-      
+
       for (const targetId of targetResources) {
         const targetNodeId = `${rule.targetResource}:${targetId}`;
         const targetNode = graph.nodes.get(targetNodeId);
-        
+
         if (targetNode) {
           node.dependencies.push(targetNodeId);
           targetNode.dependents.push(nodeId);
-          
+
           // Store edge information
           if (!graph.edges.has(nodeId)) {
             graph.edges.set(nodeId, []);
@@ -633,7 +638,7 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
         const cycleStart = path.indexOf(nodeId);
         const cycle = path.slice(cycleStart);
         cycle.push(nodeId);
-        
+
         conflicts.push({
           id: `conflict_${Date.now()}_${Math.random().toString(36).substring(2)}`,
           type: 'circular_dependency',
@@ -642,7 +647,7 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
           affectedResources: cycle,
           suggestedResolution: 'Remove one of the dependencies or restructure the relationship',
         });
-        
+
         return true;
       }
 
@@ -684,17 +689,17 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
       if (temporaryMark.has(nodeId)) {
         throw new Error(`Circular dependency detected involving ${nodeId}`);
       }
-      
+
       if (!visited.has(nodeId)) {
         temporaryMark.add(nodeId);
-        
+
         const node = graph.nodes.get(nodeId);
         if (node) {
           for (const dependencyId of node.dependencies) {
             visit(dependencyId);
           }
         }
-        
+
         temporaryMark.delete(nodeId);
         visited.add(nodeId);
         sorted.unshift(nodeId); // Add to beginning for reverse topological order
@@ -728,14 +733,14 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
 
       // Find nodes that can be processed in this phase
       for (const nodeId of sortedNodes) {
-        if (processedNodes.has(nodeId)) continue;
+        if (processedNodes.has(nodeId)) {continue;}
 
         const node = graph.nodes.get(nodeId);
-        if (!node) continue;
+        if (!node) {continue;}
 
         // Check if all dependencies are already processed
         const allDependenciesProcessed = node.dependencies.every(depId => processedNodes.has(depId));
-        
+
         if (allDependenciesProcessed) {
           const resourceInfo: ResourceSyncInfo = {
             resourceType: node.resourceType,
@@ -750,9 +755,9 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
           currentPhase.resources.push(resourceInfo);
           currentPhase.estimatedDuration = Math.max(
             currentPhase.estimatedDuration,
-            resourceInfo.estimatedDuration
+            resourceInfo.estimatedDuration,
           );
-          
+
           processedNodes.add(nodeId);
         }
       }
@@ -777,7 +782,7 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
       for (let j = i + 1; j < phase.resources.length; j++) {
         const resource1 = phase.resources[i]!;
         const resource2 = phase.resources[j]!;
-        
+
         if (this.hasResourceConflict(resource1, resource2)) {
           return false;
         }
@@ -812,13 +817,13 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
       .reduce((sum, node) => sum + node.dependencies.length, 0) / totalNodes;
 
     // Calculate risk score
-    if (totalNodes > 50) riskScore += 2;
-    if (totalPhases > 10) riskScore += 2;
-    if (sequentialPhases > 5) riskScore += 2;
-    if (avgDependencies > 3) riskScore += 1;
+    if (totalNodes > 50) {riskScore += 2;}
+    if (totalPhases > 10) {riskScore += 2;}
+    if (sequentialPhases > 5) {riskScore += 2;}
+    if (avgDependencies > 3) {riskScore += 1;}
 
-    if (riskScore >= 5) return 'high';
-    if (riskScore >= 3) return 'medium';
+    if (riskScore >= 5) {return 'high';}
+    if (riskScore >= 3) {return 'medium';}
     return 'low';
   }
 
@@ -851,7 +856,7 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
     rule: DependencyRule,
     resourceType: ResourceType,
     resourceId: string,
-    _operation: 'create' | 'update' | 'delete'
+    _operation: 'create' | 'update' | 'delete',
   ): Promise<DependencyViolation | null> {
     // Check if the rule applies to this operation
     if (rule.sourceResource !== resourceType) {
@@ -882,7 +887,7 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
   private async findAffectedResources(
     rule: DependencyRule,
     resourceType: ResourceType,
-    _resourceId: string
+    _resourceId: string,
   ): Promise<Array<{ type: ResourceType; id: string }>> {
     const affected: Array<{ type: ResourceType; id: string }> = [];
 
@@ -995,14 +1000,14 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
 
   private invalidateCacheForResource(resourceType: ResourceType, resourceId: string): void {
     const resourceKey = `${resourceType}:${resourceId}`;
-    
+
     // Remove cache entries that involve this resource
     for (const [key, _] of this.graphs.entries()) {
       if (key.includes(resourceKey)) {
         this.graphs.delete(key);
       }
     }
-    
+
     for (const [key, _] of this.syncPlanCache.entries()) {
       if (key.includes(resourceKey)) {
         this.syncPlanCache.delete(key);
@@ -1015,7 +1020,7 @@ export class DependencyManager extends EventEmitter<DependencyManagerEvents> {
  * Create dependency manager with default configuration
  */
 export function createDependencyManager(
-  config: Partial<DependencyManagerConfig> = {}
+  config: Partial<DependencyManagerConfig> = {},
 ): DependencyManager {
   return new DependencyManager(config);
 }

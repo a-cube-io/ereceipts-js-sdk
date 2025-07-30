@@ -4,15 +4,15 @@
  */
 
 import {
-  formatHeader,
-  formatSeparator,
-  formatProperty,
-  formatSuccess,
-  formatError,
-  formatWarning,
   formatInfo,
+  formatJSON,
+  formatError,
+  formatHeader,
+  formatSuccess,
+  formatWarning,
   formatListItem,
-  formatJSON
+  formatProperty,
+  formatSeparator,
 } from '../../../cli/utils/formatters.js';
 
 describe('Formatters', () => {
@@ -105,9 +105,9 @@ describe('Formatters', () => {
         name: 'John',
         age: 30,
         active: true,
-        data: null
+        data: null,
       };
-      
+
       const result = formatJSON(obj);
       expect(result).toContain('name');
       expect(result).toContain('John');

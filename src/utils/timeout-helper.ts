@@ -11,7 +11,7 @@ export function setTimeoutSafe(callback: () => void, delay: number): NodeJS.Time
 }
 
 /**
- * Cross-platform setInterval that returns NodeJS.Timeout  
+ * Cross-platform setInterval that returns NodeJS.Timeout
  */
 export function setIntervalSafe(callback: () => void, delay: number): NodeJS.Timeout {
   return setInterval(callback, delay) as unknown as NodeJS.Timeout;

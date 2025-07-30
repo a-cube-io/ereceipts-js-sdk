@@ -6,11 +6,17 @@
 // Base error class with audit information
 export abstract class ACubeSDKError extends Error {
   public readonly timestamp: Date;
+
   public readonly requestId: string;
+
   public readonly operation: string;
+
   public readonly retryable: boolean;
+
   public readonly statusCode?: number;
+
   public readonly auditInfo?: AuditInfo;
+
   public override readonly cause?: Error;
 
   constructor(
@@ -23,7 +29,7 @@ export abstract class ACubeSDKError extends Error {
       requestId?: string;
       auditInfo?: AuditInfo;
       cause?: Error;
-    }
+    },
   ) {
     super(message);
     if (options.cause) {
@@ -82,7 +88,7 @@ export class NetworkError extends ACubeSDKError {
       requestId?: string;
       retryable?: boolean;
       cause?: Error;
-    } = {}
+    } = {},
   ) {
     super(message, 'NETWORK_ERROR', {
       operation,
@@ -103,7 +109,7 @@ export class AuthenticationError extends ACubeSDKError {
       statusCode?: number;
       requestId?: string;
       auditInfo?: AuditInfo;
-    } = {}
+    } = {},
   ) {
     super(message, 'AUTHENTICATION_ERROR', {
       operation,
@@ -124,7 +130,7 @@ export class AuthorizationError extends ACubeSDKError {
       statusCode?: number;
       requestId?: string;
       auditInfo?: AuditInfo;
-    } = {}
+    } = {},
   ) {
     super(message, 'AUTHORIZATION_ERROR', {
       operation,
@@ -147,7 +153,7 @@ export class ValidationError extends ACubeSDKError {
     options: {
       requestId?: string;
       auditInfo?: AuditInfo;
-    } = {}
+    } = {},
   ) {
     super(message, 'VALIDATION_ERROR', {
       operation,
@@ -177,6 +183,7 @@ export interface ValidationViolation {
 // Fiscal/compliance specific errors (usually not retryable)
 export class FiscalError extends ACubeSDKError {
   public readonly fiscalCode?: string;
+
   public readonly documentNumber?: string;
 
   constructor(
@@ -189,7 +196,7 @@ export class FiscalError extends ACubeSDKError {
       requestId?: string;
       retryable?: boolean;
       auditInfo?: AuditInfo;
-    } = {}
+    } = {},
   ) {
     super(message, 'FISCAL_ERROR', {
       operation,
@@ -225,7 +232,7 @@ export class RateLimitError extends ACubeSDKError {
     options: {
       retryAfter?: number;
       requestId?: string;
-    } = {}
+    } = {},
   ) {
     super(message, 'RATE_LIMIT_ERROR', {
       operation,
@@ -253,7 +260,7 @@ export class ConfigurationError extends ACubeSDKError {
     operation: string,
     options: {
       requestId?: string;
-    } = {}
+    } = {},
   ) {
     super(message, 'CONFIGURATION_ERROR', {
       operation,
@@ -266,6 +273,7 @@ export class ConfigurationError extends ACubeSDKError {
 // Resource not found errors (not retryable)
 export class NotFoundError extends ACubeSDKError {
   public readonly resourceType: string;
+
   public readonly resourceId: string;
 
   constructor(
@@ -275,7 +283,7 @@ export class NotFoundError extends ACubeSDKError {
     options: {
       requestId?: string;
       auditInfo?: AuditInfo;
-    } = {}
+    } = {},
   ) {
     super(
       `${resourceType} with id ${resourceId} not found`,
@@ -286,7 +294,7 @@ export class NotFoundError extends ACubeSDKError {
         statusCode: 404,
         ...(options.requestId !== undefined && { requestId: options.requestId }),
         ...(options.auditInfo !== undefined && { auditInfo: options.auditInfo }),
-      }
+      },
     );
     this.resourceType = resourceType;
     this.resourceId = resourceId;
@@ -311,7 +319,7 @@ export class CircuitBreakerError extends ACubeSDKError {
     state: 'OPEN' | 'HALF_OPEN',
     options: {
       requestId?: string;
-    } = {}
+    } = {},
   ) {
     super(message, 'CIRCUIT_BREAKER_ERROR', {
       operation,
@@ -342,7 +350,7 @@ export function createErrorFromResponse(
     data?: unknown;
   },
   operation: string,
-  requestId?: string
+  requestId?: string,
 ): ACubeSDKError {
   const message = getErrorMessage(response.data) || response.statusText;
 

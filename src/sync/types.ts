@@ -91,7 +91,7 @@ export interface DeltaCalculationResult {
 }
 
 // ============================================================================
-// Conflict Resolution Types  
+// Conflict Resolution Types
 // ============================================================================
 
 export type ConflictType = 'version' | 'concurrent' | 'dependency' | 'schema';
@@ -356,37 +356,37 @@ export interface SyncManagerConfig {
   maxConcurrentSyncs: number;
   defaultTimeout: number;
   defaultRetries: number;
-  
+
   // Background sync
   backgroundSync: BackgroundSyncConfig;
-  
+
   // Real-time sync
   realTimeSync: RealTimeSyncConfig;
-  
+
   // Conflict resolution
   conflictResolution: {
     defaultStrategy: ConflictResolutionStrategy;
     autoResolveThreshold: number;
     maxConflictsPerSync: number;
   };
-  
+
   // Network optimization
   networkOptimization: NetworkOptimization;
-  
+
   // Analytics and monitoring
   analytics: {
     enabled: boolean;
     retentionDays: number;
     detailedLogging: boolean;
   };
-  
+
   // Storage
   storage: {
     provider: 'memory' | 'localStorage' | 'indexedDB' | 'custom';
     maxStorageSize: number;
     encryptSensitiveData: boolean;
   };
-  
+
   // Custom hooks
   hooks?: SyncHooks;
 }
@@ -395,7 +395,7 @@ export interface SyncManagerConfig {
 // Union Types for Events
 // ============================================================================
 
-export type SyncEvent = 
+export type SyncEvent =
   | SyncStartedEvent
   | SyncProgressEvent
   | SyncCompletedEvent

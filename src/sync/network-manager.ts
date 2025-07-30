@@ -4,12 +4,13 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
+
 import type {
+  SyncOptions,
   ConnectionInfo,
   ConnectionType,
   ConnectionQuality,
   NetworkOptimization,
-  SyncOptions,
 } from './types';
 
 // Extend Navigator interface for Network Information API
@@ -37,7 +38,7 @@ export interface NetworkManagerConfig {
   enableMonitoring: boolean;
   monitoringInterval: number; // ms
   qualityCheckInterval: number; // ms
-  
+
   // Quality thresholds (in Mbps for bandwidth, ms for latency)
   qualityThresholds: {
     excellent: { bandwidth: 10, latency: 50 };
@@ -45,12 +46,12 @@ export interface NetworkManagerConfig {
     fair: { bandwidth: 1, latency: 300 };
     poor: { bandwidth: 0.1, latency: 1000 };
   };
-  
+
   // Optimization settings
   adaptiveOptimization: boolean;
   conserveDataOnMetered: boolean;
   pauseOnPoorConnection: boolean;
-  
+
   // Retry settings
   maxRetryAttempts: number;
   retryBackoffMultiplier: number;
@@ -88,11 +89,17 @@ export interface NetworkEventMap {
  */
 export class NetworkManager extends EventEmitter<NetworkEventMap> {
   private config: NetworkManagerConfig;
+
   private currentConnection: ConnectionInfo;
+
   private monitoringTimer?: TimerHandle;
+
   private qualityCheckTimer?: TimerHandle;
+
   private isMonitoring = false;
+
   private connectionHistory: ConnectionInfo[] = [];
+
   private lastQualityCheck = 0;
 
   constructor(config: Partial<NetworkManagerConfig> = {}) {
@@ -124,12 +131,12 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
     }
 
     this.isMonitoring = true;
-    
+
     // Set up connection monitoring
     if (typeof navigator !== 'undefined' && navigator.connection) {
       this.setupNavigatorConnectionAPI();
     }
-    
+
     // Set up periodic monitoring
     this.monitoringTimer = setInterval(() => {
       this.checkConnection();
@@ -210,7 +217,7 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
    */
   optimizeForConnection(options: SyncOptions): SyncOptions & { networkOptimization: NetworkOptimization } {
     const optimization = this.calculateOptimization();
-    
+
     const optimizedOptions: SyncOptions & { networkOptimization: NetworkOptimization } = {
       ...options,
       networkOptimization: optimization,
@@ -234,7 +241,7 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
     }
 
     this.emit('optimization-applied', optimization);
-    
+
     return optimizedOptions;
   }
 
@@ -243,10 +250,10 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
    */
   calculateRetryDelay(attempt: number, baseDelay = 1000): number {
     const { quality } = this.currentConnection;
-    
+
     // Base exponential backoff
-    let delay = baseDelay * Math.pow(this.config.retryBackoffMultiplier, attempt - 1);
-    
+    let delay = baseDelay * this.config.retryBackoffMultiplier**(attempt - 1);
+
     // Adjust based on connection quality
     switch (quality) {
       case 'poor':
@@ -281,7 +288,7 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
     history: ConnectionInfo[];
   } {
     const history = this.connectionHistory.slice(-20); // Last 20 measurements
-    
+
     if (history.length === 0) {
       return {
         current: this.currentConnection,
@@ -298,11 +305,9 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
     const avgBandwidth = history.reduce((sum, conn) => sum + conn.bandwidth, 0) / history.length;
     const avgLatency = history.reduce((sum, conn) => sum + conn.latency, 0) / history.length;
     const avgQuality = this.calculateQualityFromMetrics(avgBandwidth, avgLatency);
-    
+
     // Calculate stability (how consistent the connection is)
-    const qualityChanges = history.slice(1).reduce((changes, conn, index) => {
-      return changes + (conn.quality !== history[index]?.quality ? 1 : 0);
-    }, 0);
+    const qualityChanges = history.slice(1).reduce((changes, conn, index) => changes + (conn.quality !== history[index]?.quality ? 1 : 0), 0);
     const stability = Math.max(0, 1 - (qualityChanges / history.length));
 
     return {
@@ -319,7 +324,7 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
 
   private getInitialConnectionInfo(): ConnectionInfo {
     const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
-    
+
     return {
       type: this.detectConnectionType(),
       quality: isOnline ? 'good' : 'offline',
@@ -337,7 +342,7 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
     }
 
     const connection = navigator.connection as any;
-    
+
     if (connection.type) {
       switch (connection.type) {
         case 'cellular':
@@ -383,13 +388,13 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
     }
 
     const connection = navigator.connection as any;
-    
+
     const handleConnectionChange = () => {
       this.checkConnection();
     };
 
     connection.addEventListener('change', handleConnectionChange);
-    
+
     // Store reference for cleanup
     this.connectionChangeHandler = handleConnectionChange;
   }
@@ -411,13 +416,14 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     // Store references for cleanup
     this.onlineHandler = handleOnline;
     this.offlineHandler = handleOffline;
   }
 
   private onlineHandler?: () => void;
+
   private offlineHandler?: () => void;
 
   private removeOnlineOfflineListeners(): void {
@@ -428,7 +434,7 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
     if (this.onlineHandler) {
       window.removeEventListener('online', this.onlineHandler);
     }
-    
+
     if (this.offlineHandler) {
       window.removeEventListener('offline', this.offlineHandler);
     }
@@ -444,8 +450,8 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
     const isMetered = this.detectIfMetered();
 
     // Perform bandwidth/latency estimation if online
-    let bandwidth = this.currentConnection.bandwidth;
-    let latency = this.currentConnection.latency;
+    let {bandwidth} = this.currentConnection;
+    let {latency} = this.currentConnection;
 
     if (isOnline && Date.now() - this.lastQualityCheck > this.config.qualityCheckInterval) {
       try {
@@ -459,7 +465,7 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
     }
 
     const quality = isOnline ? this.calculateQualityFromMetrics(bandwidth, latency) : 'offline';
-    
+
     const newConnection: ConnectionInfo = {
       type,
       quality,
@@ -476,26 +482,26 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
   private async measureConnectionQuality(): Promise<{ bandwidth: number; latency: number }> {
     // Simple quality measurement using a small test request
     // In a real implementation, you might use Network Information API or custom endpoints
-    
+
     const startTime = performance.now();
-    
+
     try {
       // Use a small image or endpoint to test latency and bandwidth
       const response = await fetch('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', {
         method: 'GET',
         cache: 'no-cache',
       });
-      
+
       if (!response.ok) {
         throw new Error(`Network test failed: ${response.status}`);
       }
-      
+
       const endTime = performance.now();
       const latency = endTime - startTime;
-      
+
       // Estimate bandwidth based on navigator.connection API if available
       let bandwidth = 5; // Default
-      
+
       if (typeof navigator !== 'undefined' && navigator.connection) {
         const connection = navigator.connection as any;
         if (connection.downlink) {
@@ -520,7 +526,7 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
           }
         }
       }
-      
+
       return { bandwidth, latency };
     } catch (error) {
       // Return previous values or defaults if measurement fails
@@ -533,21 +539,21 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
 
   private calculateQualityFromMetrics(bandwidth: number, latency: number): ConnectionQuality {
     const { qualityThresholds } = this.config;
-    
+
     if (bandwidth >= qualityThresholds.excellent.bandwidth && latency <= qualityThresholds.excellent.latency) {
       return 'excellent';
-    } else if (bandwidth >= qualityThresholds.good.bandwidth && latency <= qualityThresholds.good.latency) {
+    } if (bandwidth >= qualityThresholds.good.bandwidth && latency <= qualityThresholds.good.latency) {
       return 'good';
-    } else if (bandwidth >= qualityThresholds.fair.bandwidth && latency <= qualityThresholds.fair.latency) {
+    } if (bandwidth >= qualityThresholds.fair.bandwidth && latency <= qualityThresholds.fair.latency) {
       return 'fair';
-    } else {
+    } 
       return 'poor';
-    }
+    
   }
 
   private updateConnection(newConnection: ConnectionInfo): void {
     const previousConnection = this.currentConnection;
-    
+
     // Check if connection has meaningfully changed
     const hasChanged = (
       previousConnection.type !== newConnection.type ||
@@ -559,7 +565,7 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
 
     if (hasChanged) {
       this.currentConnection = newConnection;
-      
+
       // Add to history
       this.connectionHistory.push(newConnection);
       if (this.connectionHistory.length > 100) {
@@ -568,7 +574,7 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
 
       // Emit events
       this.emit('connection-changed', newConnection);
-      
+
       if (previousConnection.quality !== newConnection.quality) {
         this.emit('quality-changed', {
           previous: previousConnection.quality,
@@ -593,14 +599,14 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
         quality: isOnline ? this.currentConnection.quality : 'offline',
         lastChanged: new Date(),
       };
-      
+
       this.emit('connection-changed', this.currentConnection);
     }
   }
 
   private calculateOptimization(): NetworkOptimization {
     const { quality, isMetered } = this.currentConnection;
-    
+
     let optimization: NetworkOptimization = {
       enableCompression: true,
       batchSize: 50,
@@ -673,7 +679,7 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
     try {
       const measurement = await this.measureConnectionQuality();
       const quality = this.calculateQualityFromMetrics(measurement.bandwidth, measurement.latency);
-      
+
       if (quality !== this.currentConnection.quality) {
         this.updateConnection({
           ...this.currentConnection,

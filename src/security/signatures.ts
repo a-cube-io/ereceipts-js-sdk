@@ -4,8 +4,8 @@
  */
 
 // Custom types for enhanced type safety
-type SigningKeyUsage = "sign" | "verify";
-type HashAlgorithm = "SHA-256" | "SHA-384" | "SHA-512";
+type SigningKeyUsage = 'sign' | 'verify';
+type HashAlgorithm = 'SHA-256' | 'SHA-384' | 'SHA-512';
 
 // Extended interfaces for better type definitions
 interface CustomEcdsaParams extends EcdsaParams {
@@ -13,12 +13,12 @@ interface CustomEcdsaParams extends EcdsaParams {
 }
 
 interface CustomRsaPssParams {
-  name: "RSA-PSS";
+  name: 'RSA-PSS';
   saltLength: number;
 }
 
 interface CustomEcKeyGenParams extends EcKeyGenParams {
-  namedCurve: "P-256" | "P-384" | "P-521";
+  namedCurve: 'P-256' | 'P-384' | 'P-521';
 }
 
 interface CustomRsaHashedKeyGenParams extends RsaHashedKeyGenParams {
@@ -26,7 +26,7 @@ interface CustomRsaHashedKeyGenParams extends RsaHashedKeyGenParams {
 }
 
 interface CustomEcKeyImportParams extends EcKeyImportParams {
-  namedCurve: "P-256" | "P-384" | "P-521";
+  namedCurve: 'P-256' | 'P-384' | 'P-521';
 }
 
 interface CustomRsaHashedImportParams extends RsaHashedImportParams {
@@ -90,8 +90,11 @@ export interface SigningCertificate {
 
 export class DigitalSignatureManager {
   private signingKeys = new Map<string, CryptoKeyPair>();
+
   private certificates = new Map<string, SigningCertificate>();
+
   private trustedIssuers = new Set<string>();
+
   private config: SignatureConfig;
 
   constructor(config?: Partial<SignatureConfig>) {
@@ -110,9 +113,9 @@ export class DigitalSignatureManager {
    */
   async generateSigningKeyPair(keyId?: string): Promise<string> {
     const id = keyId || this.generateKeyId();
-    
+
     let keyGenParams: CustomEcKeyGenParams | CustomRsaHashedKeyGenParams;
-    
+
     if (this.config.algorithm === 'ECDSA') {
       keyGenParams = {
         name: 'ECDSA',
@@ -132,7 +135,7 @@ export class DigitalSignatureManager {
     const keyPair = await crypto.subtle.generateKey(
       keyGenParams as any,
       true, // extractable
-      ['sign', 'verify'] as SigningKeyUsage[]
+      ['sign', 'verify'] as SigningKeyUsage[],
     );
 
     this.signingKeys.set(id, keyPair);
@@ -145,7 +148,7 @@ export class DigitalSignatureManager {
   async importSigningKeyPair(
     privateKeyData: JsonWebKey | ArrayBuffer,
     publicKeyData: JsonWebKey | ArrayBuffer,
-    keyId?: string
+    keyId?: string,
   ): Promise<string> {
     const id = keyId || this.generateKeyId();
 
@@ -172,11 +175,11 @@ export class DigitalSignatureManager {
     }
 
     // Import private key
-    const privateKey = await (privateFormat === 'jwk' 
+    const privateKey = await (privateFormat === 'jwk'
       ? crypto.subtle.importKey('jwk', privateKeyData as JsonWebKey, algorithmParams as any, true, ['sign'])
       : crypto.subtle.importKey('pkcs8', privateKeyData as ArrayBuffer, algorithmParams as any, true, ['sign']));
-    
-    // Import public key  
+
+    // Import public key
     const publicKey = await (publicFormat === 'jwk'
       ? crypto.subtle.importKey('jwk', publicKeyData as JsonWebKey, algorithmParams as any, true, ['verify'])
       : crypto.subtle.importKey('spki', publicKeyData as ArrayBuffer, algorithmParams as any, true, ['verify']));
@@ -195,7 +198,7 @@ export class DigitalSignatureManager {
       signerId?: string;
       purpose?: string;
       expiresIn?: number; // milliseconds
-    }
+    },
   ): Promise<DigitalSignature> {
     const keyPair = this.signingKeys.get(keyId);
     if (!keyPair) {
@@ -212,7 +215,7 @@ export class DigitalSignatureManager {
 
     // Prepare signing algorithm
     let signAlgorithm: CustomEcdsaParams | CustomRsaPssParams;
-    
+
     if (this.config.algorithm === 'ECDSA') {
       signAlgorithm = {
         name: 'ECDSA',
@@ -231,7 +234,7 @@ export class DigitalSignatureManager {
     const signatureBuffer = await crypto.subtle.sign(
       signAlgorithm as any,
       keyPair.privateKey,
-      dataBuffer
+      dataBuffer,
     );
 
     const timestamp = Date.now();
@@ -257,11 +260,11 @@ export class DigitalSignatureManager {
   async verifySignature(
     data: string | Uint8Array,
     signature: DigitalSignature,
-    publicKeyId?: string
+    publicKeyId?: string,
   ): Promise<VerificationResult> {
     const keyId = publicKeyId || signature.keyId;
     const keyPair = this.signingKeys.get(keyId);
-    
+
     if (!keyPair) {
       return {
         isValid: false,
@@ -286,10 +289,10 @@ export class DigitalSignatureManager {
 
     // Parse algorithm from signature
     const [algorithm, hash] = signature.algorithm.split('-');
-    
+
     // Prepare verification algorithm
     let verifyAlgorithm: CustomEcdsaParams | CustomRsaPssParams;
-    
+
     if (algorithm === 'ECDSA') {
       verifyAlgorithm = {
         name: 'ECDSA',
@@ -320,12 +323,12 @@ export class DigitalSignatureManager {
         verifyAlgorithm as any,
         keyPair.publicKey,
         signature.signature,
-        dataBuffer
+        dataBuffer,
       );
 
       const warnings: string[] = [];
       const signatureAge = Date.now() - signature.timestamp;
-      
+
       // Check expiration
       if (signature.metadata.expiresAt && Date.now() > signature.metadata.expiresAt) {
         warnings.push('Signature has expired');
@@ -339,7 +342,7 @@ export class DigitalSignatureManager {
       // Determine trust level
       let trustLevel: VerificationResult['trustLevel'] = 'medium';
       const certificate = this.certificates.get(keyId);
-      
+
       if (certificate) {
         const now = new Date();
         if (now >= certificate.validFrom && now <= certificate.validTo) {
@@ -399,7 +402,7 @@ export class DigitalSignatureManager {
       purpose?: string;
       expiresIn?: number;
       includeCertificate?: boolean;
-    }
+    },
   ): Promise<SignedData> {
     // Convert string to Uint8Array if needed
     let dataBuffer: Uint8Array;
@@ -410,7 +413,7 @@ export class DigitalSignatureManager {
     }
 
     const signature = await this.signData(dataBuffer, keyId, options);
-    
+
     let certificateChain: string[] | undefined;
     if (options?.includeCertificate) {
       const certificate = this.certificates.get(keyId);
@@ -440,13 +443,13 @@ export class DigitalSignatureManager {
     certificatePem: string,
     privateKey: CryptoKey,
     publicKey: CryptoKey,
-    keyId?: string
+    keyId?: string,
   ): Promise<string> {
     const id = keyId || this.generateKeyId();
-    
+
     // Parse certificate (simplified - in production, use proper X.509 parser)
     const certInfo = this.parseCertificate(certificatePem);
-    
+
     const certificate: SigningCertificate = {
       keyId: id,
       certificate: certificatePem,
@@ -462,7 +465,7 @@ export class DigitalSignatureManager {
 
     this.certificates.set(id, certificate);
     this.signingKeys.set(id, { privateKey, publicKey });
-    
+
     return id;
   }
 
@@ -509,7 +512,7 @@ export class DigitalSignatureManager {
   async generateHMAC(
     data: string | Uint8Array,
     secret: string,
-    algorithm: 'SHA-256' | 'SHA-384' | 'SHA-512' = 'SHA-256'
+    algorithm: 'SHA-256' | 'SHA-384' | 'SHA-512' = 'SHA-256',
   ): Promise<Uint8Array> {
     const encoder = new TextEncoder();
     const secretKey = await crypto.subtle.importKey(
@@ -517,12 +520,12 @@ export class DigitalSignatureManager {
       encoder.encode(secret),
       { name: 'HMAC', hash: algorithm },
       false,
-      ['sign']
+      ['sign'],
     );
 
     const dataBuffer = typeof data === 'string' ? encoder.encode(data) : data;
     const signature = await crypto.subtle.sign('HMAC', secretKey, dataBuffer);
-    
+
     return new Uint8Array(signature);
   }
 
@@ -533,7 +536,7 @@ export class DigitalSignatureManager {
     data: string | Uint8Array,
     signature: Uint8Array,
     secret: string,
-    algorithm: 'SHA-256' | 'SHA-384' | 'SHA-512' = 'SHA-256'
+    algorithm: 'SHA-256' | 'SHA-384' | 'SHA-512' = 'SHA-256',
   ): Promise<boolean> {
     const encoder = new TextEncoder();
     const secretKey = await crypto.subtle.importKey(
@@ -541,11 +544,11 @@ export class DigitalSignatureManager {
       encoder.encode(secret),
       { name: 'HMAC', hash: algorithm },
       false,
-      ['verify']
+      ['verify'],
     );
 
     const dataBuffer = typeof data === 'string' ? encoder.encode(data) : data;
-    
+
     return crypto.subtle.verify('HMAC', secretKey, signature, dataBuffer);
   }
 
@@ -559,10 +562,10 @@ export class DigitalSignatureManager {
     }
 
     if (format === 'jwk') {
-      return crypto.subtle.exportKey('jwk', keyPair.publicKey) as Promise<JsonWebKey>;
-    } else {
-      return crypto.subtle.exportKey('spki', keyPair.publicKey) as Promise<ArrayBuffer>;
-    }
+      return crypto.subtle.exportKey('jwk', keyPair.publicKey);
+    } 
+      return crypto.subtle.exportKey('spki', keyPair.publicKey);
+    
   }
 
   /**
@@ -585,11 +588,11 @@ export class DigitalSignatureManager {
    * Utility: Convert base64 to signature
    */
   static signatureFromBase64(
-    base64: string, 
+    base64: string,
     algorithm: string,
     keyId: string,
     timestamp: number,
-    metadata: DigitalSignature['metadata']
+    metadata: DigitalSignature['metadata'],
   ): DigitalSignature {
     const binary = atob(base64);
     const signature = new Uint8Array(binary.length);
@@ -619,7 +622,7 @@ export class DigitalSignatureManager {
   } {
     // Simplified certificate parsing - in production, use proper ASN.1/X.509 parser
     // This is a mock implementation for demonstration
-    
+
     return {
       issuer: 'CN=A-Cube CA, O=A-Cube, C=IT',
       subject: 'CN=SDK Client, O=A-Cube, C=IT',
@@ -634,7 +637,7 @@ export class DigitalSignatureManager {
     const data = encoder.encode(certificatePem);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = new Uint8Array(hashBuffer);
-    
+
     return Array.from(hashArray)
       .map(b => b.toString(16).padStart(2, '0'))
       .join(':')

@@ -1,7 +1,7 @@
 /**
  * Base OpenAPI Resource Class
  * Enterprise-grade foundation for all API resources with full type safety
- * 
+ *
  * Features:
  * - Type-safe request execution based on OpenAPI specification
  * - Automatic parameter binding (path, query, body)
@@ -10,13 +10,14 @@
  * - Integration with existing HTTP client and middleware
  */
 
-import type { HttpClient, RequestOptions as HttpRequestOptions } from '@/http/client';
-import type { EndpointDefinition, HttpMethod } from '@/generated/endpoints';
-import { EndpointUtils } from '@/generated/endpoints';
-import { ValidationError, type ACubeSDKError } from '@/errors/index';
 import type { UnifiedStorage } from '@/storage/unified-storage';
-import type { EnterpriseQueueManager, QueueItem } from '@/storage/queue/queue-manager';
+import type { HttpMethod, EndpointDefinition } from '@/generated/endpoints';
+import type { HttpClient, RequestOptions as HttpRequestOptions } from '@/http/client';
+import type { QueueItem, EnterpriseQueueManager } from '@/storage/queue/queue-manager';
+
+import { EndpointUtils } from '@/generated/endpoints';
 import { createQueueItemId } from '@/storage/queue/types';
+import { ValidationError, type ACubeSDKError } from '@/errors/index';
 
 export interface BaseResourceConfig {
   client: HttpClient;
@@ -59,9 +60,13 @@ export interface ValidationContext {
  */
 export abstract class BaseOpenAPIResource {
   protected readonly client: HttpClient;
+
   protected readonly endpoints: Record<string, EndpointDefinition>;
+
   protected readonly storage?: UnifiedStorage | undefined;
+
   protected readonly queueManager?: EnterpriseQueueManager | undefined;
+
   protected readonly offlineEnabled: boolean;
 
   constructor(config: BaseResourceConfig) {
@@ -75,7 +80,7 @@ export abstract class BaseOpenAPIResource {
   /**
    * Execute a type-safe API request based on OpenAPI endpoint definition
    * Enhanced with offline-first capabilities
-   * 
+   *
    * @template TRequest - Type of request data
    * @template TResponse - Type of response data
    * @param endpointKey - Key to identify the endpoint in the endpoints map
@@ -86,14 +91,14 @@ export abstract class BaseOpenAPIResource {
   protected async executeRequest<TRequest = unknown, TResponse = unknown>(
     endpointKey: string,
     data?: TRequest,
-    options: RequestOptions = {}
+    options: RequestOptions = {},
   ): Promise<TResponse> {
     const endpoint = this.endpoints[endpointKey];
     if (!endpoint) {
       throw new ValidationError(
         `Unknown endpoint: ${endpointKey}`,
         'execute_request',
-        [{ field: 'endpointKey', message: `Endpoint '${endpointKey}' not found`, code: 'UNKNOWN_ENDPOINT' }]
+        [{ field: 'endpointKey', message: `Endpoint '${endpointKey}' not found`, code: 'UNKNOWN_ENDPOINT' }],
       );
     }
 
@@ -116,7 +121,7 @@ export abstract class BaseOpenAPIResource {
     endpoint: EndpointDefinition,
     endpointKey: string,
     data?: TRequest,
-    options: RequestOptions = {}
+    options: RequestOptions = {},
   ): Promise<TResponse> {
     const cacheKey = this.buildCacheKey(endpoint, options.pathParams, options.queryParams);
     const isReadOperation = endpoint.method === 'GET';
@@ -141,7 +146,7 @@ export abstract class BaseOpenAPIResource {
 
       // Attempt online execution
       const result = await this.executeOnlineRequest<TRequest, TResponse>(endpoint, endpointKey, data, options);
-      
+
       // Cache successful read responses
       if (isReadOperation && result) {
         await this.cacheResponse(cacheKey, result, options.cacheTTL);
@@ -174,7 +179,7 @@ export abstract class BaseOpenAPIResource {
     endpoint: EndpointDefinition,
     endpointKey: string,
     data?: TRequest,
-    options: RequestOptions = {}
+    options: RequestOptions = {},
   ): Promise<TResponse> {
 
     // Build the complete URL with path parameters
@@ -212,10 +217,10 @@ export abstract class BaseOpenAPIResource {
     try {
       // Execute the HTTP request through the client
       const response = await this.client.request<TResponse>(httpOptions);
-      
+
       // Validate response if needed
       this.validateResponse(endpoint, response.data);
-      
+
       return response.data;
     } catch (error) {
       // Enhanced error handling with OpenAPI context
@@ -227,12 +232,12 @@ export abstract class BaseOpenAPIResource {
    * Cache response data with TTL
    */
   private async cacheResponse<TResponse>(cacheKey: string, data: TResponse, ttl?: number): Promise<void> {
-    if (!this.storage) return;
+    if (!this.storage) {return;}
 
     try {
       const ttlSeconds = ttl || 3600; // Default 1 hour
       const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
-      
+
       await this.storage.set(cacheKey as any, {
         data,
         timestamp: new Date(),
@@ -248,7 +253,7 @@ export abstract class BaseOpenAPIResource {
    * Get cached response if valid
    */
   private async getCachedResponse<TResponse>(cacheKey: string): Promise<TResponse | null> {
-    if (!this.storage) return null;
+    if (!this.storage) {return null;}
 
     try {
       const cached = await this.storage.get<{
@@ -277,7 +282,7 @@ export abstract class BaseOpenAPIResource {
    * Get offline data (persistent storage)
    */
   private async getOfflineData<TResponse>(cacheKey: string): Promise<TResponse | null> {
-    if (!this.storage) return null;
+    if (!this.storage) {return null;}
 
     try {
       const offlineKey = `offline:${cacheKey}`;
@@ -297,7 +302,7 @@ export abstract class BaseOpenAPIResource {
     endpointKey: string,
     data?: TRequest,
     options: RequestOptions = {},
-    networkError?: Error
+    networkError?: Error,
   ): Promise<TResponse> {
     if (!this.queueManager) {
       throw networkError || new Error('Network unavailable and queue not configured');
@@ -338,7 +343,7 @@ export abstract class BaseOpenAPIResource {
     throw new ValidationError(
       'Operation queued for later execution',
       'queued_operation',
-      [{ field: 'network', message: 'Operation will be executed when network is available', code: 'QUEUED' }]
+      [{ field: 'network', message: 'Operation will be executed when network is available', code: 'QUEUED' }],
     );
   }
 
@@ -348,10 +353,10 @@ export abstract class BaseOpenAPIResource {
   private buildCacheKey(
     endpoint: EndpointDefinition,
     pathParams?: Record<string, string | number>,
-    queryParams?: Record<string, unknown>
+    queryParams?: Record<string, unknown>,
   ): string {
     let key = `${endpoint.method}:${endpoint.path}`;
-    
+
     // Add path parameters to key
     if (pathParams) {
       const sortedParams = Object.keys(pathParams).sort();
@@ -375,7 +380,7 @@ export abstract class BaseOpenAPIResource {
   private mapHttpMethodToQueueOperation(method: string): QueueItem['operation'] {
     switch (method.toUpperCase()) {
       case 'POST': return 'create';
-      case 'PUT': 
+      case 'PUT':
       case 'PATCH': return 'update';
       case 'DELETE': return 'delete';
       default: return 'custom'; // For GET and others
@@ -399,7 +404,7 @@ export abstract class BaseOpenAPIResource {
   private createOptimisticResponse<TResponse>(
     endpoint: EndpointDefinition,
     data: unknown,
-    _options: RequestOptions
+    _options: RequestOptions,
   ): TResponse {
     // For POST operations, assume creation succeeded
     if (endpoint.method === 'POST') {
@@ -454,7 +459,7 @@ export abstract class BaseOpenAPIResource {
     // Set default accept header
     const successResponse = endpoint.responses['200'] || endpoint.responses['201'];
     if (successResponse?.contentType) {
-      headers['Accept'] = successResponse.contentType;
+      headers.Accept = successResponse.contentType;
     }
 
     return headers;
@@ -517,7 +522,7 @@ export abstract class BaseOpenAPIResource {
       throw new ValidationError(
         `Request validation failed for operation '${operation}'`,
         operation,
-        errors
+        errors,
       );
     }
   }
@@ -546,10 +551,10 @@ export abstract class BaseOpenAPIResource {
     // Basic response validation - can be enhanced with JSON schema validation
     if (data === null || data === undefined) {
       // Check if null response is expected
-      const hasNullableResponse = Object.keys(endpoint.responses).some(code => 
-        code === '204' || endpoint.responses[code]?.description?.toLowerCase().includes('no content')
+      const hasNullableResponse = Object.keys(endpoint.responses).some(code =>
+        code === '204' || endpoint.responses[code]?.description?.toLowerCase().includes('no content'),
       );
-      
+
       if (!hasNullableResponse) {
         console.warn(`Received null/undefined response for ${endpoint.operationId}`);
       }
@@ -563,7 +568,7 @@ export abstract class BaseOpenAPIResource {
     error: ACubeSDKError,
     endpoint: EndpointDefinition,
     operation: string,
-    _options: RequestOptions
+    _options: RequestOptions,
   ): ACubeSDKError {
     // Create enhanced error with additional context
     const enhancedError = new (error.constructor as new (...args: any[]) => ACubeSDKError)(
@@ -580,7 +585,7 @@ export abstract class BaseOpenAPIResource {
           pemId: endpoint.metadata?.resource === 'point-of-sales' ? String(_options.pathParams?.serial_number || '') : error.auditInfo?.pemId,
         },
         cause: error.cause,
-      }
+      },
     );
 
     // Add a custom property for OpenAPI metadata (non-enumerable to avoid serialization issues)
@@ -627,11 +632,11 @@ export abstract class BaseOpenAPIResource {
     return new ValidationError(
       `Operation '${operation}' is not supported by this resource`,
       'unsupported_operation',
-      [{ 
-        field: 'operation', 
-        message: `Available operations: ${this.getAvailableOperations().join(', ')}`, 
-        code: 'UNSUPPORTED_OPERATION' 
-      }]
+      [{
+        field: 'operation',
+        message: `Available operations: ${this.getAvailableOperations().join(', ')}`,
+        code: 'UNSUPPORTED_OPERATION',
+      }],
     );
   }
 
@@ -686,13 +691,13 @@ export abstract class BaseOpenAPIResource {
     // Exponential backoff with jitter
     const baseDelay = 1000; // 1 second
     const maxDelay = 30000; // 30 seconds
-    
-    let delay = Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay);
-    
+
+    let delay = Math.min(baseDelay * 2**(attempt - 1), maxDelay);
+
     // Add jitter (±25%)
     const jitter = delay * 0.25;
     delay += (Math.random() * 2 - 1) * jitter;
-    
+
     return Math.floor(delay);
   }
 
@@ -716,7 +721,7 @@ export abstract class BaseOpenAPIResource {
    * Store data for offline use (persistent across sessions)
    */
   protected async storeOfflineData(key: string, data: any): Promise<void> {
-    if (!this.storage) return;
+    if (!this.storage) {return;}
 
     try {
       const offlineKey = `offline:${key}`;
@@ -730,7 +735,7 @@ export abstract class BaseOpenAPIResource {
    * Clear cached data for a specific key pattern
    */
   protected async clearCache(keyPattern?: string): Promise<void> {
-    if (!this.storage) return;
+    if (!this.storage) {return;}
 
     try {
       if (keyPattern) {
@@ -791,7 +796,7 @@ export abstract class BaseOpenAPIResource {
    * Force sync of queued operations for this resource
    */
   protected async syncQueuedOperations(): Promise<void> {
-    if (!this.queueManager) return;
+    if (!this.queueManager) {return;}
 
     try {
       await this.queueManager.processAll();

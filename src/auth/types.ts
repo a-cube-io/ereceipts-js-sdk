@@ -13,11 +13,11 @@ export enum UserRole {
   ROLE_SUPPLIER = 'ROLE_SUPPLIER',         // Provider level
   ROLE_MERCHANT = 'ROLE_MERCHANT',         // Merchant level (includes cashier permissions)
   ROLE_CASHIER = 'ROLE_CASHIER',           // Cashier level (basic operations)
-  
+
   // Administrative roles
   ROLE_ADMIN = 'ROLE_ADMIN',               // Administrative access
   ROLE_PREVIOUS_ADMIN = 'ROLE_PREVIOUS_ADMIN', // Former admin with limited access
-  
+
   // MF1 Integration roles
   ROLE_ACUBE_MF1 = 'ROLE_ACUBE_MF1',       // A-Cube MF1 integration
   ROLE_EXTERNAL_MF1 = 'ROLE_EXTERNAL_MF1', // External MF1 integration
@@ -106,12 +106,12 @@ export interface JWTPayload {
   jti?: string; // JWT ID
   iss?: string; // Issuer
   aud?: string | string[]; // Audience
-  
+
   // Role-specific data
   cashier_id?: CashierId;
   merchant_id?: MerchantId;
   point_of_sale_id?: PointOfSaleId;
-  
+
   // Additional claims
   [key: string]: unknown;
 }
@@ -123,17 +123,17 @@ export interface LoginCredentials {
   username: string;
   password: string;
   scope?: string;
-  
+
   // Multi-factor authentication
   mfa_code?: string;
-  
+
   // Device binding
   device_id?: string;
   device_name?: string;
-  
+
   // Role specification during authentication
   preferred_role?: UserRole | SimpleUserRole;
-  
+
   // Context-specific authentication
   context?: {
     merchant_id?: MerchantId;
@@ -151,16 +151,16 @@ export interface AuthUser {
   name?: string;
   roles: UserRole[];
   permissions: string[];
-  
+
   // Role-specific IDs
   cashier_id?: CashierId;
   merchant_id?: MerchantId;
   point_of_sale_id?: PointOfSaleId;
-  
+
   // Session information
   session_id: string;
   last_login: Date;
-  
+
   // Additional user attributes
   attributes?: Record<string, unknown>;
 }
@@ -189,10 +189,10 @@ export interface StoredAuthData {
   user: AuthUser;
   encryptedAt: number;
   version: '1.0';
-  
+
   // Device binding
   deviceId?: string;
-  
+
   // Session metadata
   sessionMetadata?: {
     ip?: string;
@@ -250,26 +250,26 @@ export interface AuthConfig {
   loginUrl: string;
   refreshUrl: string;
   logoutUrl?: string;
-  
+
   // Token management
   tokenRefreshBuffer: number; // Refresh X minutes before expiry (default: 5)
   maxRefreshAttempts: number; // Max retry attempts for refresh (default: 3)
   refreshRetryDelay: number; // Delay between retries in ms (default: 1000)
-  
+
   // Storage
   storageKey: string; // Key for storing auth data (default: 'acube_auth')
   storageEncryption: boolean; // Enable encryption (default: true)
-  
+
   // Session management
   sessionTimeout: number; // Session timeout in ms (default: 8 hours)
   maxConcurrentSessions: number; // Max sessions per user (default: 3)
   requireReauth: boolean; // Require re-authentication for sensitive operations
-  
+
   // Security
   enableDeviceBinding: boolean; // Bind tokens to device (default: true)
   enableSessionValidation: boolean; // Validate session on each request
   enableTokenRotation: boolean; // Rotate refresh tokens on use
-  
+
   // Performance optimization
   enablePerformanceOptimization?: boolean; // Enable caching and batching (default: true)
   performanceConfig?: {
@@ -283,7 +283,7 @@ export interface AuthConfig {
     batchTimeoutMs?: number;
     enableMetrics?: boolean;
   };
-  
+
   // Events
   onTokenRefresh?: (tokens: OAuth2TokenResponse) => void;
   onTokenExpired?: () => void;
@@ -335,19 +335,19 @@ export interface AuthMiddlewareConfig {
   enableRetry: boolean;
   maxRetries: number;
   retryDelay: number;
-  
+
   // Headers
   authHeaderName: string; // Default: 'Authorization'
   authScheme: string; // Default: 'Bearer'
-  
+
   // Role headers
   includeRoleHeaders: boolean;
   roleHeaderName: string; // Default: 'X-User-Role'
-  
+
   // Permission headers
   includePermissionHeaders: boolean;
   permissionHeaderName: string; // Default: 'X-User-Permissions'
-  
+
   // Request context
   includeRequestContext: boolean;
   contextHeaders: Record<string, string>;
@@ -359,16 +359,16 @@ export interface AuthMiddlewareConfig {
 export interface LogoutOptions {
   // Clear all sessions across devices
   clearAllSessions?: boolean;
-  
+
   // Reason for logout
   reason?: 'user_initiated' | 'session_expired' | 'security' | 'token_invalid' | 'other';
-  
+
   // Custom message
   message?: string;
-  
+
   // Redirect after logout
   redirectUrl?: string;
-  
+
   // Clean up local data
   clearLocalData?: boolean;
 }
@@ -394,12 +394,12 @@ export interface SessionInfo {
   createdAt: Date;
   lastActivity: Date;
   expiresAt: Date;
-  
+
   // Device information
   deviceId?: string;
   deviceName?: string;
   deviceType?: 'web' | 'mobile' | 'desktop';
-  
+
   // Location information
   ipAddress?: string;
   location?: {
@@ -410,7 +410,7 @@ export interface SessionInfo {
       longitude: number;
     };
   };
-  
+
   // Session metadata
   userAgent?: string;
   active: boolean;
@@ -428,7 +428,7 @@ export function hasRole(userRoles: UserRole[], requiredRole: UserRole): boolean 
   if (userRoles.includes(requiredRole)) {
     return true;
   }
-  
+
   // Check if any user role grants the required role through hierarchy
   return userRoles.some(role => {
     const inheritedRoles = ROLE_HIERARCHY[role] || [];
@@ -448,7 +448,7 @@ export function hasAnyRole(userRoles: UserRole[], requiredRoles: UserRole[]): bo
  */
 export function getEffectiveRoles(userRoles: UserRole[]): UserRole[] {
   const effectiveRoles = new Set(userRoles);
-  
+
   // Add all inherited roles
   userRoles.forEach(role => {
     const inheritedRoles = ROLE_HIERARCHY[role] || [];
@@ -456,7 +456,7 @@ export function getEffectiveRoles(userRoles: UserRole[]): UserRole[] {
       effectiveRoles.add(inheritedRole);
     });
   });
-  
+
   return Array.from(effectiveRoles);
 }
 
@@ -464,8 +464,8 @@ export function getEffectiveRoles(userRoles: UserRole[]): UserRole[] {
  * Get the highest priority role for a user (for display purposes)
  */
 export function getPrimaryRole(userRoles: UserRole[]): UserRole | null {
-  if (userRoles.length === 0) return null;
-  
+  if (userRoles.length === 0) {return null;}
+
   // Priority order (highest to lowest)
   const rolePriority = [
     UserRole.ROLE_SUPPLIER,
@@ -477,13 +477,13 @@ export function getPrimaryRole(userRoles: UserRole[]): UserRole | null {
     UserRole.ROLE_MF1,
     UserRole.ROLE_PREVIOUS_ADMIN,
   ];
-  
+
   for (const role of rolePriority) {
     if (userRoles.includes(role)) {
       return role;
     }
   }
-  
+
   return userRoles[0] || null; // Fallback to first role
 }
 
@@ -492,8 +492,8 @@ export function getPrimaryRole(userRoles: UserRole[]): UserRole | null {
  */
 export function toSimpleRole(userRoles: UserRole[]): SimpleUserRole {
   const primaryRole = getPrimaryRole(userRoles);
-  if (!primaryRole) return 'cashier'; // Default fallback
-  
+  if (!primaryRole) {return 'cashier';} // Default fallback
+
   return ROLE_TO_SIMPLE[primaryRole] || 'cashier';
 }
 
@@ -512,25 +512,25 @@ export function autoDetectRole(context: {
     const targetRole = typeof context.preferredRole === 'string' && context.preferredRole in SIMPLE_TO_ROLE
       ? SIMPLE_TO_ROLE[context.preferredRole as SimpleUserRole]
       : context.preferredRole as UserRole;
-      
+
     if (hasRole(context.userRoles, targetRole)) {
       return targetRole;
     }
   }
-  
+
   // Auto-detect based on context
   if (context.cashierId && context.pointOfSaleId) {
     return UserRole.ROLE_CASHIER;
   }
-  
+
   if (context.merchantId && !context.cashierId) {
     return UserRole.ROLE_MERCHANT;
   }
-  
+
   if (!context.merchantId && !context.cashierId) {
     return UserRole.ROLE_SUPPLIER;
   }
-  
+
   // Default fallback
   return UserRole.ROLE_CASHIER;
 }
@@ -545,21 +545,21 @@ export function canSwitchToRole(
     merchantId?: MerchantId;
     cashierId?: CashierId;
     pointOfSaleId?: PointOfSaleId;
-  }
+  },
 ): boolean {
   // Check if user has permission for target role
   if (!hasRole(currentRoles, targetRole)) {
     return false;
   }
-  
+
   // Additional context-based validation
   if (targetRole === UserRole.ROLE_CASHIER) {
     return !!(context?.cashierId && context?.pointOfSaleId);
   }
-  
+
   if (targetRole === UserRole.ROLE_MERCHANT) {
     return !!context?.merchantId;
   }
-  
+
   return true;
 }

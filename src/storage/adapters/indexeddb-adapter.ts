@@ -3,22 +3,24 @@
  * Provides robust, high-performance storage with schema management and migrations
  */
 
-import { 
-  StorageAdapter, 
-  StorageKey, 
-  StorageValue, 
-  StorageEntry, 
-  StorageOptions, 
-  QueryOptions, 
-  StorageTransaction, 
-  StorageStats,
-  InternalStorageStats,
+import {
   StorageError,
   StorageConnectionError,
   // StorageCapacityError,
   StorageTransactionError,
-  DEFAULT_STORAGE_OPTIONS 
+  DEFAULT_STORAGE_OPTIONS,
 } from '../unified-storage';
+
+import type {
+  StorageKey,
+  QueryOptions,
+  StorageEntry,
+  StorageStats,
+  StorageValue,
+  StorageAdapter,
+  StorageOptions,
+  StorageTransaction,
+  InternalStorageStats } from '../unified-storage';
 
 // IndexedDB specific types
 interface IndexedDBSchema {
@@ -56,22 +58,24 @@ interface IndexedDBConfig {
 // Transaction implementation
 class IndexedDBTransaction implements StorageTransaction {
   public readonly id: string;
+
   public isActive: boolean = true;
-  
+
   private operations: Array<() => Promise<void>> = [];
+
   private rollbackOperations: Array<() => Promise<void>> = [];
 
   constructor(
     private adapter: IndexedDBAdapter,
-    private idbTransaction: IDBTransaction
+    private idbTransaction: IDBTransaction,
   ) {
     this.id = `txn_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-    
+
     // Handle transaction abort
     this.idbTransaction.addEventListener('abort', () => {
       this.isActive = false;
     });
-    
+
     this.idbTransaction.addEventListener('complete', () => {
       this.isActive = false;
     });
@@ -112,7 +116,7 @@ class IndexedDBTransaction implements StorageTransaction {
     }
 
     const originalValue = await this.get(key);
-    
+
     const operation = async () => {
       await this.adapter.deleteWithTransaction(key, this.idbTransaction);
     };
@@ -125,7 +129,7 @@ class IndexedDBTransaction implements StorageTransaction {
 
     this.operations.push(operation);
     this.rollbackOperations.unshift(rollback);
-    
+
     return true;
   }
 
@@ -139,7 +143,7 @@ class IndexedDBTransaction implements StorageTransaction {
       for (const operation of this.operations) {
         await operation();
       }
-      
+
       // Transaction will auto-commit when it goes out of scope
       this.isActive = false;
     } catch (error) {
@@ -173,8 +177,11 @@ class IndexedDBTransaction implements StorageTransaction {
  */
 export class IndexedDBAdapter implements StorageAdapter {
   public readonly name = 'IndexedDB';
+
   private db: IDBDatabase | null = null;
+
   private config: IndexedDBConfig;
+
   private connectionPromise: Promise<IDBDatabase> | null = null;
 
   public readonly capabilities = {
@@ -217,7 +224,7 @@ export class IndexedDBAdapter implements StorageAdapter {
     }
 
     this.connectionPromise = this.establishConnection();
-    
+
     try {
       this.db = await this.connectionPromise;
     } finally {
@@ -281,7 +288,7 @@ export class IndexedDBAdapter implements StorageAdapter {
 
     // Run migrations
     const relevantMigrations = this.config.migrations.filter(
-      migration => migration.version > oldVersion && migration.version <= newVersion
+      migration => migration.version > oldVersion && migration.version <= newVersion,
     );
 
     for (const migration of relevantMigrations.sort((a, b) => a.version - b.version)) {
@@ -319,16 +326,16 @@ export class IndexedDBAdapter implements StorageAdapter {
 
   async set<T extends StorageValue>(key: StorageKey, value: T, options?: StorageOptions): Promise<void> {
     await this.connect();
-    
+
     const mergedOptions = { ...DEFAULT_STORAGE_OPTIONS, ...options };
     const entry = this.createStorageEntry(key, value, mergedOptions);
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['storage'], 'readwrite');
       const store = transaction.objectStore('storage');
-      
+
       const request = store.put({
-        key: key,
+        key,
         ...entry,
         namespace: mergedOptions.namespace,
       });
@@ -339,24 +346,24 @@ export class IndexedDBAdapter implements StorageAdapter {
         'STORAGE_SET_ERROR',
         'set',
         key,
-        request.error || undefined
+        request.error || undefined,
       ));
     });
   }
 
   async setWithTransaction<T extends StorageValue>(
-    key: StorageKey, 
-    value: T, 
-    options: StorageOptions = {}, 
-    transaction: IDBTransaction
+    key: StorageKey,
+    value: T,
+    options: StorageOptions = {},
+    transaction: IDBTransaction,
   ): Promise<void> {
     const mergedOptions = { ...DEFAULT_STORAGE_OPTIONS, ...options };
     const entry = this.createStorageEntry(key, value, mergedOptions);
-    
+
     return new Promise((resolve, reject) => {
       const store = transaction.objectStore('storage');
       const request = store.put({
-        key: key,
+        key,
         ...entry,
         namespace: mergedOptions.namespace,
       });
@@ -367,22 +374,22 @@ export class IndexedDBAdapter implements StorageAdapter {
         'STORAGE_TRANSACTION_SET_ERROR',
         'set',
         key,
-        request.error || undefined
+        request.error || undefined,
       ));
     });
   }
 
   async get<T extends StorageValue>(key: StorageKey): Promise<StorageEntry<T> | null> {
     await this.connect();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['storage'], 'readonly');
       const store = transaction.objectStore('storage');
-      
+
       const request = store.get(key);
 
       request.onsuccess = () => {
-        const result = request.result;
+        const {result} = request;
         if (!result) {
           resolve(null);
           return;
@@ -404,21 +411,21 @@ export class IndexedDBAdapter implements StorageAdapter {
         'STORAGE_GET_ERROR',
         'get',
         key,
-        request.error || undefined
+        request.error || undefined,
       ));
     });
   }
 
   async getWithTransaction<T extends StorageValue>(
-    key: StorageKey, 
-    transaction: IDBTransaction
+    key: StorageKey,
+    transaction: IDBTransaction,
   ): Promise<StorageEntry<T> | null> {
     return new Promise((resolve, reject) => {
       const store = transaction.objectStore('storage');
       const request = store.get(key);
 
       request.onsuccess = () => {
-        const result = request.result;
+        const {result} = request;
         if (!result) {
           resolve(null);
           return;
@@ -438,18 +445,18 @@ export class IndexedDBAdapter implements StorageAdapter {
         'STORAGE_TRANSACTION_GET_ERROR',
         'get',
         key,
-        request.error || undefined
+        request.error || undefined,
       ));
     });
   }
 
   async delete(key: StorageKey): Promise<boolean> {
     await this.connect();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['storage'], 'readwrite');
       const store = transaction.objectStore('storage');
-      
+
       const request = store.delete(key);
 
       request.onsuccess = () => resolve(true);
@@ -458,7 +465,7 @@ export class IndexedDBAdapter implements StorageAdapter {
         'STORAGE_DELETE_ERROR',
         'delete',
         key,
-        request.error || undefined
+        request.error || undefined,
       ));
     });
   }
@@ -474,7 +481,7 @@ export class IndexedDBAdapter implements StorageAdapter {
         'STORAGE_TRANSACTION_DELETE_ERROR',
         'delete',
         key,
-        request.error || undefined
+        request.error || undefined,
       ));
     });
   }
@@ -486,16 +493,16 @@ export class IndexedDBAdapter implements StorageAdapter {
 
   async clear(namespace?: string): Promise<void> {
     await this.connect();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['storage'], 'readwrite');
       const store = transaction.objectStore('storage');
-      
+
       if (namespace) {
         // Clear only specific namespace using index
         const index = store.index('namespace');
         const request = index.openCursor(IDBKeyRange.only(namespace));
-        
+
         request.onsuccess = (event) => {
           const cursor = (event.target as IDBRequest).result;
           if (cursor) {
@@ -511,19 +518,19 @@ export class IndexedDBAdapter implements StorageAdapter {
           'STORAGE_CLEAR_ERROR',
           'clear',
           undefined,
-          request.error || undefined
+          request.error || undefined,
         ));
       } else {
         // Clear entire store
         const request = store.clear();
-        
+
         request.onsuccess = () => resolve();
         request.onerror = () => reject(new StorageError(
           'Failed to clear storage',
           'STORAGE_CLEAR_ERROR',
           'clear',
           undefined,
-          request.error || undefined
+          request.error || undefined,
         ));
       }
     });
@@ -531,16 +538,16 @@ export class IndexedDBAdapter implements StorageAdapter {
 
   async setMany<T extends StorageValue>(entries: Array<{ key: StorageKey; value: T; options?: StorageOptions }>): Promise<void> {
     await this.connect();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['storage'], 'readwrite');
       const store = transaction.objectStore('storage');
       let completed = 0;
-      
+
       for (const entry of entries) {
         const mergedOptions = { ...DEFAULT_STORAGE_OPTIONS, ...entry.options };
         const storageEntry = this.createStorageEntry(entry.key, entry.value, mergedOptions);
-        
+
         const request = store.put({
           key: entry.key,
           ...storageEntry,
@@ -559,7 +566,7 @@ export class IndexedDBAdapter implements StorageAdapter {
           'STORAGE_BATCH_SET_ERROR',
           'setMany',
           entry.key,
-          request.error || undefined
+          request.error || undefined,
         ));
       }
     });
@@ -567,49 +574,49 @@ export class IndexedDBAdapter implements StorageAdapter {
 
   async getMany<T extends StorageValue>(keys: StorageKey[]): Promise<Array<StorageEntry<T> | null>> {
     await this.connect();
-    
+
     const results: Array<StorageEntry<T> | null> = [];
-    
+
     for (const key of keys) {
       results.push(await this.get<T>(key));
     }
-    
+
     return results;
   }
 
   async deleteMany(keys: StorageKey[]): Promise<number> {
     await this.connect();
-    
+
     let deletedCount = 0;
-    
+
     for (const key of keys) {
       const deleted = await this.delete(key);
-      if (deleted) deletedCount++;
+      if (deleted) {deletedCount++;}
     }
-    
+
     return deletedCount;
   }
 
   async keys(options: QueryOptions = {}): Promise<StorageKey[]> {
     await this.connect();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['storage'], 'readonly');
       const store = transaction.objectStore('storage');
       const keys: StorageKey[] = [];
-      
+
       const request = store.openCursor();
-      
+
       request.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest).result;
         if (cursor) {
           const entry = cursor.value;
-          
+
           // Apply filters
           if (this.matchesQuery(entry, options)) {
             keys.push(entry.key as StorageKey);
           }
-          
+
           cursor.continue();
         } else {
           resolve(this.applySortingAndPaging(keys, options));
@@ -621,31 +628,31 @@ export class IndexedDBAdapter implements StorageAdapter {
         'STORAGE_KEYS_ERROR',
         'keys',
         undefined,
-        request.error || undefined
+        request.error || undefined,
       ));
     });
   }
 
   async values<T extends StorageValue>(options: QueryOptions = {}): Promise<Array<StorageEntry<T>>> {
     await this.connect();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['storage'], 'readonly');
       const store = transaction.objectStore('storage');
       const values: Array<StorageEntry<T>> = [];
-      
+
       const request = store.openCursor();
-      
+
       request.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest).result;
         if (cursor) {
           const entry = cursor.value;
-          
+
           // Apply filters
           if (this.matchesQuery(entry, options)) {
             values.push(entry as StorageEntry<T>);
           }
-          
+
           cursor.continue();
         } else {
           resolve(this.applySortingAndPaging(values, options));
@@ -657,7 +664,7 @@ export class IndexedDBAdapter implements StorageAdapter {
         'STORAGE_VALUES_ERROR',
         'values',
         undefined,
-        request.error || undefined
+        request.error || undefined,
       ));
     });
   }
@@ -668,23 +675,23 @@ export class IndexedDBAdapter implements StorageAdapter {
 
   async count(options: QueryOptions = {}): Promise<number> {
     await this.connect();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['storage'], 'readonly');
       const store = transaction.objectStore('storage');
       let count = 0;
-      
+
       const request = store.openCursor();
-      
+
       request.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest).result;
         if (cursor) {
           const entry = cursor.value;
-          
+
           if (this.matchesQuery(entry, options)) {
             count++;
           }
-          
+
           cursor.continue();
         } else {
           resolve(count);
@@ -696,40 +703,40 @@ export class IndexedDBAdapter implements StorageAdapter {
         'STORAGE_COUNT_ERROR',
         'count',
         undefined,
-        request.error || undefined
+        request.error || undefined,
       ));
     });
   }
 
   async beginTransaction(): Promise<StorageTransaction> {
     await this.connect();
-    
+
     const idbTransaction = this.db!.transaction(['storage'], 'readwrite');
     return new IndexedDBTransaction(this, idbTransaction);
   }
 
   async cleanup(): Promise<number> {
     await this.connect();
-    
+
     const now = Date.now();
     let cleanedCount = 0;
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['storage'], 'readwrite');
       const store = transaction.objectStore('storage');
       const request = store.openCursor();
-      
+
       request.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest).result;
         if (cursor) {
           const entry = cursor.value;
-          
+
           // Check if entry is expired
           if (entry.metadata.expiresAt && entry.metadata.expiresAt < now) {
             cursor.delete();
             cleanedCount++;
           }
-          
+
           cursor.continue();
         } else {
           resolve(cleanedCount);
@@ -741,7 +748,7 @@ export class IndexedDBAdapter implements StorageAdapter {
         'STORAGE_CLEANUP_ERROR',
         'cleanup',
         undefined,
-        request.error || undefined
+        request.error || undefined,
       ));
     });
   }
@@ -754,12 +761,12 @@ export class IndexedDBAdapter implements StorageAdapter {
 
   async getStats(): Promise<StorageStats> {
     await this.connect();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['storage'], 'readonly');
       const store = transaction.objectStore('storage');
       const request = store.openCursor();
-      
+
       const stats: InternalStorageStats = {
         totalKeys: 0,
         totalSize: 0,
@@ -770,38 +777,38 @@ export class IndexedDBAdapter implements StorageAdapter {
         encryptedEntries: 0,
         compressedEntries: 0,
       };
-      
+
       const namespaceSet = new Set<string>();
-      
+
       request.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest).result;
         if (cursor) {
           const entry = cursor.value;
-          
+
           stats.totalKeys++;
           stats.totalSize += this.estimateEntrySize(entry);
-          
+
           namespaceSet.add(entry.namespace);
-          
+
           if (entry.metadata.createdAt < stats.oldestEntry) {
             stats.oldestEntry = entry.metadata.createdAt;
           }
           if (entry.metadata.createdAt > stats.newestEntry) {
             stats.newestEntry = entry.metadata.createdAt;
           }
-          
+
           if (entry.metadata.expiresAt && entry.metadata.expiresAt < Date.now()) {
             stats.expiredEntries++;
           }
-          
+
           if (entry.metadata.encrypted) {
             stats.encryptedEntries++;
           }
-          
+
           if (entry.metadata.compressed) {
             stats.compressedEntries++;
           }
-          
+
           cursor.continue();
         } else {
           stats.namespaces = Array.from(namespaceSet);
@@ -814,18 +821,18 @@ export class IndexedDBAdapter implements StorageAdapter {
         'STORAGE_STATS_ERROR',
         'getStats',
         undefined,
-        request.error || undefined
+        request.error || undefined,
       ));
     });
   }
 
   private createStorageEntry<T extends StorageValue>(
-    key: StorageKey, 
-    value: T, 
-    options: Required<StorageOptions>
+    key: StorageKey,
+    value: T,
+    options: Required<StorageOptions>,
   ): StorageEntry<T> {
     const now = Date.now();
-    
+
     return {
       data: value,
       metadata: {
@@ -842,52 +849,52 @@ export class IndexedDBAdapter implements StorageAdapter {
 
   private matchesQuery(entry: any, options: QueryOptions): boolean {
     const now = Date.now();
-    
+
     // Check expiration
     if (!options.includeExpired && entry.metadata.expiresAt && entry.metadata.expiresAt < now) {
       return false;
     }
-    
+
     // Check namespace
     if (options.namespace && entry.namespace !== options.namespace) {
       return false;
     }
-    
+
     // Check prefix
     if (options.prefix && !entry.key.startsWith(options.prefix)) {
       return false;
     }
-    
+
     return true;
   }
 
   private applySortingAndPaging<T>(items: T[], options: QueryOptions): T[] {
     let result = [...items];
-    
+
     // Apply sorting (simplified for this implementation)
     if (options.sortBy) {
       result.sort((a: any, b: any) => {
-        const sortBy = options.sortBy;
-        if (!sortBy) return 0;
-        
+        const {sortBy} = options;
+        if (!sortBy) {return 0;}
+
         const aVal = sortBy === 'key' ? a.key || a : a.metadata?.[sortBy] || 0;
         const bVal = sortBy === 'key' ? b.key || b : b.metadata?.[sortBy] || 0;
-        
+
         const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
         return options.sortOrder === 'desc' ? -comparison : comparison;
       });
     }
-    
+
     // Apply paging
     const offset = options.offset || 0;
-    const limit = options.limit;
-    
+    const {limit} = options;
+
     if (limit) {
       result = result.slice(offset, offset + limit);
     } else if (offset) {
       result = result.slice(offset);
     }
-    
+
     return result;
   }
 

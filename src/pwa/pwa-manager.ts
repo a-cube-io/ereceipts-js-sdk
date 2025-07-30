@@ -2,7 +2,7 @@
  * PWA Manager for A-Cube E-Receipt SDK
  * Manages Progressive Web App features including service worker registration,
  * caching strategies, and offline functionality
- * 
+ *
  * Features:
  * - Service worker lifecycle management
  * - Cache control and monitoring
@@ -12,8 +12,9 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
-import { PushNotificationManager, type PushNotificationConfig, type NotificationPayload } from './push-notifications';
-import { AppInstaller, type AppInstallerConfig, type InstallCriteria, type EngagementData } from './app-installer';
+
+import { AppInstaller, type EngagementData, type InstallCriteria, type AppInstallerConfig } from './app-installer';
+import { PushNotificationManager, type NotificationPayload, type PushNotificationConfig } from './push-notifications';
 
 /**
  * PWA Manager configuration
@@ -21,54 +22,54 @@ import { AppInstaller, type AppInstallerConfig, type InstallCriteria, type Engag
 export interface PWAManagerConfig {
   /** Service worker script path */
   serviceWorkerPath?: string;
-  
+
   /** Enable automatic service worker registration */
   autoRegister?: boolean;
-  
+
   /** Enable app install prompts */
   enableInstallPrompts?: boolean;
-  
+
   /** Cache strategy preferences */
   cacheStrategy?: {
     /** API cache duration in milliseconds */
     apiCacheDuration?: number;
-    
+
     /** Static cache duration in milliseconds */
     staticCacheDuration?: number;
-    
+
     /** Enable stale-while-revalidate for API calls */
     staleWhileRevalidate?: boolean;
   };
-  
+
   /** Background sync configuration */
   backgroundSync?: {
     /** Enable periodic background sync */
     enablePeriodicSync?: boolean;
-    
+
     /** Minimum interval for periodic sync in milliseconds */
     minSyncInterval?: number;
   };
-  
+
   /** Push notification configuration */
   pushNotifications?: {
     /** Enable push notifications */
     enabled?: boolean;
-    
+
     /** VAPID public key for push notifications */
     vapidPublicKey?: string;
   };
-  
+
   /** App installer configuration */
   appInstaller?: {
     /** Enable app install prompts */
     enabled?: boolean;
-    
+
     /** Install criteria configuration */
     criteria?: InstallCriteria;
-    
+
     /** Auto-show prompt when criteria met */
     autoShow?: boolean;
-    
+
     /** Custom installer configuration */
     config?: Partial<AppInstallerConfig>;
   };
@@ -153,21 +154,27 @@ const DEFAULT_CONFIG: Required<PWAManagerConfig> = {
  */
 export class PWAManager extends EventEmitter<PWAEvents> {
   private config: Required<PWAManagerConfig>;
+
   private registration: ServiceWorkerRegistration | null = null;
+
   private installPrompt: BeforeInstallPromptEvent | null = null;
+
   private isSupported: boolean;
+
   private messageChannel: MessageChannel | null = null;
+
   private pushManager?: PushNotificationManager;
+
   private appInstaller?: AppInstaller;
 
   constructor(config: PWAManagerConfig = {}) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.isSupported = this.checkPWASupport();
-    
+
     if (this.isSupported) {
       this.setupEventListeners();
-      
+
       if (this.config.autoRegister) {
         this.registerServiceWorker().catch(error => {
           console.error('Failed to auto-register service worker:', error);
@@ -230,7 +237,7 @@ export class PWAManager extends EventEmitter<PWAEvents> {
         {
           scope: '/',
           updateViaCache: 'imports',
-        }
+        },
       );
 
       // Setup message channel for communication
@@ -257,7 +264,7 @@ export class PWAManager extends EventEmitter<PWAEvents> {
       if (this.config.pushNotifications.enabled) {
         await this.initializePushNotifications();
       }
-      
+
       // Initialize app installer
       if (this.config.appInstaller.enabled) {
         await this.initializeAppInstaller();
@@ -278,23 +285,23 @@ export class PWAManager extends EventEmitter<PWAEvents> {
    * Setup message channel for service worker communication
    */
   private setupMessageChannel(): void {
-    if (!this.registration) return;
+    if (!this.registration) {return;}
 
     this.messageChannel = new MessageChannel();
-    
+
     // Listen for messages from service worker
     this.messageChannel.port1.onmessage = (event) => {
       const { type, data } = event.data;
-      
+
       switch (type) {
         case 'CACHE_SIZE':
           this.emit('cache:updated', { cacheName: 'all', size: data.reduce((sum: number, cache: any) => sum + cache.size, 0) });
           break;
-          
+
         case 'OFFLINE_SYNC_SUCCESS':
           this.emit('offline:synced', { request: data.url, id: data.id });
           break;
-          
+
         case 'CACHE_CLEARED':
           this.emit('cache:updated', { cacheName: 'all', size: 0 });
           break;
@@ -304,7 +311,7 @@ export class PWAManager extends EventEmitter<PWAEvents> {
     // Send port to service worker
     navigator.serviceWorker.controller?.postMessage(
       { type: 'PORT_TRANSFER' },
-      [this.messageChannel.port2]
+      [this.messageChannel.port2],
     );
   }
 
@@ -320,12 +327,12 @@ export class PWAManager extends EventEmitter<PWAEvents> {
     try {
       // Request permission for background sync
       const status = await navigator.permissions.query({ name: 'periodic-background-sync' as PermissionName });
-      
+
       if (status.state === 'granted') {
         await (this.registration as any).periodicSync.register('offline-queue-periodic', {
           minInterval: this.config.backgroundSync.minSyncInterval,
         });
-        
+
         console.log('Periodic background sync registered');
       }
     } catch (error) {
@@ -338,34 +345,34 @@ export class PWAManager extends EventEmitter<PWAEvents> {
    */
   private async initializeAppInstaller(): Promise<void> {
     try {
-      
+
       const installerConfig: AppInstallerConfig = {
         ...this.config.appInstaller.config,
         criteria: this.config.appInstaller.criteria ?? DEFAULT_CONFIG.appInstaller.criteria,
         autoShow: this.config.appInstaller.autoShow ?? DEFAULT_CONFIG.appInstaller.autoShow,
       } as AppInstallerConfig;
-      
+
       this.appInstaller = new AppInstaller(installerConfig);
-      
+
       // Forward app installer events
       this.appInstaller.on('criteria:met', () => {
         this.emit('app:installable', { canInstall: true });
       });
-      
+
       this.appInstaller.on('prompt:shown', ({ type }) => {
         this.emit('app:install-prompted', { type });
       });
-      
+
       this.appInstaller.on('prompt:dismissed', ({ reason }) => {
         this.emit('app:install-dismissed', { reason });
       });
-      
+
       this.appInstaller.on('install:completed', ({ outcome, platform }) => {
         if (outcome === 'accepted') {
           this.emit('app:installed', { platform });
         }
       });
-      
+
       console.log('App installer initialized');
     } catch (error) {
       console.warn('Failed to initialize app installer:', error);
@@ -460,7 +467,7 @@ export class PWAManager extends EventEmitter<PWAEvents> {
         console.error('Failed to show install prompt via AppInstaller:', error);
       }
     }
-    
+
     // Fallback to original implementation
     if (!this.installPrompt) {
       console.warn('Install prompt not available');
@@ -470,10 +477,10 @@ export class PWAManager extends EventEmitter<PWAEvents> {
     try {
       await this.installPrompt.prompt();
       const choiceResult = await this.installPrompt.userChoice;
-      
+
       this.emit('install:completed', { outcome: choiceResult.outcome });
       this.installPrompt = null;
-      
+
       return choiceResult;
     } catch (error) {
       console.error('Failed to show install prompt:', error);
@@ -544,7 +551,7 @@ export class PWAManager extends EventEmitter<PWAEvents> {
 
     try {
       await this.registration.update();
-      
+
       if (this.registration.waiting) {
         // Signal the waiting service worker to skip waiting
         navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' });
@@ -597,14 +604,14 @@ export class PWAManager extends EventEmitter<PWAEvents> {
   getPushManager(): PushNotificationManager | undefined {
     return this.pushManager;
   }
-  
+
   /**
    * Get app installer
    */
   getAppInstaller(): AppInstaller | undefined {
     return this.appInstaller;
   }
-  
+
   /**
    * Record receipt created (for app installer engagement tracking)
    */
@@ -613,7 +620,7 @@ export class PWAManager extends EventEmitter<PWAEvents> {
       this.appInstaller.recordReceiptCreated();
     }
   }
-  
+
   /**
    * Get engagement statistics
    */
@@ -623,7 +630,7 @@ export class PWAManager extends EventEmitter<PWAEvents> {
     }
     return null;
   }
-  
+
   /**
    * Check if app install criteria are met
    */
@@ -641,7 +648,7 @@ export class PWAManager extends EventEmitter<PWAEvents> {
     if (!this.pushManager) {
       throw new Error('Push notifications not initialized');
     }
-    
+
     return this.pushManager.subscribe();
   }
 
@@ -652,7 +659,7 @@ export class PWAManager extends EventEmitter<PWAEvents> {
     if (!this.pushManager) {
       throw new Error('Push notifications not initialized');
     }
-    
+
     return this.pushManager.unsubscribe();
   }
 
@@ -663,7 +670,7 @@ export class PWAManager extends EventEmitter<PWAEvents> {
     if (!this.pushManager) {
       throw new Error('Push notifications not initialized');
     }
-    
+
     return this.pushManager.showNotification(payload);
   }
 
@@ -694,7 +701,7 @@ export class PWAManager extends EventEmitter<PWAEvents> {
     if (this.pushManager) {
       await this.pushManager.destroy();
     }
-    
+
     if (this.appInstaller) {
       this.appInstaller.destroy();
     }

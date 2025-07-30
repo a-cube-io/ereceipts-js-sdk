@@ -3,12 +3,14 @@
  * Handles create, update, delete operations with automatic cache invalidation and queue management
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ACubeSDK } from '@/core/sdk';
-import { queryUtils } from './useACubeQuery';
-import { useACube } from './ACubeProvider';
 import type { QueueItem } from '@/storage/queue/queue-manager';
+
 import { createQueueItemId } from '@/storage/queue/types';
+import { useRef, useState, useEffect, useCallback } from 'react';
+
+import { useACube } from './ACubeProvider';
+import { queryUtils } from './useACubeQuery';
 
 export interface MutationOptions<TData, TVariables> {
   onSuccess?: (data: TData, variables: TVariables) => void;
@@ -61,7 +63,7 @@ export interface MutationResult<TData, TVariables> {
 
 export function useACubeMutation<TData = unknown, TVariables = void>(
   mutationFn: (variables: TVariables, sdk: ACubeSDK) => Promise<TData>,
-  options: MutationOptions<TData, TVariables> = {}
+  options: MutationOptions<TData, TVariables> = {},
 ): MutationResult<TData, TVariables> {
   const {
     onSuccess,
@@ -116,12 +118,12 @@ export function useACubeMutation<TData = unknown, TVariables = void>(
   const optimisticTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get SDK and offline systems from context
-  const { 
-    sdk, 
-    storage, 
-    queueManager, 
-    isOnline, 
-    isOfflineEnabled 
+  const {
+    sdk,
+    storage,
+    queueManager,
+    isOnline,
+    isOfflineEnabled,
   } = useACube();
 
   const executeMutation = useCallback(async (variables: TVariables, isRetry = false): Promise<TData> => {
@@ -151,8 +153,8 @@ export function useACubeMutation<TData = unknown, TVariables = void>(
 
     let context: any;
     let optimisticData: any;
-    let originalQueryData: Record<string, any> = {};
-    
+    const originalQueryData: Record<string, any> = {};
+
     try {
       // Call onMutate for optimistic updates
       if (onMutate) {
@@ -163,7 +165,7 @@ export function useACubeMutation<TData = unknown, TVariables = void>(
       // Apply optimistic update to cache
       if (optimisticUpdate) {
         optimisticData = optimisticUpdate(variables);
-        
+
         // Store original data for rollback
         if (invalidateQueries) {
           const keys = Array.isArray(invalidateQueries) ? invalidateQueries : [invalidateQueries];
@@ -258,7 +260,7 @@ export function useACubeMutation<TData = unknown, TVariables = void>(
 
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      
+
       // Clear optimistic timeout
       if (optimisticTimeoutRef.current) {
         clearTimeout(optimisticTimeoutRef.current);
@@ -282,17 +284,17 @@ export function useACubeMutation<TData = unknown, TVariables = void>(
 
       setState(prev => {
         const newFailureCount = prev.failureCount + 1;
-        const shouldRetry = typeof retry === 'function' 
+        const shouldRetry = typeof retry === 'function'
           ? retry(newFailureCount, err)
-          : typeof retry === 'number' 
+          : typeof retry === 'number'
             ? newFailureCount < retry
             : retry && newFailureCount < 3;
 
         if (shouldRetry && isOnline) {
-          const delay = typeof retryDelay === 'function' 
-            ? retryDelay(newFailureCount) 
+          const delay = typeof retryDelay === 'function'
+            ? retryDelay(newFailureCount)
             : retryDelay;
-          
+
           retryTimeoutRef.current = setTimeout(() => {
             executeMutation(variables, true);
           }, delay) as unknown as NodeJS.Timeout;
@@ -327,16 +329,16 @@ export function useACubeMutation<TData = unknown, TVariables = void>(
 
   // Helper function to queue mutations for offline execution
   const queueMutation = useCallback(async (
-    variables: TVariables, 
-    context: any, 
-    optimisticData: any
+    variables: TVariables,
+    context: any,
+    optimisticData: any,
   ): Promise<TData> => {
     if (!queueManager) {
       throw new Error('Queue manager not available');
     }
 
     const queueId = createQueueItemId(`mutation_${Date.now()}_${Math.random().toString(36).substring(2)}`);
-    
+
     const queueItem: QueueItem = {
       id: queueId,
       operation: mutationType === 'create' ? 'create' : mutationType === 'update' ? 'update' : mutationType === 'delete' ? 'delete' : 'custom',
@@ -403,7 +405,7 @@ export function useACubeMutation<TData = unknown, TVariables = void>(
     try {
       const queueItems = queueManager.getQueueItems();
       const item = queueItems.find(item => item.id === state.queueId);
-      
+
       if (item) {
         await queueManager.processItem(item);
         setState(prev => {
@@ -444,9 +446,7 @@ export function useACubeMutation<TData = unknown, TVariables = void>(
     }
   }, [executeMutation]);
 
-  const mutateAsync = useCallback(async (variables: TVariables): Promise<TData> => {
-    return await executeMutation(variables);
-  }, [executeMutation]);
+  const mutateAsync = useCallback(async (variables: TVariables): Promise<TData> => executeMutation(variables), [executeMutation]);
 
   const reset = useCallback(() => {
     if (abortControllerRef.current) {
@@ -458,7 +458,7 @@ export function useACubeMutation<TData = unknown, TVariables = void>(
     if (optimisticTimeoutRef.current) {
       clearTimeout(optimisticTimeoutRef.current);
     }
-    
+
     setState({
       data: undefined,
       error: null,
@@ -473,8 +473,7 @@ export function useACubeMutation<TData = unknown, TVariables = void>(
   }, []);
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(() => () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -484,8 +483,7 @@ export function useACubeMutation<TData = unknown, TVariables = void>(
       if (optimisticTimeoutRef.current) {
         clearTimeout(optimisticTimeoutRef.current);
       }
-    };
-  }, []);
+    }, []);
 
   return {
     ...state,

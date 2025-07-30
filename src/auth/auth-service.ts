@@ -3,54 +3,56 @@
  * Main service for handling OAuth2 authentication, session management, and user state
  */
 
+import type { HttpClient } from '@/http/client';
+import type { CashierId, MerchantId, PointOfSaleId } from '@/types/branded';
+
 import { EventEmitter } from 'eventemitter3';
-import { HttpClient } from '@/http/client';
 import { AccessControlManager } from '@/compliance/access-control';
-import { TokenManager } from './token-manager';
+
 import { AuthStorage } from './auth-storage';
-import type {
-  LoginCredentials,
-  OAuth2TokenResponse,
-  AuthUser,
-  AuthState,
-  AuthError,
-  AuthErrorType,
-  AuthConfig,
-  LogoutOptions,
-  PermissionCheck,
-  PermissionResult,
-  SessionInfo,
-  SimpleUserRole,
-  StoredAuthData,
-  JWTPayload
-} from './types';
-import { UserRole } from './types';
+import { TokenManager } from './token-manager';
 import {
-  hasRole,
+  COMMON_PERMISSION_SETS,
+  AuthPerformanceOptimizer,
+  type AuthPerformanceMetrics,
+} from './auth-performance';
+import { hasRole ,
+  UserRole,
   hasAnyRole,
-  getEffectiveRoles,
-  getPrimaryRole,
   toSimpleRole,
+  ROLE_TO_SIMPLE,
   autoDetectRole,
+  getPrimaryRole,
   canSwitchToRole,
-  ROLE_TO_SIMPLE
+  getEffectiveRoles,
 } from './types';
-import type { MerchantId, CashierId, PointOfSaleId } from '@/types/branded';
 import {
   AuthEventType,
   createAuthEvent,
-  type LoginStartEvent,
-  type LoginSuccessEvent,
-  type LoginFailureEvent,
   type LogoutEvent,
+  type LoginStartEvent,
+  type LoginFailureEvent,
+  type LoginSuccessEvent,
   type SessionCreatedEvent,
   type SessionRestoredEvent,
 } from './auth-events';
-import { 
-  AuthPerformanceOptimizer, 
-  COMMON_PERMISSION_SETS,
-  type AuthPerformanceMetrics
-} from './auth-performance';
+
+import type {
+  AuthUser,
+  AuthError,
+  AuthState,
+  AuthConfig,
+  JWTPayload,
+  SessionInfo,
+  AuthErrorType,
+  LogoutOptions,
+  SimpleUserRole,
+  StoredAuthData,
+  PermissionCheck,
+  LoginCredentials,
+  PermissionResult,
+  OAuth2TokenResponse,
+} from './types';
 
 const DEFAULT_CONFIG: AuthConfig = {
   loginUrl: '/login',
@@ -85,13 +87,21 @@ const DEFAULT_CONFIG: AuthConfig = {
  */
 export class AuthService extends EventEmitter {
   private config: AuthConfig;
+
   private httpClient: HttpClient;
+
   private tokenManager: TokenManager;
+
   private storage: AuthStorage;
+
   private accessControl: AccessControlManager;
+
   private currentState: AuthState;
+
   private deviceId: string;
+
   private sessionCleanupInterval: NodeJS.Timeout | null = null;
+
   private performanceOptimizer: AuthPerformanceOptimizer;
 
   constructor(
@@ -99,13 +109,13 @@ export class AuthService extends EventEmitter {
     config: Partial<AuthConfig> = {},
     accessControl?: AccessControlManager,
     storage?: AuthStorage,
-    tokenManager?: TokenManager
+    tokenManager?: TokenManager,
   ) {
     super();
-    
+
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.httpClient = httpClient;
-    
+
     // Use provided token manager or create a new one
     if (tokenManager) {
       this.tokenManager = tokenManager;
@@ -120,13 +130,13 @@ export class AuthService extends EventEmitter {
         onTokenExpired: this.handleTokenExpired.bind(this),
       });
     }
-    
+
     // Initialize storage
     this.storage = storage || new AuthStorage({
       storageKey: this.config.storageKey,
       enableEncryption: this.config.storageEncryption,
     });
-    
+
     // Initialize access control
     this.accessControl = accessControl || new AccessControlManager({
       enabled: true,
@@ -154,7 +164,7 @@ export class AuthService extends EventEmitter {
 
     // Initialize performance optimizer
     this.performanceOptimizer = new AuthPerformanceOptimizer(
-      this.config.enablePerformanceOptimization ? this.config.performanceConfig : { enableMetrics: false }
+      this.config.enablePerformanceOptimization ? this.config.performanceConfig : { enableMetrics: false },
     );
 
     // Set up event listeners
@@ -205,7 +215,7 @@ export class AuthService extends EventEmitter {
           },
           skipRetry: false,
           metadata: { isAuthentication: true },
-        }
+        },
       );
 
       const tokens = response.data;
@@ -215,7 +225,7 @@ export class AuthService extends EventEmitter {
       if (!rawTokenPayload) {
         throw this.createAuthError(
           'TOKEN_INVALID',
-          'Invalid access token received'
+          'Invalid access token received',
         );
       }
 
@@ -236,7 +246,7 @@ export class AuthService extends EventEmitter {
       let apiRoles: string[] = [];
       if ((rawTokenPayload as any).roles && typeof (rawTokenPayload as any).roles === 'object') {
         // API returns roles as: {"ereceipts-it.acubeapi.com": ["ROLE_MERCHANT"]}
-        const domainRoles = Object.values((rawTokenPayload as any).roles)[0] as unknown;
+        const domainRoles = Object.values((rawTokenPayload as any).roles)[0];
         apiRoles = Array.isArray(domainRoles) ? domainRoles as string[] : [];
       }
 
@@ -253,7 +263,7 @@ export class AuthService extends EventEmitter {
 
       tokenPayload.roles = tokenRoles;
       const effectiveRoles = getEffectiveRoles(tokenRoles);
-      
+
       // Auto-detect primary role based on context and preferences
       const contextForDetection: {
         merchantId?: MerchantId;
@@ -264,7 +274,7 @@ export class AuthService extends EventEmitter {
       } = {
         userRoles: effectiveRoles,
       };
-      
+
       if (tokenPayload.merchant_id) {
         contextForDetection.merchantId = tokenPayload.merchant_id;
       }
@@ -277,9 +287,9 @@ export class AuthService extends EventEmitter {
       if (credentials.preferred_role) {
         contextForDetection.preferredRole = credentials.preferred_role;
       }
-      
+
       const primaryRole = autoDetectRole(contextForDetection);
-      
+
       // Create user object with enhanced role information
       const user: AuthUser = {
         id: tokenPayload.sub,
@@ -319,7 +329,7 @@ export class AuthService extends EventEmitter {
       try {
         const clientIP = await this.getClientIP();
         const userAgent = this.getUserAgent();
-        
+
         const { sessionId } = await this.accessControl.authenticate(user.id, {
           timestamp: Date.now(),
           deviceId: this.deviceId,
@@ -377,7 +387,7 @@ export class AuthService extends EventEmitter {
         isLoading: false,
         error: authError,
       });
-      
+
       this.emitLoginFailure(authError, credentials);
       throw authError;
     }
@@ -387,7 +397,7 @@ export class AuthService extends EventEmitter {
    * Logout user and clear session
    */
   async logout(options: LogoutOptions = {}): Promise<void> {
-    const user = this.currentState.user;
+    const {user} = this.currentState;
     const sessionId = user?.session_id;
 
     try {
@@ -471,8 +481,8 @@ export class AuthService extends EventEmitter {
    * Check if user has permission (optimized with caching and batching)
    */
   async checkPermission(permission: PermissionCheck): Promise<PermissionResult> {
-    const user = this.currentState.user;
-    if (!user || !user.session_id) {
+    const {user} = this.currentState;
+    if (!user?.session_id) {
       return {
         granted: false,
         reason: 'User not authenticated',
@@ -484,7 +494,7 @@ export class AuthService extends EventEmitter {
       return this.performanceOptimizer.checkPermissionOptimized(
         user,
         permission,
-        async (perm) => this.checkPermissionDirect(perm)
+        async (perm) => this.checkPermissionDirect(perm),
       );
     }
 
@@ -495,8 +505,8 @@ export class AuthService extends EventEmitter {
    * Direct permission check without optimization (used by optimizer)
    */
   private async checkPermissionDirect(permission: PermissionCheck): Promise<PermissionResult> {
-    const user = this.currentState.user;
-    if (!user || !user.session_id) {
+    const {user} = this.currentState;
+    if (!user?.session_id) {
       return {
         granted: false,
         reason: 'User not authenticated',
@@ -512,7 +522,7 @@ export class AuthService extends EventEmitter {
           timestamp: Date.now(),
           deviceId: this.deviceId,
           attributes: permission.context || {},
-        }
+        },
       );
 
       return {
@@ -548,14 +558,14 @@ export class AuthService extends EventEmitter {
    * Get user's effective roles (including inherited roles) - optimized with caching
    */
   getEffectiveRoles(): UserRole[] {
-    const user = this.currentState.user;
-    if (!user) return [];
-    
+    const {user} = this.currentState;
+    if (!user) {return [];}
+
     // Use performance optimizer if enabled
     if (this.config.enablePerformanceOptimization) {
       return this.performanceOptimizer.getEffectiveRolesOptimized(
         user,
-        (u) => getEffectiveRoles(u.roles || [])
+        (u) => getEffectiveRoles(u.roles || []),
       );
     }
 
@@ -587,10 +597,10 @@ export class AuthService extends EventEmitter {
       merchant_id?: import('@/types/branded').MerchantId;
       cashier_id?: import('@/types/branded').CashierId;
       point_of_sale_id?: import('@/types/branded').PointOfSaleId;
-    }
+    },
   ): Promise<boolean> {
     const userRoles = this.currentState.user?.roles || [];
-    
+
     // Validate if user can switch to this role
     const switchContext = context ? (() => {
       const ctx: {
@@ -598,14 +608,14 @@ export class AuthService extends EventEmitter {
         cashierId?: CashierId;
         pointOfSaleId?: PointOfSaleId;
       } = {};
-      
-      if (context.merchant_id) ctx.merchantId = context.merchant_id;
-      if (context.cashier_id) ctx.cashierId = context.cashier_id;
-      if (context.point_of_sale_id) ctx.pointOfSaleId = context.point_of_sale_id;
-      
+
+      if (context.merchant_id) {ctx.merchantId = context.merchant_id;}
+      if (context.cashier_id) {ctx.cashierId = context.cashier_id;}
+      if (context.point_of_sale_id) {ctx.pointOfSaleId = context.point_of_sale_id;}
+
       return ctx;
     })() : undefined;
-    
+
     if (!canSwitchToRole(userRoles, targetRole, switchContext)) {
       return false;
     }
@@ -622,9 +632,9 @@ export class AuthService extends EventEmitter {
 
       // Update context-specific IDs if provided
       if (context) {
-        if (context.merchant_id) this.currentState.user.merchant_id = context.merchant_id;
-        if (context.cashier_id) this.currentState.user.cashier_id = context.cashier_id;
-        if (context.point_of_sale_id) this.currentState.user.point_of_sale_id = context.point_of_sale_id;
+        if (context.merchant_id) {this.currentState.user.merchant_id = context.merchant_id;}
+        if (context.cashier_id) {this.currentState.user.cashier_id = context.cashier_id;}
+        if (context.point_of_sale_id) {this.currentState.user.point_of_sale_id = context.point_of_sale_id;}
       }
 
       // Update stored auth data
@@ -645,7 +655,7 @@ export class AuthService extends EventEmitter {
           newRoles: [targetRole],
           changedBy: this.currentState.user.id,
           reason: 'user_initiated_switch',
-        }
+        },
       ));
     }
 
@@ -656,8 +666,8 @@ export class AuthService extends EventEmitter {
    * Get current session info
    */
   async getSessionInfo(): Promise<SessionInfo | null> {
-    const user = this.currentState.user;
-    if (!user || !user.session_id) {
+    const {user} = this.currentState;
+    if (!user?.session_id) {
       return null;
     }
 
@@ -665,7 +675,7 @@ export class AuthService extends EventEmitter {
     // For now, construct from available data
     const clientIP = await this.getClientIP();
     const userAgent = this.getUserAgent();
-    
+
     return {
       id: user.session_id,
       userId: user.id,
@@ -688,13 +698,13 @@ export class AuthService extends EventEmitter {
     if (!this.currentState.isAuthenticated || !this.tokenManager.getRefreshToken()) {
       throw this.createAuthError(
         'SESSION_EXPIRED',
-        'No active session to refresh'
+        'No active session to refresh',
       );
     }
 
     try {
       const tokens = await this.tokenManager.refreshTokens();
-      
+
       // Update stored data
       await this.storage.update({
         accessToken: tokens.access_token,
@@ -714,7 +724,7 @@ export class AuthService extends EventEmitter {
         reason: 'token_invalid',
         clearLocalData: true,
       });
-      
+
       throw error;
     }
   }
@@ -793,7 +803,7 @@ export class AuthService extends EventEmitter {
         userId: this.currentState.user?.id || 'unknown',
         expiredAt: new Date(),
         reason: 'timeout',
-      }
+      },
     ));
 
     // Call callback if provided
@@ -815,42 +825,42 @@ export class AuthService extends EventEmitter {
     let authError: AuthError;
 
     if (error instanceof Error && 'statusCode' in error) {
-      const statusCode = (error as any).statusCode;
-      
+      const {statusCode} = (error as any);
+
       switch (statusCode) {
         case 401:
           authError = this.createAuthError(
             'INVALID_CREDENTIALS',
             'Invalid username or password',
-            error
+            error,
           );
           break;
         case 403:
           authError = this.createAuthError(
             'PERMISSION_DENIED',
             'Account is locked or suspended',
-            error
+            error,
           );
           break;
         case 429:
           authError = this.createAuthError(
             'NETWORK_ERROR',
             'Too many login attempts. Please try again later.',
-            error
+            error,
           );
           break;
         default:
           authError = this.createAuthError(
             'NETWORK_ERROR',
             'Login failed due to network error',
-            error
+            error,
           );
       }
     } else {
       authError = this.createAuthError(
         'UNKNOWN_ERROR',
         'Login failed due to unknown error',
-        error
+        error,
       );
     }
 
@@ -862,7 +872,7 @@ export class AuthService extends EventEmitter {
    */
   private updateState(updates: Partial<AuthState>): void {
     this.currentState = { ...this.currentState, ...updates };
-    
+
     // Emit state change event
     this.emit('stateChange', this.currentState);
   }
@@ -925,7 +935,7 @@ export class AuthService extends EventEmitter {
         hasPassword: !!credentials.password,
         hasMFA: !!credentials.mfa_code,
         deviceId: this.deviceId,
-      }
+      },
     );
     this.emit(AuthEventType.LOGIN_START, event);
   }
@@ -938,7 +948,7 @@ export class AuthService extends EventEmitter {
         tokens,
         isFirstLogin: !user.last_login || user.last_login.getTime() === Date.now(),
         loginMethod: 'password',
-      }
+      },
     );
     this.emit(AuthEventType.LOGIN_SUCCESS, event);
   }
@@ -950,7 +960,7 @@ export class AuthService extends EventEmitter {
         error,
         username: credentials.username,
         attemptNumber: 1, // Would track this in real implementation
-      }
+      },
     );
     this.emit(AuthEventType.LOGIN_FAILURE, event);
   }
@@ -963,7 +973,7 @@ export class AuthService extends EventEmitter {
         reason: options.reason || 'user_initiated',
         ...(options.message && { message: options.message }),
         clearAllSessions: options.clearAllSessions || false,
-      }
+      },
     );
     this.emit(AuthEventType.LOGOUT, event);
   }
@@ -976,7 +986,7 @@ export class AuthService extends EventEmitter {
         userId: user.id,
         expiresAt: new Date(this.currentState.expiresAt || Date.now() + this.config.sessionTimeout),
         deviceId: this.deviceId,
-      }
+      },
     );
     this.emit(AuthEventType.SESSION_CREATED, event);
   }
@@ -989,7 +999,7 @@ export class AuthService extends EventEmitter {
         user,
         remainingTime: (this.currentState.expiresAt || 0) - Date.now(),
         source: 'storage',
-      }
+      },
     );
     this.emit(AuthEventType.SESSION_RESTORED, event);
   }
@@ -1007,7 +1017,7 @@ export class AuthService extends EventEmitter {
       }
       return deviceId;
     }
-    
+
     // Generate new ID
     return `device_${Date.now()}_${Math.random().toString(36).substring(2)}`;
   }
@@ -1024,13 +1034,13 @@ export class AuthService extends EventEmitter {
   }
 
   private getDeviceType(): 'web' | 'mobile' | 'desktop' {
-    if (typeof navigator === 'undefined') return 'desktop';
-    
-    if (navigator.product === 'ReactNative') return 'mobile';
-    
+    if (typeof navigator === 'undefined') {return 'desktop';}
+
+    if (navigator.product === 'ReactNative') {return 'mobile';}
+
     const userAgent = navigator.userAgent.toLowerCase();
-    if (/mobile|android|iphone|ipad/.test(userAgent)) return 'mobile';
-    
+    if (/mobile|android|iphone|ipad/.test(userAgent)) {return 'mobile';}
+
     return 'web';
   }
 
@@ -1047,7 +1057,7 @@ export class AuthService extends EventEmitter {
   private createAuthError(
     type: AuthErrorType,
     message: string,
-    cause?: unknown
+    cause?: unknown,
   ): AuthError {
     return {
       name: 'AuthError',
@@ -1063,7 +1073,7 @@ export class AuthService extends EventEmitter {
    * Preload common permissions for the current user
    */
   private async preloadCommonPermissions(user: AuthUser): Promise<void> {
-    if (!this.config.enablePerformanceOptimization) return;
+    if (!this.config.enablePerformanceOptimization) {return;}
 
     // Determine common permissions based on user's primary role
     // const primaryRole = getPrimaryRole(user.roles || []);
@@ -1078,7 +1088,7 @@ export class AuthService extends EventEmitter {
     await this.performanceOptimizer.preloadUserPermissions(
       user,
       commonPermissions,
-      async (permission) => this.checkPermissionDirect(permission)
+      async (permission) => this.checkPermissionDirect(permission),
     );
   }
 
@@ -1095,8 +1105,8 @@ export class AuthService extends EventEmitter {
    * Get performance metrics for monitoring
    */
   getPerformanceMetrics(): AuthPerformanceMetrics | null {
-    if (!this.config.enablePerformanceOptimization) return null;
-    
+    if (!this.config.enablePerformanceOptimization) {return null;}
+
     return this.performanceOptimizer.getMetrics();
   }
 
@@ -1121,7 +1131,7 @@ export class AuthService extends EventEmitter {
     // Destroy components
     this.tokenManager.destroy();
     await this.storage.destroy();
-    
+
     // Destroy performance optimizer
     if (this.performanceOptimizer) {
       this.performanceOptimizer.destroy();

@@ -3,7 +3,9 @@
  * Enterprise-grade storage for React Native environments
  */
 
-import { BaseStorageAdapter, StorageOptions, StorageItem } from '@/storage/base/storage-adapter';
+import type { StorageItem, StorageOptions } from '@/storage/base/storage-adapter';
+
+import { BaseStorageAdapter } from '@/storage/base/storage-adapter';
 
 // Platform detection
 const isReactNative = typeof navigator !== 'undefined' && navigator.product === 'ReactNative';
@@ -26,7 +28,9 @@ const DEFAULT_CONFIG: Required<ReactNativeStorageConfig> = {
 
 export class ReactNativeStorageAdapter extends BaseStorageAdapter {
   private config: Required<ReactNativeStorageConfig>;
+
   private AsyncStorage: any;
+
   private Keychain: any;
 
   constructor(config: Partial<ReactNativeStorageConfig> = {}) {
@@ -35,7 +39,7 @@ export class ReactNativeStorageAdapter extends BaseStorageAdapter {
   }
 
   async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+    if (this.isInitialized) {return;}
 
     if (!isReactNative) {
       throw new Error('ReactNativeStorageAdapter can only be used in React Native environment');
@@ -86,13 +90,13 @@ export class ReactNativeStorageAdapter extends BaseStorageAdapter {
   }
 
   private async setKeychain(key: string, item: StorageItem): Promise<void> {
-    if (!this.Keychain) throw new Error('Keychain not available');
+    if (!this.Keychain) {throw new Error('Keychain not available');}
 
     const serialized = JSON.stringify(item);
     await this.Keychain.setInternetCredentials(
       this.config.keychainService,
       key,
-      serialized
+      serialized,
     );
   }
 
@@ -129,7 +133,7 @@ export class ReactNativeStorageAdapter extends BaseStorageAdapter {
         }
       }
 
-      if (!item) return null;
+      if (!item) {return null;}
 
       if (this.isExpired(item)) {
         await this.remove(key);
@@ -198,13 +202,13 @@ export class ReactNativeStorageAdapter extends BaseStorageAdapter {
 
     try {
       const allKeys = await this.AsyncStorage.getAllKeys();
-      let filteredKeys = allKeys.filter((key: string) => 
-        key.startsWith(this.config.keyPrefix)
+      let filteredKeys = allKeys.filter((key: string) =>
+        key.startsWith(this.config.keyPrefix),
       );
 
       // Remove prefix from keys
-      filteredKeys = filteredKeys.map((key: string) => 
-        key.substring(this.config.keyPrefix.length + 1)
+      filteredKeys = filteredKeys.map((key: string) =>
+        key.substring(this.config.keyPrefix.length + 1),
       );
 
       if (prefix) {
@@ -225,7 +229,7 @@ export class ReactNativeStorageAdapter extends BaseStorageAdapter {
       const results = await this.AsyncStorage.multiGet(prefixedKeys);
 
       return results.map(([key, value]: [string, string | null]) => {
-        if (!value) return null;
+        if (!value) {return null;}
 
         try {
           const item: StorageItem = JSON.parse(value);
@@ -315,7 +319,7 @@ export class ReactNativeStorageAdapter extends BaseStorageAdapter {
         try {
           const storageKey = this.getPrefixedKey(key);
           const serialized = await this.AsyncStorage.getItem(storageKey);
-          
+
           if (serialized) {
             const item: StorageItem = JSON.parse(serialized);
             if (this.isExpired(item)) {
@@ -348,10 +352,10 @@ export class ReactNativeStorageAdapter extends BaseStorageAdapter {
       // Calculate total size (sample approach for performance)
       let totalSize = 0;
       const sampleSize = Math.min(keys.length, 50);
-      
+
       for (let i = 0; i < sampleSize; i++) {
         const key = keys[i];
-        if (!key) continue;
+        if (!key) {continue;}
         const value = await this.get(key);
         if (value) {
           totalSize += this.calculateSize(value);

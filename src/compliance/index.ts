@@ -4,71 +4,69 @@
  */
 
 import {
-  GDPRComplianceManager,
+  type FiscalConfig,
+  type FiscalPeriod,
+  type FiscalReport,
+  type VATBreakdown,
+  FiscalAuditManager,
+  type FiscalDocument,
+  type FiscalLineItem,
+  type FiscalViolation,
+  type FiscalAuditEntry,
+} from './fiscal-audit';
+import {
+  type Role,
+  type User,
+  type Permission,
+  type UserSession,
+  type AccessContext,
+  type AccessRequest,
+  type AccessCondition,
+  AccessControlManager,
+  type AccessAuditEntry,
+  type AccessControlConfig,
+} from './access-control';
+import {
   type GDPRConfig,
   type DataSubject,
   type ConsentRecord,
-  type DataProcessingRecord,
-  type DataExportRequest,
+  type GDPRViolation,
   type ErasureRequest,
   type GDPRAuditReport,
-  type GDPRViolation,
+  GDPRComplianceManager,
+  type DataExportRequest,
+  type DataProcessingRecord,
 } from './gdpr-compliance';
 
-import {
-  FiscalAuditManager,
-  type FiscalConfig,
-  type FiscalDocument,
-  type FiscalLineItem,
-  type VATBreakdown,
-  type FiscalAuditEntry,
-  type FiscalPeriod,
-  type FiscalViolation,
-  type FiscalReport,
-} from './fiscal-audit';
-
-import {
-  AccessControlManager,
-  type AccessControlConfig,
-  type Role,
-  type Permission,
-  type AccessCondition,
-  type User,
-  type UserSession,
-  type AccessRequest,
-  type AccessContext,
-  type AccessAuditEntry,
-} from './access-control';
-
 export {
-  GDPRComplianceManager,
+  type Role,
+  type User,
   type GDPRConfig,
+  type Permission,
   type DataSubject,
+  type UserSession,
+  type FiscalConfig,
+  type VATBreakdown,
+  type FiscalPeriod,
+  type FiscalReport,
   type ConsentRecord,
-  type DataProcessingRecord,
-  type DataExportRequest,
-  type ErasureRequest,
-  type GDPRAuditReport,
   type GDPRViolation,
   FiscalAuditManager,
-  type FiscalConfig,
-  type FiscalDocument,
-  type FiscalLineItem,
-  type VATBreakdown,
-  type FiscalAuditEntry,
-  type FiscalPeriod,
-  type FiscalViolation,
-  type FiscalReport,
-  AccessControlManager,
-  type AccessControlConfig,
-  type Role,
-  type Permission,
-  type AccessCondition,
-  type User,
-  type UserSession,
   type AccessRequest,
   type AccessContext,
+  type ErasureRequest,
+  type FiscalDocument,
+  type FiscalLineItem,
+  type GDPRAuditReport,
+  type FiscalViolation,
+  AccessControlManager,
+  type AccessCondition,
+  GDPRComplianceManager,
+  type FiscalAuditEntry,
   type AccessAuditEntry,
+  type DataExportRequest,
+  type AccessControlConfig,
+  type DataProcessingRecord,
 };
 
 /**
@@ -77,7 +75,9 @@ export {
  */
 export class ComplianceManager {
   private gdpr: GDPRComplianceManager;
+
   private fiscal: FiscalAuditManager;
+
   private access: AccessControlManager;
 
   constructor(config?: {
@@ -128,7 +128,7 @@ export class ComplianceManager {
         dataTypes: ['system_logs'],
         consentGiven: true,
         source: 'legitimate_interest',
-      }
+      },
     );
 
     // Create default admin user
@@ -140,7 +140,7 @@ export class ComplianceManager {
         attributes: { system: true },
         status: 'active',
       },
-      'system'
+      'system',
     );
 
     return {
@@ -161,7 +161,7 @@ export class ComplianceManager {
       customerInfo?: any;
     },
     sessionId: string,
-    context: AccessContext
+    context: AccessContext,
   ): Promise<{
     documentId?: string;
     accessGranted: boolean;
@@ -170,13 +170,13 @@ export class ComplianceManager {
     warnings: string[];
   }> {
     const warnings: string[] = [];
-    
+
     // Check access permissions
     const accessCheck = await this.access.checkAccess(
       sessionId,
       'receipts',
       'create',
-      context
+      context,
     );
 
     if (!accessCheck.granted) {
@@ -194,7 +194,7 @@ export class ComplianceManager {
       const processingLawfulness = this.gdpr.isProcessingLawful(
         receiptData.customerInfo.id || 'anonymous',
         'transaction_processing',
-        ['transaction_data', 'payment_info']
+        ['transaction_data', 'payment_info'],
       );
 
       if (!processingLawfulness.lawful) {
@@ -213,7 +213,7 @@ export class ComplianceManager {
         receiptData.merchantInfo,
         receiptData.items,
         receiptData.paymentMethod,
-        receiptData.customerInfo
+        receiptData.customerInfo,
       );
     } catch (error) {
       fiscalCompliant = false;
@@ -271,11 +271,11 @@ export class ComplianceManager {
     const gdprScore = this.calculateGDPRScore(gdprReport);
     const fiscalScore = this.calculateFiscalScore(fiscalStatus);
     const accessScore = this.calculateAccessScore(accessStats);
-    
+
     const overallScore = Math.round((gdprScore + fiscalScore + accessScore) / 3);
 
     // Identify critical issues
-    const criticalIssues = 
+    const criticalIssues =
       gdprReport.violations.filter(v => v.severity === 'critical').length +
       fiscalStatus.violations.critical +
       accessStats.audit.highRiskEvents;
@@ -306,7 +306,7 @@ export class ComplianceManager {
   async handleDataSubjectRequest(
     type: 'access' | 'portability' | 'erasure' | 'rectification',
     subjectId: string,
-    requestDetails?: any
+    requestDetails?: any,
   ): Promise<{
     requestId: string;
     status: 'pending' | 'processing' | 'completed';
@@ -342,7 +342,7 @@ export class ComplianceManager {
         const erasureId = await this.gdpr.requestDataErasure(
           subjectId,
           requestDetails?.reason || 'data_subject_request',
-          { immediateErasure: false }
+          { immediateErasure: false },
         );
         return {
           requestId: erasureId,
@@ -384,7 +384,7 @@ export class ComplianceManager {
     // GDPR health check
     const gdprReport = this.gdpr.generateComplianceReport(24 * 60 * 60 * 1000); // Last 24h
     const criticalGdprViolations = gdprReport.violations.filter(v => v.severity === 'critical').length;
-    
+
     checks.push({
       component: 'gdpr',
       status: criticalGdprViolations > 0 ? 'fail' : gdprReport.violations.length > 0 ? 'warning' : 'pass',
@@ -401,8 +401,8 @@ export class ComplianceManager {
 
     // Access control health check
     const accessStats = this.access.getAccessControlStats();
-    const highRiskEvents = accessStats.audit.highRiskEvents;
-    
+    const {highRiskEvents} = accessStats.audit;
+
     checks.push({
       component: 'access',
       status: highRiskEvents > 10 ? 'fail' : highRiskEvents > 0 ? 'warning' : 'pass',
@@ -412,7 +412,7 @@ export class ComplianceManager {
     // Overall status
     const failedChecks = checks.filter(c => c.status === 'fail').length;
     const warningChecks = checks.filter(c => c.status === 'warning').length;
-    
+
     let status: 'healthy' | 'warning' | 'critical';
     if (failedChecks > 0) {
       status = 'critical';
@@ -440,30 +440,30 @@ export class ComplianceManager {
   private calculateGDPRScore(report: any): number {
     const totalEvents = report.summary.totalSubjects + report.summary.dataProcessingActivities;
     const violations = report.violations.length;
-    
-    if (totalEvents === 0) return 100;
-    
+
+    if (totalEvents === 0) {return 100;}
+
     const violationRate = violations / totalEvents;
     return Math.max(0, Math.round(100 - (violationRate * 100)));
   }
 
   private calculateFiscalScore(status: any): number {
-    if (status.overall === 'compliant') return 100;
-    if (status.overall === 'warnings') return 75;
-    if (status.violations.critical > 0) return 25;
+    if (status.overall === 'compliant') {return 100;}
+    if (status.overall === 'warnings') {return 75;}
+    if (status.violations.critical > 0) {return 25;}
     return 50;
   }
 
   private calculateAccessScore(stats: any): number {
     const totalAttempts = stats.audit.totalEntries;
-    const failedAttempts = stats.audit.failedAttempts;
-    const highRiskEvents = stats.audit.highRiskEvents;
-    
-    if (totalAttempts === 0) return 100;
-    
+    const {failedAttempts} = stats.audit;
+    const {highRiskEvents} = stats.audit;
+
+    if (totalAttempts === 0) {return 100;}
+
     const failureRate = failedAttempts / totalAttempts;
     const riskRate = highRiskEvents / totalAttempts;
-    
+
     const score = 100 - (failureRate * 50) - (riskRate * 50);
     return Math.max(0, Math.round(score));
   }
@@ -483,7 +483,7 @@ export const ComplianceUtils = {
       'legal_obligation',
       'vital_interests',
       'public_task',
-      'legitimate_interests'
+      'legitimate_interests',
     ];
     return validBases.includes(basis);
   },
@@ -540,22 +540,22 @@ export const ComplianceUtils = {
    */
   summarizeCompliance(report: any): string {
     const { gdpr, fiscal, access, overall } = report;
-    
+
     let summary = `Compliance Report Summary:\n`;
     summary += `Overall Score: ${overall.complianceScore}%\n`;
     summary += `Critical Issues: ${overall.criticalIssues}\n\n`;
-    
+
     summary += `GDPR: ${gdpr.violations.length} violations\n`;
     summary += `Fiscal: ${fiscal.overall} status\n`;
     summary += `Access: ${access.audit.failedAttempts} failed attempts\n\n`;
-    
+
     if (overall.recommendations.length > 0) {
       summary += `Recommendations:\n`;
       overall.recommendations.forEach((rec: string, i: number) => {
         summary += `${i + 1}. ${rec}\n`;
       });
     }
-    
+
     return summary;
   },
 };

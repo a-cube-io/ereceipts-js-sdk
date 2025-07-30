@@ -48,6 +48,7 @@ export const DEFAULT_CIRCUIT_BREAKER_CONFIG: CircuitBreakerConfig = {
 
 export class CircuitBreaker {
   private state: CircuitBreakerState = 'CLOSED';
+
   private metrics: CircuitBreakerMetrics = {
     totalRequests: 0,
     successfulRequests: 0,
@@ -58,7 +59,9 @@ export class CircuitBreaker {
     lastSuccessTime: null,
     stateChanges: [],
   };
+
   private nextAttemptTime = 0;
+
   private healthCheckTimer: NodeJS.Timeout | null = null;
 
   constructor(private config: CircuitBreakerConfig) {
@@ -69,13 +72,13 @@ export class CircuitBreaker {
 
   async execute<T>(
     operation: () => Promise<T>,
-    operationName = 'unknown'
+    operationName = 'unknown',
   ): Promise<T> {
     if (this.shouldRejectRequest()) {
       throw new CircuitBreakerError(
         `Circuit breaker is ${this.state} for operation: ${operationName}`,
         operationName,
-        this.state as 'OPEN' | 'HALF_OPEN'
+        this.state as 'OPEN' | 'HALF_OPEN',
       );
     }
 
@@ -92,7 +95,7 @@ export class CircuitBreaker {
   }
 
   private async executeWithTimeout<T>(
-    operation: () => Promise<T>
+    operation: () => Promise<T>,
   ): Promise<T> {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
@@ -226,12 +229,12 @@ export class CircuitBreaker {
     uptime: number;
   } {
     const now = Date.now();
-    const uptime = this.metrics.lastSuccessTime 
-      ? now - this.metrics.lastSuccessTime 
+    const uptime = this.metrics.lastSuccessTime
+      ? now - this.metrics.lastSuccessTime
       : 0;
-    
-    const failureRate = this.metrics.totalRequests > 0 
-      ? this.metrics.failedRequests / this.metrics.totalRequests 
+
+    const failureRate = this.metrics.totalRequests > 0
+      ? this.metrics.failedRequests / this.metrics.totalRequests
       : 0;
 
     return {

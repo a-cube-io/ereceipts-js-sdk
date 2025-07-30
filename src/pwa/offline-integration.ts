@@ -1,7 +1,7 @@
 /**
  * Offline Integration for PWA
  * Bridges the PWA Background Sync with the existing offline queue system
- * 
+ *
  * Features:
  * - Automatic queue migration
  * - Unified offline handling
@@ -9,10 +9,12 @@
  * - Italian tax compliance preservation
  */
 
-import { BackgroundSyncManager, type SyncOperation, type BackgroundSyncConfig } from './background-sync';
-import type { EnterpriseQueueManager } from '@/storage/queue/queue-manager';
 import type { HttpClient } from '@/http/client';
+import type { EnterpriseQueueManager } from '@/storage/queue/queue-manager';
+
 import { EventEmitter } from 'eventemitter3';
+
+import { type SyncOperation, BackgroundSyncManager, type BackgroundSyncConfig } from './background-sync';
 
 /**
  * Receipt sync priority determination
@@ -22,20 +24,20 @@ export function getReceiptSyncPriority(receipt: any): 'critical' | 'high' | 'nor
   if (receipt.fiscal_required || receipt.lottery_enabled) {
     return 'critical';
   }
-  
+
   // High: Recent receipts or high-value transactions
   const isRecent = new Date(receipt.created_at).getTime() > Date.now() - 24 * 60 * 60 * 1000;
   const isHighValue = parseFloat(receipt.amount) > 1000;
-  
+
   if (isRecent || isHighValue) {
     return 'high';
   }
-  
+
   // Normal: Standard receipts
   if (receipt.status === 'pending' || receipt.status === 'draft') {
     return 'normal';
   }
-  
+
   // Low: Updates to existing receipts
   return 'low';
 }
@@ -46,24 +48,24 @@ export function getReceiptSyncPriority(receipt: any): 'critical' | 'high' | 'nor
 export interface OfflineIntegrationConfig {
   /** Enable automatic queue migration */
   enableMigration?: boolean;
-  
+
   /** Receipt-specific sync settings */
   receiptSync?: {
     /** Batch size for receipt sync */
     batchSize?: number;
-    
+
     /** Priority receipts with lottery */
     prioritizeLottery?: boolean;
-    
+
     /** Fiscal compliance timeout */
     fiscalTimeout?: number;
   };
-  
+
   /** Conflict resolution for receipts */
   conflictResolution?: {
     /** Preserve fiscal data */
     preserveFiscalData?: boolean;
-    
+
     /** Auto-resolve duplicates */
     autoResolveDuplicates?: boolean;
   };
@@ -100,18 +102,21 @@ const DEFAULT_CONFIG: Required<OfflineIntegrationConfig> = {
  */
 export class PWAOfflineIntegration extends EventEmitter<OfflineIntegrationEvents> {
   private syncManager: BackgroundSyncManager;
+
   private queueManager?: EnterpriseQueueManager;
+
   private config: Required<OfflineIntegrationConfig>;
+
   private migrationInProgress = false;
 
   constructor(
     httpClient: HttpClient,
     config: OfflineIntegrationConfig = {},
-    backgroundSyncConfig?: BackgroundSyncConfig
+    backgroundSyncConfig?: BackgroundSyncConfig,
   ) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
-    
+
     // Initialize background sync with receipt-optimized settings
     const syncConfig: BackgroundSyncConfig = {
       ...backgroundSyncConfig,
@@ -123,7 +128,7 @@ export class PWAOfflineIntegration extends EventEmitter<OfflineIntegrationEvents
       syncConfig.batchSize = this.config.receiptSync.batchSize;
     }
     this.syncManager = new BackgroundSyncManager(httpClient, syncConfig);
-    
+
     this.setupEventForwarding();
   }
 
@@ -132,7 +137,7 @@ export class PWAOfflineIntegration extends EventEmitter<OfflineIntegrationEvents
    */
   setQueueManager(queueManager: EnterpriseQueueManager): void {
     this.queueManager = queueManager;
-    
+
     if (this.config.enableMigration && !this.migrationInProgress) {
       this.migrateExistingQueue();
     }
@@ -145,18 +150,18 @@ export class PWAOfflineIntegration extends EventEmitter<OfflineIntegrationEvents
     // Forward relevant sync events
     this.syncManager.on('operation:completed', ({ operation, response }) => {
       if (operation.endpoint.includes('/receipts')) {
-        this.emit('receipt:synced', { 
-          receipt: operation.data, 
-          response 
+        this.emit('receipt:synced', {
+          receipt: operation.data,
+          response,
         });
       }
     });
-    
+
     this.syncManager.on('operation:queued', ({ operation }) => {
       if (operation.endpoint.includes('/receipts')) {
-        this.emit('receipt:queued', { 
-          receipt: operation.data, 
-          priority: operation.priority 
+        this.emit('receipt:queued', {
+          receipt: operation.data,
+          priority: operation.priority,
         });
       }
     });
@@ -169,45 +174,45 @@ export class PWAOfflineIntegration extends EventEmitter<OfflineIntegrationEvents
     if (!this.queueManager || this.migrationInProgress) {
       return;
     }
-    
+
     this.migrationInProgress = true;
-    
+
     try {
       const existingItems = await this.queueManager.getQueueItems();
-      
+
       if (existingItems.length === 0) {
         this.migrationInProgress = false;
         return;
       }
-      
+
       this.emit('migration:started', { totalOperations: existingItems.length });
-      
+
       let migratedCount = 0;
-      
+
       for (const item of existingItems) {
         try {
           // Convert queue item to sync operation
           const syncOp = await this.convertQueueItemToSyncOp(item);
-          
+
           if (syncOp) {
             await this.syncManager.queueOperation(syncOp);
-            
+
             // Remove from old queue
-            await this.queueManager!.dequeue(item.id);
-            
+            await this.queueManager.dequeue(item.id);
+
             migratedCount++;
-            this.emit('migration:progress', { 
-              completed: migratedCount, 
-              total: existingItems.length 
+            this.emit('migration:progress', {
+              completed: migratedCount,
+              total: existingItems.length,
             });
           }
         } catch (error) {
           console.error('Failed to migrate queue item:', item.id, error);
         }
       }
-      
+
       this.emit('migration:completed', { migratedCount });
-      
+
     } catch (error) {
       console.error('Queue migration failed:', error);
     } finally {
@@ -221,18 +226,18 @@ export class PWAOfflineIntegration extends EventEmitter<OfflineIntegrationEvents
   private async convertQueueItemToSyncOp(item: any): Promise<Omit<SyncOperation, 'id' | 'metadata' | 'status'> | null> {
     // Extract request details from queue item
     const { request } = item;
-    
+
     if (!request) {
       return null;
     }
-    
+
     // Determine priority based on content
     let priority: 'critical' | 'high' | 'normal' | 'low' = 'normal';
-    
+
     if (request.url?.includes('/receipts') && request.data) {
       priority = getReceiptSyncPriority(request.data);
     }
-    
+
     return {
       type: this.getOperationType(request.method),
       priority,
@@ -265,24 +270,24 @@ export class PWAOfflineIntegration extends EventEmitter<OfflineIntegrationEvents
    */
   async queueReceipt(receipt: any, endpoint: string): Promise<void> {
     const priority = getReceiptSyncPriority(receipt);
-    
+
     // Check fiscal timeout
     if (receipt.fiscal_required) {
       const createdAt = new Date(receipt.created_at).getTime();
       const timeElapsed = Date.now() - createdAt;
-      
+
       if (
         this.config.receiptSync &&
         typeof this.config.receiptSync.fiscalTimeout === 'number' &&
         timeElapsed > this.config.receiptSync.fiscalTimeout
       ) {
-        this.emit('fiscal:timeout', { 
-          receipt, 
-          timeout: this.config.receiptSync.fiscalTimeout 
+        this.emit('fiscal:timeout', {
+          receipt,
+          timeout: this.config.receiptSync.fiscalTimeout,
         });
       }
     }
-    
+
     await this.syncManager.queueOperation({
       type: 'create',
       priority,
@@ -308,7 +313,7 @@ export class PWAOfflineIntegration extends EventEmitter<OfflineIntegrationEvents
       const bPriority = priorityMap[getReceiptSyncPriority(b)];
       return aPriority - bPriority;
     });
-    
+
     // Create batch operations
     const operations = sortedReceipts.map(receipt => ({
       type: 'create' as const,
@@ -317,7 +322,7 @@ export class PWAOfflineIntegration extends EventEmitter<OfflineIntegrationEvents
       method: 'POST' as const,
       data: receipt,
     }));
-    
+
     await this.syncManager.queueBatch(operations, 'high');
   }
 
@@ -333,7 +338,7 @@ export class PWAOfflineIntegration extends EventEmitter<OfflineIntegrationEvents
    */
   getPendingReceipts(): any[] {
     const allOperations = this.syncManager.getAllOperations();
-    
+
     return allOperations
       .filter(op => op.endpoint.includes('/receipts') && op.status === 'pending')
       .map(op => op.data);
@@ -365,10 +370,10 @@ export class PWAOfflineIntegration extends EventEmitter<OfflineIntegrationEvents
    */
   isReceiptPending(receiptId: string): boolean {
     const operations = this.syncManager.getAllOperations();
-    
-    return operations.some(op => 
+
+    return operations.some(op =>
       op.status === 'pending' &&
-      op.data?.id === receiptId
+      op.data?.id === receiptId,
     );
   }
 
@@ -378,11 +383,11 @@ export class PWAOfflineIntegration extends EventEmitter<OfflineIntegrationEvents
   cancelReceiptSync(receiptId: string): boolean {
     const operations = this.syncManager.getAllOperations();
     const receiptOp = operations.find(op => op.data?.id === receiptId);
-    
+
     if (receiptOp) {
       return this.syncManager.cancelOperation(receiptOp.id);
     }
-    
+
     return false;
   }
 
@@ -400,7 +405,7 @@ export class PWAOfflineIntegration extends EventEmitter<OfflineIntegrationEvents
  */
 export function createOfflineIntegration(
   httpClient: HttpClient,
-  config?: OfflineIntegrationConfig
+  config?: OfflineIntegrationConfig,
 ): PWAOfflineIntegration {
   return new PWAOfflineIntegration(httpClient, config);
 }

@@ -3,25 +3,26 @@
  * Runtime validation for all branded types used in the SDK
  */
 
-import type { Validator, ValidationResult, ValidationIssue } from './index';
-import { 
-  isReceiptId, 
-  isCashierId, 
-  isMerchantId, 
-  isFiscalId, 
-  isSerialNumber, 
-  isPEMId, 
-  isAmount, 
-  isQuantity,
-  type ReceiptId,
-  type CashierId,
-  type MerchantId,
-  type FiscalId,
-  type SerialNumber,
+import {
+  isPEMId,
+  isAmount,
   type PEMId,
+  isFiscalId,
+  isQuantity,
   type Amount,
-  type Quantity
+  isCashierId,
+  isReceiptId,
+  isMerchantId,
+  type FiscalId,
+  type Quantity,
+  type CashierId,
+  type ReceiptId,
+  isSerialNumber,
+  type MerchantId,
+  type SerialNumber,
 } from '../types/branded';
+
+import type { Validator, ValidationIssue, ValidationResult } from './index';
 
 /**
  * Base branded type validator
@@ -29,7 +30,7 @@ import {
 abstract class BrandedValidator<T> implements Validator<T> {
   constructor(
     protected typeName: string,
-    protected typeGuard: (value: unknown) => boolean
+    protected typeGuard: (value: unknown) => boolean,
   ) {}
 
   validate(value: unknown): ValidationResult {
@@ -41,20 +42,20 @@ abstract class BrandedValidator<T> implements Validator<T> {
         message: `Invalid ${this.typeName} format`,
         code: `INVALID_${this.typeName.toUpperCase()}_FORMAT`,
         severity: 'error',
-        value
+        value,
       });
     }
 
     return {
       isValid: issues.length === 0,
       errors: issues,
-      warnings: []
+      warnings: [],
     };
   }
 
   validateOrThrow(value: unknown): T {
     const result = this.validate(value);
-    
+
     if (!result.isValid) {
       const error = result.errors[0];
       if (error) {
@@ -77,10 +78,10 @@ export class ReceiptIdValidator extends BrandedValidator<ReceiptId> {
 
   override validate(value: unknown): ValidationResult {
     const baseResult = super.validate(value);
-    
+
     if (baseResult.isValid && typeof value === 'string') {
       const issues: ValidationIssue[] = [];
-      
+
       // Additional validation rules for receipt IDs
       if (value.length < 10) {
         issues.push({
@@ -88,10 +89,10 @@ export class ReceiptIdValidator extends BrandedValidator<ReceiptId> {
           message: 'Receipt ID too short (minimum 10 characters)',
           code: 'RECEIPT_ID_TOO_SHORT',
           severity: 'warning',
-          value
+          value,
         });
       }
-      
+
       // Check for common receipt ID patterns
       if (!value.startsWith('receipt_') && !value.startsWith('rcpt_')) {
         issues.push({
@@ -99,14 +100,14 @@ export class ReceiptIdValidator extends BrandedValidator<ReceiptId> {
           message: 'Receipt ID should start with "receipt_" or "rcpt_" prefix',
           code: 'RECEIPT_ID_MISSING_PREFIX',
           severity: 'warning',
-          value
+          value,
         });
       }
 
       return {
         isValid: baseResult.isValid,
         errors: baseResult.errors,
-        warnings: issues
+        warnings: issues,
       };
     }
 
@@ -124,10 +125,10 @@ export class CashierIdValidator extends BrandedValidator<CashierId> {
 
   override validate(value: unknown): ValidationResult {
     const baseResult = super.validate(value);
-    
+
     if (baseResult.isValid && typeof value === 'number') {
       const issues: ValidationIssue[] = [];
-      
+
       // Additional validation rules for cashier IDs
       if (value > 999999) {
         issues.push({
@@ -135,14 +136,14 @@ export class CashierIdValidator extends BrandedValidator<CashierId> {
           message: 'Cashier ID unusually large (over 999999)',
           code: 'CASHIER_ID_VERY_LARGE',
           severity: 'warning',
-          value
+          value,
         });
       }
 
       return {
         isValid: baseResult.isValid,
         errors: baseResult.errors,
-        warnings: issues
+        warnings: issues,
       };
     }
 
@@ -160,10 +161,10 @@ export class MerchantIdValidator extends BrandedValidator<MerchantId> {
 
   override validate(value: unknown): ValidationResult {
     const baseResult = super.validate(value);
-    
+
     if (baseResult.isValid && typeof value === 'string') {
       const issues: ValidationIssue[] = [];
-      
+
       // Additional validation rules for merchant IDs
       if (!value.startsWith('merchant_') && !value.startsWith('merch_')) {
         issues.push({
@@ -171,14 +172,14 @@ export class MerchantIdValidator extends BrandedValidator<MerchantId> {
           message: 'Merchant ID should start with "merchant_" or "merch_" prefix',
           code: 'MERCHANT_ID_MISSING_PREFIX',
           severity: 'warning',
-          value
+          value,
         });
       }
 
       return {
         isValid: baseResult.isValid,
         errors: baseResult.errors,
-        warnings: issues
+        warnings: issues,
       };
     }
 
@@ -196,10 +197,10 @@ export class FiscalIdValidator extends BrandedValidator<FiscalId> {
 
   override validate(value: unknown): ValidationResult {
     const baseResult = super.validate(value);
-    
+
     if (baseResult.isValid && typeof value === 'string') {
       const issues: ValidationIssue[] = [];
-      
+
       // Luhn algorithm check for Italian VAT numbers
       if (!this.luhnCheck(value)) {
         issues.push({
@@ -207,7 +208,7 @@ export class FiscalIdValidator extends BrandedValidator<FiscalId> {
           message: 'Invalid Italian VAT number checksum',
           code: 'INVALID_VAT_CHECKSUM',
           severity: 'error',
-          value
+          value,
         });
       }
 
@@ -218,7 +219,7 @@ export class FiscalIdValidator extends BrandedValidator<FiscalId> {
           message: 'Fiscal ID cannot be all zeros',
           code: 'FISCAL_ID_ALL_ZEROS',
           severity: 'error',
-          value
+          value,
         });
       }
 
@@ -228,14 +229,14 @@ export class FiscalIdValidator extends BrandedValidator<FiscalId> {
           message: 'Fiscal ID cannot be all the same digit',
           code: 'FISCAL_ID_REPEATED_DIGIT',
           severity: 'error',
-          value
+          value,
         });
       }
 
       return {
         isValid: baseResult.isValid && issues.filter(i => i.severity === 'error').length === 0,
         errors: [...baseResult.errors, ...issues.filter(i => i.severity === 'error')],
-        warnings: issues.filter(i => i.severity === 'warning')
+        warnings: issues.filter(i => i.severity === 'warning'),
       };
     }
 
@@ -245,11 +246,11 @@ export class FiscalIdValidator extends BrandedValidator<FiscalId> {
   private luhnCheck(vatNumber: string): boolean {
     const digits = vatNumber.split('').map(Number);
     let sum = 0;
-    
+
     for (let i = 0; i < 10; i++) {
       const digit = digits[i];
-      if (digit === undefined || isNaN(digit)) continue;
-      
+      if (digit === undefined || isNaN(digit)) {continue;}
+
       let processedDigit = digit;
       if (i % 2 === 1) {
         processedDigit *= 2;
@@ -259,7 +260,7 @@ export class FiscalIdValidator extends BrandedValidator<FiscalId> {
       }
       sum += processedDigit;
     }
-    
+
     const checkDigit = (10 - (sum % 10)) % 10;
     const lastDigit = digits[10];
     return lastDigit !== undefined && !isNaN(lastDigit) && checkDigit === lastDigit;
@@ -276,21 +277,21 @@ export class SerialNumberValidator extends BrandedValidator<SerialNumber> {
 
   override validate(value: unknown): ValidationResult {
     const baseResult = super.validate(value);
-    
+
     if (baseResult.isValid && typeof value === 'string') {
       const issues: ValidationIssue[] = [];
-      
+
       // Check for common device prefixes
       const validPrefixes = ['SN', 'DEVICE', 'POS', 'REG', 'TERM'];
       const hasValidPrefix = validPrefixes.some(prefix => value.startsWith(prefix));
-      
+
       if (!hasValidPrefix) {
         issues.push({
           field: 'serial_number',
           message: `Serial number should start with one of: ${validPrefixes.join(', ')}`,
           code: 'SERIAL_NUMBER_UNUSUAL_PREFIX',
           severity: 'warning',
-          value
+          value,
         });
       }
 
@@ -301,14 +302,14 @@ export class SerialNumberValidator extends BrandedValidator<SerialNumber> {
           message: 'Serial number cannot be all the same character',
           code: 'SERIAL_NUMBER_NO_ENTROPY',
           severity: 'error',
-          value
+          value,
         });
       }
 
       return {
         isValid: baseResult.isValid && issues.filter(i => i.severity === 'error').length === 0,
         errors: [...baseResult.errors, ...issues.filter(i => i.severity === 'error')],
-        warnings: issues.filter(i => i.severity === 'warning')
+        warnings: issues.filter(i => i.severity === 'warning'),
       };
     }
 
@@ -326,10 +327,10 @@ export class PEMIdValidator extends BrandedValidator<PEMId> {
 
   override validate(value: unknown): ValidationResult {
     const baseResult = super.validate(value);
-    
+
     if (baseResult.isValid && typeof value === 'string') {
       const issues: ValidationIssue[] = [];
-      
+
       // Check for Italian PEM ID format (E001-000001)
       if (/^E\d{3}-\d{6}$/.test(value)) {
         // Valid Italian PEM format
@@ -339,14 +340,14 @@ export class PEMIdValidator extends BrandedValidator<PEMId> {
           message: 'PEM ID should follow Italian format (E001-000001) or start with "PEM"/"DEVICE"',
           code: 'PEM_ID_UNUSUAL_FORMAT',
           severity: 'warning',
-          value
+          value,
         });
       }
 
       return {
         isValid: baseResult.isValid,
         errors: baseResult.errors,
-        warnings: issues
+        warnings: issues,
       };
     }
 
@@ -364,12 +365,12 @@ export class AmountValidator extends BrandedValidator<Amount> {
 
   override validate(value: unknown): ValidationResult {
     const baseResult = super.validate(value);
-    
+
     if (baseResult.isValid && typeof value === 'string') {
       const issues: ValidationIssue[] = [];
-      
+
       const numericValue = parseFloat(value);
-      
+
       // Check for reasonable ranges
       if (numericValue > 999999.99) {
         issues.push({
@@ -377,17 +378,17 @@ export class AmountValidator extends BrandedValidator<Amount> {
           message: 'Amount unusually large (over €999,999.99)',
           code: 'AMOUNT_VERY_LARGE',
           severity: 'warning',
-          value
+          value,
         });
       }
-      
+
       if (numericValue < 0) {
         issues.push({
           field: 'amount',
           message: 'Amount cannot be negative',
           code: 'AMOUNT_NEGATIVE',
           severity: 'error',
-          value
+          value,
         });
       }
 
@@ -399,14 +400,14 @@ export class AmountValidator extends BrandedValidator<Amount> {
           message: 'Amount has too many decimal places (maximum 8)',
           code: 'AMOUNT_TOO_PRECISE',
           severity: 'error',
-          value
+          value,
         });
       }
 
       return {
         isValid: baseResult.isValid && issues.filter(i => i.severity === 'error').length === 0,
         errors: [...baseResult.errors, ...issues.filter(i => i.severity === 'error')],
-        warnings: issues.filter(i => i.severity === 'warning')
+        warnings: issues.filter(i => i.severity === 'warning'),
       };
     }
 
@@ -424,12 +425,12 @@ export class QuantityValidator extends BrandedValidator<Quantity> {
 
   override validate(value: unknown): ValidationResult {
     const baseResult = super.validate(value);
-    
+
     if (baseResult.isValid && typeof value === 'string') {
       const issues: ValidationIssue[] = [];
-      
+
       const numericValue = parseFloat(value);
-      
+
       // Check for reasonable ranges
       if (numericValue > 9999.999) {
         issues.push({
@@ -437,17 +438,17 @@ export class QuantityValidator extends BrandedValidator<Quantity> {
           message: 'Quantity unusually large (over 9999.999)',
           code: 'QUANTITY_VERY_LARGE',
           severity: 'warning',
-          value
+          value,
         });
       }
-      
+
       if (numericValue <= 0) {
         issues.push({
           field: 'quantity',
           message: 'Quantity must be positive',
           code: 'QUANTITY_NOT_POSITIVE',
           severity: 'error',
-          value
+          value,
         });
       }
 
@@ -459,14 +460,14 @@ export class QuantityValidator extends BrandedValidator<Quantity> {
           message: 'Quantity has too many decimal places (maximum 6 recommended)',
           code: 'QUANTITY_TOO_PRECISE',
           severity: 'warning',
-          value
+          value,
         });
       }
 
       return {
         isValid: baseResult.isValid && issues.filter(i => i.severity === 'error').length === 0,
         errors: [...baseResult.errors, ...issues.filter(i => i.severity === 'error')],
-        warnings: issues.filter(i => i.severity === 'warning')
+        warnings: issues.filter(i => i.severity === 'warning'),
       };
     }
 
@@ -485,7 +486,7 @@ export const BrandedValidators = {
   SerialNumber: new SerialNumberValidator(),
   PEMId: new PEMIdValidator(),
   Amount: new AmountValidator(),
-  Quantity: new QuantityValidator()
+  Quantity: new QuantityValidator(),
 } as const;
 
 export type BrandedValidatorName = keyof typeof BrandedValidators;

@@ -3,13 +3,13 @@
  * Discriminated unions ensure type safety for event payloads
  */
 
-import type { 
-  ReceiptId, 
-  CashierId, 
-  PEMId, 
-  MerchantId, 
+import type {
+  PEMId,
+  CashierId,
+  ReceiptId,
+  MerchantId,
+  SerialNumber,
   DocumentNumber,
-  SerialNumber 
 } from './branded.js';
 
 // Core event base
@@ -154,7 +154,7 @@ export interface AuthenticationEvent extends BaseEvent {
 }
 
 // Union type of all events
-export type ACubeSDKEvent = 
+export type ACubeSDKEvent =
   | ReceiptCreatedEvent
   | ReceiptVoidedEvent
   | ReceiptReturnedEvent

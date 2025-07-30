@@ -3,35 +3,42 @@
  * Provides unified interface for all synchronization features with enterprise-grade performance
  */
 
-import { EventEmitter } from 'eventemitter3';
-import { EnhancedSyncManager, createEnhancedSyncManager, type EnhancedSyncManagerConfig } from './enhanced-sync-manager';
-import { SyncAnalyticsMonitor, createSyncAnalyticsMonitor, type AnalyticsConfig } from './sync-analytics-monitor';
-import { DependencyManager, createDependencyManager, type DependencyManagerConfig } from './dependency-manager';
-import { PerformanceOptimizer, createPerformanceOptimizer, type OptimizationConfig } from './performance-optimizer';
 import type { ResourceType } from '@/storage/queue/types';
-import type { SyncOptions, SyncResult, SyncEventTypeMap } from './types';
+
+import { EventEmitter } from 'eventemitter3';
+
+import type { DependencyManager } from './dependency-manager';
+import { createDependencyManager, type DependencyManagerConfig   } from './dependency-manager';
+import type { SyncAnalyticsMonitor } from './sync-analytics-monitor';
+import { type AnalyticsConfig, createSyncAnalyticsMonitor   } from './sync-analytics-monitor';
+import type { PerformanceOptimizer } from './performance-optimizer';
+import { type OptimizationConfig, createPerformanceOptimizer   } from './performance-optimizer';
+import type { EnhancedSyncManager } from './enhanced-sync-manager';
+import { createEnhancedSyncManager, type EnhancedSyncManagerConfig   } from './enhanced-sync-manager';
+
+import type { SyncResult, SyncOptions, SyncEventTypeMap } from './types';
 
 export interface SyncSystemConfig {
   // Core configuration
   enabled: boolean;
   environment: 'development' | 'staging' | 'production';
-  
+
   // Component configurations
   syncManager: Partial<EnhancedSyncManagerConfig>;
   analytics: Partial<AnalyticsConfig>;
   dependencies: Partial<DependencyManagerConfig>;
   performance: Partial<OptimizationConfig>;
-  
+
   // System-wide settings
   autoOptimization: boolean;
   enterpriseFeatures: boolean;
   diagnosticsEnabled: boolean;
-  
+
   // Performance thresholds
   maxConcurrentOperations: number;
   operationTimeout: number;
   systemLoadThreshold: number;
-  
+
   // Integration settings
   crossComponentEvents: boolean;
   unifiedLogging: boolean;
@@ -79,12 +86,16 @@ export interface SyncSystemEvents extends SyncEventTypeMap {
  */
 export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
   private config: SyncSystemConfig;
+
   private isInitialized = false;
 
   // Core components
   private syncManager: EnhancedSyncManager;
+
   private analyticsMonitor: SyncAnalyticsMonitor;
+
   private dependencyManager: DependencyManager;
+
   private performanceOptimizer: PerformanceOptimizer;
 
   // System state
@@ -114,13 +125,16 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
 
   // System monitoring
   private healthCheckInterval?: NodeJS.Timeout;
+
   private optimizationInterval?: NodeJS.Timeout;
+
   private diagnosticsInterval?: NodeJS.Timeout;
+
   private startTime = Date.now();
 
   constructor(config: Partial<SyncSystemConfig> = {}) {
     super();
-    
+
     this.config = {
       enabled: true,
       environment: 'development',
@@ -243,7 +257,7 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
     try {
       // Pre-sync optimization and validation
       await this.preSyncOptimization(options);
-      
+
       // Validate dependencies
       if (options.resources) {
         await this.validateSyncDependencies(options.resources);
@@ -254,10 +268,10 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
 
       // Post-sync analytics and optimization
       await this.postSyncAnalytics(result);
-      
+
       // Update system metrics
       this.updateSystemMetrics(result, Date.now() - startTime);
-      
+
       return result;
 
     } catch (error) {
@@ -280,14 +294,14 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
           networkRequests: 0,
           cacheHits: 0,
         },
-        errors: [{ 
+        errors: [{
           id: `error_${operationId}`,
           phase: 'execute',
           operation: options.operation || 'full',
           error: error as Error,
           retryable: true,
           timestamp: new Date(),
-          context: { operationId }
+          context: { operationId },
         }],
         conflicts: [],
         metadata: {},
@@ -390,7 +404,7 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
    * Create sync plan with dependency awareness
    */
   async createSyncPlan(
-    resources: Array<{ type: ResourceType; id: string; operation: 'create' | 'update' | 'delete' }>
+    resources: Array<{ type: ResourceType; id: string; operation: 'create' | 'update' | 'delete' }>,
   ): Promise<any> {
     if (!this.isInitialized) {
       throw new Error('Sync system not initialized');
@@ -398,10 +412,10 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
 
     // Create dependency-aware sync plan
     const syncPlan = await this.dependencyManager.createSyncPlan(resources);
-    
+
     // Optimize plan for performance
     const optimizedPlan = await this.optimizeSyncPlan(syncPlan);
-    
+
     return optimizedPlan;
   }
 
@@ -459,7 +473,7 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
   private async preSyncOptimization(options: SyncOptions): Promise<void> {
     // Check system load
     const health = await this.performHealthCheck();
-    
+
     if (health.performance.memoryUsage > this.config.systemLoadThreshold) {
       await this.performanceOptimizer.optimizeMemory();
     }
@@ -479,9 +493,9 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
         const violations = await this.dependencyManager.validateDependencies(
           resourceType as ResourceType,
           resourceId,
-          'update'
+          'update',
         );
-        
+
         if (violations.length > 0) {
           throw new Error(`Dependency violations detected for ${resource}: ${violations.map(v => v.violationType).join(', ')}`);
         }
@@ -492,7 +506,7 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
   private async postSyncAnalytics(result: SyncResult): Promise<void> {
     // Record analytics
     this.analyticsMonitor.recordSyncEvent(result);
-    
+
     // Update dependency manager with sync results
     if (result.statistics) {
       // Track successful operations for dependency planning
@@ -502,22 +516,22 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
 
   private updateSystemMetrics(result: SyncResult, duration: number): void {
     this.systemHealth.diagnostics.totalOperations++;
-    this.systemHealth.performance.latency = 
+    this.systemHealth.performance.latency =
       (this.systemHealth.performance.latency * 0.9) + (duration * 0.1);
-    
+
     if (result.status === 'success') {
-      this.systemHealth.performance.throughput = 
-        (this.systemHealth.performance.throughput * 0.9) + 
+      this.systemHealth.performance.throughput =
+        (this.systemHealth.performance.throughput * 0.9) +
         ((result.statistics?.completedOperations || 1) / (duration / 1000) * 0.1);
     } else {
-      this.systemHealth.performance.errorRate = 
+      this.systemHealth.performance.errorRate =
         (this.systemHealth.performance.errorRate * 0.9) + (0.1);
     }
   }
 
   private async performHealthCheck(): Promise<SystemHealth> {
     const now = Date.now();
-    
+
     // Check component health
     try {
       const syncStatus = this.syncManager.getStatus();
@@ -528,7 +542,7 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
 
     try {
       const analyticsData = this.analyticsMonitor.getAnalytics();
-      this.systemHealth.components.analytics = 
+      this.systemHealth.components.analytics =
         analyticsData.totalSyncs >= 0 ? 'healthy' : 'degraded';
     } catch {
       this.systemHealth.components.analytics = 'critical';
@@ -536,7 +550,7 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
 
     try {
       const depStats = this.dependencyManager.getStats();
-      this.systemHealth.components.dependencies = 
+      this.systemHealth.components.dependencies =
         depStats.totalRules >= 0 ? 'healthy' : 'degraded';
     } catch {
       this.systemHealth.components.dependencies = 'critical';
@@ -544,7 +558,7 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
 
     try {
       const perfMetrics = this.performanceOptimizer.getMetrics();
-      this.systemHealth.components.performance = 
+      this.systemHealth.components.performance =
         perfMetrics.memoryUsage.pressure !== 'critical' ? 'healthy' : 'degraded';
     } catch {
       this.systemHealth.components.performance = 'critical';
@@ -639,10 +653,10 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
     this.optimizationInterval = setInterval(async () => {
       try {
         const health = await this.performHealthCheck();
-        
+
         if (health.overall === 'degraded') {
           const result = await this.optimizeSystem();
-          
+
           if (result.optimizations.length > 0) {
             const totalImprovement = result.optimizations.reduce((sum, opt) => sum + opt.improvement, 0);
             this.emit('system:optimization', {
@@ -685,7 +699,7 @@ export class UnifiedSyncSystem extends EventEmitter<SyncSystemEvents> {
  * Create unified sync system with default configuration
  */
 export function createUnifiedSyncSystem(
-  config: Partial<SyncSystemConfig> = {}
+  config: Partial<SyncSystemConfig> = {},
 ): UnifiedSyncSystem {
   return new UnifiedSyncSystem(config);
 }
@@ -694,7 +708,7 @@ export function createUnifiedSyncSystem(
  * Factory function for easy setup
  */
 export function setupEnterpriseSync(
-  environment: 'development' | 'staging' | 'production' = 'development'
+  environment: 'development' | 'staging' | 'production' = 'development',
 ): UnifiedSyncSystem {
   const config: Partial<SyncSystemConfig> = {
     environment,

@@ -4,181 +4,61 @@
  */
 
 // Core SDK
-export { ACubeSDK, createACubeSDK, type ACubeSDKConfig, DEFAULT_SDK_CONFIG } from './core/sdk';
 import { ACubeSDK, createACubeSDK, type ACubeSDKConfig } from './core/sdk';
-
-// HTTP Client and Configuration
-export { 
-  HttpClient, 
-  type HttpClientConfig, 
-  type RequestOptions, 
-  type HttpResponse,
-  DEFAULT_HTTP_CONFIG,
-  AUTH_HTTP_CONFIG 
-} from './http/client';
-
-
-// OpenAPI Endpoints
-export { 
-  CashierEndpoints,
-  ReceiptEndpoints,
-  CashRegisterEndpoints,
-  MerchantEndpoints,
-  PEMEndpoints,
-  PointOfSalesEndpoints,
-  type EndpointDefinition,
-} from './generated/endpoints';
-
-// OpenAPI Resources
-export {
-  CashiersResource,
-  Cashiers,
-} from './resources/cashiers';
-
-export {
-  ReceiptsResource,
-  Receipts,
-} from './resources/receipts';
-
-export {
-  CashRegistersResource,
-  CashRegisters,
-} from './resources/cash-registers';
-
-export {
-  MerchantsResource,
-  Merchants,
-} from './resources/merchants';
-
-export {
-  PEMsResource,
-  PEMs,
-} from './resources/pems';
-
-export {
-  PointOfSalesResource,
-  PointOfSales,
-} from './resources/point-of-sales';
-
-// Base OpenAPI Resource
-export {
-  BaseOpenAPIResource,
-  type BaseResourceConfig,
-  type RequestOptions as OpenAPIRequestOptions,
-  type ValidationContext,
-} from './resources/base-openapi';
 
 // Types
 export * from './types/branded';
-export * from './types/events';
 
-// Authentication Types
-export type {
-  AuthState,
-  AuthUser,
-  LoginCredentials,
-  LogoutOptions,
-  UserRole,
-  SimpleUserRole,
-  AuthError,
-  PermissionCheck,
-  PermissionResult,
-  SessionInfo,
-  OAuth2TokenResponse,
-  StoredAuthData,
-} from './auth/types';
+export type * from './types/events';
 
-// Storage Layer
-export {
-  // Unified Storage Interface
-  type UnifiedStorage,
-  type StorageAdapter,
-  type StorageKey,
-  type StorageValue,
-  type StorageEntry,
-  type StorageOptions,
-  type QueryOptions,
-  type StorageTransaction,
-  type StorageStats,
-  createStorageKey,
-  STORAGE_NAMESPACES,
-  
-  // Storage Errors
-  StorageError,
-  StorageConnectionError,
-  StorageCapacityError,
-  StorageEncryptionError,
-  StorageTransactionError,
-} from './storage/unified-storage';
 
 export {
-  // Platform Detection
-  type PlatformType,
-  type PlatformCapabilities,
-  type EnvironmentInfo,
-  platformDetector,
-  getPlatform,
-  getEnvironmentInfo,
-  hasCapability,
-  getRecommendedStorageAdapter,
-  getPerformanceTier,
-} from './storage/platform-detector';
+  PEMs,
+  PEMsResource,
+} from './resources/pems';
+
+// OpenAPI Resources
+export {
+  Cashiers,
+  CashiersResource,
+} from './resources/cashiers';
 
 export {
-  // Storage Adapters
-  IndexedDBAdapter,
-} from './storage/adapters/indexeddb-adapter';
+  Receipts,
+  ReceiptsResource,
+} from './resources/receipts';
+
+export {
+  Merchants,
+  MerchantsResource,
+} from './resources/merchants';
 
 export {
   LocalStorageAdapter,
 } from './storage/adapters/localstorage-adapter';
 
 export {
-  // Encryption Service
-  type StorageEncryptionConfig,
-  type EncryptionMetadata,
-  type EncryptionKeyManager,
-  StorageEncryptionService,
-  createEncryptionService,
-  createSecureEncryptionService,
-  createMinimalEncryptionService,
-} from './storage/encryption-service';
+  PointOfSales,
+  PointOfSalesResource,
+} from './resources/point-of-sales';
 
 export {
-  // Storage Factory
-  type StorageFactoryConfig,
-  StorageFactory,
-  storageFactory,
-  createStorage,
-  createSecureStorage,
-  createHighPerformanceStorage,
-  createCompatibilityStorage,
-} from './storage/storage-factory';
+  CashRegisters,
+  CashRegistersResource,
+} from './resources/cash-registers';
 
-// Offline System Components
-export {
-  // Queue Management
-  type QueueItem,
-  type QueueOperationType,
-  type QueuePriority,
-  type QueueStats,
-  type ConflictResolutionStrategy,
-  type QueueConfig,
-  type BatchOperation,
-  EnterpriseQueueManager,
-  RetryManager,
-  ConflictResolverManager,
-  BatchProcessor,
-  PriorityQueue,
-  QueueAnalytics,
-} from './storage/queue/index';
+export { ACubeSDK, createACubeSDK, DEFAULT_SDK_CONFIG, type ACubeSDKConfig } from './core/sdk';
 
 export {
-  // Enhanced Offline Hook
-  type EnhancedOfflineOptions,
-  type EnhancedOfflineResult,
-  useEnhancedACubeOffline,
-} from './storage/queue/enhanced-offline-hook';
+  // Storage Adapters
+  IndexedDBAdapter,
+} from './storage/adapters/indexeddb-adapter';
+export {
+  QualityManager,
+  DependencyManager,
+  // Quality Gates
+  type DependencyConfig,
+} from './quality/index';
 
 export {
   // Sync System
@@ -189,141 +69,51 @@ export {
 } from './sync/types';
 
 export {
-  // React Provider System
-  ACubeProvider,
-  useACube,
-  useACubeSDK,
-  useACubeStorage,
-  useACubeQueueManager,
-  useACubeSyncEngine,
-  useACubeNetworkManager,
-  useACubeNetworkStatus,
-  type ACubeContextValue,
-  type ACubeProviderProps,
-  
-  // React Hooks for Data Management
-  useACubeOffline,
-  useACubeQuery,
-  useACubeMutation,
-  useACubeCache,
-  useACubeSubscription,
-  
-  // Authentication System
-  AuthProvider,
-  useAuthContext,
-  useAuthAvailable,
-  useAuth,
-  useLogin,
-  useLogout,
-  useUser,
-  useRoles,
-  usePermissions,
-  useSession,
-  useRequireAuth,
-  useRequireRole,
-  LoginForm,
-  UserProfile,
-  RoleSwitcher,
-  AuthStatus,
-  ProtectedRoute,
-  PermissionGate,
-  type AuthProviderProps,
-  type AuthContextValue,
-  type LoginFormProps,
-  type UserProfileProps,
-  type RoleSwitcherProps,
-  type AuthStatusProps,
-  type ProtectedRouteProps,
-  type PermissionGateProps,
-} from './hooks/react/index';
-
-export {
-  // Compliance and Security
-  type AccessControlConfig,
-  type Role,
-  type Permission,
-  type User,
-  type GDPRConfig,
-  type FiscalConfig,
-  AccessControlManager,
-  GDPRComplianceManager,
-  FiscalAuditManager,
-} from './compliance/index';
-
-export {
+  type SignatureConfig,
   // Security Services
   type EncryptionConfig,
   type KeyRotationConfig,
-  type SignatureConfig,
 } from './security/index';
 
 export {
-  // Plugin System
-  type PluginConfig,
-  type PluginContext,
-  type BasePlugin,
-  PluginManager,
-  AnalyticsPlugin,
-  AuditPlugin,
-  CachePlugin,
-  DebugPlugin,
-  PerformancePlugin,
-} from './plugins/index';
-
-export {
-  // Quality Gates
-  type DependencyConfig,
-  QualityManager,
-  DependencyManager,
-} from './quality/index';
-
-export {
+  type ValidationIssue,
   // Validation System
   type ValidationConfig,
   type ValidationResult,
-  type ValidationIssue,
 } from './validation/index';
-
-export {
-  // PWA (Progressive Web App) System
-  PWAManager,
-  ManifestGenerator,
-  PWAUtils,
-  PWA_CONSTANTS,
-  type PWAManagerConfig,
-  type PWAEvents,
-  type CacheInfo,
-  type PWAManifestConfig,
-  type WebAppManifest,
-  type ServiceWorkerMessage,
-  type CacheUpdateEvent,
-  type OfflineQueueEvent,
-} from './pwa/index';
-
-// Error Handling
-export {
-  ACubeSDKError,
-  NetworkError,
-  AuthenticationError,
-  AuthorizationError,
-  ValidationError,
-  FiscalError,
-  RateLimitError,
-  ConfigurationError,
-  NotFoundError,
-  CircuitBreakerError,
-  createErrorFromResponse,
-  type AuditInfo,
-  type ValidationViolation,
-} from './errors/index';
 
 // Circuit Breaker
 export {
   CircuitBreaker,
-  type CircuitBreakerConfig,
   type CircuitBreakerState,
+  type CircuitBreakerConfig,
   type CircuitBreakerMetrics,
 } from './http/circuit-breaker';
+
+// HTTP Client and Configuration
+export {
+  HttpClient,
+  AUTH_HTTP_CONFIG,
+  type HttpResponse,
+  type RequestOptions,
+  DEFAULT_HTTP_CONFIG,
+  type HttpClientConfig,
+} from './http/client';
+
+// Base OpenAPI Resource
+export {
+  BaseOpenAPIResource,
+  type ValidationContext,
+  type BaseResourceConfig,
+  type RequestOptions as OpenAPIRequestOptions,
+} from './resources/base-openapi';
+
+export {
+  useEnhancedACubeOffline,
+  type EnhancedOfflineResult,
+  // Enhanced Offline Hook
+  type EnhancedOfflineOptions,
+} from './storage/queue/enhanced-offline-hook';
 
 // Retry Handler
 export {
@@ -336,20 +126,231 @@ export {
   CONSERVATIVE_RETRY_CONFIG,
 } from './http/retry';
 
+// OpenAPI Endpoints
+export {
+  PEMEndpoints,
+  CashierEndpoints,
+  ReceiptEndpoints,
+  MerchantEndpoints,
+  CashRegisterEndpoints,
+  PointOfSalesEndpoints,
+  type EndpointDefinition,
+} from './generated/endpoints';
+
+export {
+  AuditPlugin,
+  CachePlugin,
+  DebugPlugin,
+  PluginManager,
+  type BasePlugin,
+  AnalyticsPlugin,
+  // Plugin System
+  type PluginConfig,
+  PerformancePlugin,
+  type PluginContext,
+} from './plugins/index';
+
+export {
+  createStorage,
+  StorageFactory,
+  storageFactory,
+  createSecureStorage,
+  // Storage Factory
+  type StorageFactoryConfig,
+  createCompatibilityStorage,
+  createHighPerformanceStorage,
+} from './storage/storage-factory';
+
+// Authentication Types
+export type {
+  AuthUser,
+  UserRole,
+  AuthState,
+  AuthError,
+  SessionInfo,
+  LogoutOptions,
+  SimpleUserRole,
+  StoredAuthData,
+  PermissionCheck,
+  LoginCredentials,
+  PermissionResult,
+  OAuth2TokenResponse,
+} from './auth/types';
+
+export {
+  type Role,
+  type User,
+  type Permission,
+  type GDPRConfig,
+  type FiscalConfig,
+  FiscalAuditManager,
+  AccessControlManager,
+  GDPRComplianceManager,
+  // Compliance and Security
+  type AccessControlConfig,
+} from './compliance/index';
+
+export {
+  getPlatform,
+  hasCapability,
+  platformDetector,
+  // Platform Detection
+  type PlatformType,
+  getEnvironmentInfo,
+  getPerformanceTier,
+  type EnvironmentInfo,
+  type PlatformCapabilities,
+  getRecommendedStorageAdapter,
+} from './storage/platform-detector';
+
+export {
+  type EncryptionMetadata,
+  createEncryptionService,
+  StorageEncryptionService,
+  type EncryptionKeyManager,
+  // Encryption Service
+  type StorageEncryptionConfig,
+  createSecureEncryptionService,
+  createMinimalEncryptionService,
+} from './storage/encryption-service';
+
 // Middleware
 export {
   MiddlewareStack,
   type Middleware,
+  LoggingMiddleware,
   type RequestContext,
-  type ResponseContext,
-  AuthenticationMiddleware,
   RequestIdMiddleware,
   UserAgentMiddleware,
+  type ResponseContext,
   ContentTypeMiddleware,
-  LoggingMiddleware,
-  RateLimitingMiddleware,
   PerformanceMiddleware,
+  RateLimitingMiddleware,
+  AuthenticationMiddleware,
 } from './http/middleware';
+
+// Error Handling
+export {
+  FiscalError,
+  NetworkError,
+  ACubeSDKError,
+  NotFoundError,
+  RateLimitError,
+  type AuditInfo,
+  ValidationError,
+  AuthorizationError,
+  ConfigurationError,
+  AuthenticationError,
+  CircuitBreakerError,
+  createErrorFromResponse,
+  type ValidationViolation,
+} from './errors/index';
+
+export {
+  PWAUtils,
+  // PWA (Progressive Web App) System
+  PWAManager,
+  PWA_CONSTANTS,
+  type PWAEvents,
+  type CacheInfo,
+  ManifestGenerator,
+  type WebAppManifest,
+  type PWAManagerConfig,
+  type CacheUpdateEvent,
+  type PWAManifestConfig,
+  type OfflineQueueEvent,
+  type ServiceWorkerMessage,
+} from './pwa/index';
+
+// Offline System Components
+export {
+  RetryManager,
+  PriorityQueue,
+  // Queue Management
+  type QueueItem,
+  BatchProcessor,
+  QueueAnalytics,
+  type QueueStats,
+  type QueueConfig,
+  type QueuePriority,
+  type BatchOperation,
+  EnterpriseQueueManager,
+  type QueueOperationType,
+  ConflictResolverManager,
+  type ConflictResolutionStrategy,
+} from './storage/queue/index';
+
+// Storage Layer
+export {
+  // Storage Errors
+  StorageError,
+  type StorageKey,
+  createStorageKey,
+  type StorageValue,
+  type StorageEntry,
+  type QueryOptions,
+  type StorageStats,
+  STORAGE_NAMESPACES,
+  // Unified Storage Interface
+  type UnifiedStorage,
+  type StorageAdapter,
+  type StorageOptions,
+
+  StorageCapacityError,
+  StorageConnectionError,
+  StorageEncryptionError,
+  type StorageTransaction,
+  StorageTransactionError,
+} from './storage/unified-storage';
+
+export {
+  useAuth,
+  useUser,
+  useACube,
+  useLogin,
+  useRoles,
+  useLogout,
+  LoginForm,
+  useSession,
+  AuthStatus,
+  useACubeSDK,
+
+  UserProfile,
+  // Authentication System
+  AuthProvider,
+  RoleSwitcher,
+  // React Provider System
+  ACubeProvider,
+  useACubeQuery,
+
+  useACubeCache,
+  useAuthContext,
+  usePermissions,
+  useRequireAuth,
+  useRequireRole,
+  ProtectedRoute,
+  PermissionGate,
+  useACubeStorage,
+  // React Hooks for Data Management
+  useACubeOffline,
+  useACubeMutation,
+  useAuthAvailable,
+  useACubeSyncEngine,
+  type LoginFormProps,
+  useACubeQueueManager,
+  useACubeSubscription,
+  type AuthStatusProps,
+  useACubeNetworkStatus,
+  type AuthContextValue,
+  type UserProfileProps,
+  useACubeNetworkManager,
+  type ACubeContextValue,
+  type AuthProviderProps,
+  type RoleSwitcherProps,
+  type ACubeProviderProps,
+  type ProtectedRouteProps,
+  type PermissionGateProps,
+} from './hooks/react/index';
 
 // Convenience functions for quick setup
 
