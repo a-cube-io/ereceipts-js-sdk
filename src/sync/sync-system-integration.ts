@@ -7,15 +7,15 @@ import type { ResourceType } from '@/storage/queue/types';
 
 import { EventEmitter } from 'eventemitter3';
 
-import type { DependencyManager } from './dependency-manager';
-import { createDependencyManager, type DependencyManagerConfig   } from './dependency-manager';
-import type { SyncAnalyticsMonitor } from './sync-analytics-monitor';
 import { type AnalyticsConfig, createSyncAnalyticsMonitor   } from './sync-analytics-monitor';
-import type { PerformanceOptimizer } from './performance-optimizer';
+import { createDependencyManager, type DependencyManagerConfig   } from './dependency-manager';
 import { type OptimizationConfig, createPerformanceOptimizer   } from './performance-optimizer';
-import type { EnhancedSyncManager } from './enhanced-sync-manager';
 import { createEnhancedSyncManager, type EnhancedSyncManagerConfig   } from './enhanced-sync-manager';
 
+import type { DependencyManager } from './dependency-manager';
+import type { EnhancedSyncManager } from './enhanced-sync-manager';
+import type { PerformanceOptimizer } from './performance-optimizer';
+import type { SyncAnalyticsMonitor } from './sync-analytics-monitor';
 import type { SyncResult, SyncOptions, SyncEventTypeMap } from './types';
 
 export interface SyncSystemConfig {

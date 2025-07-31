@@ -269,18 +269,18 @@ export class AuthPerformanceOptimizer {
    */
   clearUserCaches(userId: string): void {
     // Clear permission cache entries for user
-    for (const [key] of this.permissionCache.entries()) {
+    Array.from(this.permissionCache.entries()).forEach(([key]) => {
       if (key.startsWith(`user:${userId}:`)) {
         this.permissionCache.delete(key);
       }
-    }
+    });
 
     // Clear role cache entries for user
-    for (const [key] of this.roleCache.entries()) {
+    Array.from(this.roleCache.entries()).forEach(([key]) => {
       if (key.startsWith(`user:${userId}:`)) {
         this.roleCache.delete(key);
       }
-    }
+    });
   }
 
   /**
@@ -347,12 +347,12 @@ export class AuthPerformanceOptimizer {
    */
   destroy(): void {
     // Clear all pending batch operations
-    for (const [, pending] of this.pendingPermissionChecks) {
+    Array.from(this.pendingPermissionChecks.values()).forEach((pending) => {
       clearTimeout(pending.timer);
       pending.checks.forEach(({ reject }) => {
         reject(new Error('AuthPerformanceOptimizer destroyed'));
       });
-    }
+    });
     this.pendingPermissionChecks.clear();
 
     // Clear caches

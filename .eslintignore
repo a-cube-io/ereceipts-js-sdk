@@ -1,36 +1,39 @@
-# Build directories
-build/*
-dist/*
-public/*
-**/out/*
-**/.next/*
-**/node_modules/*
+# Dependencies
+node_modules/
 
-# src/
-**/reportWebVitals.*
-**/service-worker.*
-**/serviceWorkerRegistration.*
-**/setupTests.*
+# Build outputs
+dist/
+build/
+coverage/
 
-# eslintrc
-**/.eslintrc.*
+# Config files
+jest.config.*.ts
+jest.config.*.js
+*.config.js
+*.config.ts
+tsup.config.ts
 
-# prettier
-**/.prettier.*
-**/prettier.config.*
+# Test files
+__tests__/
+*.test.ts
+*.test.tsx
+*.test.js
+*.test.jsx
 
-# next
-**/next.config.*
+# Documentation
+docs/
+*.md
 
-# vite
-**/vite.config.*
+# IDE
+.vscode/
+.idea/
 
-# tailwind
-**/postcss.config.*
-**/tailwind.config.*
+# Misc
+.git/
+.next/
+.cache/
+public/
+templates/
 
-# craco
-**/craco.config.*
-
-# misc
-**/jsconfig.json
+# Generated files
+src/generated/

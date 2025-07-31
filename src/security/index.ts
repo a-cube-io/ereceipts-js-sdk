@@ -3,6 +3,7 @@
  * Complete security suite with encryption, digital signatures, and key rotation
  */
 
+import { getRandomValues } from './crypto-polyfill';
 import { KeyRotationManager, type KeyRotationConfig } from './key-rotation';
 // Import classes for internal use
 import { AdvancedEncryption, type EncryptedData, type EncryptionConfig } from './encryption';
@@ -23,6 +24,15 @@ export {
   type RotationEvent,
   type KeyRotationConfig,
 } from './key-rotation';
+
+export {
+  getRandomValues,
+  testExpoCrypto,
+  crossPlatformCrypto,
+  getRandomValuesAsync,
+  isSecureCryptoAvailable,
+  getCryptoEnvironmentInfo,
+} from './crypto-polyfill';
 
 export {
   type SignedData,
@@ -229,7 +239,7 @@ export const SecurityUtils = {
    * Generate secure random bytes
    */
   generateRandomBytes(length: number): Uint8Array {
-    return crypto.getRandomValues(new Uint8Array(length));
+    return getRandomValues(new Uint8Array(length));
   },
 
   /**

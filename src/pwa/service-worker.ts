@@ -224,7 +224,9 @@ class CacheStrategy {
  */
 class OfflineQueueManager {
   private queueName: string;
+
   private maxRetentionTime: number;
+
   private maxQueueSize: number;
 
   constructor(config: typeof OFFLINE_QUEUE_CONFIG) {
@@ -413,13 +415,13 @@ sw.addEventListener('fetch', (event: FetchEvent) => {
               API_CACHE_NAME,
               CACHE_CONFIG.api.maxAge,
             );
-          } else {
+          } 
             return await CacheStrategy.networkFirst(
               request,
               API_CACHE_NAME,
               CACHE_CONFIG.api.maxAge,
             );
-          }
+          
         }
 
         // Handle static resources

@@ -3,6 +3,8 @@
  * Provides comprehensive encryption, decryption, and key management
  */
 
+import { getRandomValues } from './crypto-polyfill';
+
 // Web Crypto API types are declared in signatures.ts
 
 export interface EncryptionConfig {
@@ -54,7 +56,7 @@ export class AdvancedEncryption {
       keyDerivation: {
         algorithm: 'PBKDF2',
         iterations: 100000,
-        salt: crypto.getRandomValues(new Uint8Array(16)),
+        salt: getRandomValues(new Uint8Array(16)),
       },
       compression: true,
       metadata: {
@@ -134,7 +136,7 @@ export class AdvancedEncryption {
    */
   async deriveKeyFromPassword(password: string, salt?: Uint8Array): Promise<string> {
     const keyId = this.generateKeyId();
-    const usedSalt = salt || crypto.getRandomValues(new Uint8Array(16));
+    const usedSalt = salt || getRandomValues(new Uint8Array(16));
 
     const encoder = new TextEncoder();
     const passwordBuffer = encoder.encode(password);
@@ -196,7 +198,7 @@ export class AdvancedEncryption {
     }
 
     // Generate random IV
-    const iv = crypto.getRandomValues(new Uint8Array(12)); // 96 bits for GCM
+    const iv = getRandomValues(new Uint8Array(12)); // 96 bits for GCM
 
     // Encrypt the data
     const encryptedBuffer = await crypto.subtle.encrypt(

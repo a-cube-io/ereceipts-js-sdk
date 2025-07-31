@@ -323,7 +323,15 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
   }
 
   private setupOnlineOfflineListeners(): void {
-    if (!isBrowser || !globalScope.window) {
+    // Try React Native NetInfo first (for development builds)
+    if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') {
+      this.setupReactNativeNetInfo();
+      return;
+    }
+
+    // Fallback to web event listeners
+    if (!isBrowser || !globalScope.window || typeof globalScope.window.addEventListener !== 'function') {
+      console.log('[ACube SDK] Skipping online/offline listeners (not available in this environment)');
       return;
     }
 
@@ -343,12 +351,48 @@ export class NetworkManager extends EventEmitter<NetworkEventMap> {
     this.offlineHandler = handleOffline;
   }
 
+  private setupReactNativeNetInfo(): void {
+    try {
+      // Try to use NetInfo (will work in development builds)
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const NetInfo = require('@react-native-community/netinfo');
+      
+      console.log('[ACube SDK] Using @react-native-community/netinfo for network detection');
+      
+      const unsubscribe = NetInfo.addEventListener((state: any) => {
+        this.updateConnectionStatus(state.isConnected && state.isInternetReachable !== false);
+      });
+
+      // Store unsubscribe function for cleanup
+      this.netInfoUnsubscribe = unsubscribe;
+      
+      // Get initial state
+      NetInfo.fetch().then((state: any) => {
+        this.updateConnectionStatus(state.isConnected && state.isInternetReachable !== false);
+      });
+    } catch (error) {
+      console.log('[ACube SDK] NetInfo not available (Expo Go), using basic connectivity detection');
+      // Fallback to basic connectivity (always online in React Native without NetInfo)
+      this.updateConnectionStatus(true);
+    }
+  }
+
+  private netInfoUnsubscribe?: (() => void) | null;
+
   private onlineHandler?: () => void;
 
   private offlineHandler?: () => void;
 
   private removeOnlineOfflineListeners(): void {
-    if (!isBrowser || !globalScope.window) {
+    // Clean up NetInfo subscription if it exists
+    if (this.netInfoUnsubscribe) {
+      this.netInfoUnsubscribe();
+      this.netInfoUnsubscribe = null;
+      return;
+    }
+
+    // Clean up web event listeners
+    if (!isBrowser || !globalScope.window || typeof globalScope.window.removeEventListener !== 'function') {
       return;
     }
 

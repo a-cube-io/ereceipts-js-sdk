@@ -8,12 +8,14 @@ import type { ResourceType } from '@/storage/queue/types';
 import { EventEmitter } from 'eventemitter3';
 
 import { ProgressiveSyncEngine, type SyncEngineConfig } from './sync-engine';
-import { BackgroundSyncService, type BackgroundSyncServiceConfig } from './background-sync';
-import type { WebhookManager } from './webhook-manager';
 import { createWebhookManager, type WebhookManagerConfig      } from './webhook-manager';
-import { createConflictResolutionEngine, type ConflictResolutionEngineConfig  , ConflictResolutionEngine } from './conflict-resolution-engine';
-import { type SyncCoordinatorConfig, createRealtimeSyncCoordinator  , RealtimeSyncCoordinator } from './realtime-sync-coordinator';
+import { BackgroundSyncService, type BackgroundSyncServiceConfig } from './background-sync';
+import { type SyncCoordinatorConfig, createRealtimeSyncCoordinator   } from './realtime-sync-coordinator';
+import { createConflictResolutionEngine, type ConflictResolutionEngineConfig   } from './conflict-resolution-engine';
 
+import type { WebhookManager } from './webhook-manager';
+import type { RealtimeSyncCoordinator } from './realtime-sync-coordinator';
+import type { ConflictResolutionEngine } from './conflict-resolution-engine';
 import type {
   SyncResult,
   SyncStatus,

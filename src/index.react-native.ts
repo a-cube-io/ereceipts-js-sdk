@@ -1,6 +1,8 @@
 /**
- * A-Cube E-Receipts SDK - Main Entry Point
+ * A-Cube E-Receipts SDK - React Native Entry Point
  * Enterprise-grade TypeScript SDK for A-Cube e-receipt system integration
+ * 
+ * This entry point excludes Node.js specific modules for React Native compatibility
  */
 
 // Core SDK
@@ -43,6 +45,10 @@ export {
 } from './resources/point-of-sales';
 
 export {
+  ReactNativeStorageAdapter,
+} from './storage/adapters/react-native-storage';
+
+export {
   CashRegisters,
   CashRegistersResource,
 } from './resources/cash-registers';
@@ -53,12 +59,12 @@ export {
   // Storage Adapters
   IndexedDBAdapter,
 } from './storage/adapters/indexeddb-adapter';
+
 export {
-  QualityManager,
-  DependencyManager,
-  // Quality Gates
-  type DependencyConfig,
-} from './quality/index';
+  OptimizedReactNativeStorageAdapter,
+} from './storage/adapters/optimized-react-native-storage';
+
+// Note: QualityManager and DependencyManager are excluded as they depend on Node.js modules
 
 export {
   // Sync System
@@ -150,17 +156,6 @@ export {
   type PluginContext,
 } from './plugins/index';
 
-export {
-  createStorage,
-  StorageFactory,
-  storageFactory,
-  createSecureStorage,
-  // Storage Factory
-  type StorageFactoryConfig,
-  createCompatibilityStorage,
-  createHighPerformanceStorage,
-} from './storage/storage-factory';
-
 // Authentication Types
 export type {
   AuthUser,
@@ -189,6 +184,18 @@ export {
   // Compliance and Security
   type AccessControlConfig,
 } from './compliance/index';
+
+export {
+  createStorage,
+  StorageFactory,
+  storageFactory,
+  UnifiedStorageImpl,
+  createSecureStorage,
+  // Storage Factory
+  type StorageFactoryConfig,
+  createCompatibilityStorage,
+  createHighPerformanceStorage,
+} from './storage/storage-factory';
 
 export {
   getPlatform,
@@ -344,20 +351,19 @@ export {
   useNetworkStatus,
   useProtectedRoute,
   usePermissionGate,
-  // Platform Services (Framework-agnostic)
   platformReadiness,
 
   type PlatformInfo,
   useACubeSyncEngine,
   type NetworkStatus,
   platformDiagnostics,
-
   useACubeQueueManager,
+
   useACubeSubscription,
   useACubeNetworkStatus,
-
   // Types for React Integration
   type AuthContextValue,
+
   useACubeNetworkManager,
   type AuthProviderProps,
   type ACubeContextValue,
@@ -366,37 +372,28 @@ export {
   type PlatformReadinessInfo,
   type UseNetworkStatusOptions,
   type PlatformDiagnosticsData,
+  // Platform Services (Framework-agnostic)
   type DetailedPlatformDetection,
 } from './hooks/react/index';
 
 /*
  * UI COMPONENTS REMOVED - NOW UI-FREE ARCHITECTURE
  * 
- * The following UI components have been removed and replaced with UI-free hooks:
- * - LoginForm → useAuthForm (business logic only)
- * - AuthStatus → useAuthStatus (state only) 
- * - UserProfile → useUserProfile (data only)
- * - RoleSwitcher → useRoleSwitch (logic only)
- * - ProtectedRoute → useProtectedRoute (routing logic only)
- * - PermissionGate → usePermissionGate (permission logic only)
- * - PlatformView, PlatformText → Use platform detection services with your own UI
- * - PlatformDiagnostics → platformDiagnostics service
- * - usePlatformReady, usePlatformInfo → platformReadiness service
- * - registerReactNativeComponents → No longer needed in UI-free architecture
- * - componentRegistry, componentUtils → No longer needed in UI-free architecture
+ * All platform UI components have been removed and replaced with framework-agnostic services:
+ * - PlatformView, PlatformText → Use platform detection services with your own React Native components
+ * - Platform component logic → Use platformUtils for platform-specific behavior
+ * - UI rendering logic → Create your own React Native components using provided services
  * 
- * Migration Guide:
- * 1. Replace UI component imports with corresponding UI-free hooks
- * 2. Create your own UI components using the hook data and actions
- * 3. Use platform detection services for framework-agnostic platform handling
- * 4. Handle your own UI component management in your application
+ * For React Native specific implementation:
+ * 1. Use your own React Native component libraries (NativeBase, React Native Elements, etc.)
+ * 2. Use platformReadiness and platformDiagnostics services for platform detection
+ * 3. Create custom React Native UI components using the provided hooks and services
  * 
- * Benefits:
- * - Framework agnostic (Web, React Native, Node.js, SSR compatible)
- * - Smaller bundle size (no UI dependencies)
- * - Better separation of concerns
- * - More flexible and customizable
- * - Enterprise scalability
+ * Benefits for React Native:
+ * - Works with any React Native UI library (NativeBase, React Native Elements, etc.)
+ * - Smaller bundle size
+ * - Better performance
+ * - More customizable styling
  */
 
 // Convenience functions for quick setup

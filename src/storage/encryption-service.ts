@@ -4,6 +4,7 @@
  */
 
 import { AdvancedEncryption } from '../security/encryption';
+import { getRandomValues } from '../security/crypto-polyfill';
 import {
   // StorageError,
   StorageEncryptionError,
@@ -209,7 +210,7 @@ export class StorageEncryptionService {
       keyDerivation: {
         algorithm: this.config.keyDerivation.algorithm,
         iterations: this.config.keyDerivation.iterations,
-        salt: crypto.getRandomValues(new Uint8Array(16)),
+        salt: getRandomValues(new Uint8Array(16)),
       },
       compression: this.config.compression,
       metadata: {
@@ -399,7 +400,7 @@ export class StorageEncryptionService {
         keyDerivation: {
           algorithm: this.config.keyDerivation.algorithm,
           iterations: this.config.keyDerivation.iterations,
-          salt: crypto.getRandomValues(new Uint8Array(16)),
+          salt: getRandomValues(new Uint8Array(16)),
         },
         compression: this.config.compression,
         metadata: {

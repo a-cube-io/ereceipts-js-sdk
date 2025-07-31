@@ -115,7 +115,7 @@ export interface ACubeSDKConfig {
   offline?: {
     enabled?: boolean;
     storage?: {
-      adapter?: 'indexeddb' | 'localstorage' | 'asyncstorage' | 'filesystem' | 'memory';
+      adapter?: 'indexeddb' | 'localstorage' | 'asyncstorage' | 'filesystem' | 'memory' | 'auto';
       encryptionKey?: string;
       maxSize?: number; // bytes
     };
@@ -237,14 +237,14 @@ const DEFAULT_SDK_CONFIG: Required<ACubeSDKConfig> = {
     enableRetry: true,
     enableCircuitBreaker: true,
     enableMetrics: true,
-    enableOfflineQueue: false,
-    enableSync: false,
-    enableRealTimeSync: false,
+    enableOfflineQueue: true,
+    enableSync: true,
+    enableRealTimeSync: true,
   },
   offline: {
-    enabled: false,
+    enabled: true,
     storage: {
-      adapter: 'indexeddb',
+      adapter: 'auto',
       maxSize: 100 * 1024 * 1024, // 100MB
     },
     queue: {
@@ -445,6 +445,26 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
           ...userConfig.offline?.sync,
         },
       },
+      reactNative: {
+        ...DEFAULT_SDK_CONFIG.reactNative,
+        ...userConfig.reactNative,
+        storage: {
+          ...DEFAULT_SDK_CONFIG.reactNative.storage,
+          ...userConfig.reactNative?.storage,
+        },
+        connectivity: {
+          ...DEFAULT_SDK_CONFIG.reactNative.connectivity,
+          ...userConfig.reactNative?.connectivity,
+        },
+        backgroundProcessor: {
+          ...DEFAULT_SDK_CONFIG.reactNative.backgroundProcessor,
+          ...userConfig.reactNative?.backgroundProcessor,
+        },
+        performanceMonitor: {
+          ...DEFAULT_SDK_CONFIG.reactNative.performanceMonitor,
+          ...userConfig.reactNative?.performanceMonitor,
+        },
+      },
       dev: {
         ...DEFAULT_SDK_CONFIG.dev,
         ...userConfig.dev,
@@ -556,7 +576,9 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
       }
 
       // Initialize React Native optimizations if enabled
+      console.log('[ACube SDK] React Native optimizations enabled:', this.config.reactNative.enabled);
       if (this.config.reactNative.enabled) {
+        console.log('[ACube SDK] Initializing React Native optimizations...');
         await this.initializeReactNativeOptimizations();
       }
 
@@ -1006,10 +1028,72 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
     }
 
     if (!this._storage) {
-      const { UnifiedStorage } = require('@/storage/unified-storage');
-      this._storage = new UnifiedStorage({
-        adapter: this.config.offline.storage?.adapter || 'indexeddb',
-        encryptionKey: this.config.offline.storage?.encryptionKey,
+      const { UnifiedStorageImpl } = require('@/storage/storage-factory');
+      const { createEncryptionService } = require('@/storage/encryption-service');
+      
+      // Platform-specific adapter selection
+      let adapter;
+      const adapterType = this.config.offline.storage?.adapter || 'auto';
+      const isReactNative = typeof navigator !== 'undefined' && navigator.product === 'ReactNative';
+      
+      if (adapterType === 'auto' && isReactNative) {
+        // React Native environment
+        try {
+          const { OptimizedReactNativeStorageAdapter } = require('@/storage/adapters/optimized-react-native-storage');
+          adapter = new OptimizedReactNativeStorageAdapter();
+        } catch (error) {
+          // Fallback to basic React Native adapter
+          const { ReactNativeStorageAdapter } = require('@/storage/adapters/react-native-storage');
+          adapter = new ReactNativeStorageAdapter();
+        }
+      } else if (adapterType === 'auto') {
+        // Web environment (auto detection)
+        try {
+          // Try IndexedDB first (preferred for web)
+          const { IndexedDBAdapter } = require('@/storage/adapters/indexeddb-adapter');
+          adapter = new IndexedDBAdapter();
+        } catch (error) {
+          // Fallback to LocalStorage
+          const { LocalStorageAdapter } = require('@/storage/adapters/localstorage-adapter');
+          adapter = new LocalStorageAdapter();
+        }
+      } else {
+        // Specific adapter requested
+        switch (adapterType) {
+          case 'indexeddb':
+            const { IndexedDBAdapter } = require('@/storage/adapters/indexeddb-adapter');
+            adapter = new IndexedDBAdapter();
+            break;
+          case 'localstorage':
+            const { LocalStorageAdapter } = require('@/storage/adapters/localstorage-adapter');
+            adapter = new LocalStorageAdapter();
+            break;
+          case 'asyncstorage':
+            if (isReactNative) {
+              const { ReactNativeStorageAdapter } = require('@/storage/adapters/react-native-storage');
+              adapter = new ReactNativeStorageAdapter();
+            } else {
+              throw new Error('AsyncStorage adapter is only available in React Native environment');
+            }
+            break;
+          case 'memory':
+            // Memory adapter would need to be implemented in storage factory
+            throw new Error('Memory adapter not yet implemented');
+          case 'filesystem':
+            // Filesystem adapter would need to be implemented
+            throw new Error('Filesystem adapter not yet implemented');
+          default:
+            throw new Error(`Unknown storage adapter: ${adapterType}`);
+        }
+      }
+      
+      // Create encryption service
+      const encryptionService = createEncryptionService({
+        enabled: !!this.config.offline.storage?.encryptionKey,
+        key: this.config.offline.storage?.encryptionKey,
+      });
+      
+      this._storage = new UnifiedStorageImpl(adapter, encryptionService, {
         maxSize: this.config.offline.storage?.maxSize || 100 * 1024 * 1024,
       });
     }
@@ -1486,6 +1570,7 @@ export class ACubeSDK extends EventEmitter<EventTypeMap> {
 
 // Export convenience function for creating SDK instances
 export function createACubeSDK(config: ACubeSDKConfig): ACubeSDK {
+  console.log('Creating ACube SDK instance...');
   return new ACubeSDK(config);
 }
 

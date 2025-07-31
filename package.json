@@ -1,6 +1,6 @@
 {
   "name": "@a-cube-io/ereceipts-js-sdk",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "SDK and CLI tool for ACube e-receipt",
   "keywords": [
     "acube",
@@ -16,7 +16,7 @@
   "homepage": "https://github.com/acube/ereceipts-sdk/tree/main/packages/cli",
   "repository": {
     "type": "git",
-    "url": "https://github.com/acube/ereceipts-sdk.git",
+    "url": "git+https://github.com/acube/ereceipts-sdk.git",
     "directory": "packages/cli"
   },
   "bugs": {
@@ -25,13 +25,28 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "react-native": "./dist/index.react-native.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "react-native": "./dist/index.react-native.js",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./metro.config.helper": "./metro.config.helper.cjs",
+    "./metro.config.helper.js": "./metro.config.helper.cjs",
+    "./metro.config.helper.cjs": "./metro.config.helper.cjs",
+    "./package.json": "./package.json"
+  },
   "bin": {
-    "acube-ereceipts-cli": "./dist/cli.js"
+    "acube-ereceipts-cli": "dist/cli.js"
   },
   "files": [
     "dist",
     "templates",
-    "README.md"
+    "README.md",
+    "metro.config.helper.cjs"
   ],
   "scripts": {
     "build": "tsup",

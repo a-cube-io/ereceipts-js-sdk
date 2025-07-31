@@ -212,8 +212,11 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
     if (this.isInitialized || !isReactNative) {return;}
 
     try {
-      // Dynamically import React Native modules
-      const NetInfoModule = await import('@react-native-community/netinfo');
+      // Try to dynamically import React Native modules
+      // This will fail in Expo Go for native modules
+      // We use eval to prevent Metro from bundling these modules when not needed
+      const netInfoPath = '@react-native-community/netinfo';
+      const NetInfoModule = await import(/* webpackIgnore: true */ netInfoPath);
       this.NetInfo = NetInfoModule.default;
 
       const AppStateModule = await import('react-native');
@@ -236,8 +239,17 @@ export class ConnectivityManager extends EventEmitter<ConnectivityEvents> {
       await this.updateNetworkState();
 
       this.isInitialized = true;
+      console.log('[ACube SDK] ConnectivityManager initialized successfully');
     } catch (error) {
-      console.warn('Failed to initialize ConnectivityManager:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`[ACube SDK] Failed to initialize ConnectivityManager: ${errorMessage}`);
+      
+      // Provide helpful guidance for Expo Go users
+      if (errorMessage.includes('native module') || errorMessage.includes('Cannot read property')) {
+        console.log('[ACube SDK] This is normal in Expo Go. Native connectivity features require a development build.');
+        console.log('[ACube SDK] See: https://docs.expo.dev/development/introduction/');
+      }
+      
       // Fallback to basic connectivity detection
       this.setupFallbackDetection();
     }

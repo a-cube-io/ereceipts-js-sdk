@@ -429,3 +429,5 @@ dist/
 claude/
 tasks/
 CLAUDE.md
+
+*.tgz

@@ -3,7 +3,7 @@
  * Comprehensive type definitions for the enterprise auth system
  */
 
-import type { CashierId, MerchantId, PointOfSaleId } from '@/types/branded';
+import type { CashierId, MerchantId, PointOfSaleId } from '../types/branded';
 
 /**
  * User roles in the A-Cube system with hierarchical structure

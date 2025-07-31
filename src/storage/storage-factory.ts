@@ -3,7 +3,7 @@
  * Automatic platform detection and optimal storage adapter selection
  */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'eventemitter3';
 
 import { platformDetector } from './platform-detector';
 import { IndexedDBAdapter } from './adapters/indexeddb-adapter';
@@ -206,7 +206,7 @@ class MemoryStorageAdapter implements StorageAdapter {
  * Unified Storage Implementation
  * Brings together adapter, encryption, and high-level operations
  */
-class UnifiedStorageImpl extends EventEmitter implements UnifiedStorage {
+export class UnifiedStorageImpl extends EventEmitter implements UnifiedStorage {
   public readonly name: string;
 
   public readonly capabilities;
