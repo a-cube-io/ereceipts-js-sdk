@@ -2118,15 +2118,15 @@ class ReactNativeStorageAdapter {
     }
     async initializeAsyncStorage() {
         try {
-            // Try to import AsyncStorage
-            const AsyncStorageModule = await import('@react-native-async-storage/async-storage');
-            this.AsyncStorage = AsyncStorageModule.default;
+            // Try to require AsyncStorage - avoid dynamic import for Metro compatibility
+            const AsyncStorageModule = require('@react-native-async-storage/async-storage');
+            this.AsyncStorage = AsyncStorageModule.default || AsyncStorageModule;
         }
         catch {
             // Fallback to legacy AsyncStorage if available
             try {
-                const { AsyncStorage } = await import('react-native');
-                this.AsyncStorage = AsyncStorage;
+                const ReactNative = require('react-native');
+                this.AsyncStorage = ReactNative.AsyncStorage;
             }
             catch {
                 throw new Error('AsyncStorage not available. Please install @react-native-async-storage/async-storage');
@@ -2236,46 +2236,28 @@ class ReactNativeSecureStorageAdapter {
         this.initializeSecureStorage();
     }
     async initializeSecureStorage() {
-        // Check if we're in an Expo environment first
-        let hasExpoSecureStore = false;
+        // Try to initialize Expo SecureStore first
         try {
-            // Try to require.resolve to check if module exists without importing
-            require.resolve('expo-secure-store');
-            hasExpoSecureStore = true;
+            // Use require() instead of dynamic import() to avoid Metro bundling issues
+            const SecureStore = require('expo-secure-store');
+            this.secureStore = SecureStore;
+            this.isExpo = true;
+            return;
         }
-        catch {
-            // expo-secure-store not available
+        catch (error) {
+            // expo-secure-store not available, continue to fallback
+            console.log('expo-secure-store not available, trying react-native-keychain');
         }
-        if (hasExpoSecureStore) {
-            try {
-                const SecureStore = await import('expo-secure-store');
-                this.secureStore = SecureStore;
-                this.isExpo = true;
-                return;
-            }
-            catch (error) {
-                console.error('Failed to load expo-secure-store:', error);
-            }
-        }
-        // Only try react-native-keychain if expo-secure-store is not available
-        let hasKeychain = false;
+        // Fallback to react-native-keychain
         try {
-            require.resolve('react-native-keychain');
-            hasKeychain = true;
+            const Keychain = require('react-native-keychain');
+            this.keychain = Keychain;
+            this.isExpo = false;
+            return;
         }
-        catch {
+        catch (error) {
             // react-native-keychain not available
-        }
-        if (hasKeychain) {
-            try {
-                const Keychain = await import('react-native-keychain');
-                this.keychain = Keychain;
-                this.isExpo = false;
-                return;
-            }
-            catch (error) {
-                console.error('Failed to load react-native-keychain:', error);
-            }
+            console.error('react-native-keychain not available');
         }
         throw new Error('No secure storage available. Please install expo-secure-store or react-native-keychain');
     }
@@ -2394,9 +2376,9 @@ class ReactNativeNetworkMonitor {
     }
     async initializeNetInfo() {
         try {
-            // Try to import NetInfo
-            const NetInfoModule = await import('@react-native-community/netinfo');
-            this.NetInfo = NetInfoModule.default;
+            // Try to require NetInfo - avoid dynamic import for Metro compatibility
+            const NetInfoModule = require('@react-native-community/netinfo');
+            this.NetInfo = NetInfoModule.default || NetInfoModule;
             // Subscribe to network state changes
             this.subscribeToNetworkState();
         }
