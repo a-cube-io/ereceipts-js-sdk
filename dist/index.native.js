@@ -2232,23 +2232,48 @@ class ReactNativeSecureStorageAdapter {
         this.initializeSecureStorage();
     }
     async initializeSecureStorage() {
+        // Check if we're in an Expo environment first
+        let hasExpoSecureStore = false;
         try {
-            // Try Expo SecureStore first
-            const SecureStore = await import('expo-secure-store');
-            this.secureStore = SecureStore;
-            this.isExpo = true;
+            // Try to require.resolve to check if module exists without importing
+            require.resolve('expo-secure-store');
+            hasExpoSecureStore = true;
         }
         catch {
+            // expo-secure-store not available
+        }
+        if (hasExpoSecureStore) {
             try {
-                // Fallback to react-native-keychain
+                const SecureStore = await import('expo-secure-store');
+                this.secureStore = SecureStore;
+                this.isExpo = true;
+                return;
+            }
+            catch (error) {
+                console.error('Failed to load expo-secure-store:', error);
+            }
+        }
+        // Only try react-native-keychain if expo-secure-store is not available
+        let hasKeychain = false;
+        try {
+            require.resolve('react-native-keychain');
+            hasKeychain = true;
+        }
+        catch {
+            // react-native-keychain not available
+        }
+        if (hasKeychain) {
+            try {
                 const Keychain = await import('react-native-keychain');
                 this.keychain = Keychain;
                 this.isExpo = false;
+                return;
             }
-            catch {
-                throw new Error('No secure storage available. Please install expo-secure-store or react-native-keychain');
+            catch (error) {
+                console.error('Failed to load react-native-keychain:', error);
             }
         }
+        throw new Error('No secure storage available. Please install expo-secure-store or react-native-keychain');
     }
     async get(key) {
         if (!this.secureStore && !this.keychain) {
