@@ -81,7 +81,6 @@ tsconfig.tsbuildinfo
 *.log
 .expo/
 .expo-shared/
-dist/
 npm-debug.*
 *.jks
 *.p8
@@ -298,7 +297,6 @@ out/
 
 # Nuxt.js
 .nuxt/
-dist/
 
 # Gatsby
 .cache/
@@ -374,8 +372,6 @@ packages/*/lib
 packages/*/dist
 packages/*/node_modules
 
-# Ignore everything in dist except what we want to track
-dist/*
 
 # Allow specific config files
 !.vscode/settings.json
@@ -425,9 +421,6 @@ sdk-build/
 type_check.py
 
 .claude/
-dist/
 claude/
 tasks/
 CLAUDE.md
-
-*.tgz
