@@ -59,6 +59,10 @@ export type ReceiptType = 'sale' | 'return' | 'void';
 export type GoodOrService = 'B' | 'S';
 export type VatRateCode = '4' | '5' | '10' | '22' | '2' | '6.4' | '7' | '7.3' | '7.5' | '7.65' | '7.95' | '8.3' | '8.5' | '8.8' | '9.5' | '12.3' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6';
 
+export const VatRateCodeOptions: VatRateCode[] = [
+  
+]
+
 export interface ReceiptItem {
   good_or_service?: GoodOrService;
   quantity: string;
