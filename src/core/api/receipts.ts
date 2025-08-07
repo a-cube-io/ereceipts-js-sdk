@@ -5,7 +5,8 @@ import {
   ReceiptDetailsOutput,
   ReceiptReturnOrVoidViaPEMInput,
   ReceiptReturnOrVoidWithProofInput,
-  Page 
+  Page, 
+  ReceiptListParams
 } from './types';
 
 /**
@@ -24,7 +25,7 @@ export class ReceiptsAPI {
   /**
    * Get a list of electronic receipts
    */
-  async list(params: { page?: number; size?: number } = {}): Promise<Page<ReceiptOutput>> {
+  async list(params: ReceiptListParams = {}): Promise<Page<ReceiptOutput>> {
     const searchParams = new URLSearchParams();
     
     if (params.page) {

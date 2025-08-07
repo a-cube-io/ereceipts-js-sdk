@@ -2,8 +2,19 @@ import React, { ReactNode } from 'react';
 import { AxiosRequestConfig, AxiosInstance } from 'axios';
 
 /**
+ * Role and Permission Management System
+ *
+ * This module provides type-safe role management with hierarchical permissions
+ * and context-based authorization for the ACube E-Receipt system.
+ */
+type BaseRole = 'ROLE_SUPPLIER' | 'ROLE_CACHIER' | 'ROLE_MERCHANT';
+type RoleContext = 'ereceipts-it.acubeapi.com';
+type UserRoles = Partial<Record<RoleContext, BaseRole[]>>;
+
+/**
  * Core SDK types
  */
+
 type Environment = 'production' | 'development' | 'sandbox';
 /**
  * SDK Configuration
@@ -31,7 +42,7 @@ interface User {
     id: string;
     email: string;
     username: string;
-    roles: Record<string, string[]>;
+    roles: UserRoles;
     fid: string;
     pid: string | null;
 }
@@ -220,12 +231,21 @@ interface CashierOutput {
     id: number;
     email: string;
 }
+interface CashierListParams {
+    page?: number;
+    size?: number;
+}
 type PEMStatus = 'NEW' | 'REGISTERED' | 'ACTIVE' | 'ONLINE' | 'OFFLINE' | 'DISCARDED';
 interface Address {
     street_address: string;
     zip_code: string;
     city: string;
     province: string;
+}
+interface PointOfSaleListParams {
+    status?: PEMStatus;
+    page?: number;
+    size?: number;
 }
 interface PointOfSaleOutput {
     serial_number: string;
@@ -308,6 +328,10 @@ interface ReceiptReturnOrVoidViaPEMInput {
     lottery_code?: string;
 }
 type ReceiptProofType = 'POS' | 'VR' | 'ND';
+interface ReceiptListParams {
+    page?: number;
+    size?: number;
+}
 interface ReceiptReturnOrVoidWithProofInput {
     items: ReceiptItem[];
     proof: ReceiptProofType;
@@ -329,12 +353,19 @@ interface CashRegisterDetailedOutput {
     mtls_certificate: string;
     private_key: string;
 }
+interface CashRegisterListParams {
+    page?: number;
+    size?: number;
+}
 interface MerchantOutput {
     uuid: string;
     fiscal_id: string;
     name: string;
     email: string;
     address?: Address;
+}
+interface MerchantsParams {
+    page?: number;
 }
 interface MerchantCreateInput {
     fiscal_id: string;
@@ -428,10 +459,7 @@ declare class ReceiptsAPI {
     /**
      * Get a list of electronic receipts
      */
-    list(params?: {
-        page?: number;
-        size?: number;
-    }): Promise<Page<ReceiptOutput>>;
+    list(params?: ReceiptListParams): Promise<Page<ReceiptOutput>>;
     /**
      * Get an electronic receipt by UUID
      */
@@ -467,10 +495,7 @@ declare class CashiersAPI {
     /**
      * Read cashiers with pagination
      */
-    list(params?: {
-        page?: number;
-        size?: number;
-    }): Promise<Page<CashierOutput>>;
+    list(params?: CashierListParams): Promise<Page<CashierOutput>>;
     /**
      * Create a new cashier
      */
@@ -482,11 +507,11 @@ declare class CashiersAPI {
     /**
      * Get a specific cashier by ID
      */
-    get(cashierId: number): Promise<CashierOutput>;
+    get(cashierId: string): Promise<CashierOutput>;
     /**
      * Delete a cashier
      */
-    delete(cashierId: number): Promise<void>;
+    delete(cashierId: string): Promise<void>;
 }
 
 /**
@@ -498,11 +523,7 @@ declare class PointOfSalesAPI {
     /**
      * Retrieve Point of Sales (PEMs)
      */
-    list(params?: {
-        status?: PEMStatus;
-        page?: number;
-        size?: number;
-    }): Promise<Page<PointOfSaleOutput>>;
+    list(params?: PointOfSaleListParams): Promise<Page<PointOfSaleOutput>>;
     /**
      * Get a specific Point of Sale by serial number
      */
@@ -510,19 +531,19 @@ declare class PointOfSalesAPI {
     /**
      * Close journal
      */
-    closeJournal(): Promise<any>;
+    closeJournal(): Promise<void>;
     /**
      * Trigger the activation process of a Point of Sale
      */
-    activate(serialNumber: string, activationData: ActivationRequest): Promise<any>;
+    activate(serialNumber: string, activationData: ActivationRequest): Promise<void>;
     /**
      * Create a new inactivity period
      */
-    createInactivityPeriod(serialNumber: string): Promise<any>;
+    createInactivityPeriod(serialNumber: string): Promise<void>;
     /**
      * Change the state of the Point of Sale to 'offline'
      */
-    setOffline(serialNumber: string, offlineData: PEMStatusOfflineRequest): Promise<any>;
+    setOffline(serialNumber: string, offlineData: PEMStatusOfflineRequest): Promise<void>;
 }
 
 /**
@@ -538,10 +559,7 @@ declare class CashRegistersAPI {
     /**
      * Get all cash registers for the current merchant
      */
-    list(params?: {
-        page?: number;
-        size?: number;
-    }): Promise<Page<CashRegisterBasicOutput>>;
+    list(params?: CashRegisterListParams): Promise<Page<CashRegisterBasicOutput>>;
     /**
      * Get a cash register by ID
      */
@@ -557,9 +575,7 @@ declare class MerchantsAPI {
     /**
      * Retrieve the collection of Merchant resources
      */
-    list(params?: {
-        page?: number;
-    }): Promise<MerchantOutput[]>;
+    list(params: MerchantsParams): Promise<MerchantOutput[]>;
     /**
      * Create a Merchant resource
      */

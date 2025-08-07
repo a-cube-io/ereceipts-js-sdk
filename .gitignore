@@ -424,3 +424,6 @@ type_check.py
 claude/
 tasks/
 CLAUDE.md
+
+dist
+dist/*

@@ -4,9 +4,10 @@ import {
   PointOfSaleDetailedOutput,
   ActivationRequest,
   PEMStatusOfflineRequest,
-  PEMStatus,
-  Page 
+  Page, 
+  PointOfSaleListParams
 } from './types';
+
 
 /**
  * Point of Sales API manager
@@ -17,11 +18,7 @@ export class PointOfSalesAPI {
   /**
    * Retrieve Point of Sales (PEMs)
    */
-  async list(params: { 
-    status?: PEMStatus; 
-    page?: number; 
-    size?: number;
-  } = {}): Promise<Page<PointOfSaleOutput>> {
+  async list(params: PointOfSaleListParams  = {}): Promise<Page<PointOfSaleOutput>> {
     const searchParams = new URLSearchParams();
     
     if (params.status) {
@@ -50,28 +47,28 @@ export class PointOfSalesAPI {
   /**
    * Close journal
    */
-  async closeJournal(): Promise<any> {
+  async closeJournal(): Promise<void> {
     return this.httpClient.post('/mf1/point-of-sales/close');
   }
 
   /**
    * Trigger the activation process of a Point of Sale
    */
-  async activate(serialNumber: string, activationData: ActivationRequest): Promise<any> {
+  async activate(serialNumber: string, activationData: ActivationRequest): Promise<void> {
     return this.httpClient.post(`/mf1/point-of-sales/${serialNumber}/activation`, activationData);
   }
 
   /**
    * Create a new inactivity period
    */
-  async createInactivityPeriod(serialNumber: string): Promise<any> {
+  async createInactivityPeriod(serialNumber: string): Promise<void> {
     return this.httpClient.post(`/mf1/point-of-sales/${serialNumber}/inactivity`);
   }
 
   /**
    * Change the state of the Point of Sale to 'offline'
    */
-  async setOffline(serialNumber: string, offlineData: PEMStatusOfflineRequest): Promise<any> {
+  async setOffline(serialNumber: string, offlineData: PEMStatusOfflineRequest): Promise<void> {
     return this.httpClient.post(`/mf1/point-of-sales/${serialNumber}/status/offline`, offlineData);
   }
 }
