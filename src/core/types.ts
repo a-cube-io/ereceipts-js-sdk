@@ -2,6 +2,8 @@
  * Core SDK types
  */
 
+import type { UserRoles } from './roles';
+
 export type Environment = 'production' | 'development' | 'sandbox';
 
 /**
@@ -60,7 +62,7 @@ export interface User {
   id: string;
   email: string;
   username: string;
-  roles: Record<string, string[]>;
+  roles: UserRoles;
   fid: string;
   pid: string | null;
 }

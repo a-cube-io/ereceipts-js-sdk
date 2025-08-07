@@ -1,5 +1,5 @@
 import { HttpClient } from './http-client';
-import { CashierCreateInput, CashierOutput, Page } from './types';
+import { CashierCreateInput, CashierListParams, CashierOutput, Page } from './types';
 
 /**
  * Cashiers API manager
@@ -10,7 +10,7 @@ export class CashiersAPI {
   /**
    * Read cashiers with pagination
    */
-  async list(params: { page?: number; size?: number } = {}): Promise<Page<CashierOutput>> {
+  async list(params: CashierListParams = {}): Promise<Page<CashierOutput>> {
     const searchParams = new URLSearchParams();
     
     if (params.page) {
@@ -43,14 +43,14 @@ export class CashiersAPI {
   /**
    * Get a specific cashier by ID
    */
-  async get(cashierId: number): Promise<CashierOutput> {
+  async get(cashierId: string): Promise<CashierOutput> {
     return this.httpClient.get<CashierOutput>(`/mf1/cashiers/${cashierId}`);
   }
 
   /**
    * Delete a cashier
    */
-  async delete(cashierId: number): Promise<void> {
+  async delete(cashierId: string): Promise<void> {
     await this.httpClient.delete(`/mf1/cashiers/${cashierId}`);
   }
 }

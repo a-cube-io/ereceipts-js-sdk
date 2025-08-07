@@ -1,8 +1,171 @@
 import { AxiosRequestConfig, AxiosInstance } from 'axios';
+import { z } from 'zod';
+
+/**
+ * Role and Permission Management System
+ *
+ * This module provides type-safe role management with hierarchical permissions
+ * and context-based authorization for the ACube E-Receipt system.
+ */
+type BaseRole = 'ROLE_SUPPLIER' | 'ROLE_CACHIER' | 'ROLE_MERCHANT';
+type RoleContext = 'ereceipts-it.acubeapi.com';
+type RoleHierarchy = Record<BaseRole, BaseRole[]>;
+type UserRoles = Partial<Record<RoleContext, BaseRole[]>>;
+/**
+ * Role hierarchy definition based on your system
+ * Each role inherits permissions from roles listed in its array
+ */
+declare const ROLE_HIERARCHY: RoleHierarchy;
+/**
+ * Default context for e-receipt operations
+ */
+declare const DEFAULT_CONTEXT: RoleContext;
+/**
+ * Role permission levels (ascending order)
+ */
+declare enum RoleLevel {
+    SUPPLIER = 1,
+    CACHIER = 2,
+    MERCHANT = 3
+}
+/**
+ * Map roles to their permission levels
+ */
+declare const ROLE_LEVELS: Record<BaseRole, RoleLevel>;
+/**
+ * Get all roles that a user has (including inherited roles)
+ * @param userRoles - User's role assignments by context
+ * @param context - Context to check roles for
+ * @returns Array of all effective roles (direct + inherited)
+ */
+declare function getEffectiveRoles(userRoles: UserRoles, context?: RoleContext): BaseRole[];
+/**
+ * Get all roles inherited from a specific role
+ * @param role - Role to get inheritance for
+ * @returns Array of inherited roles
+ */
+declare function getInheritedRoles(role: BaseRole): BaseRole[];
+/**
+ * Check if user has a specific role in a context
+ * @param userRoles - User's role assignments
+ * @param role - Role to check for
+ * @param context - Context to check in
+ * @returns True if user has the role (direct or inherited)
+ */
+declare function hasRole(userRoles: UserRoles, role: BaseRole, context?: RoleContext): boolean;
+/**
+ * Check if user has any of the specified roles
+ * @param userRoles - User's role assignments
+ * @param roles - Array of roles to check for
+ * @param context - Context to check in
+ * @returns True if user has any of the roles
+ */
+declare function hasAnyRole(userRoles: UserRoles, roles: BaseRole[], context?: RoleContext): boolean;
+/**
+ * Check if user has all of the specified roles
+ * @param userRoles - User's role assignments
+ * @param roles - Array of roles to check for
+ * @param context - Context to check in
+ * @returns True if user has all of the roles
+ */
+declare function hasAllRoles(userRoles: UserRoles, roles: BaseRole[], context?: RoleContext): boolean;
+/**
+ * Check if user has access to a specific context
+ * @param userRoles - User's role assignments
+ * @param context - Context to check
+ * @returns True if user has any roles in the context
+ */
+declare function hasContext(userRoles: UserRoles, context: RoleContext): boolean;
+/**
+ * Get all contexts that a user has access to
+ * @param userRoles - User's role assignments
+ * @returns Array of contexts the user has access to
+ */
+declare function getUserContexts(userRoles: UserRoles): RoleContext[];
+/**
+ * Check if user has minimum role level in a context
+ * @param userRoles - User's role assignments
+ * @param minimumLevel - Minimum role level required
+ * @param context - Context to check in
+ * @returns True if user has at least the minimum role level
+ */
+declare function hasMinimumRoleLevel(userRoles: UserRoles, minimumLevel: RoleLevel, context?: RoleContext): boolean;
+/**
+ * Get the highest role level for a user in a context
+ * @param userRoles - User's role assignments
+ * @param context - Context to check in
+ * @returns Highest role level or null if no roles
+ */
+declare function getHighestRoleLevel(userRoles: UserRoles, context?: RoleContext): RoleLevel | null;
+/**
+ * Check if user can perform an action that requires specific roles
+ * @param userRoles - User's role assignments
+ * @param requiredRoles - Roles required for the action
+ * @param context - Context for the action
+ * @param requireAll - Whether all roles are required (default: false - any role)
+ * @returns True if user can perform the action
+ */
+declare function canPerformAction(userRoles: UserRoles, requiredRoles: BaseRole[], context?: RoleContext, requireAll?: boolean): boolean;
+/**
+ * Create a role checker function for a specific context
+ * @param context - Context to create checker for
+ * @returns Function that checks roles in the specified context
+ */
+declare function createContextRoleChecker(context: RoleContext): {
+    hasRole: (userRoles: UserRoles, role: BaseRole) => boolean;
+    hasAnyRole: (userRoles: UserRoles, roles: BaseRole[]) => boolean;
+    hasAllRoles: (userRoles: UserRoles, roles: BaseRole[]) => boolean;
+    hasMinimumLevel: (userRoles: UserRoles, level: RoleLevel) => boolean;
+    canPerformAction: (userRoles: UserRoles, requiredRoles: BaseRole[], requireAll?: boolean) => boolean;
+};
+/**
+ * Role-based authorization decorator for methods
+ */
+declare function requiresRole(roles: BaseRole[], context?: RoleContext): (_target: any, _propertyName: string, descriptor: PropertyDescriptor) => PropertyDescriptor;
+/**
+ * Utility type for components that need role checking
+ */
+interface RoleAware {
+    roles: UserRoles;
+}
+/**
+ * Type guard to check if an object has role information
+ */
+declare function hasRoleInformation(obj: any): obj is RoleAware;
+/**
+ * Parse roles from the legacy format to the new structured format
+ * @param legacyRoles - Roles in Record<string, string[]> format
+ * @returns Roles in UserRoles format
+ */
+declare function parseLegacyRoles(legacyRoles: Record<string, string[]>): UserRoles;
+/**
+ * Convert UserRoles back to legacy format for API compatibility
+ * @param userRoles - Roles in UserRoles format
+ * @returns Roles in Record<string, string[]> format
+ */
+declare function toLegacyRoles(userRoles: UserRoles): Record<string, string[]>;
+/**
+ * Default role checker for the e-receipts context
+ */
+declare const ERoleChecker: {
+    hasRole: (userRoles: UserRoles, role: BaseRole) => boolean;
+    hasAnyRole: (userRoles: UserRoles, roles: BaseRole[]) => boolean;
+    hasAllRoles: (userRoles: UserRoles, roles: BaseRole[]) => boolean;
+    hasMinimumLevel: (userRoles: UserRoles, level: RoleLevel) => boolean;
+    canPerformAction: (userRoles: UserRoles, requiredRoles: BaseRole[], requireAll?: boolean) => boolean;
+};
+/**
+ * Common role combinations for quick checking
+ */
+declare const RoleGroups: {
+    readonly CASHIER_ROLES: BaseRole[];
+    readonly ALL_ROLES: BaseRole[];
+};
 
 /**
  * Core SDK types
  */
+
 type Environment = 'production' | 'development' | 'sandbox';
 /**
  * SDK Configuration
@@ -55,7 +218,7 @@ interface User {
     id: string;
     email: string;
     username: string;
-    roles: Record<string, string[]>;
+    roles: UserRoles;
     fid: string;
     pid: string | null;
 }
@@ -342,12 +505,21 @@ interface CashierOutput {
     id: number;
     email: string;
 }
+interface CashierListParams {
+    page?: number;
+    size?: number;
+}
 type PEMStatus = 'NEW' | 'REGISTERED' | 'ACTIVE' | 'ONLINE' | 'OFFLINE' | 'DISCARDED';
 interface Address {
     street_address: string;
     zip_code: string;
     city: string;
     province: string;
+}
+interface PointOfSaleListParams {
+    status?: PEMStatus;
+    page?: number;
+    size?: number;
 }
 interface PointOfSaleOutput {
     serial_number: string;
@@ -370,6 +542,7 @@ interface PEMStatusOfflineRequest {
 type ReceiptType = 'sale' | 'return' | 'void';
 type GoodOrService = 'B' | 'S';
 type VatRateCode = '4' | '5' | '10' | '22' | '2' | '6.4' | '7' | '7.3' | '7.5' | '7.65' | '7.95' | '8.3' | '8.5' | '8.8' | '9.5' | '12.3' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6';
+declare const VatRateCodeOptions: VatRateCode[];
 interface ReceiptItem {
     good_or_service?: GoodOrService;
     quantity: string;
@@ -430,6 +603,10 @@ interface ReceiptReturnOrVoidViaPEMInput {
     lottery_code?: string;
 }
 type ReceiptProofType = 'POS' | 'VR' | 'ND';
+interface ReceiptListParams {
+    page?: number;
+    size?: number;
+}
 interface ReceiptReturnOrVoidWithProofInput {
     items: ReceiptItem[];
     proof: ReceiptProofType;
@@ -451,12 +628,19 @@ interface CashRegisterDetailedOutput {
     mtls_certificate: string;
     private_key: string;
 }
+interface CashRegisterListParams {
+    page?: number;
+    size?: number;
+}
 interface MerchantOutput {
     uuid: string;
     fiscal_id: string;
     name: string;
     email: string;
     address?: Address;
+}
+interface MerchantsParams {
+    page?: number;
 }
 interface MerchantCreateInput {
     fiscal_id: string;
@@ -565,10 +749,7 @@ declare class ReceiptsAPI {
     /**
      * Get a list of electronic receipts
      */
-    list(params?: {
-        page?: number;
-        size?: number;
-    }): Promise<Page<ReceiptOutput>>;
+    list(params?: ReceiptListParams): Promise<Page<ReceiptOutput>>;
     /**
      * Get an electronic receipt by UUID
      */
@@ -604,10 +785,7 @@ declare class CashiersAPI {
     /**
      * Read cashiers with pagination
      */
-    list(params?: {
-        page?: number;
-        size?: number;
-    }): Promise<Page<CashierOutput>>;
+    list(params?: CashierListParams): Promise<Page<CashierOutput>>;
     /**
      * Create a new cashier
      */
@@ -619,11 +797,11 @@ declare class CashiersAPI {
     /**
      * Get a specific cashier by ID
      */
-    get(cashierId: number): Promise<CashierOutput>;
+    get(cashierId: string): Promise<CashierOutput>;
     /**
      * Delete a cashier
      */
-    delete(cashierId: number): Promise<void>;
+    delete(cashierId: string): Promise<void>;
 }
 
 /**
@@ -635,11 +813,7 @@ declare class PointOfSalesAPI {
     /**
      * Retrieve Point of Sales (PEMs)
      */
-    list(params?: {
-        status?: PEMStatus;
-        page?: number;
-        size?: number;
-    }): Promise<Page<PointOfSaleOutput>>;
+    list(params?: PointOfSaleListParams): Promise<Page<PointOfSaleOutput>>;
     /**
      * Get a specific Point of Sale by serial number
      */
@@ -647,19 +821,19 @@ declare class PointOfSalesAPI {
     /**
      * Close journal
      */
-    closeJournal(): Promise<any>;
+    closeJournal(): Promise<void>;
     /**
      * Trigger the activation process of a Point of Sale
      */
-    activate(serialNumber: string, activationData: ActivationRequest): Promise<any>;
+    activate(serialNumber: string, activationData: ActivationRequest): Promise<void>;
     /**
      * Create a new inactivity period
      */
-    createInactivityPeriod(serialNumber: string): Promise<any>;
+    createInactivityPeriod(serialNumber: string): Promise<void>;
     /**
      * Change the state of the Point of Sale to 'offline'
      */
-    setOffline(serialNumber: string, offlineData: PEMStatusOfflineRequest): Promise<any>;
+    setOffline(serialNumber: string, offlineData: PEMStatusOfflineRequest): Promise<void>;
 }
 
 /**
@@ -675,10 +849,7 @@ declare class CashRegistersAPI {
     /**
      * Get all cash registers for the current merchant
      */
-    list(params?: {
-        page?: number;
-        size?: number;
-    }): Promise<Page<CashRegisterBasicOutput>>;
+    list(params?: CashRegisterListParams): Promise<Page<CashRegisterBasicOutput>>;
     /**
      * Get a cash register by ID
      */
@@ -694,9 +865,7 @@ declare class MerchantsAPI {
     /**
      * Retrieve the collection of Merchant resources
      */
-    list(params?: {
-        page?: number;
-    }): Promise<MerchantOutput[]>;
+    list(params: MerchantsParams): Promise<MerchantOutput[]>;
     /**
      * Create a Merchant resource
      */
@@ -1158,5 +1327,591 @@ declare class ACubeSDK {
  */
 declare function createACubeSDK(config: SDKConfig, customAdapters?: PlatformAdapters, events?: SDKEvents): Promise<ACubeSDK>;
 
-export { ACubeSDK, ACubeSDKError, APIClient, AuthManager, CashRegistersAPI, CashiersAPI, ConfigManager, HttpClient, MerchantsAPI, OfflineManager, OperationQueue, PemsAPI, PointOfSalesAPI, ReceiptsAPI, SyncManager, createACubeSDK, createACubeSDK as default, detectPlatform, loadPlatformAdapters };
-export type { APIError, ActivationRequest, Address, AuthCredentials, AuthEvents, BatchSyncResult, CashRegisterBasicOutput, CashRegisterCreate, CashRegisterDetailedOutput, CashierCreateInput, CashierOutput, Environment, ErrorModel, GoodOrService, HTTPValidationError, INetworkMonitor, ISecureStorage, IStorage, JWTPayload, MerchantCreateInput, MerchantOutput, MerchantUpdateInput, NetworkInfo, OperationStatus, OperationType, PEMStatus, PEMStatusOfflineRequest, Page, PemCertificatesOutput, PemCreateInput, PemCreateOutput, PemData, Platform, PlatformAdapters, PlatformInfo, PointOfSaleDetailedOutput, PointOfSaleOutput, QueueConfig, QueueEvents, QueuedOperation, ReceiptDetailsOutput, ReceiptInput, ReceiptItem, ReceiptOutput, ReceiptProofType, ReceiptReturnOrVoidViaPEMInput, ReceiptReturnOrVoidWithProofInput, ReceiptType, ResourceType, SDKConfig, SDKError, SDKEvents, StoredTokenData, SyncResult, TokenResponse, User, ValidationError, VatRateCode };
+declare const VAT_RATE_CODE_OPTIONS: readonly ["4", "5", "10", "22", "2", "6.4", "7", "7.3", "7.5", "7.65", "7.95", "8.3", "8.5", "8.8", "9.5", "12.3", "N1", "N2", "N3", "N4", "N5", "N6"];
+declare const GOOD_OR_SERVICE_OPTIONS: readonly ["B", "S"];
+declare const RECEIPT_PROOF_TYPE_OPTIONS: readonly ["POS", "VR", "ND"];
+declare const VatRateCodeSchema: z.ZodEnum<["4", "5", "10", "22", "2", "6.4", "7", "7.3", "7.5", "7.65", "7.95", "8.3", "8.5", "8.8", "9.5", "12.3", "N1", "N2", "N3", "N4", "N5", "N6"]>;
+declare const GoodOrServiceSchema: z.ZodEnum<["B", "S"]>;
+declare const ReceiptProofTypeSchema: z.ZodEnum<["POS", "VR", "ND"]>;
+declare const ReceiptItemSchema: z.ZodObject<{
+    good_or_service: z.ZodOptional<z.ZodEnum<["B", "S"]>>;
+    quantity: z.ZodString;
+    description: z.ZodString;
+    unit_price: z.ZodString;
+    vat_rate_code: z.ZodOptional<z.ZodEnum<["4", "5", "10", "22", "2", "6.4", "7", "7.3", "7.5", "7.65", "7.95", "8.3", "8.5", "8.8", "9.5", "12.3", "N1", "N2", "N3", "N4", "N5", "N6"]>>;
+    simplified_vat_allocation: z.ZodOptional<z.ZodBoolean>;
+    discount: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    is_down_payment_or_voucher_redemption: z.ZodOptional<z.ZodBoolean>;
+    complimentary: z.ZodOptional<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    quantity: string;
+    description: string;
+    unit_price: string;
+    good_or_service?: "B" | "S" | undefined;
+    vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+    simplified_vat_allocation?: boolean | undefined;
+    discount?: string | null | undefined;
+    is_down_payment_or_voucher_redemption?: boolean | undefined;
+    complimentary?: boolean | undefined;
+}, {
+    quantity: string;
+    description: string;
+    unit_price: string;
+    good_or_service?: "B" | "S" | undefined;
+    vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+    simplified_vat_allocation?: boolean | undefined;
+    discount?: string | null | undefined;
+    is_down_payment_or_voucher_redemption?: boolean | undefined;
+    complimentary?: boolean | undefined;
+}>;
+declare const ReceiptInputSchema: z.ZodEffects<z.ZodObject<{
+    items: z.ZodArray<z.ZodObject<{
+        good_or_service: z.ZodOptional<z.ZodEnum<["B", "S"]>>;
+        quantity: z.ZodString;
+        description: z.ZodString;
+        unit_price: z.ZodString;
+        vat_rate_code: z.ZodOptional<z.ZodEnum<["4", "5", "10", "22", "2", "6.4", "7", "7.3", "7.5", "7.65", "7.95", "8.3", "8.5", "8.8", "9.5", "12.3", "N1", "N2", "N3", "N4", "N5", "N6"]>>;
+        simplified_vat_allocation: z.ZodOptional<z.ZodBoolean>;
+        discount: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        is_down_payment_or_voucher_redemption: z.ZodOptional<z.ZodBoolean>;
+        complimentary: z.ZodOptional<z.ZodBoolean>;
+    }, "strip", z.ZodTypeAny, {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }, {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }>, "many">;
+    customer_tax_code: z.ZodOptional<z.ZodString>;
+    customer_lottery_code: z.ZodOptional<z.ZodString>;
+    discount: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    invoice_issuing: z.ZodOptional<z.ZodBoolean>;
+    uncollected_dcr_to_ssn: z.ZodOptional<z.ZodBoolean>;
+    services_uncollected_amount: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    goods_uncollected_amount: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    cash_payment_amount: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    electronic_payment_amount: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    ticket_restaurant_payment_amount: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    ticket_restaurant_quantity: z.ZodOptional<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    items: {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }[];
+    discount?: string | null | undefined;
+    customer_tax_code?: string | undefined;
+    customer_lottery_code?: string | undefined;
+    invoice_issuing?: boolean | undefined;
+    uncollected_dcr_to_ssn?: boolean | undefined;
+    services_uncollected_amount?: string | null | undefined;
+    goods_uncollected_amount?: string | null | undefined;
+    cash_payment_amount?: string | null | undefined;
+    electronic_payment_amount?: string | null | undefined;
+    ticket_restaurant_payment_amount?: string | null | undefined;
+    ticket_restaurant_quantity?: number | undefined;
+}, {
+    items: {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }[];
+    discount?: string | null | undefined;
+    customer_tax_code?: string | undefined;
+    customer_lottery_code?: string | undefined;
+    invoice_issuing?: boolean | undefined;
+    uncollected_dcr_to_ssn?: boolean | undefined;
+    services_uncollected_amount?: string | null | undefined;
+    goods_uncollected_amount?: string | null | undefined;
+    cash_payment_amount?: string | null | undefined;
+    electronic_payment_amount?: string | null | undefined;
+    ticket_restaurant_payment_amount?: string | null | undefined;
+    ticket_restaurant_quantity?: number | undefined;
+}>, {
+    items: {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }[];
+    discount?: string | null | undefined;
+    customer_tax_code?: string | undefined;
+    customer_lottery_code?: string | undefined;
+    invoice_issuing?: boolean | undefined;
+    uncollected_dcr_to_ssn?: boolean | undefined;
+    services_uncollected_amount?: string | null | undefined;
+    goods_uncollected_amount?: string | null | undefined;
+    cash_payment_amount?: string | null | undefined;
+    electronic_payment_amount?: string | null | undefined;
+    ticket_restaurant_payment_amount?: string | null | undefined;
+    ticket_restaurant_quantity?: number | undefined;
+}, {
+    items: {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }[];
+    discount?: string | null | undefined;
+    customer_tax_code?: string | undefined;
+    customer_lottery_code?: string | undefined;
+    invoice_issuing?: boolean | undefined;
+    uncollected_dcr_to_ssn?: boolean | undefined;
+    services_uncollected_amount?: string | null | undefined;
+    goods_uncollected_amount?: string | null | undefined;
+    cash_payment_amount?: string | null | undefined;
+    electronic_payment_amount?: string | null | undefined;
+    ticket_restaurant_payment_amount?: string | null | undefined;
+    ticket_restaurant_quantity?: number | undefined;
+}>;
+declare const ReceiptReturnOrVoidViaPEMInputSchema: z.ZodObject<{
+    pem_id: z.ZodOptional<z.ZodString>;
+    items: z.ZodArray<z.ZodObject<{
+        good_or_service: z.ZodOptional<z.ZodEnum<["B", "S"]>>;
+        quantity: z.ZodString;
+        description: z.ZodString;
+        unit_price: z.ZodString;
+        vat_rate_code: z.ZodOptional<z.ZodEnum<["4", "5", "10", "22", "2", "6.4", "7", "7.3", "7.5", "7.65", "7.95", "8.3", "8.5", "8.8", "9.5", "12.3", "N1", "N2", "N3", "N4", "N5", "N6"]>>;
+        simplified_vat_allocation: z.ZodOptional<z.ZodBoolean>;
+        discount: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        is_down_payment_or_voucher_redemption: z.ZodOptional<z.ZodBoolean>;
+        complimentary: z.ZodOptional<z.ZodBoolean>;
+    }, "strip", z.ZodTypeAny, {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }, {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }>, "many">;
+    document_number: z.ZodString;
+    document_date: z.ZodOptional<z.ZodString>;
+    lottery_code: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    items: {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }[];
+    document_number: string;
+    pem_id?: string | undefined;
+    document_date?: string | undefined;
+    lottery_code?: string | undefined;
+}, {
+    items: {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }[];
+    document_number: string;
+    pem_id?: string | undefined;
+    document_date?: string | undefined;
+    lottery_code?: string | undefined;
+}>;
+declare const ReceiptReturnOrVoidWithProofInputSchema: z.ZodObject<{
+    items: z.ZodArray<z.ZodObject<{
+        good_or_service: z.ZodOptional<z.ZodEnum<["B", "S"]>>;
+        quantity: z.ZodString;
+        description: z.ZodString;
+        unit_price: z.ZodString;
+        vat_rate_code: z.ZodOptional<z.ZodEnum<["4", "5", "10", "22", "2", "6.4", "7", "7.3", "7.5", "7.65", "7.95", "8.3", "8.5", "8.8", "9.5", "12.3", "N1", "N2", "N3", "N4", "N5", "N6"]>>;
+        simplified_vat_allocation: z.ZodOptional<z.ZodBoolean>;
+        discount: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        is_down_payment_or_voucher_redemption: z.ZodOptional<z.ZodBoolean>;
+        complimentary: z.ZodOptional<z.ZodBoolean>;
+    }, "strip", z.ZodTypeAny, {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }, {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }>, "many">;
+    proof: z.ZodEnum<["POS", "VR", "ND"]>;
+    document_datetime: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    items: {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }[];
+    proof: "POS" | "VR" | "ND";
+    document_datetime: string;
+}, {
+    items: {
+        quantity: string;
+        description: string;
+        unit_price: string;
+        good_or_service?: "B" | "S" | undefined;
+        vat_rate_code?: "2" | "4" | "5" | "10" | "22" | "6.4" | "7" | "7.3" | "7.5" | "7.65" | "7.95" | "8.3" | "8.5" | "8.8" | "9.5" | "12.3" | "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | undefined;
+        simplified_vat_allocation?: boolean | undefined;
+        discount?: string | null | undefined;
+        is_down_payment_or_voucher_redemption?: boolean | undefined;
+        complimentary?: boolean | undefined;
+    }[];
+    proof: "POS" | "VR" | "ND";
+    document_datetime: string;
+}>;
+type ReceiptItemType = z.infer<typeof ReceiptItemSchema>;
+type ReceiptInputType = z.infer<typeof ReceiptInputSchema>;
+type ReceiptReturnOrVoidViaPEMInputType = z.infer<typeof ReceiptReturnOrVoidViaPEMInputSchema>;
+type ReceiptReturnOrVoidWithProofInputType = z.infer<typeof ReceiptReturnOrVoidWithProofInputSchema>;
+type VatRateCodeType = z.infer<typeof VatRateCodeSchema>;
+type GoodOrServiceType = z.infer<typeof GoodOrServiceSchema>;
+type ReceiptProofTypeType = z.infer<typeof ReceiptProofTypeSchema>;
+
+declare const CashierCreateInputSchema: z.ZodObject<{
+    email: z.ZodString;
+    password: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    email: string;
+    password: string;
+}, {
+    email: string;
+    password: string;
+}>;
+type CashierCreateInputType = z.infer<typeof CashierCreateInputSchema>;
+
+declare const PEM_STATUS_OPTIONS: readonly ["NEW", "REGISTERED", "ACTIVE", "ONLINE", "OFFLINE", "DISCARDED"];
+declare const AddressSchema: z.ZodObject<{
+    street_address: z.ZodString;
+    zip_code: z.ZodString;
+    city: z.ZodString;
+    province: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    street_address: string;
+    zip_code: string;
+    city: string;
+    province: string;
+}, {
+    street_address: string;
+    zip_code: string;
+    city: string;
+    province: string;
+}>;
+declare const PEMStatusSchema: z.ZodEnum<["NEW", "REGISTERED", "ACTIVE", "ONLINE", "OFFLINE", "DISCARDED"]>;
+declare const ActivationRequestSchema: z.ZodObject<{
+    registration_key: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    registration_key: string;
+}, {
+    registration_key: string;
+}>;
+declare const PEMStatusOfflineRequestSchema: z.ZodObject<{
+    timestamp: z.ZodEffects<z.ZodString, string, string>;
+    reason: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    timestamp: string;
+    reason: string;
+}, {
+    timestamp: string;
+    reason: string;
+}>;
+type AddressType = z.infer<typeof AddressSchema>;
+type PEMStatusType = z.infer<typeof PEMStatusSchema>;
+type ActivationRequestType = z.infer<typeof ActivationRequestSchema>;
+type PEMStatusOfflineRequestType = z.infer<typeof PEMStatusOfflineRequestSchema>;
+
+declare const CashRegisterCreateSchema: z.ZodObject<{
+    pem_serial_number: z.ZodString;
+    name: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    pem_serial_number: string;
+    name: string;
+}, {
+    pem_serial_number: string;
+    name: string;
+}>;
+type CashRegisterCreateType = z.infer<typeof CashRegisterCreateSchema>;
+
+declare const MerchantCreateInputSchema: z.ZodObject<{
+    fiscal_id: z.ZodString;
+    name: z.ZodString;
+    email: z.ZodString;
+    password: z.ZodString;
+    address: z.ZodOptional<z.ZodObject<{
+        street_address: z.ZodString;
+        zip_code: z.ZodString;
+        city: z.ZodString;
+        province: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        street_address: string;
+        zip_code: string;
+        city: string;
+        province: string;
+    }, {
+        street_address: string;
+        zip_code: string;
+        city: string;
+        province: string;
+    }>>;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    fiscal_id: string;
+    email: string;
+    password: string;
+    address?: {
+        street_address: string;
+        zip_code: string;
+        city: string;
+        province: string;
+    } | undefined;
+}, {
+    name: string;
+    fiscal_id: string;
+    email: string;
+    password: string;
+    address?: {
+        street_address: string;
+        zip_code: string;
+        city: string;
+        province: string;
+    } | undefined;
+}>;
+declare const MerchantUpdateInputSchema: z.ZodObject<{
+    name: z.ZodString;
+    address: z.ZodOptional<z.ZodObject<{
+        street_address: z.ZodString;
+        zip_code: z.ZodString;
+        city: z.ZodString;
+        province: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        street_address: string;
+        zip_code: string;
+        city: string;
+        province: string;
+    }, {
+        street_address: string;
+        zip_code: string;
+        city: string;
+        province: string;
+    }>>;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    address?: {
+        street_address: string;
+        zip_code: string;
+        city: string;
+        province: string;
+    } | undefined;
+}, {
+    name: string;
+    address?: {
+        street_address: string;
+        zip_code: string;
+        city: string;
+        province: string;
+    } | undefined;
+}>;
+type MerchantCreateInputType = z.infer<typeof MerchantCreateInputSchema>;
+type MerchantUpdateInputType = z.infer<typeof MerchantUpdateInputSchema>;
+
+declare const PEM_TYPE_OPTIONS: readonly ["AP", "SP", "TM", "PV"];
+declare const PemDataSchema: z.ZodObject<{
+    version: z.ZodString;
+    type: z.ZodEnum<["AP", "SP", "TM", "PV"]>;
+}, "strip", z.ZodTypeAny, {
+    type: "AP" | "SP" | "TM" | "PV";
+    version: string;
+}, {
+    type: "AP" | "SP" | "TM" | "PV";
+    version: string;
+}>;
+declare const PemCreateInputSchema: z.ZodObject<{
+    merchant_uuid: z.ZodString;
+    address: z.ZodOptional<z.ZodObject<{
+        street_address: z.ZodString;
+        zip_code: z.ZodString;
+        city: z.ZodString;
+        province: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        street_address: string;
+        zip_code: string;
+        city: string;
+        province: string;
+    }, {
+        street_address: string;
+        zip_code: string;
+        city: string;
+        province: string;
+    }>>;
+    external_pem_data: z.ZodOptional<z.ZodObject<{
+        version: z.ZodString;
+        type: z.ZodEnum<["AP", "SP", "TM", "PV"]>;
+    }, "strip", z.ZodTypeAny, {
+        type: "AP" | "SP" | "TM" | "PV";
+        version: string;
+    }, {
+        type: "AP" | "SP" | "TM" | "PV";
+        version: string;
+    }>>;
+}, "strip", z.ZodTypeAny, {
+    merchant_uuid: string;
+    address?: {
+        street_address: string;
+        zip_code: string;
+        city: string;
+        province: string;
+    } | undefined;
+    external_pem_data?: {
+        type: "AP" | "SP" | "TM" | "PV";
+        version: string;
+    } | undefined;
+}, {
+    merchant_uuid: string;
+    address?: {
+        street_address: string;
+        zip_code: string;
+        city: string;
+        province: string;
+    } | undefined;
+    external_pem_data?: {
+        type: "AP" | "SP" | "TM" | "PV";
+        version: string;
+    } | undefined;
+}>;
+type PemDataType = z.infer<typeof PemDataSchema>;
+type PemCreateInputType = z.infer<typeof PemCreateInputSchema>;
+
+/**
+ * Zod validation schemas for ACube E-Receipt API
+ *
+ * This module exports all validation schemas and types for API input DTOs.
+ * Use these schemas to validate user input before sending requests to the API.
+ *
+ * @example
+ * ```typescript
+ * import { ReceiptInputSchema, ReceiptInputType } from '@/validations/api';
+ *
+ * // Validate input data
+ * const result = ReceiptInputSchema.safeParse(userInput);
+ * if (!result.success) {
+ *   console.error('Validation errors:', result.error.errors);
+ * } else {
+ *   // Use validated data
+ *   const validatedData: ReceiptInputType = result.data;
+ * }
+ * ```
+ */
+
+declare const ValidationMessages: {
+    readonly fieldIsRequired: "This field is required";
+    readonly arrayMin1: "At least one item is required";
+    readonly invalidEmail: "Please enter a valid email address";
+    readonly passwordMinLength: "Password must be at least 8 characters long";
+    readonly passwordComplexity: "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character";
+    readonly invalidZipCode: "Please enter a valid 5-digit zip code";
+    readonly provinceMinLength: "Province code must be 2 characters";
+    readonly provinceMaxLength: "Province code must be 2 characters";
+    readonly invalidDateFormat: "Please enter a valid date";
+    readonly nameMaxLength: "Name is too long";
+    readonly invalidFiscalId: "Please enter a valid Italian fiscal ID (Codice Fiscale or Partita IVA)";
+    readonly invalidUuid: "Please enter a valid UUID";
+    readonly invalidPemType: "PEM type must be one of: AP, SP, TM, PV";
+};
+
+declare const validateInput: <T>(schema: z.ZodSchema<T>, data: unknown) => {
+    success: boolean;
+    errors: {
+        field: any;
+        message: any;
+        code: any;
+    }[];
+    data: null;
+} | {
+    success: boolean;
+    errors: never[];
+    data: T;
+};
+interface ValidationResult<T> {
+    success: boolean;
+    errors: Array<{
+        field: string;
+        message: string;
+        code: string;
+    }>;
+    data: T | null;
+}
+
+export { ACubeSDK, ACubeSDKError, APIClient, ActivationRequestSchema, AddressSchema, AuthManager, CashRegisterCreateSchema, CashRegistersAPI, CashierCreateInputSchema, CashiersAPI, ConfigManager, DEFAULT_CONTEXT, ERoleChecker, GOOD_OR_SERVICE_OPTIONS, GoodOrServiceSchema, HttpClient, MerchantCreateInputSchema, MerchantUpdateInputSchema, MerchantsAPI, OfflineManager, OperationQueue, PEMStatusOfflineRequestSchema, PEMStatusSchema, PEM_STATUS_OPTIONS, PEM_TYPE_OPTIONS, PemCreateInputSchema, PemDataSchema, PemsAPI, PointOfSalesAPI, RECEIPT_PROOF_TYPE_OPTIONS, ROLE_HIERARCHY, ROLE_LEVELS, ReceiptInputSchema, ReceiptItemSchema, ReceiptProofTypeSchema, ReceiptReturnOrVoidViaPEMInputSchema, ReceiptReturnOrVoidWithProofInputSchema, ReceiptsAPI, RoleGroups, RoleLevel, SyncManager, VAT_RATE_CODE_OPTIONS, ValidationMessages, VatRateCodeOptions, VatRateCodeSchema, canPerformAction, createACubeSDK, createContextRoleChecker, createACubeSDK as default, detectPlatform, getEffectiveRoles, getHighestRoleLevel, getInheritedRoles, getUserContexts, hasAllRoles, hasAnyRole, hasContext, hasMinimumRoleLevel, hasRole, hasRoleInformation, loadPlatformAdapters, parseLegacyRoles, requiresRole, toLegacyRoles, validateInput };
+export type { APIError, ActivationRequest, ActivationRequestType, Address, AddressType, AuthCredentials, AuthEvents, BaseRole, BatchSyncResult, CashRegisterBasicOutput, CashRegisterCreate, CashRegisterCreateType, CashRegisterDetailedOutput, CashRegisterListParams, CashierCreateInput, CashierCreateInputType, CashierListParams, CashierOutput, Environment, ErrorModel, GoodOrService, GoodOrServiceType, HTTPValidationError, INetworkMonitor, ISecureStorage, IStorage, JWTPayload, MerchantCreateInput, MerchantCreateInputType, MerchantOutput, MerchantUpdateInput, MerchantUpdateInputType, MerchantsParams, NetworkInfo, OperationStatus, OperationType, PEMStatus, PEMStatusOfflineRequest, PEMStatusOfflineRequestType, PEMStatusType, Page, PemCertificatesOutput, PemCreateInput, PemCreateInputType, PemCreateOutput, PemData, PemDataType, Platform, PlatformAdapters, PlatformInfo, PointOfSaleDetailedOutput, PointOfSaleListParams, PointOfSaleOutput, QueueConfig, QueueEvents, QueuedOperation, ReceiptDetailsOutput, ReceiptInput, ReceiptInputType, ReceiptItem, ReceiptItemType, ReceiptListParams, ReceiptOutput, ReceiptProofType, ReceiptProofTypeType, ReceiptReturnOrVoidViaPEMInput, ReceiptReturnOrVoidViaPEMInputType, ReceiptReturnOrVoidWithProofInput, ReceiptReturnOrVoidWithProofInputType, ReceiptType, ResourceType, RoleAware, RoleContext, RoleHierarchy, SDKConfig, SDKError, SDKEvents, StoredTokenData, SyncResult, TokenResponse, User, UserRoles, ValidationError, ValidationResult, VatRateCode, VatRateCodeType };

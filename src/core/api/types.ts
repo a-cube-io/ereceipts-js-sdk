@@ -22,6 +22,11 @@ export interface CashierOutput {
   email: string;
 }
 
+export interface CashierListParams {
+  page?: number;
+  size?: number;
+}
+
 // Point of Sale types
 export type PEMStatus = 'NEW' | 'REGISTERED' | 'ACTIVE' | 'ONLINE' | 'OFFLINE' | 'DISCARDED';
 
@@ -30,6 +35,12 @@ export interface Address {
   zip_code: string;
   city: string;
   province: string;
+}
+
+export interface PointOfSaleListParams { 
+  status?: PEMStatus; 
+  page?: number; 
+  size?: number;
 }
 
 export interface PointOfSaleOutput {
@@ -129,6 +140,8 @@ export interface ReceiptReturnOrVoidViaPEMInput {
 
 export type ReceiptProofType = 'POS' | 'VR' | 'ND';
 
+
+export interface ReceiptListParams { page?: number; size?: number }
 export interface ReceiptReturnOrVoidWithProofInput {
   items: ReceiptItem[];
   proof: ReceiptProofType;
@@ -155,6 +168,8 @@ export interface CashRegisterDetailedOutput {
   private_key: string;
 }
 
+export interface CashRegisterListParams  { page?: number; size?: number }
+
 // Merchant types (MF2)
 export interface MerchantOutput {
   uuid: string;
@@ -162,6 +177,10 @@ export interface MerchantOutput {
   name: string;
   email: string;
   address?: Address;
+}
+
+export interface MerchantsParams {
+  page?: number
 }
 
 export interface MerchantCreateInput {

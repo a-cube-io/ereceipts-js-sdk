@@ -9,6 +9,7 @@ import {
   ACubeSDKError,
   JWTPayload 
 } from './types';
+import { parseLegacyRoles } from './roles';
 
 /**
  * Authentication events
@@ -106,7 +107,7 @@ export class AuthManager {
         id: jwtPayload.uid.toString(),
         email: jwtPayload.username,
         username: jwtPayload.username,
-        roles: jwtPayload.roles,
+        roles: parseLegacyRoles(jwtPayload.roles),
         fid: jwtPayload.fid,
         pid: jwtPayload.pid,
       };
@@ -192,7 +193,7 @@ export class AuthManager {
         id: jwtPayload.uid.toString(),
         email: jwtPayload.username,
         username: jwtPayload.username,
-        roles: jwtPayload.roles,
+        roles: parseLegacyRoles(jwtPayload.roles),
         fid: jwtPayload.fid,
         pid: jwtPayload.pid,
       };

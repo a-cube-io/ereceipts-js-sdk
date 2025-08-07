@@ -2,7 +2,8 @@ import { HttpClient } from './http-client';
 import { 
   MerchantOutput, 
   MerchantCreateInput, 
-  MerchantUpdateInput 
+  MerchantUpdateInput, 
+  MerchantsParams
 } from './types';
 
 /**
@@ -14,7 +15,7 @@ export class MerchantsAPI {
   /**
    * Retrieve the collection of Merchant resources
    */
-  async list(params: { page?: number } = {}): Promise<MerchantOutput[]> {
+  async list(params: MerchantsParams): Promise<MerchantOutput[]> {
     const searchParams = new URLSearchParams();
     
     if (params.page) {

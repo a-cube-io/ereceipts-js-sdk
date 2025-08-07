@@ -3,7 +3,8 @@ import {
   CashRegisterCreate, 
   CashRegisterBasicOutput, 
   CashRegisterDetailedOutput,
-  Page 
+  Page, 
+  CashRegisterListParams
 } from './types';
 
 /**
@@ -22,7 +23,7 @@ export class CashRegistersAPI {
   /**
    * Get all cash registers for the current merchant
    */
-  async list(params: { page?: number; size?: number } = {}): Promise<Page<CashRegisterBasicOutput>> {
+  async list(params: CashRegisterListParams = {}): Promise<Page<CashRegisterBasicOutput>> {
     const searchParams = new URLSearchParams();
     
     if (params.page) {
