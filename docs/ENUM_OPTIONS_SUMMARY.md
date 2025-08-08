@@ -1,6 +1,6 @@
 # Enum Options Arrays Summary
 
-This document provides a comprehensive overview of all enum options arrays available in the ACube E-Receipt validation system.
+This document provides a comprehensive overview of all enum options arrays available in the ACube E-Receipt validation system. Updated for MF1 and MF2 API compatibility.
 
 ## 📋 Available Enum Options Arrays
 
@@ -40,11 +40,11 @@ Proof types for receipt return/void operations:
 #### `PEM_STATUS_OPTIONS` (6 values)
 PEM device status values:
 ```typescript
-['NEW', 'REGISTERED', 'ACTIVE', 'ONLINE', 'OFFLINE', 'DISCARDED']
+['NEW', 'REGISTERED', 'ACTIVATED', 'ONLINE', 'OFFLINE', 'DISCARDED']
 ```
 - **NEW**: Newly created PEM
 - **REGISTERED**: Registered with fiscal authorities
-- **ACTIVE**: Active and ready for use
+- **ACTIVATED**: Activated and ready for use
 - **ONLINE**: Currently connected and operational
 - **OFFLINE**: Temporarily disconnected
 - **DISCARDED**: Permanently deactivated
@@ -58,6 +58,17 @@ PEM device types:
 - **SP**: Sistema POS (POS System)
 - **TM**: Terminale Mobile (Mobile Terminal)
 - **PV**: Punto Vendita (Point of Sale)
+
+### 🏢 MF2 API Related
+
+#### `DAILY_REPORT_STATUS_OPTIONS` (3 values)
+Daily report status values for MF2 API:
+```typescript
+['pending', 'sent', 'error']
+```
+- **pending**: Report generated but not yet sent to fiscal authorities
+- **sent**: Report successfully transmitted to fiscal authorities
+- **error**: Report transmission failed, requires attention
 
 ## 🚀 Usage Examples
 

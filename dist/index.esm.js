@@ -733,7 +733,9 @@ async function loadMemoryAdapters() {
 /**
  * Generated API types from OpenAPI spec
  */
-const VatRateCodeOptions = [];
+const VatRateCodeOptions = [
+    '4', '5', '10', '22', '2', '6.4', '7', '7.3', '7.5', '7.65', '7.95', '8.3', '8.5', '8.8', '9.5', '12.3', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6'
+];
 
 /**
  * HTTP client for API requests
@@ -1079,6 +1081,12 @@ class PointOfSalesAPI {
         return this.httpClient.get(`/mf1/point-of-sales/${serialNumber}`);
     }
     /**
+     * Update a Point of Sale
+     */
+    async update(serialNumber, updateData) {
+        return this.httpClient.put(`/mf1/point-of-sales/${serialNumber}`, updateData);
+    }
+    /**
      * Close journal
      */
     async closeJournal() {
@@ -1115,7 +1123,7 @@ class CashRegistersAPI {
      * Create a new cash register (point of sale)
      */
     async create(cashRegisterData) {
-        return this.httpClient.post('/mf1/cash-register', cashRegisterData);
+        return this.httpClient.post('/mf1/cash-registers', cashRegisterData);
     }
     /**
      * Get all cash registers for the current merchant
@@ -1128,15 +1136,18 @@ class CashRegistersAPI {
         if (params.size) {
             searchParams.append('size', params.size.toString());
         }
+        if (params.pem_id) {
+            searchParams.append('pem_id', params.pem_id);
+        }
         const query = searchParams.toString();
-        const url = query ? `/mf1/cash-register?${query}` : '/mf1/cash-register';
+        const url = query ? `/mf1/cash-registers?${query}` : '/mf1/cash-registers';
         return this.httpClient.get(url);
     }
     /**
      * Get a cash register by ID
      */
     async get(id) {
-        return this.httpClient.get(`/mf1/cash-register/${id}`);
+        return this.httpClient.get(`/mf1/cash-registers/${id}`);
     }
 }
 
@@ -1177,6 +1188,20 @@ class MerchantsAPI {
     async update(uuid, merchantData) {
         return this.httpClient.put(`/mf2/merchants/${uuid}`, merchantData);
     }
+    /**
+     * Retrieve Point of Sale resources for a specific merchant
+     */
+    async listPointOfSales(merchantUuid, params) {
+        const searchParams = new URLSearchParams();
+        if (params?.page) {
+            searchParams.append('page', params.page.toString());
+        }
+        const query = searchParams.toString();
+        const url = query
+            ? `/mf2/merchants/${merchantUuid}/point-of-sales?${query}`
+            : `/mf2/merchants/${merchantUuid}/point-of-sales`;
+        return this.httpClient.get(url);
+    }
 }
 
 /**
@@ -1193,10 +1218,151 @@ class PemsAPI {
         return this.httpClient.post('/mf2/point-of-sales', pemData);
     }
     /**
+     * Get a specific PEM by serial number
+     */
+    async get(serialNumber) {
+        return this.httpClient.get(`/mf2/point-of-sales/${serialNumber}`);
+    }
+    /**
      * Get mTLS and signing certificates for a PEM
      */
-    async getCertificates(id) {
-        return this.httpClient.get(`/mf2/point-of-sales/${id}/certificates`);
+    async getCertificates(serialNumber) {
+        return this.httpClient.get(`/mf2/point-of-sales/${serialNumber}/certificates`);
+    }
+}
+
+/**
+ * Suppliers API manager (MF2)
+ */
+class SuppliersAPI {
+    constructor(httpClient) {
+        this.httpClient = httpClient;
+    }
+    /**
+     * Retrieve the collection of Supplier resources
+     */
+    async list(params) {
+        const searchParams = new URLSearchParams();
+        if (params.page) {
+            searchParams.append('page', params.page.toString());
+        }
+        const query = searchParams.toString();
+        const url = query ? `/mf2/suppliers?${query}` : '/mf2/suppliers';
+        return this.httpClient.get(url);
+    }
+    /**
+     * Create a Supplier resource
+     */
+    async create(supplierData) {
+        return this.httpClient.post('/mf2/suppliers', supplierData);
+    }
+    /**
+     * Retrieve a Supplier resource by UUID
+     */
+    async get(uuid) {
+        return this.httpClient.get(`/mf2/suppliers/${uuid}`);
+    }
+    /**
+     * Replace the Supplier resource
+     */
+    async update(uuid, supplierData) {
+        return this.httpClient.put(`/mf2/suppliers/${uuid}`, supplierData);
+    }
+    /**
+     * Delete a Supplier resource
+     */
+    async delete(uuid) {
+        return this.httpClient.delete(`/mf2/suppliers/${uuid}`);
+    }
+}
+
+/**
+ * Daily Reports API manager (MF2)
+ */
+class DailyReportsAPI {
+    constructor(httpClient) {
+        this.httpClient = httpClient;
+    }
+    /**
+     * Retrieve the collection of Daily Report resources
+     */
+    async list(params = {}) {
+        const searchParams = new URLSearchParams();
+        if (params.pem_serial_number) {
+            searchParams.append('pem_serial_number', params.pem_serial_number);
+        }
+        if (params.date_from) {
+            searchParams.append('date_from', params.date_from);
+        }
+        if (params.date_to) {
+            searchParams.append('date_to', params.date_to);
+        }
+        if (params.status) {
+            searchParams.append('status', params.status);
+        }
+        if (params.page) {
+            searchParams.append('page', params.page.toString());
+        }
+        const query = searchParams.toString();
+        const url = query ? `/mf2/daily-reports?${query}` : '/mf2/daily-reports';
+        return this.httpClient.get(url);
+    }
+    /**
+     * Retrieve a Daily Report resource by UUID
+     */
+    async get(uuid) {
+        return this.httpClient.get(`/mf2/daily-reports/${uuid}`);
+    }
+    /**
+     * Regenerate/resend a daily report
+     */
+    async regenerate(uuid) {
+        return this.httpClient.post(`/mf2/daily-reports/${uuid}/regenerate`);
+    }
+}
+
+/**
+ * Journals API manager (MF2)
+ */
+class JournalsAPI {
+    constructor(httpClient) {
+        this.httpClient = httpClient;
+    }
+    /**
+     * Retrieve the collection of Journal resources
+     */
+    async list(params = {}) {
+        const searchParams = new URLSearchParams();
+        if (params.pem_serial_number) {
+            searchParams.append('pem_serial_number', params.pem_serial_number);
+        }
+        if (params.status) {
+            searchParams.append('status', params.status);
+        }
+        if (params.date_from) {
+            searchParams.append('date_from', params.date_from);
+        }
+        if (params.date_to) {
+            searchParams.append('date_to', params.date_to);
+        }
+        if (params.page) {
+            searchParams.append('page', params.page.toString());
+        }
+        const query = searchParams.toString();
+        const url = query ? `/mf2/journals?${query}` : '/mf2/journals';
+        return this.httpClient.get(url);
+    }
+    /**
+     * Retrieve a Journal resource by UUID
+     */
+    async get(uuid) {
+        return this.httpClient.get(`/mf2/journals/${uuid}`);
+    }
+    /**
+     * Close a journal
+     */
+    async close(uuid, closeData) {
+        return this.httpClient.post(`/mf2/journals/${uuid}/close`, closeData);
     }
 }
 
@@ -1213,6 +1379,9 @@ class APIClient {
         this.cashRegisters = new CashRegistersAPI(this.httpClient);
         this.merchants = new MerchantsAPI(this.httpClient);
         this.pems = new PemsAPI(this.httpClient);
+        this.suppliers = new SuppliersAPI(this.httpClient);
+        this.dailyReports = new DailyReportsAPI(this.httpClient);
+        this.journals = new JournalsAPI(this.httpClient);
     }
     /**
      * Set authorization header for all requests
@@ -5907,6 +6076,12 @@ const ReceiptReturnOrVoidWithProofInputSchema = objectType({
 
 // Cashier Create Input Schema
 const CashierCreateInputSchema = objectType({
+    first_name: stringType()
+        .min(1, { message: 'fieldIsRequired' })
+        .max(50, { message: 'firstNameMaxLength' }),
+    last_name: stringType()
+        .min(1, { message: 'fieldIsRequired' })
+        .max(50, { message: 'lastNameMaxLength' }),
     email: stringType()
         .min(1, { message: 'fieldIsRequired' })
         .email({ message: 'invalidEmail' }),
@@ -5918,10 +6093,11 @@ const CashierCreateInputSchema = objectType({
 });
 
 // Enum options arrays
-const PEM_STATUS_OPTIONS = ['NEW', 'REGISTERED', 'ACTIVE', 'ONLINE', 'OFFLINE', 'DISCARDED'];
+const PEM_STATUS_OPTIONS = ['NEW', 'REGISTERED', 'ACTIVATED', 'ONLINE', 'OFFLINE', 'DISCARDED'];
 // Address Schema (reusable)
 const AddressSchema = objectType({
     street_address: stringType().min(1, { message: 'fieldIsRequired' }),
+    street_number: stringType().min(1, { message: 'fieldIsRequired' }),
     zip_code: stringType()
         .min(1, { message: 'fieldIsRequired' })
         .regex(/^\d{5}$/, { message: 'invalidZipCode' }),
@@ -5955,33 +6131,55 @@ const CashRegisterCreateSchema = objectType({
         .max(100, { message: 'nameMaxLength' }),
 });
 
-// Italian Fiscal ID validation regex (Codice Fiscale for individuals or Partita IVA for companies)
-const FISCAL_ID_REGEX = /^([A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]|[0-9]{11})$/;
+// VAT number validation regex (Partita IVA - 11 digits)
+const VAT_NUMBER_REGEX = /^\d{11}$/;
+// Fiscal code validation regex (Codice Fiscale - 11 digits only for merchants)
+const FISCAL_CODE_REGEX = /^\d{11}$/;
+// Password validation regex (from OpenAPI spec)
+const PASSWORD_REGEX = /^((?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%\^&\*])(?=.{10,}).*)$/;
 // Merchant Create Input Schema
 const MerchantCreateInputSchema = objectType({
-    fiscal_id: stringType()
+    vat_number: stringType()
         .min(1, { message: 'fieldIsRequired' })
-        .regex(FISCAL_ID_REGEX, { message: 'invalidFiscalId' })
-        .toUpperCase(),
-    name: stringType()
-        .min(1, { message: 'fieldIsRequired' })
-        .max(200, { message: 'nameMaxLength' }),
+        .regex(VAT_NUMBER_REGEX, { message: 'invalidVatNumber' }),
+    fiscal_code: stringType()
+        .regex(FISCAL_CODE_REGEX, { message: 'invalidFiscalCode' })
+        .optional(),
+    business_name: stringType()
+        .max(200, { message: 'businessNameMaxLength' })
+        .optional()
+        .nullable(),
+    first_name: stringType()
+        .max(100, { message: 'firstNameMaxLength' })
+        .optional()
+        .nullable(),
+    last_name: stringType()
+        .max(100, { message: 'lastNameMaxLength' })
+        .optional()
+        .nullable(),
     email: stringType()
         .min(1, { message: 'fieldIsRequired' })
         .email({ message: 'invalidEmail' }),
     password: stringType()
-        .min(8, { message: 'passwordMinLength' })
-        .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
-        message: 'passwordComplexity'
-    }),
+        .min(1, { message: 'fieldIsRequired' })
+        .regex(PASSWORD_REGEX, { message: 'passwordComplexity' }),
     address: AddressSchema.optional(),
 });
 // Merchant Update Input Schema
 const MerchantUpdateInputSchema = objectType({
-    name: stringType()
-        .min(1, { message: 'fieldIsRequired' })
-        .max(200, { message: 'nameMaxLength' }),
-    address: AddressSchema.optional(),
+    business_name: stringType()
+        .max(200, { message: 'businessNameMaxLength' })
+        .optional()
+        .nullable(),
+    first_name: stringType()
+        .max(100, { message: 'firstNameMaxLength' })
+        .optional()
+        .nullable(),
+    last_name: stringType()
+        .max(100, { message: 'lastNameMaxLength' })
+        .optional()
+        .nullable(),
+    address: AddressSchema.optional().nullable(),
 });
 
 // Enum options arrays
@@ -6000,6 +6198,66 @@ const PemCreateInputSchema = objectType({
         .uuid({ message: 'invalidUuid' }),
     address: AddressSchema.optional(),
     external_pem_data: PemDataSchema.optional(),
+});
+
+// Italian Fiscal ID validation regex (Codice Fiscale for individuals or Partita IVA for companies)
+const FISCAL_ID_REGEX = /^([A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]|[0-9]{11})$/;
+// Supplier Create Input Schema
+const SupplierCreateInputSchema = objectType({
+    fiscal_id: stringType()
+        .min(1, { message: 'fieldIsRequired' })
+        .regex(FISCAL_ID_REGEX, { message: 'invalidFiscalId' })
+        .toUpperCase(),
+    name: stringType()
+        .min(1, { message: 'fieldIsRequired' })
+        .max(200, { message: 'nameMaxLength' }),
+    address: AddressSchema.optional(),
+});
+// Supplier Update Input Schema
+const SupplierUpdateInputSchema = objectType({
+    name: stringType()
+        .min(1, { message: 'fieldIsRequired' })
+        .max(200, { message: 'nameMaxLength' }),
+    address: AddressSchema.optional(),
+});
+
+// Journal Close Input Schema
+const JournalCloseInputSchema = objectType({
+    closing_timestamp: stringType()
+        .min(1, { message: 'fieldIsRequired' })
+        .refine((val) => !isNaN(Date.parse(val)), {
+        message: 'invalidDateFormat'
+    }),
+    reason: stringType()
+        .max(255, { message: 'reasonMaxLength' })
+        .optional(),
+});
+
+// Daily Report Status Options
+const DAILY_REPORT_STATUS_OPTIONS = ['pending', 'sent', 'error'];
+// Daily Report Status Schema
+const DailyReportStatusSchema = enumType(DAILY_REPORT_STATUS_OPTIONS, {
+    message: 'invalidDailyReportStatus'
+});
+// Daily Reports List Parameters Schema
+const DailyReportsParamsSchema = objectType({
+    pem_serial_number: stringType()
+        .min(1, { message: 'fieldIsRequired' })
+        .optional(),
+    date_from: stringType()
+        .refine((val) => !isNaN(Date.parse(val)), {
+        message: 'invalidDateFormat'
+    })
+        .optional(),
+    date_to: stringType()
+        .refine((val) => !isNaN(Date.parse(val)), {
+        message: 'invalidDateFormat'
+    })
+        .optional(),
+    status: DailyReportStatusSchema.optional(),
+    page: numberType()
+        .min(1, { message: 'pageMinValue' })
+        .optional(),
 });
 
 /**
@@ -6027,6 +6285,7 @@ const PemCreateInputSchema = objectType({
 const ValidationMessages = {
     fieldIsRequired: 'This field is required',
     arrayMin1: 'At least one item is required',
+    paymentMethodRequired: 'At least one payment method is required',
     invalidEmail: 'Please enter a valid email address',
     passwordMinLength: 'Password must be at least 8 characters long',
     passwordComplexity: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
@@ -6036,8 +6295,16 @@ const ValidationMessages = {
     invalidDateFormat: 'Please enter a valid date',
     nameMaxLength: 'Name is too long',
     invalidFiscalId: 'Please enter a valid Italian fiscal ID (Codice Fiscale or Partita IVA)',
+    invalidVatNumber: 'Please enter a valid VAT number (11 digits)',
+    invalidFiscalCode: 'Please enter a valid fiscal code (11 digits)',
+    businessNameMaxLength: 'Business name is too long (max 200 characters)',
+    firstNameMaxLength: 'First name is too long (max 100 characters)',
+    lastNameMaxLength: 'Last name is too long (max 100 characters)',
     invalidUuid: 'Please enter a valid UUID',
     invalidPemType: 'PEM type must be one of: AP, SP, TM, PV',
+    reasonMaxLength: 'Reason is too long (max 255 characters)',
+    pageMinValue: 'Page number must be at least 1',
+    invalidDailyReportStatus: 'Daily report status must be one of: pending, sent, error',
 };
 // Validation helper functions
 const validateInput = (schema, data) => {
@@ -6883,5 +7150,5 @@ var network = /*#__PURE__*/Object.freeze({
     NodeNetworkMonitor: NodeNetworkMonitor
 });
 
-export { ACubeSDK, ACubeSDKError, APIClient, ActivationRequestSchema, AddressSchema, AuthManager, CashRegisterCreateSchema, CashRegistersAPI, CashierCreateInputSchema, CashiersAPI, ConfigManager, DEFAULT_CONTEXT, ERoleChecker, GOOD_OR_SERVICE_OPTIONS, GoodOrServiceSchema, HttpClient, MerchantCreateInputSchema, MerchantUpdateInputSchema, MerchantsAPI, OfflineManager, OperationQueue, PEMStatusOfflineRequestSchema, PEMStatusSchema, PEM_STATUS_OPTIONS, PEM_TYPE_OPTIONS, PemCreateInputSchema, PemDataSchema, PemsAPI, PointOfSalesAPI, RECEIPT_PROOF_TYPE_OPTIONS, ROLE_HIERARCHY, ROLE_LEVELS, ReceiptInputSchema, ReceiptItemSchema, ReceiptProofTypeSchema, ReceiptReturnOrVoidViaPEMInputSchema, ReceiptReturnOrVoidWithProofInputSchema, ReceiptsAPI, RoleGroups, RoleLevel, SyncManager, VAT_RATE_CODE_OPTIONS, ValidationMessages, VatRateCodeOptions, VatRateCodeSchema, canPerformAction, createACubeSDK, createContextRoleChecker, createACubeSDK as default, detectPlatform, getEffectiveRoles, getHighestRoleLevel, getInheritedRoles, getUserContexts, hasAllRoles, hasAnyRole, hasContext, hasMinimumRoleLevel, hasRole, hasRoleInformation, loadPlatformAdapters, parseLegacyRoles, requiresRole, toLegacyRoles, validateInput };
+export { ACubeSDK, ACubeSDKError, APIClient, ActivationRequestSchema, AddressSchema, AuthManager, CashRegisterCreateSchema, CashRegistersAPI, CashierCreateInputSchema, CashiersAPI, ConfigManager, DAILY_REPORT_STATUS_OPTIONS, DEFAULT_CONTEXT, DailyReportStatusSchema, DailyReportsAPI, DailyReportsParamsSchema, ERoleChecker, GOOD_OR_SERVICE_OPTIONS, GoodOrServiceSchema, HttpClient, JournalCloseInputSchema, JournalsAPI, MerchantCreateInputSchema, MerchantUpdateInputSchema, MerchantsAPI, OfflineManager, OperationQueue, PEMStatusOfflineRequestSchema, PEMStatusSchema, PEM_STATUS_OPTIONS, PEM_TYPE_OPTIONS, PemCreateInputSchema, PemDataSchema, PemsAPI, PointOfSalesAPI, RECEIPT_PROOF_TYPE_OPTIONS, ROLE_HIERARCHY, ROLE_LEVELS, ReceiptInputSchema, ReceiptItemSchema, ReceiptProofTypeSchema, ReceiptReturnOrVoidViaPEMInputSchema, ReceiptReturnOrVoidWithProofInputSchema, ReceiptsAPI, RoleGroups, RoleLevel, SupplierCreateInputSchema, SupplierUpdateInputSchema, SuppliersAPI, SyncManager, VAT_RATE_CODE_OPTIONS, ValidationMessages, VatRateCodeOptions, VatRateCodeSchema, canPerformAction, createACubeSDK, createContextRoleChecker, createACubeSDK as default, detectPlatform, getEffectiveRoles, getHighestRoleLevel, getInheritedRoles, getUserContexts, hasAllRoles, hasAnyRole, hasContext, hasMinimumRoleLevel, hasRole, hasRoleInformation, loadPlatformAdapters, parseLegacyRoles, requiresRole, toLegacyRoles, validateInput };
 //# sourceMappingURL=index.esm.js.map

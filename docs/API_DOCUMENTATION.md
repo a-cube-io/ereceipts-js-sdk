@@ -188,12 +188,18 @@ interface SDKConfig {
 #### 2. **API Clients**
 Specialized managers for different resource types:
 
+**MF1 APIs (Core E-Receipt Functionality):**
 - **ReceiptsAPI**: Electronic receipt operations
 - **CashiersAPI**: Cashier management  
 - **PointOfSalesAPI**: PEM device management
 - **CashRegistersAPI**: Cash register operations
-- **MerchantsAPI**: Merchant management (MF2)
-- **PemsAPI**: PEM device management (MF2)
+
+**MF2 APIs (Advanced Management):**
+- **MerchantsAPI**: Merchant management and configuration
+- **PemsAPI**: Advanced PEM device management
+- **SuppliersAPI**: Supplier management and fiscal data
+- **DailyReportsAPI**: Daily fiscal report management
+- **JournalsAPI**: Fiscal journal operations
 
 #### 3. **Platform Adapters**
 Abstract interfaces with platform-specific implementations:
@@ -350,12 +356,18 @@ Central hub for accessing all API resources.
 
 ```typescript
 class APIClient {
+  // MF1 APIs
   readonly receipts: ReceiptsAPI;
   readonly cashiers: CashiersAPI;
   readonly pointOfSales: PointOfSalesAPI;
   readonly cashRegisters: CashRegistersAPI;
+  
+  // MF2 APIs
   readonly merchants: MerchantsAPI;
   readonly pems: PemsAPI;
+  readonly suppliers: SuppliersAPI;
+  readonly dailyReports: DailyReportsAPI;
+  readonly journals: JournalsAPI;
 }
 ```
 
@@ -534,6 +546,104 @@ Checks if user is currently authenticated.
 Returns current authenticated user information.
 
 **Returns:** `Promise<User | null>` - Current user or null
+
+### SuppliersAPI Class
+
+Manages supplier information for invoice and receipt processing (MF2 API).
+
+#### Methods
+
+##### `list(params: SuppliersParams): Promise<SupplierOutput[]>`
+Retrieves a list of suppliers.
+
+**Parameters:**
+- `params: SuppliersParams` - List parameters including pagination
+
+**Example:**
+```typescript
+const suppliers = await sdk.api.suppliers.list({
+  page: 1
+});
+```
+
+##### `create(supplierData: SupplierCreateInput): Promise<SupplierOutput>`
+Creates a new supplier.
+
+**Parameters:**
+- `supplierData: SupplierCreateInput` - Supplier data including fiscal_id and name
+
+**Example:**
+```typescript
+const supplier = await sdk.api.suppliers.create({
+  fiscal_id: '12345678901',
+  name: 'Acme Supplier Corp',
+  address: {
+    street_address: 'Via Roma 123',
+    street_number: '123',
+    zip_code: '00100',
+    city: 'Roma',
+    province: 'RM'
+  }
+});
+```
+
+### DailyReportsAPI Class
+
+Manages daily fiscal reports and transmissions to tax authorities (MF2 API).
+
+#### Methods
+
+##### `list(params: DailyReportsParams): Promise<DailyReportOutput[]>`
+Retrieves daily reports with filtering options.
+
+**Parameters:**
+- `params: DailyReportsParams` - Filter parameters including date range and status
+
+**Example:**
+```typescript
+const reports = await sdk.api.dailyReports.list({
+  pem_serial_number: 'PEM123456',
+  status: 'pending',
+  date_from: '2024-01-01',
+  date_to: '2024-01-31'
+});
+```
+
+##### `regenerate(uuid: string): Promise<DailyReportOutput>`
+Regenerates and retransmits a failed daily report.
+
+**Example:**
+```typescript
+const regenerated = await sdk.api.dailyReports.regenerate(reportUuid);
+```
+
+### JournalsAPI Class
+
+Manages fiscal journal operations and closures (MF2 API).
+
+#### Methods
+
+##### `list(params: JournalsParams): Promise<JournalOutput[]>`
+Retrieves journals with filtering options.
+
+**Example:**
+```typescript
+const journals = await sdk.api.journals.list({
+  pem_serial_number: 'PEM123456',
+  status: 'open'
+});
+```
+
+##### `close(uuid: string, closeData: JournalCloseInput): Promise<JournalOutput>`
+Closes a fiscal journal.
+
+**Example:**
+```typescript
+const closedJournal = await sdk.api.journals.close(journalUuid, {
+  closing_timestamp: new Date().toISOString(),
+  reason: 'End of business day'
+});
+```
 
 ### OfflineManager Class
 

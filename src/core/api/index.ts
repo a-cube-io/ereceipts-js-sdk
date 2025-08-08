@@ -7,3 +7,6 @@ export * from './point-of-sales';
 export * from './cash-registers';
 export * from './merchants';
 export * from './pems';
+export * from './suppliers';
+export * from './daily-reports';
+export * from './journals';

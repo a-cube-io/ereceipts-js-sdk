@@ -6,6 +6,9 @@ import { PointOfSalesAPI } from './point-of-sales';
 import { CashRegistersAPI } from './cash-registers';
 import { MerchantsAPI } from './merchants';
 import { PemsAPI } from './pems';
+import { SuppliersAPI } from './suppliers';
+import { DailyReportsAPI } from './daily-reports';
+import { JournalsAPI } from './journals';
 
 /**
  * Main API client that combines all resource managers
@@ -20,6 +23,9 @@ export class APIClient {
   public readonly cashRegisters: CashRegistersAPI;
   public readonly merchants: MerchantsAPI;
   public readonly pems: PemsAPI;
+  public readonly suppliers: SuppliersAPI;
+  public readonly dailyReports: DailyReportsAPI;
+  public readonly journals: JournalsAPI;
 
   constructor(config: ConfigManager) {
     this.httpClient = new HttpClient(config);
@@ -31,6 +37,9 @@ export class APIClient {
     this.cashRegisters = new CashRegistersAPI(this.httpClient);
     this.merchants = new MerchantsAPI(this.httpClient);
     this.pems = new PemsAPI(this.httpClient);
+    this.suppliers = new SuppliersAPI(this.httpClient);
+    this.dailyReports = new DailyReportsAPI(this.httpClient);
+    this.journals = new JournalsAPI(this.httpClient);
   }
 
   /**

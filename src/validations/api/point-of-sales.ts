@@ -1,11 +1,12 @@
 import { z } from 'zod';
 
 // Enum options arrays
-export const PEM_STATUS_OPTIONS = ['NEW', 'REGISTERED', 'ACTIVE', 'ONLINE', 'OFFLINE', 'DISCARDED'] as const;
+export const PEM_STATUS_OPTIONS = ['NEW', 'REGISTERED', 'ACTIVATED', 'ONLINE', 'OFFLINE', 'DISCARDED'] as const;
 
 // Address Schema (reusable)
 export const AddressSchema = z.object({
   street_address: z.string().min(1, { message: 'fieldIsRequired' }),
+  street_number: z.string().min(1, { message: 'fieldIsRequired' }),
   zip_code: z
     .string()
     .min(1, { message: 'fieldIsRequired' })

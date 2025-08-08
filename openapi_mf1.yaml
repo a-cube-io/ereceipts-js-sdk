@@ -1,0 +1,2053 @@
+openapi: 3.1.0
+info:
+  title: E-Receipt IT API
+  description: E-Receipt IT API
+  version: 1.0.0
+paths:
+  /mf1/cashiers:
+    get:
+      tags:
+      - Cashier
+      summary: Read Cashiers
+      operationId: read_cashiers_mf1_cashiers_get
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          description: Page number
+          default: 1
+          title: Page
+        description: Page number
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 30
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page__T_Customized_CashierSimpleOutput_'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - Cashier
+      summary: Create Cashier
+      operationId: create_cashier_mf1_cashiers_post
+      security:
+      - OAuth2PasswordBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CashierCreateInput'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashierOutput'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mf1/cashiers/me:
+    get:
+      tags:
+      - Cashier
+      summary: Read Cashier Me
+      description: Read currently authenticated cashier's information
+      operationId: read_cashier_me_mf1_cashiers_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashierOutput'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+      security:
+      - OAuth2PasswordBearer: []
+  /mf1/cashiers/{cashier_id}:
+    get:
+      tags:
+      - Cashier
+      summary: Read Cashier By Id
+      description: Get a specific user by id.
+      operationId: read_cashier_by_id_mf1_cashiers__cashier_id__get
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: cashier_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Cashier Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashierOutput'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Cashier
+      summary: Delete Cashier
+      description: Delete a cashier and the associated user.
+      operationId: delete_cashier_mf1_cashiers__cashier_id__delete
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: cashier_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Cashier Id
+      responses:
+        '204':
+          description: Successful Response
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mf1/point-of-sales:
+    get:
+      tags:
+      - Point of Sale
+      summary: Read Point Of Sales
+      description: Retrieve PEMs.
+      operationId: read_point_of_sales_mf1_point_of_sales_get
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/PEMStatus'
+          - type: 'null'
+          title: Status
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          description: Page number
+          default: 1
+          title: Page
+        description: Page number
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 30
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page__T_Customized_PointOfSaleOutput_'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mf1/point-of-sales/{serial_number}:
+    get:
+      tags:
+      - Point of Sale
+      summary: Read Point Of Sale
+      operationId: read_point_of_sale_mf1_point_of_sales__serial_number__get
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: serial_number
+        in: path
+        required: true
+        schema:
+          type: string
+          description: The Point of Sale's serial number
+          title: Serial Number
+        description: The Point of Sale's serial number
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PointOfSaleDetailedOutput'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mf1/point-of-sales/{serial_number}/receipts:
+    get:
+      tags:
+      - Point of Sale
+      summary: Get a list of electronic receipts
+      operationId: get_receipts_mf1_point_of_sales__serial_number__receipts_get
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: serial_number
+        in: path
+        required: true
+        schema:
+          type: string
+          description: The Point of Sale's serial number
+          title: Serial Number
+        description: The Point of Sale's serial number
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          description: Page number
+          default: 1
+          title: Page
+        description: Page number
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 30
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page__T_Customized_ReceiptOutput_'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mf1/point-of-sales/{serial_number}/cash-registers:
+    get:
+      tags:
+      - Point of Sale
+      summary: Get Cash Registers
+      operationId: get_cash_registers_mf1_point_of_sales__serial_number__cash_registers_get
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: serial_number
+        in: path
+        required: true
+        schema:
+          type: string
+          description: The Point of Sale's serial number
+          title: Serial Number
+        description: The Point of Sale's serial number
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          description: Page number
+          default: 1
+          title: Page
+        description: Page number
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 30
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page__T_Customized_CashRegisterBasicOutput_'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mf1/point-of-sales/close:
+    post:
+      tags:
+      - Point of Sale
+      summary: Close Journal
+      operationId: close_journal_mf1_point_of_sales_close_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - OAuth2PasswordBearer: []
+  /mf1/point-of-sales/{serial_number}/activation:
+    post:
+      tags:
+      - Point of Sale
+      summary: Post Activation
+      description: Trigger the activation process of a Point of Sale by requesting
+        a certificate to the Italian Tax Agency
+      operationId: post_activation_mf1_point_of_sales__serial_number__activation_post
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: serial_number
+        in: path
+        required: true
+        schema:
+          type: string
+          description: The Point of Sale's serial number
+          title: Serial Number
+        description: The Point of Sale's serial number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivationRequest'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                title: Response Post Activation Mf1 Point Of Sales  Serial Number  Activation
+                  Post
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mf1/point-of-sales/{serial_number}/inactivity:
+    post:
+      tags:
+      - Point of Sale
+      summary: Create Inactivity Period
+      description: Create a new inactivity period
+      operationId: create_inactivity_period_mf1_point_of_sales__serial_number__inactivity_post
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: serial_number
+        in: path
+        required: true
+        schema:
+          type: string
+          description: The Point of Sale serial number
+          title: Serial Number
+        description: The Point of Sale serial number
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                title: Response Create Inactivity Period Mf1 Point Of Sales  Serial
+                  Number  Inactivity Post
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel401Unauthorized'
+          description: Unauthorized
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel400BadRequest'
+          description: Bad Request
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mf1/point-of-sales/{serial_number}/status/offline:
+    post:
+      tags:
+      - Point of Sale
+      summary: Post Offline
+      description: Change the state of the Point of Sale to 'offline'
+      operationId: post_offline_mf1_point_of_sales__serial_number__status_offline_post
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: serial_number
+        in: path
+        required: true
+        schema:
+          type: string
+          description: The Point of Sale serial number
+          title: Serial Number
+        description: The Point of Sale serial number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PEMStatusOfflineRequest'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                title: Response Post Offline Mf1 Point Of Sales  Serial Number  Status
+                  Offline Post
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mf1/receipts:
+    post:
+      tags:
+      - Receipt
+      summary: Create a new electronic receipt
+      operationId: create_receipt_mf1_receipts_post
+      security:
+      - OAuth2PasswordBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiptInput'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReceiptOutput'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - Receipt
+      summary: Get a list of electronic receipts
+      operationId: get_receipts_mf1_receipts_get
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: pem_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pem Id
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          description: Page number
+          default: 1
+          title: Page
+        description: Page number
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 30
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page__T_Customized_ReceiptOutput_'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Receipt
+      summary: Void an electronic receipt
+      operationId: void_receipt_mf1_receipts_delete
+      security:
+      - OAuth2PasswordBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiptReturnOrVoidViaPEMInput'
+      responses:
+        '204':
+          description: Successful Response
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mf1/receipts/{receipt_uuid}:
+    get:
+      tags:
+      - Receipt
+      summary: Get an electronic receipt
+      operationId: get_receipt_mf1_receipts__receipt_uuid__get
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: receipt_uuid
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Receipt Uuid
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReceiptOutput'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mf1/receipts/void-with-proof:
+    delete:
+      tags:
+      - Receipt
+      summary: Void an electronic receipt identified by a proof of purchase
+      operationId: void_receipt_via_proof_mf1_receipts_void_with_proof_delete
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiptReturnOrVoidWithProofInput'
+        required: true
+      responses:
+        '204':
+          description: Successful Response
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - OAuth2PasswordBearer: []
+  /mf1/receipts/{receipt_uuid}/details:
+    get:
+      tags:
+      - Receipt
+      summary: Get the details or the PDF of an electronic receipt
+      description: 'Retrieve receipt details in JSON format or download as PDF based
+        on the Accept header. Use ''Accept: application/json'' for JSON response (default)
+        or ''Accept: application/pdf'' for PDF download.'
+      operationId: get_receipt_details_mf1_receipts__receipt_uuid__details_get
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: receipt_uuid
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Receipt Uuid
+      - name: accept
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Content type preference. Use 'application/json' for JSON response
+            or 'application/pdf' for PDF download. Defaults to 'application/json'
+            if not specified.
+          title: Accept
+        description: Content type preference. Use 'application/json' for JSON response
+          or 'application/pdf' for PDF download. Defaults to 'application/json' if
+          not specified.
+      responses:
+        '200':
+          description: Receipt details in JSON format or PDF file based on Accept
+            header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReceiptDetailsOutput'
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Forbidden - User not authorized to access this receipt
+        '404':
+          description: Receipt not found
+        '401':
+          description: Unauthorized
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mf1/receipts/return:
+    post:
+      tags:
+      - Receipt
+      summary: Return items from an electronic receipt (same PEM or other PEM)
+      operationId: return_receipt_items_mf1_receipts_return_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiptReturnOrVoidViaPEMInput'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReceiptOutput'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - OAuth2PasswordBearer: []
+  /mf1/receipts/return-with-proof:
+    post:
+      tags:
+      - Receipt
+      summary: Return items from an electronic receipt identified by a proof of purchase
+      operationId: return_receipt_items_via_proof_mf1_receipts_return_with_proof_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiptReturnOrVoidWithProofInput'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReceiptOutput'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - OAuth2PasswordBearer: []
+  /mf1/cash-registers:
+    post:
+      tags:
+      - Cash Register
+      summary: Create Cash Register
+      description: Create a new cash register.
+      operationId: create_cash_register_mf1_cash_registers_post
+      security:
+      - OAuth2PasswordBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CashRegisterCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashRegisterDetailedOutput'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - Cash Register
+      summary: Get Cash Registers
+      description: Get all point of sales for the current merchant.
+      operationId: get_cash_registers_mf1_cash_registers_get
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: pem_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pem Id
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          description: Page number
+          default: 1
+          title: Page
+        description: Page number
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 30
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page__T_Customized_CashRegisterBasicOutput_'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mf1/cash-registers/{id}:
+    get:
+      tags:
+      - Cash Register
+      summary: Get Cash Register
+      description: Get a point of sale by ID.
+      operationId: get_cash_register_mf1_cash_registers__id__get
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ID of the cash register
+          title: Id
+        description: ID of the cash register
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashRegisterBasicOutput'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    ActivationRequest:
+      properties:
+        registration_key:
+          type: string
+          title: Registration Key
+      type: object
+      required:
+      - registration_key
+      title: ActivationRequest
+    Address:
+      properties:
+        street_address:
+          type: string
+          title: Street Address
+          description: The street address associated to the PEM
+        street_number:
+          type: string
+          title: Street Number
+          description: The street number associated to the PEM
+        zip_code:
+          type: string
+          maxLength: 5
+          minLength: 5
+          title: Zip Code
+          description: The zip code associated to the PEM
+        city:
+          type: string
+          title: City
+          description: The city associated to the PEM
+        province:
+          type: string
+          maxLength: 2
+          minLength: 2
+          title: Province
+          description: The province associated to the PEM
+      type: object
+      required:
+      - street_address
+      - street_number
+      - zip_code
+      - city
+      - province
+      title: Address
+    CashRegisterBasicOutput:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        pem_serial_number:
+          type: string
+          title: Pem Serial Number
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - pem_serial_number
+      - name
+      title: CashRegisterBasicOutput
+    CashRegisterCreate:
+      properties:
+        pem_serial_number:
+          type: string
+          title: Pem Serial Number
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - pem_serial_number
+      - name
+      title: CashRegisterCreate
+    CashRegisterDetailedOutput:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        pem_serial_number:
+          type: string
+          title: Pem Serial Number
+        name:
+          type: string
+          title: Name
+        mtls_certificate:
+          type: string
+          title: Mtls Certificate
+        private_key:
+          type: string
+          title: Private Key
+      type: object
+      required:
+      - id
+      - pem_serial_number
+      - name
+      - mtls_certificate
+      - private_key
+      title: CashRegisterDetailedOutput
+    CashierCreateInput:
+      properties:
+        email:
+          type: string
+          maxLength: 255
+          title: Email
+        password:
+          type: string
+          maxLength: 40
+          minLength: 8
+          title: Password
+        first_name:
+          type: string
+          maxLength: 255
+          title: First Name
+        last_name:
+          type: string
+          maxLength: 255
+          title: Last Name
+      type: object
+      required:
+      - email
+      - password
+      - first_name
+      - last_name
+      title: CashierCreateInput
+    CashierOutput:
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          title: Uuid
+        merchant_uuid:
+          type: string
+          format: uuid
+          title: Merchant Uuid
+        email:
+          type: string
+          title: Email
+        first_name:
+          type: string
+          title: First Name
+        last_name:
+          type: string
+          title: Last Name
+      type: object
+      required:
+      - uuid
+      - merchant_uuid
+      - email
+      - first_name
+      - last_name
+      title: CashierOutput
+    CashierSimpleOutput:
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          title: Uuid
+        first_name:
+          type: string
+          title: First Name
+        last_name:
+          type: string
+          title: Last Name
+      type: object
+      required:
+      - uuid
+      - first_name
+      - last_name
+      title: CashierSimpleOutput
+    ErrorModel400BadRequest:
+      properties:
+        type:
+          type: string
+          title: Type
+          default: /errors/400
+        title:
+          type: string
+          title: Title
+          default: Bad Request
+        status:
+          type: integer
+          title: Status
+          default: 400
+        detail:
+          type: string
+          title: Detail
+          default: A human-readable explanation specific to this occurrence of the
+            problem
+        instance:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Instance
+          default: A URI reference that identifies the specific occurrence of the
+            problem
+      type: object
+      title: ErrorModel400BadRequest
+    ErrorModel401Unauthorized:
+      properties:
+        type:
+          type: string
+          title: Type
+          default: /errors/401
+        title:
+          type: string
+          title: Title
+          default: Could not validate credentials
+        status:
+          type: integer
+          title: Status
+          default: 401
+        detail:
+          type: string
+          title: Detail
+          default: A human-readable explanation specific to this occurrence of the
+            problem
+        instance:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Instance
+          default: A URI reference that identifies the specific occurrence of the
+            problem
+      type: object
+      title: ErrorModel401Unauthorized
+    ErrorModel403Forbidden:
+      properties:
+        type:
+          type: string
+          title: Type
+          default: /errors/403
+        title:
+          type: string
+          title: Title
+          default: Forbidden
+        status:
+          type: integer
+          title: Status
+          default: 403
+        detail:
+          type: string
+          title: Detail
+          default: A human-readable explanation specific to this occurrence of the
+            problem
+        instance:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Instance
+          default: A URI reference that identifies the specific occurrence of the
+            problem
+      type: object
+      title: ErrorModel403Forbidden
+    ErrorModel404NotFound:
+      properties:
+        type:
+          type: string
+          title: Type
+          default: /errors/404
+        title:
+          type: string
+          title: Title
+          default: Not Found
+        status:
+          type: integer
+          title: Status
+          default: 404
+        detail:
+          type: string
+          title: Detail
+          default: A human-readable explanation specific to this occurrence of the
+            problem
+        instance:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Instance
+          default: A URI reference that identifies the specific occurrence of the
+            problem
+      type: object
+      title: ErrorModel404NotFound
+    GoodOrService:
+      type: string
+      enum:
+      - B
+      - S
+      title: GoodOrService
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    PEMStatus:
+      type: string
+      enum:
+      - NEW
+      - REGISTERED
+      - ACTIVATED
+      - ONLINE
+      - OFFLINE
+      - DISCARDED
+      title: PEMStatus
+    PEMStatusOfflineRequest:
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          title: Timestamp
+        reason:
+          type: string
+          title: Reason
+      type: object
+      required:
+      - timestamp
+      - reason
+      title: PEMStatusOfflineRequest
+    Page__T_Customized_CashRegisterBasicOutput_:
+      properties:
+        members:
+          items:
+            $ref: '#/components/schemas/CashRegisterBasicOutput'
+          type: array
+          title: Members
+        total:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Total
+        page:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Page
+        size:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Size
+        pages:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Pages
+      type: object
+      required:
+      - members
+      - page
+      - size
+      title: Page[~T]Customized[CashRegisterBasicOutput]
+    Page__T_Customized_CashierSimpleOutput_:
+      properties:
+        members:
+          items:
+            $ref: '#/components/schemas/CashierSimpleOutput'
+          type: array
+          title: Members
+        total:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Total
+        page:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Page
+        size:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Size
+        pages:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Pages
+      type: object
+      required:
+      - members
+      - page
+      - size
+      title: Page[~T]Customized[CashierSimpleOutput]
+    Page__T_Customized_PointOfSaleOutput_:
+      properties:
+        members:
+          items:
+            $ref: '#/components/schemas/PointOfSaleOutput'
+          type: array
+          title: Members
+        total:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Total
+        page:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Page
+        size:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Size
+        pages:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Pages
+      type: object
+      required:
+      - members
+      - page
+      - size
+      title: Page[~T]Customized[PointOfSaleOutput]
+    Page__T_Customized_ReceiptOutput_:
+      properties:
+        members:
+          items:
+            $ref: '#/components/schemas/ReceiptOutput'
+          type: array
+          title: Members
+        total:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Total
+        page:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Page
+        size:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Size
+        pages:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Pages
+      type: object
+      required:
+      - members
+      - page
+      - size
+      title: Page[~T]Customized[ReceiptOutput]
+    PointOfSaleDetailedOutput:
+      properties:
+        serial_number:
+          type: string
+          title: Serial Number
+        status:
+          $ref: '#/components/schemas/PEMStatus'
+        address:
+          $ref: '#/components/schemas/Address'
+        registration_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Registration Key
+      type: object
+      required:
+      - serial_number
+      - status
+      - address
+      - registration_key
+      title: PointOfSaleDetailedOutput
+    PointOfSaleOutput:
+      properties:
+        serial_number:
+          type: string
+          title: Serial Number
+        status:
+          $ref: '#/components/schemas/PEMStatus'
+        address:
+          $ref: '#/components/schemas/Address'
+      type: object
+      required:
+      - serial_number
+      - status
+      - address
+      title: PointOfSaleOutput
+    ReceiptDetailsOutput:
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          title: Uuid
+        type:
+          $ref: '#/components/schemas/ReceiptType'
+        customer_lottery_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Customer Lottery Code
+          description: Lottery code of the customer
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        total_amount:
+          type: string
+          title: Total Amount
+          description: Total amount of the receipt as a string with up to 8 decimal
+            digits
+        document_number:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Document Number
+          description: "The document number assigned to the document by the Tax Authority.\n\
+            \        This is the official ID of the document valid for fiscal purposes.\n\
+            \        It's null if the receipt has not been sent yet."
+        document_datetime:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Document Datetime
+          examples:
+          - '2025-10-08 16:20:42'
+        vat_number:
+          type: string
+          maxLength: 11
+          minLength: 11
+          title: Vat Number
+          description: The VAT number associated to the receipt issuer
+          examples:
+          - '12345678901'
+        total_taxable_amount:
+          type: string
+          title: Total Taxable Amount
+          description: Total amount subject to VAT/tax before any discounts or exemptions
+            as a string with 2 to 8 decimal digits
+          examples:
+          - '7.23'
+        total_uncollected_amount:
+          type: string
+          title: Total Uncollected Amount
+          description: Total amount that remains unpaid or uncollected from the customer
+            as a string with 2 to 8 decimal digits
+          examples:
+          - '7.23'
+        deductible_amount:
+          type: string
+          title: Deductible Amount
+          description: Amount that can be deducted for tax purposes (business expenses)
+            as a string with 2 to 8 decimal digits
+          examples:
+          - '7.23'
+        total_vat_amount:
+          type: string
+          title: Total Vat Amount
+          description: Total Value Added Tax amount calculated on taxable transactions
+            as a string with 2 to 8 decimal digits
+          examples:
+          - '7.23'
+        total_discount:
+          type: string
+          title: Total Discount
+          description: Total discount amount applied to the receipt (net of tax) as
+            a string with 2 to 8 decimal digits
+          examples:
+          - '7.23'
+        total_gross_discount:
+          type: string
+          title: Total Gross Discount
+          description: Total discount amount before tax calculations (gross amount)
+            as a string with 2 to 8 decimal digits
+          examples:
+          - '7.23'
+        discount:
+          type: string
+          title: Discount
+          description: Individual discount amount applied to specific items or the
+            overall receipt as a string with 2 to 8 decimal digits
+          examples:
+          - '7.23'
+        items:
+          items:
+            $ref: '#/components/schemas/ReceiptItem'
+          type: array
+          title: Items
+          description: List of individual products/services included in the receipt
+          default: []
+      type: object
+      required:
+      - uuid
+      - type
+      - created_at
+      - total_amount
+      - vat_number
+      - total_taxable_amount
+      - total_uncollected_amount
+      - deductible_amount
+      - total_vat_amount
+      - total_discount
+      - total_gross_discount
+      - discount
+      title: ReceiptDetailsOutput
+    ReceiptInput:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ReceiptItem'
+          type: array
+          title: Items
+          description: '''Elementi contabili. Commercial document items. It is mandatory
+            that there is at least one item.'
+        customer_tax_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Customer Tax Code
+          description: Tax code of the customer
+        customer_lottery_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Customer Lottery Code
+          description: Lottery code of the customer
+        discount:
+          type: string
+          title: Discount
+          description: '''Sconto A Pagare''. This discount, applied in EUR as a string
+            with 2 to 8 decimal digits, does not change the taxable amount of the
+            receipt that is sent to the Agenzia delle Entrate. It is just a not paid
+            amount, usually a rounding up, that is applied at payment time.'
+          default: '0.00'
+        invoice_issuing:
+          type: boolean
+          title: Invoice Issuing
+          description: '''Flag Emissione Fattura''. In case of uncollected amount,
+            set this field to true in case for services invoice at the end of the
+            period. This use case is generally called ''Credito - segue fattura''.'
+          default: false
+        uncollected_dcr_to_ssn:
+          type: boolean
+          title: Uncollected Dcr To Ssn
+          description: Set this flag to true when the payment is not collected because
+            the commercial document relates to the Distinta Contabile Riepilogativa
+            that will be transmitted to the Sistema Sanitario Nazionale.
+          default: false
+        services_uncollected_amount:
+          type: string
+          title: Services Uncollected Amount
+          description: '''Credito Non Riscosso - Prestazioni Servizi''. Uncollected
+            Amount in EUR as a string with 2 to 8 decimal digits in case of services.'
+          default: '0.00'
+        goods_uncollected_amount:
+          type: string
+          title: Goods Uncollected Amount
+          description: '''Credito Non Riscosso - Bene Consegnato''. Uncollected Amount
+            in EUR as a string with 2 to 8 decimal digits in case of delivered goods.'
+          default: '0.00'
+        cash_payment_amount:
+          type: string
+          title: Cash Payment Amount
+          description: '''Pagamento in contanti''. Cash payment amount in EUR as a
+            string with 2 to 8 decimal digits.'
+          default: '0.00'
+        electronic_payment_amount:
+          type: string
+          title: Electronic Payment Amount
+          description: '''Pagamento elettronico''. Electronic payment amount in EUR
+            as a string with 2 to 8 decimal digits.'
+          default: '0.00'
+        ticket_restaurant_payment_amount:
+          type: string
+          title: Ticket Restaurant Payment Amount
+          description: '''Pagamento Ticket Restaurant''. Ticket restaurant payment
+            amount in EUR as a string with 2 to 8 decimal digits.'
+          default: '0.00'
+        ticket_restaurant_quantity:
+          type: integer
+          title: Ticket Restaurant Quantity
+          description: '''Numero Ticket Restaurant''. Number of Ticket Restaurants
+            used.'
+          default: 0
+      type: object
+      required:
+      - items
+      title: ReceiptInput
+    ReceiptItem:
+      properties:
+        good_or_service:
+          $ref: '#/components/schemas/GoodOrService'
+          description: Type of the item. It can be a good or a service.
+          default: B
+        quantity:
+          type: string
+          title: Quantity
+          description: Quantity expressed as a string with exactly 2 decimal digits.
+            E.g. '1.00', '1.50', '2.00'
+        description:
+          type: string
+          maxLength: 1000
+          minLength: 1
+          title: Description
+          description: Description of the item (max 1000 chars)
+        unit_price:
+          type: string
+          title: Unit Price
+          description: Unit price expressed as a string with 2 to 8 decimal digits.
+            It is a gross price, i.e. it includes VAT amount
+        vat_rate_code:
+          anyOf:
+          - $ref: '#/components/schemas/VatRateCode'
+          - type: 'null'
+          description: VAT rate code as a string
+          default: '22'
+        simplified_vat_allocation:
+          type: boolean
+          title: Simplified Vat Allocation
+          description: Set to true if this item is subject to 'Ventilazione IVA'.
+            If true, 'vat_rate_code' must not be set.
+          default: false
+        discount:
+          type: string
+          title: Discount
+          description: Discount amount in EUR as a string with 2 to 8 decimal digits.
+            It is a gross price, i.e. it includes VAT amount
+          default: '0'
+        is_down_payment_or_voucher_redemption:
+          type: boolean
+          title: Is Down Payment Or Voucher Redemption
+          description: Field to be filled in when issuing a commercial balance document
+            to indicate that the amount reported in field 3.8.5 <TotalAmount> has
+            already been collected as a down payment and the goods being sold had
+            not been delivered. Field to be filled in also for the sale of goods and
+            services by redeeming single-use vouchers.
+          default: false
+        complimentary:
+          type: boolean
+          title: Complimentary
+          description: Set to true if it is a complimentary (free) item. It deducts
+            the gift amount from the amount of the document but does not deduct it
+            from the VAT and taxable amount
+          default: false
+      type: object
+      required:
+      - quantity
+      - description
+      - unit_price
+      title: ReceiptItem
+      description: Model representing an item in a commercial document.
+    ReceiptOutput:
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          title: Uuid
+        type:
+          $ref: '#/components/schemas/ReceiptType'
+        customer_lottery_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Customer Lottery Code
+          description: Lottery code of the customer
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        total_amount:
+          type: string
+          title: Total Amount
+          description: Total amount of the receipt as a string with up to 8 decimal
+            digits
+        document_number:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Document Number
+          description: "The document number assigned to the document by the Tax Authority.\n\
+            \        This is the official ID of the document valid for fiscal purposes.\n\
+            \        It's null if the receipt has not been sent yet."
+        document_datetime:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Document Datetime
+          examples:
+          - '2025-10-08 16:20:42'
+      type: object
+      required:
+      - uuid
+      - type
+      - created_at
+      - total_amount
+      title: ReceiptOutput
+    ReceiptProofType:
+      type: string
+      enum:
+      - POS
+      - VR
+      - ND
+      title: ReceiptProofType
+    ReceiptReturnOrVoidViaPEMInput:
+      properties:
+        pem_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pem Id
+          description: The PEM ID that issued the original receipt. If not provided,
+            we assume the sale receipt was issued by the current PEM.
+          examples:
+          - E001-000001
+        items:
+          items:
+            $ref: '#/components/schemas/ReceiptItem'
+          type: array
+          title: Items
+        document_number:
+          type: string
+          title: Document Number
+          description: The document number of the original receipt
+          examples:
+          - 0001-0001
+        document_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Document Date
+          description: The date of the original receipt in ISO format. Mandatory only
+            if the sale receipt has been issued by a different PEM.
+          examples:
+          - '2024-03-20T10:00:00'
+        lottery_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Lottery Code
+          description: The lottery code of the original receipt
+          examples:
+          - '123456789'
+      type: object
+      required:
+      - items
+      - document_number
+      title: ReceiptReturnOrVoidViaPEMInput
+    ReceiptReturnOrVoidWithProofInput:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ReceiptItem'
+          type: array
+          title: Items
+        proof:
+          $ref: '#/components/schemas/ReceiptProofType'
+          description: 'The type of proof of purchase: ''POS'' for POS receipts, ''VR''
+            for ''Vuoti a rendere'', ''ND'' for other residual cases. Used in place
+            of device serial number/unique PEM identifier.'
+          examples:
+          - POS
+          - VR
+          - ND
+        document_datetime:
+          type: string
+          title: Document Datetime
+          description: The date of the proof of purchase in ISO format
+          examples:
+          - '2024-03-20T10:00:00'
+      type: object
+      required:
+      - items
+      - proof
+      - document_datetime
+      title: ReceiptReturnOrVoidWithProofInput
+    ReceiptType:
+      type: string
+      enum:
+      - sale
+      - return
+      - void
+      title: ReceiptType
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    VatRateCode:
+      type: string
+      enum:
+      - '4'
+      - '5'
+      - '10'
+      - '22'
+      - '2'
+      - '6.4'
+      - '7'
+      - '7.3'
+      - '7.5'
+      - '7.65'
+      - '7.95'
+      - '8.3'
+      - '8.5'
+      - '8.8'
+      - '9.5'
+      - '12.3'
+      - N1
+      - N2
+      - N3
+      - N4
+      - N5
+      - N6
+      title: VatRateCode
+      description: VAT rate codes with their corresponding descriptions.
+  securitySchemes:
+    OAuth2PasswordBearer:
+      type: oauth2
+      flows:
+        password:
+          scopes: {}
+          tokenUrl: /mf1/login

@@ -2,7 +2,8 @@ import { HttpClient } from './http-client';
 import { 
   PemCreateInput, 
   PemCreateOutput, 
-  PemCertificatesOutput 
+  PemCertificatesOutput,
+  PointOfSaleDetailedOutput
 } from './types';
 
 /**
@@ -19,9 +20,16 @@ export class PemsAPI {
   }
 
   /**
+   * Get a specific PEM by serial number
+   */
+  async get(serialNumber: string): Promise<PointOfSaleDetailedOutput> {
+    return this.httpClient.get<PointOfSaleDetailedOutput>(`/mf2/point-of-sales/${serialNumber}`);
+  }
+
+  /**
    * Get mTLS and signing certificates for a PEM
    */
-  async getCertificates(id: string): Promise<PemCertificatesOutput> {
-    return this.httpClient.get<PemCertificatesOutput>(`/mf2/point-of-sales/${id}/certificates`);
+  async getCertificates(serialNumber: string): Promise<PemCertificatesOutput> {
+    return this.httpClient.get<PemCertificatesOutput>(`/mf2/point-of-sales/${serialNumber}/certificates`);
   }
 }

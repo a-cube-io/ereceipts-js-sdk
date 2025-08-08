@@ -111,6 +111,8 @@ describe('Receipt Validation', () => {
 describe('Cashier Validation', () => {
   it('should validate a valid cashier creation', () => {
     const validCashier = {
+      first_name: 'John',
+      last_name: 'Doe',
       email: 'cashier@example.com',
       password: 'SecurePass123!',
     };
@@ -156,12 +158,14 @@ describe('Cashier Validation', () => {
 describe('Merchant Validation', () => {
   it('should validate a valid merchant creation', () => {
     const validMerchant = {
-      fiscal_id: 'RSSMRA80A01H501U', // Valid Italian Codice Fiscale
-      name: 'Mario Rossi Store',
+      vat_number: '12345678901', // Valid Italian Partita IVA
+      fiscal_code: '12345678901', // Valid fiscal code (11 digits)
+      business_name: 'Mario Rossi Store',
       email: 'mario@store.com',
       password: 'SecurePass123!',
       address: {
-        street_address: 'Via Roma 123',
+        street_address: 'Via Roma',
+        street_number: '123',
         zip_code: '00100',
         city: 'Roma',
         province: 'RM',
@@ -172,10 +176,9 @@ describe('Merchant Validation', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should validate Partita IVA format', () => {
+  it('should validate required vat_number format', () => {
     const validMerchant = {
-      fiscal_id: '12345678901', // Valid Italian Partita IVA
-      name: 'Test Company',
+      vat_number: '12345678901', // Valid Italian Partita IVA
       email: 'test@company.com',
       password: 'SecurePass123!',
     };
@@ -184,27 +187,26 @@ describe('Merchant Validation', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should reject invalid fiscal ID', () => {
+  it('should reject invalid vat_number', () => {
     const invalidMerchant = {
-      fiscal_id: 'INVALID123',
-      name: 'Test Store',
+      vat_number: 'INVALID123',
       email: 'test@store.com',
       password: 'SecurePass123!',
     };
 
     const result = validateInput(MerchantCreateInputSchema, invalidMerchant);
     expect(result.success).toBe(false);
-    expect(result.errors.some((e: any) => e.message === 'invalidFiscalId')).toBe(true);
+    expect(result.errors.some((e: any) => e.message === 'invalidVatNumber')).toBe(true);
   });
 
   it('should validate address fields', () => {
     const merchantWithInvalidAddress = {
-      fiscal_id: 'RSSMRA80A01H501U',
-      name: 'Test Store',
+      vat_number: '12345678901', // Valid VAT number
       email: 'test@store.com',
       password: 'SecurePass123!',
       address: {
         street_address: '',
+        street_number: '', // Missing required field
         zip_code: '123', // Invalid zip code
         city: 'Roma',
         province: 'ROMA', // Too long
@@ -246,6 +248,7 @@ describe('PEM Validation', () => {
       merchant_uuid: '123e4567-e89b-12d3-a456-426614174000',
       address: {
         street_address: 'Via Milano 456',
+        street_number: '456',
         zip_code: '20100',
         city: 'Milano',
         province: 'MI',

@@ -20,6 +20,9 @@
    - [CashRegistersAPI](#cashregistersapi)
    - [MerchantsAPI](#merchantsapi)
    - [PemsAPI](#pemsapi)
+   - [SuppliersAPI](#suppliersapi)
+   - [DailyReportsAPI](#dailyreportsapi)
+   - [JournalsAPI](#journalsapi)
 6. [Flussi di Lavoro Comuni](#flussi-di-lavoro-comuni)
 7. [Esempi Multi-Piattaforma](#esempi-multi-piattaforma)
 8. [Best Practices](#best-practices)
@@ -33,11 +36,11 @@ Il modulo `core/api` rappresenta il cuore dell'ACube E-Receipt SDK, fornendo un'
 
 ### Caratteristiche Principali
 
-- **🏗️ Architettura Modulare**: 6 risorse API specializzate per domini specifici
+- **🏗️ Architettura Modulare**: 9 risorse API specializzate per domini specifici
 - **🔒 Type Safety**: Interfacce TypeScript complete con validazione a compile-time
 - **⚡ Performance**: HTTP client ottimizzato con pooling delle connessioni
 - **🛡️ Resilienza**: Gestione errori avanzata con retry automatico
-- **🌐 Multi-Versione**: Supporto MF1 e MF2 per compatibilità
+- **🌐 Multi-Versione**: Supporto MF1 e MF2 per compatibilità completa
 - **📊 Osservabilità**: Logging strutturato e metriche integrate
 
 ### Risorse Disponibili
@@ -49,7 +52,10 @@ Il modulo `core/api` rappresenta il cuore dell'ACube E-Receipt SDK, fornendo un'
 | **PointOfSalesAPI** | POS/PEM | 7 | MF1 | Gestione dispositivi punto vendita |
 | **CashRegistersAPI** | Registratori | 3 | MF1 | Configurazione registratori di cassa |
 | **MerchantsAPI** | Commercianti | 4 | MF2 | Gestione anagrafica commercianti |
-| **PemsAPI** | Dispositivi PEM | 2 | MF2 | Gestione avanzata dispositivi |
+| **PemsAPI** | Dispositivi PEM | 3 | MF2 | Gestione avanzata dispositivi |
+| **SuppliersAPI** | Fornitori | 5 | MF2 | Gestione anagrafica fornitori |
+| **DailyReportsAPI** | Report Giornalieri | 3 | MF2 | Gestione dichiarazioni fiscali giornaliere |
+| **JournalsAPI** | Registri | 3 | MF2 | Gestione e chiusura registri fiscali |
 
 ---
 
@@ -1035,8 +1041,92 @@ activePos.members.forEach(pos => {
 
 #### Metodi Disponibili
 
-##### 1. **list(params?: PemListParams): Promise<Page<PemOutput>>** 
-##### 2. **get(pemId: string): Promise<PemOutput>**
+##### 1. **create(pemData: PemCreateInput): Promise<PemCreateOutput>**
+##### 2. **get(serialNumber: string): Promise<PointOfSaleDetailedOutput>**
+##### 3. **getCertificates(serialNumber: string): Promise<PemCertificatesOutput>**
+
+---
+
+### SuppliersAPI
+
+**Gestione anagrafica fornitori (API MF2).**
+
+#### Metodi Disponibili
+
+##### 1. **list(params: SuppliersParams): Promise<SupplierOutput[]>**
+##### 2. **create(supplierData: SupplierCreateInput): Promise<SupplierOutput>**
+##### 3. **get(uuid: string): Promise<SupplierOutput>**
+##### 4. **update(uuid: string, updateData: SupplierUpdateInput): Promise<SupplierOutput>**
+##### 5. **delete(uuid: string): Promise<void>**
+
+#### Esempio di Utilizzo
+```typescript
+// Creazione fornitore con validazione
+const newSupplier = await sdk.api.suppliers.create({
+  fiscal_id: '12345678901', // Partita IVA
+  name: 'Fornitore Esempio S.r.l.',
+  address: {
+    street_address: 'Via Example',
+    street_number: '123',
+    zip_code: '00100',
+    city: 'Roma',
+    province: 'RM'
+  }
+});
+```
+
+---
+
+### DailyReportsAPI
+
+**Gestione dichiarazioni fiscali giornaliere (API MF2).**
+
+#### Metodi Disponibili
+
+##### 1. **list(params?: DailyReportsParams): Promise<DailyReportOutput[]>**
+##### 2. **get(uuid: string): Promise<DailyReportOutput>**  
+##### 3. **regenerate(uuid: string): Promise<DailyReportOutput>**
+
+#### Esempio di Utilizzo
+```typescript
+// Recupero report con filtri
+const pendingReports = await sdk.api.dailyReports.list({
+  pem_serial_number: 'PEM123456',
+  status: 'pending',
+  date_from: '2024-01-01',
+  date_to: '2024-01-31'
+});
+
+// Rigenerazione report fallito
+const regenerated = await sdk.api.dailyReports.regenerate(reportUuid);
+```
+
+---
+
+### JournalsAPI
+
+**Gestione e chiusura registri fiscali (API MF2).**
+
+#### Metodi Disponibili
+
+##### 1. **list(params?: JournalsParams): Promise<JournalOutput[]>**
+##### 2. **get(uuid: string): Promise<JournalOutput>**
+##### 3. **close(uuid: string, closeData: JournalCloseInput): Promise<JournalOutput>**
+
+#### Esempio di Utilizzo
+```typescript
+// Chiusura registro fiscale
+const closedJournal = await sdk.api.journals.close(journalUuid, {
+  closing_timestamp: new Date().toISOString(),
+  reason: 'Chiusura fine giornata lavorativa'
+});
+
+// Recupero registri aperti
+const openJournals = await sdk.api.journals.list({
+  status: 'open',
+  pem_serial_number: 'PEM123456'
+});
+```
 
 ---
 

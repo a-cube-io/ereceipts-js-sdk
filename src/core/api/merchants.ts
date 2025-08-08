@@ -3,7 +3,8 @@ import {
   MerchantOutput, 
   MerchantCreateInput, 
   MerchantUpdateInput, 
-  MerchantsParams
+  MerchantsParams,
+  PointOfSaleOutput
 } from './types';
 
 /**
@@ -47,5 +48,23 @@ export class MerchantsAPI {
    */
   async update(uuid: string, merchantData: MerchantUpdateInput): Promise<MerchantOutput> {
     return this.httpClient.put<MerchantOutput>(`/mf2/merchants/${uuid}`, merchantData);
+  }
+
+  /**
+   * Retrieve Point of Sale resources for a specific merchant
+   */
+  async listPointOfSales(merchantUuid: string, params?: { page?: number }): Promise<PointOfSaleOutput[]> {
+    const searchParams = new URLSearchParams();
+    
+    if (params?.page) {
+      searchParams.append('page', params.page.toString());
+    }
+
+    const query = searchParams.toString();
+    const url = query 
+      ? `/mf2/merchants/${merchantUuid}/point-of-sales?${query}` 
+      : `/mf2/merchants/${merchantUuid}/point-of-sales`;
+    
+    return this.httpClient.get<PointOfSaleOutput[]>(url);
   }
 }

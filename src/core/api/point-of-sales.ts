@@ -2,6 +2,7 @@ import { HttpClient } from './http-client';
 import { 
   PointOfSaleOutput, 
   PointOfSaleDetailedOutput,
+  PointOfSaleUpdateInput,
   ActivationRequest,
   PEMStatusOfflineRequest,
   Page, 
@@ -42,6 +43,13 @@ export class PointOfSalesAPI {
    */
   async get(serialNumber: string): Promise<PointOfSaleDetailedOutput> {
     return this.httpClient.get<PointOfSaleDetailedOutput>(`/mf1/point-of-sales/${serialNumber}`);
+  }
+
+  /**
+   * Update a Point of Sale
+   */
+  async update(serialNumber: string, updateData: PointOfSaleUpdateInput): Promise<PointOfSaleDetailedOutput> {
+    return this.httpClient.put<PointOfSaleDetailedOutput>(`/mf1/point-of-sales/${serialNumber}`, updateData);
   }
 
   /**

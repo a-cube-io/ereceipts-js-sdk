@@ -13,13 +13,23 @@ export interface Page<T> {
 
 // Cashier types
 export interface CashierCreateInput {
+  first_name: string;
+  last_name: string;
   email: string;
   password: string;
 }
 
 export interface CashierOutput {
   id: number;
+  first_name: string;
+  last_name: string;
   email: string;
+}
+
+export interface CashierSimpleOutput {
+  uuid: string;
+  first_name: string;
+  last_name: string;
 }
 
 export interface CashierListParams {
@@ -28,10 +38,11 @@ export interface CashierListParams {
 }
 
 // Point of Sale types
-export type PEMStatus = 'NEW' | 'REGISTERED' | 'ACTIVE' | 'ONLINE' | 'OFFLINE' | 'DISCARDED';
+export type PEMStatus = 'NEW' | 'REGISTERED' | 'ACTIVATED' | 'ONLINE' | 'OFFLINE' | 'DISCARDED';
 
 export interface Address {
   street_address: string;
+  street_number: string;
   zip_code: string;
   city: string;
   province: string;
@@ -65,13 +76,17 @@ export interface PEMStatusOfflineRequest {
   reason: string;
 }
 
+export interface PointOfSaleUpdateInput {
+  address?: Address;
+}
+
 // Receipt types
 export type ReceiptType = 'sale' | 'return' | 'void';
 export type GoodOrService = 'B' | 'S';
 export type VatRateCode = '4' | '5' | '10' | '22' | '2' | '6.4' | '7' | '7.3' | '7.5' | '7.65' | '7.95' | '8.3' | '8.5' | '8.8' | '9.5' | '12.3' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6';
 
 export const VatRateCodeOptions: VatRateCode[] = [
-  
+  '4', '5', '10', '22', '2', '6.4', '7', '7.3', '7.5', '7.65', '7.95', '8.3', '8.5', '8.8', '9.5', '12.3', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6'
 ]
 
 export interface ReceiptItem {
@@ -119,7 +134,7 @@ export interface ReceiptDetailsOutput {
   total_amount: string;
   document_number?: string;
   document_datetime?: string;
-  fiscal_id: string;
+  vat_number: string;
   total_taxable_amount: string;
   total_uncollected_amount: string;
   deductible_amount: string;
@@ -168,14 +183,21 @@ export interface CashRegisterDetailedOutput {
   private_key: string;
 }
 
-export interface CashRegisterListParams  { page?: number; size?: number }
+export interface CashRegisterListParams { 
+  page?: number; 
+  size?: number; 
+  pem_id?: string; 
+}
 
 // Merchant types (MF2)
 export interface MerchantOutput {
   uuid: string;
-  fiscal_id: string;
-  name: string;
+  vat_number: string;
+  fiscal_code?: string | null;
   email: string;
+  business_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
   address?: Address;
 }
 
@@ -184,16 +206,21 @@ export interface MerchantsParams {
 }
 
 export interface MerchantCreateInput {
-  fiscal_id: string;
-  name: string;
+  vat_number: string;
+  fiscal_code?: string;
+  business_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
   email: string;
   password: string;
   address?: Address;
 }
 
 export interface MerchantUpdateInput {
-  name: string;
-  address?: Address;
+  business_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  address?: Address | null;
 }
 
 // PEM types (MF2)
@@ -216,6 +243,71 @@ export interface PemCreateOutput {
 export interface PemCertificatesOutput {
   mtls_certificate: string;
   activation_xml_response?: string;
+}
+
+// Supplier types (MF2)
+export interface SupplierOutput {
+  uuid: string;
+  fiscal_id: string;
+  name: string;
+  address?: Address;
+}
+
+export interface SuppliersParams {
+  page?: number;
+}
+
+export interface SupplierCreateInput {
+  fiscal_id: string;
+  name: string;
+  address?: Address;
+}
+
+export interface SupplierUpdateInput {
+  name: string;
+  address?: Address;
+}
+
+// Daily Reports types (MF2)
+export interface DailyReportOutput {
+  uuid: string;
+  pem_serial_number: string;
+  date: string;
+  total_receipts: number;
+  total_amount: string;
+  status: 'pending' | 'sent' | 'error';
+}
+
+export interface DailyReportsParams {
+  pem_serial_number?: string;
+  date_from?: string;
+  date_to?: string;
+  status?: 'pending' | 'sent' | 'error';
+  page?: number;
+}
+
+// Journal types (MF2)
+export interface JournalOutput {
+  uuid: string;
+  pem_serial_number: string;
+  date: string;
+  sequence_number: number;
+  total_receipts: number;
+  total_amount: string;
+  status: 'open' | 'closed';
+}
+
+export interface JournalsParams {
+  pem_serial_number?: string;
+  status?: 'open' | 'closed';
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+}
+
+export interface JournalCloseInput {
+  closing_timestamp: string;
+  reason?: string;
 }
 
 // Error types

@@ -17,7 +17,7 @@ export class CashRegistersAPI {
    * Create a new cash register (point of sale)
    */
   async create(cashRegisterData: CashRegisterCreate): Promise<CashRegisterDetailedOutput> {
-    return this.httpClient.post<CashRegisterDetailedOutput>('/mf1/cash-register', cashRegisterData);
+    return this.httpClient.post<CashRegisterDetailedOutput>('/mf1/cash-registers', cashRegisterData);
   }
 
   /**
@@ -32,9 +32,12 @@ export class CashRegistersAPI {
     if (params.size) {
       searchParams.append('size', params.size.toString());
     }
+    if (params.pem_id) {
+      searchParams.append('pem_id', params.pem_id);
+    }
 
     const query = searchParams.toString();
-    const url = query ? `/mf1/cash-register?${query}` : '/mf1/cash-register';
+    const url = query ? `/mf1/cash-registers?${query}` : '/mf1/cash-registers';
     
     return this.httpClient.get<Page<CashRegisterBasicOutput>>(url);
   }
@@ -43,6 +46,6 @@ export class CashRegistersAPI {
    * Get a cash register by ID
    */
   async get(id: string): Promise<CashRegisterBasicOutput> {
-    return this.httpClient.get<CashRegisterBasicOutput>(`/mf1/cash-register/${id}`);
+    return this.httpClient.get<CashRegisterBasicOutput>(`/mf1/cash-registers/${id}`);
   }
 }

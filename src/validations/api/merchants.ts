@@ -1,40 +1,69 @@
 import { z } from 'zod';
 import { AddressSchema } from './point-of-sales';
 
-// Italian Fiscal ID validation regex (Codice Fiscale for individuals or Partita IVA for companies)
-const FISCAL_ID_REGEX = /^([A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]|[0-9]{11})$/;
+// VAT number validation regex (Partita IVA - 11 digits)
+const VAT_NUMBER_REGEX = /^\d{11}$/;
+
+// Fiscal code validation regex (Codice Fiscale - 11 digits only for merchants)
+const FISCAL_CODE_REGEX = /^\d{11}$/;
+
+// Password validation regex (from OpenAPI spec)
+const PASSWORD_REGEX = /^((?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%\^&\*])(?=.{10,}).*)$/;
 
 // Merchant Create Input Schema
 export const MerchantCreateInputSchema = z.object({
-  fiscal_id: z
+  vat_number: z
     .string()
     .min(1, { message: 'fieldIsRequired' })
-    .regex(FISCAL_ID_REGEX, { message: 'invalidFiscalId' })
-    .toUpperCase(),
-  name: z
+    .regex(VAT_NUMBER_REGEX, { message: 'invalidVatNumber' }),
+  fiscal_code: z
     .string()
-    .min(1, { message: 'fieldIsRequired' })
-    .max(200, { message: 'nameMaxLength' }),
+    .regex(FISCAL_CODE_REGEX, { message: 'invalidFiscalCode' })
+    .optional(),
+  business_name: z
+    .string()
+    .max(200, { message: 'businessNameMaxLength' })
+    .optional()
+    .nullable(),
+  first_name: z
+    .string()
+    .max(100, { message: 'firstNameMaxLength' })
+    .optional()
+    .nullable(),
+  last_name: z
+    .string()
+    .max(100, { message: 'lastNameMaxLength' })
+    .optional()
+    .nullable(),
   email: z
     .string()
     .min(1, { message: 'fieldIsRequired' })
     .email({ message: 'invalidEmail' }),
   password: z
     .string()
-    .min(8, { message: 'passwordMinLength' })
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
-      message: 'passwordComplexity'
-    }),
+    .min(1, { message: 'fieldIsRequired' })
+    .regex(PASSWORD_REGEX, { message: 'passwordComplexity' }),
   address: AddressSchema.optional(),
 });
 
 // Merchant Update Input Schema
 export const MerchantUpdateInputSchema = z.object({
-  name: z
+  business_name: z
     .string()
-    .min(1, { message: 'fieldIsRequired' })
-    .max(200, { message: 'nameMaxLength' }),
-  address: AddressSchema.optional(),
+    .max(200, { message: 'businessNameMaxLength' })
+    .optional()
+    .nullable(),
+  first_name: z
+    .string()
+    .max(100, { message: 'firstNameMaxLength' })
+    .optional()
+    .nullable(),
+  last_name: z
+    .string()
+    .max(100, { message: 'lastNameMaxLength' })
+    .optional()
+    .nullable(),
+  address: AddressSchema.optional().nullable(),
 });
 
 // Type exports

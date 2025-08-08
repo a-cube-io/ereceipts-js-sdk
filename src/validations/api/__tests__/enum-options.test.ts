@@ -50,9 +50,9 @@ describe('Enum Options Arrays', () => {
 
   describe('PEM_STATUS_OPTIONS', () => {
     it('should contain all PEM status values', () => {
-      expect(PEM_STATUS_OPTIONS).toEqual(['NEW', 'REGISTERED', 'ACTIVE', 'ONLINE', 'OFFLINE', 'DISCARDED']);
+      expect(PEM_STATUS_OPTIONS).toEqual(['NEW', 'REGISTERED', 'ACTIVATED', 'ONLINE', 'OFFLINE', 'DISCARDED']);
       expect(PEM_STATUS_OPTIONS).toContain('NEW');
-      expect(PEM_STATUS_OPTIONS).toContain('ACTIVE');
+      expect(PEM_STATUS_OPTIONS).toContain('ACTIVATED');
       expect(PEM_STATUS_OPTIONS).toContain('ONLINE');
       expect(PEM_STATUS_OPTIONS).toContain('OFFLINE');
     });

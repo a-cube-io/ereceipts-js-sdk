@@ -82,10 +82,34 @@ export {
   type PemCreateInputType,
 } from './pems';
 
+// Supplier schemas and types
+export {
+  SupplierCreateInputSchema,
+  SupplierUpdateInputSchema,
+  type SupplierCreateInputType,
+  type SupplierUpdateInputType,
+} from './suppliers';
+
+// Journal schemas and types
+export {
+  JournalCloseInputSchema,
+  type JournalCloseInputType,
+} from './journals';
+
+// Daily Reports schemas and types
+export {
+  DailyReportStatusSchema,
+  DailyReportsParamsSchema,
+  DAILY_REPORT_STATUS_OPTIONS,
+  type DailyReportStatusType,
+  type DailyReportsParamsType,
+} from './daily-reports';
+
 // Common validation utilities
 export const ValidationMessages = {
   fieldIsRequired: 'This field is required',
   arrayMin1: 'At least one item is required',
+  paymentMethodRequired: 'At least one payment method is required',
   invalidEmail: 'Please enter a valid email address',
   passwordMinLength: 'Password must be at least 8 characters long',
   passwordComplexity: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
@@ -95,8 +119,16 @@ export const ValidationMessages = {
   invalidDateFormat: 'Please enter a valid date',
   nameMaxLength: 'Name is too long',
   invalidFiscalId: 'Please enter a valid Italian fiscal ID (Codice Fiscale or Partita IVA)',
+  invalidVatNumber: 'Please enter a valid VAT number (11 digits)',
+  invalidFiscalCode: 'Please enter a valid fiscal code (11 digits)',
+  businessNameMaxLength: 'Business name is too long (max 200 characters)',
+  firstNameMaxLength: 'First name is too long (max 100 characters)',
+  lastNameMaxLength: 'Last name is too long (max 100 characters)',
   invalidUuid: 'Please enter a valid UUID',
   invalidPemType: 'PEM type must be one of: AP, SP, TM, PV',
+  reasonMaxLength: 'Reason is too long (max 255 characters)',
+  pageMinValue: 'Page number must be at least 1',
+  invalidDailyReportStatus: 'Daily report status must be one of: pending, sent, error',
 } as const;
 
 // Re-export zod for convenience

@@ -224,20 +224,25 @@ interface Page<T> {
     pages?: number;
 }
 interface CashierCreateInput {
+    first_name: string;
+    last_name: string;
     email: string;
     password: string;
 }
 interface CashierOutput {
     id: number;
+    first_name: string;
+    last_name: string;
     email: string;
 }
 interface CashierListParams {
     page?: number;
     size?: number;
 }
-type PEMStatus = 'NEW' | 'REGISTERED' | 'ACTIVE' | 'ONLINE' | 'OFFLINE' | 'DISCARDED';
+type PEMStatus = 'NEW' | 'REGISTERED' | 'ACTIVATED' | 'ONLINE' | 'OFFLINE' | 'DISCARDED';
 interface Address {
     street_address: string;
+    street_number: string;
     zip_code: string;
     city: string;
     province: string;
@@ -264,6 +269,9 @@ interface ActivationRequest {
 interface PEMStatusOfflineRequest {
     timestamp: string;
     reason: string;
+}
+interface PointOfSaleUpdateInput {
+    address?: Address;
 }
 type ReceiptType = 'sale' | 'return' | 'void';
 type GoodOrService = 'B' | 'S';
@@ -310,7 +318,7 @@ interface ReceiptDetailsOutput {
     total_amount: string;
     document_number?: string;
     document_datetime?: string;
-    fiscal_id: string;
+    vat_number: string;
     total_taxable_amount: string;
     total_uncollected_amount: string;
     deductible_amount: string;
@@ -356,27 +364,36 @@ interface CashRegisterDetailedOutput {
 interface CashRegisterListParams {
     page?: number;
     size?: number;
+    pem_id?: string;
 }
 interface MerchantOutput {
     uuid: string;
-    fiscal_id: string;
-    name: string;
+    vat_number: string;
+    fiscal_code?: string | null;
     email: string;
+    business_name?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
     address?: Address;
 }
 interface MerchantsParams {
     page?: number;
 }
 interface MerchantCreateInput {
-    fiscal_id: string;
-    name: string;
+    vat_number: string;
+    fiscal_code?: string;
+    business_name?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
     email: string;
     password: string;
     address?: Address;
 }
 interface MerchantUpdateInput {
-    name: string;
-    address?: Address;
+    business_name?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    address?: Address | null;
 }
 interface PemCreateInput {
     merchant_uuid: string;
@@ -394,6 +411,59 @@ interface PemCreateOutput {
 interface PemCertificatesOutput {
     mtls_certificate: string;
     activation_xml_response?: string;
+}
+interface SupplierOutput {
+    uuid: string;
+    fiscal_id: string;
+    name: string;
+    address?: Address;
+}
+interface SuppliersParams {
+    page?: number;
+}
+interface SupplierCreateInput {
+    fiscal_id: string;
+    name: string;
+    address?: Address;
+}
+interface SupplierUpdateInput {
+    name: string;
+    address?: Address;
+}
+interface DailyReportOutput {
+    uuid: string;
+    pem_serial_number: string;
+    date: string;
+    total_receipts: number;
+    total_amount: string;
+    status: 'pending' | 'sent' | 'error';
+}
+interface DailyReportsParams {
+    pem_serial_number?: string;
+    date_from?: string;
+    date_to?: string;
+    status?: 'pending' | 'sent' | 'error';
+    page?: number;
+}
+interface JournalOutput {
+    uuid: string;
+    pem_serial_number: string;
+    date: string;
+    sequence_number: number;
+    total_receipts: number;
+    total_amount: string;
+    status: 'open' | 'closed';
+}
+interface JournalsParams {
+    pem_serial_number?: string;
+    status?: 'open' | 'closed';
+    date_from?: string;
+    date_to?: string;
+    page?: number;
+}
+interface JournalCloseInput {
+    closing_timestamp: string;
+    reason?: string;
 }
 
 /**
@@ -529,6 +599,10 @@ declare class PointOfSalesAPI {
      */
     get(serialNumber: string): Promise<PointOfSaleDetailedOutput>;
     /**
+     * Update a Point of Sale
+     */
+    update(serialNumber: string, updateData: PointOfSaleUpdateInput): Promise<PointOfSaleDetailedOutput>;
+    /**
      * Close journal
      */
     closeJournal(): Promise<void>;
@@ -588,6 +662,12 @@ declare class MerchantsAPI {
      * Replace the Merchant resource
      */
     update(uuid: string, merchantData: MerchantUpdateInput): Promise<MerchantOutput>;
+    /**
+     * Retrieve Point of Sale resources for a specific merchant
+     */
+    listPointOfSales(merchantUuid: string, params?: {
+        page?: number;
+    }): Promise<PointOfSaleOutput[]>;
 }
 
 /**
@@ -601,9 +681,81 @@ declare class PemsAPI {
      */
     create(pemData: PemCreateInput): Promise<PemCreateOutput>;
     /**
+     * Get a specific PEM by serial number
+     */
+    get(serialNumber: string): Promise<PointOfSaleDetailedOutput>;
+    /**
      * Get mTLS and signing certificates for a PEM
      */
-    getCertificates(id: string): Promise<PemCertificatesOutput>;
+    getCertificates(serialNumber: string): Promise<PemCertificatesOutput>;
+}
+
+/**
+ * Suppliers API manager (MF2)
+ */
+declare class SuppliersAPI {
+    private httpClient;
+    constructor(httpClient: HttpClient);
+    /**
+     * Retrieve the collection of Supplier resources
+     */
+    list(params: SuppliersParams): Promise<SupplierOutput[]>;
+    /**
+     * Create a Supplier resource
+     */
+    create(supplierData: SupplierCreateInput): Promise<SupplierOutput>;
+    /**
+     * Retrieve a Supplier resource by UUID
+     */
+    get(uuid: string): Promise<SupplierOutput>;
+    /**
+     * Replace the Supplier resource
+     */
+    update(uuid: string, supplierData: SupplierUpdateInput): Promise<SupplierOutput>;
+    /**
+     * Delete a Supplier resource
+     */
+    delete(uuid: string): Promise<void>;
+}
+
+/**
+ * Daily Reports API manager (MF2)
+ */
+declare class DailyReportsAPI {
+    private httpClient;
+    constructor(httpClient: HttpClient);
+    /**
+     * Retrieve the collection of Daily Report resources
+     */
+    list(params?: DailyReportsParams): Promise<DailyReportOutput[]>;
+    /**
+     * Retrieve a Daily Report resource by UUID
+     */
+    get(uuid: string): Promise<DailyReportOutput>;
+    /**
+     * Regenerate/resend a daily report
+     */
+    regenerate(uuid: string): Promise<DailyReportOutput>;
+}
+
+/**
+ * Journals API manager (MF2)
+ */
+declare class JournalsAPI {
+    private httpClient;
+    constructor(httpClient: HttpClient);
+    /**
+     * Retrieve the collection of Journal resources
+     */
+    list(params?: JournalsParams): Promise<JournalOutput[]>;
+    /**
+     * Retrieve a Journal resource by UUID
+     */
+    get(uuid: string): Promise<JournalOutput>;
+    /**
+     * Close a journal
+     */
+    close(uuid: string, closeData: JournalCloseInput): Promise<JournalOutput>;
 }
 
 /**
@@ -617,6 +769,9 @@ declare class APIClient {
     readonly cashRegisters: CashRegistersAPI;
     readonly merchants: MerchantsAPI;
     readonly pems: PemsAPI;
+    readonly suppliers: SuppliersAPI;
+    readonly dailyReports: DailyReportsAPI;
+    readonly journals: JournalsAPI;
     constructor(config: ConfigManager);
     /**
      * Set authorization header for all requests
