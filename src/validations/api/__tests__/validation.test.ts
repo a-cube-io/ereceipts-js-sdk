@@ -179,6 +179,7 @@ describe('Merchant Validation', () => {
   it('should validate required vat_number format', () => {
     const validMerchant = {
       vat_number: '12345678901', // Valid Italian Partita IVA
+      business_name: 'Test Company',
       email: 'test@company.com',
       password: 'SecurePass123!',
     };
@@ -190,6 +191,7 @@ describe('Merchant Validation', () => {
   it('should reject invalid vat_number', () => {
     const invalidMerchant = {
       vat_number: 'INVALID123',
+      business_name: 'Test Company',
       email: 'test@store.com',
       password: 'SecurePass123!',
     };
@@ -202,6 +204,7 @@ describe('Merchant Validation', () => {
   it('should validate address fields', () => {
     const merchantWithInvalidAddress = {
       vat_number: '12345678901', // Valid VAT number
+      business_name: 'Test Company', // Valid business name
       email: 'test@store.com',
       password: 'SecurePass123!',
       address: {
@@ -216,6 +219,58 @@ describe('Merchant Validation', () => {
     const result = validateInput(MerchantCreateInputSchema, merchantWithInvalidAddress);
     expect(result.success).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it('should accept merchant with business name only', () => {
+    const merchantWithBusinessName = {
+      vat_number: '12345678901',
+      business_name: 'Test Company S.r.l.',
+      email: 'test@company.com',
+      password: 'SecurePass123!',
+    };
+
+    const result = validateInput(MerchantCreateInputSchema, merchantWithBusinessName);
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept merchant with personal names only', () => {
+    const merchantWithPersonalNames = {
+      vat_number: '12345678901',
+      first_name: 'Mario',
+      last_name: 'Rossi',
+      email: 'mario@rossi.com',
+      password: 'SecurePass123!',
+    };
+
+    const result = validateInput(MerchantCreateInputSchema, merchantWithPersonalNames);
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject merchant with both business name and personal names', () => {
+    const merchantWithBoth = {
+      vat_number: '12345678901',
+      business_name: 'Test Company',
+      first_name: 'Mario',
+      last_name: 'Rossi',
+      email: 'test@company.com',
+      password: 'SecurePass123!',
+    };
+
+    const result = validateInput(MerchantCreateInputSchema, merchantWithBoth);
+    expect(result.success).toBe(false);
+    expect(result.errors.some((e: any) => e.message === 'businessNameOrPersonalNamesRequired')).toBe(true);
+  });
+
+  it('should reject merchant with neither business name nor personal names', () => {
+    const merchantWithoutNames = {
+      vat_number: '12345678901',
+      email: 'test@company.com',
+      password: 'SecurePass123!',
+    };
+
+    const result = validateInput(MerchantCreateInputSchema, merchantWithoutNames);
+    expect(result.success).toBe(false);
+    expect(result.errors.some((e: any) => e.message === 'businessNameOrPersonalNamesRequired')).toBe(true);
   });
 });
 

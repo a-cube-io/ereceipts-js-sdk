@@ -122,6 +122,7 @@ export const ValidationMessages = {
   invalidVatNumber: 'Please enter a valid VAT number (11 digits)',
   invalidFiscalCode: 'Please enter a valid fiscal code (11 digits)',
   businessNameMaxLength: 'Business name is too long (max 200 characters)',
+  businessNameOrPersonalNamesRequired: 'Please provide either a business name or first/last name, but not both',
   firstNameMaxLength: 'First name is too long (max 100 characters)',
   lastNameMaxLength: 'Last name is too long (max 100 characters)',
   invalidUuid: 'Please enter a valid UUID',

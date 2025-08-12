@@ -44,6 +44,25 @@ export const MerchantCreateInputSchema = z.object({
     .min(1, { message: 'fieldIsRequired' })
     .regex(PASSWORD_REGEX, { message: 'passwordComplexity' }),
   address: AddressSchema.optional(),
+}).refine((data) => {
+  const hasBusinessName = data.business_name && data.business_name.trim() !== '';
+  const hasPersonalNames = (data.first_name && data.first_name.trim() !== '') || 
+                          (data.last_name && data.last_name.trim() !== '');
+  
+  // If business name is set, first/last name must not be provided
+  if (hasBusinessName && hasPersonalNames) {
+    return false;
+  }
+  
+  // At least one naming method must be provided
+  if (!hasBusinessName && !hasPersonalNames) {
+    return false;
+  }
+  
+  return true;
+}, {
+  message: 'businessNameOrPersonalNamesRequired',
+  path: ['business_name']
 });
 
 // Merchant Update Input Schema
