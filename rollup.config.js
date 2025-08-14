@@ -32,6 +32,8 @@ const baseConfig = {
   plugins: [
     replace({
       'import.meta': 'undefined',
+      'import.meta.url': 'undefined',
+      'import.meta.resolve': 'undefined',
       preventAssignment: true,
     }),
     json(),
@@ -46,7 +48,7 @@ const baseConfig = {
 };
 
 export default [
-  // Browser ESM build
+  // Browser ESM build (with compatibility shims)
   {
     ...baseConfig,
     output: {
@@ -54,6 +56,7 @@ export default [
       format: 'es',
       sourcemap: true,
       inlineDynamicImports: true,
+      intro: 'const importMeta = undefined;',
     },
     plugins: [
       ...baseConfig.plugins,
@@ -89,6 +92,7 @@ export default [
       format: 'es',
       sourcemap: true,
       inlineDynamicImports: true,
+      intro: 'const importMeta = undefined;',
     },
     plugins: [
       ...baseConfig.plugins,
@@ -108,6 +112,7 @@ export default [
       format: 'es',
       sourcemap: true,
       inlineDynamicImports: true,
+      intro: 'const importMeta = undefined;',
     },
     plugins: [
       ...baseConfig.plugins,
