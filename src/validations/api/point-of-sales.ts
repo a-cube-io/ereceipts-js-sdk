@@ -5,17 +5,17 @@ export const PEM_STATUS_OPTIONS = ['NEW', 'REGISTERED', 'ACTIVATED', 'ONLINE', '
 
 // Address Schema (reusable)
 export const AddressSchema = z.object({
-  street_address: z.string().min(1, { message: 'fieldIsRequired' }),
-  street_number: z.string().min(1, { message: 'fieldIsRequired' }),
+  street_address: z.string().min(1, { error: 'fieldIsRequired' }),
+  street_number: z.string().min(1, { error: 'fieldIsRequired' }),
   zip_code: z
     .string()
-    .min(1, { message: 'fieldIsRequired' })
-    .regex(/^\d{5}$/, { message: 'invalidZipCode' }),
-  city: z.string().min(1, { message: 'fieldIsRequired' }),
+    .min(1, { error: 'fieldIsRequired' })
+    .regex(/^\d{5}$/, { error: 'invalidZipCode' }),
+  city: z.string().min(1, { error: 'fieldIsRequired' }),
   province: z
     .string()
-    .min(2, { message: 'provinceMinLength' })
-    .max(2, { message: 'provinceMaxLength' })
+    .min(2, { error: 'provinceMinLength' })
+    .max(2, { error: 'provinceMaxLength' })
     .toUpperCase(),
 });
 
@@ -24,18 +24,18 @@ export const PEMStatusSchema = z.enum(PEM_STATUS_OPTIONS);
 
 // Activation Request Schema
 export const ActivationRequestSchema = z.object({
-  registration_key: z.string().min(1, { message: 'fieldIsRequired' }),
+  registration_key: z.string().min(1, { error: 'fieldIsRequired' }),
 });
 
 // PEM Status Offline Request Schema
 export const PEMStatusOfflineRequestSchema = z.object({
   timestamp: z
     .string()
-    .min(1, { message: 'fieldIsRequired' })
+    .min(1, { error: 'fieldIsRequired' })
     .refine((val) => !isNaN(Date.parse(val)), {
-      message: 'invalidDateFormat'
+      error: 'invalidDateFormat'
     }),
-  reason: z.string().min(1, { message: 'fieldIsRequired' }),
+  reason: z.string().min(1, { error: 'fieldIsRequired' }),
 });
 
 // Type exports
