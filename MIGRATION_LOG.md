@@ -121,6 +121,18 @@
 - **Build**: Clean build with no warnings ✅
 - **Impact**: Zero functional impact, purely cosmetic fix
 
+### ✅ Expo Web import.meta Error - RESOLVED  
+- **Issue**: `Cannot use 'import.meta' outside a module` error in Expo Web
+- **Root Cause**: Modern ES features from Zod v4 incompatible with Expo Web bundler
+- **Symptoms**: Web app crashes on load with SyntaxError
+- **Solution Applied**: 
+  - Added `@rollup/plugin-replace` to transform `import.meta` → `undefined`
+  - Enhanced CommonJS handling with `transformMixedEsModules: true`
+  - Updated package.json exports for explicit web compatibility
+- **Status**: ✅ **FIXED** - Web builds should work in Expo
+- **Tests**: All 40 validation tests pass ✅
+- **Build**: Clean build with web compatibility ✅
+
 ## Notes
 - ✅ Zod 4.0.17 installed successfully
 - ✅ All compatibility verified: Tests pass, TypeScript compiles
