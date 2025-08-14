@@ -19,6 +19,15 @@ const external = [
 const baseConfig = {
   input: 'src/index.ts',
   external: id => external.some(dep => id.startsWith(dep)),
+  onwarn: function(warning, warn) {
+    // Suppress specific Zod v4 internal circular dependency warning
+    if (warning.code === 'CIRCULAR_DEPENDENCY' && 
+        warning.message.includes('node_modules/zod/v4/classic/schemas.js') &&
+        warning.message.includes('node_modules/zod/v4/classic/iso.js')) {
+      return;
+    }
+    warn(warning);
+  },
   plugins: [
     json(),
     resolve({
