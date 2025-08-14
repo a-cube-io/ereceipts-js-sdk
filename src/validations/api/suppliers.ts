@@ -8,13 +8,13 @@ const FISCAL_ID_REGEX = /^([A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTU
 export const SupplierCreateInputSchema = z.object({
   fiscal_id: z
     .string()
-    .min(1, { message: 'fieldIsRequired' })
-    .regex(FISCAL_ID_REGEX, { message: 'invalidFiscalId' })
+    .min(1, { error: 'fieldIsRequired' })
+    .regex(FISCAL_ID_REGEX, { error: 'invalidFiscalId' })
     .toUpperCase(),
   name: z
     .string()
-    .min(1, { message: 'fieldIsRequired' })
-    .max(200, { message: 'nameMaxLength' }),
+    .min(1, { error: 'fieldIsRequired' })
+    .max(200, { error: 'nameMaxLength' }),
   address: AddressSchema.optional(),
 });
 
@@ -22,8 +22,8 @@ export const SupplierCreateInputSchema = z.object({
 export const SupplierUpdateInputSchema = z.object({
   name: z
     .string()
-    .min(1, { message: 'fieldIsRequired' })
-    .max(200, { message: 'nameMaxLength' }),
+    .min(1, { error: 'fieldIsRequired' })
+    .max(200, { error: 'nameMaxLength' }),
   address: AddressSchema.optional(),
 });
 

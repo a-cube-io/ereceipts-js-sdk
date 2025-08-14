@@ -4,21 +4,21 @@ import { z } from 'zod';
 export const CashierCreateInputSchema = z.object({
   first_name: z
     .string()
-    .min(1, { message: 'fieldIsRequired' })
-    .max(50, { message: 'firstNameMaxLength' }),
+    .min(1, { error: 'fieldIsRequired' })
+    .max(50, { error: 'firstNameMaxLength' }),
   last_name: z
     .string()
-    .min(1, { message: 'fieldIsRequired' })
-    .max(50, { message: 'lastNameMaxLength' }),
+    .min(1, { error: 'fieldIsRequired' })
+    .max(50, { error: 'lastNameMaxLength' }),
   email: z
     .string()
-    .min(1, { message: 'fieldIsRequired' })
-    .email({ message: 'invalidEmail' }),
+    .min(1, { error: 'fieldIsRequired' })
+    .email({ error: 'invalidEmail' }),
   password: z
     .string()
-    .min(8, { message: 'passwordMinLength' })
+    .min(8, { error: 'passwordMinLength' })
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
-      message: 'passwordComplexity'
+      error: 'passwordComplexity'
     }),
 });
 
