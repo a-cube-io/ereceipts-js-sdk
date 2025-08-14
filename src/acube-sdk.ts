@@ -58,11 +58,11 @@ export class ACubeSDK {
     try {
       // Load platform adapters if not provided
       if (!this.adapters) {
-        this.adapters = await loadPlatformAdapters();
+        this.adapters = loadPlatformAdapters();
       }
 
-      // Initialize API client
-      this.api = new APIClient(this.config);
+      // Initialize API client with cache support and network monitoring
+      this.api = new APIClient(this.config, this.adapters.cache, this.adapters.networkMonitor);
 
       // Initialize auth manager
       this.authManager = new AuthManager(
@@ -166,7 +166,7 @@ export class ACubeSDK {
   }
 
   /**
-   * Check if user is authenticated
+   * Check if the user is authenticated
    */
   async isAuthenticated(): Promise<boolean> {
     this.ensureInitialized();

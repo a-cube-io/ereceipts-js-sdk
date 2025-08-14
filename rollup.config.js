@@ -11,7 +11,9 @@ const external = [
   '@react-native-async-storage/async-storage',
   '@react-native-community/netinfo',
   'expo-secure-store',
-  'react-native-keychain'
+  'expo-sqlite',
+  'react-native-keychain',
+  'react-native-sqlite-storage'
 ];
 
 const baseConfig = {
@@ -63,7 +65,7 @@ export default [
       }),
     ],
   },
-  // React Native specific build
+  // React Native/Expo specific build
   {
     ...baseConfig,
     output: {

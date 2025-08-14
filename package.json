@@ -28,7 +28,7 @@
     "build": "rollup -c",
     "build:dev": "npm run build && npm pack",
     "dev": "rollup -c -w",
-    "test": "jest",
+    "test": "jest --passWithNoTests --detectOpenHandles",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"

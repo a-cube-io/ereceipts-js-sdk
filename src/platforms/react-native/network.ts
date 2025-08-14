@@ -18,7 +18,7 @@ export class ReactNativeNetworkMonitor implements INetworkMonitor {
       // Try to require NetInfo - avoid dynamic import for Metro compatibility
       const NetInfoModule = require('@react-native-community/netinfo');
       this.NetInfo = NetInfoModule.default || NetInfoModule;
-      
+      console.log('NetInfo loaded successfully');
       // Subscribe to network state changes
       this.subscribeToNetworkState();
     } catch (error) {
