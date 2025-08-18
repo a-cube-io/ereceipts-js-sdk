@@ -190,6 +190,7 @@ export class HttpClient {
     try {
       // Try cache first
       const cached = await this.cache!.get<T>(cacheKey);
+      //console.log('cached', JSON.stringify(cached))
       
       if (cached) {
         if (this.config.isDebugEnabled()) {
@@ -198,15 +199,21 @@ export class HttpClient {
 
         // If online, consider background refresh for stale data
         if (isOnline && this.isCacheStale(cached, options?.cacheTtl)) {
+            console.log('Cache stale, background refresh:', { url, cacheKey });
           // Background refresh (fire and forget)
           this.refreshCacheInBackground<T>(url, config, cacheKey, options).catch(console.error);
         }
+
+          if (this.config.isDebugEnabled()) {
+              console.log('Cache hit:', { url, cacheKey, source: cached.source });
+          }
 
         return cached.data;
       }
 
       // Cache miss - fetch from network if online
       if (isOnline) {
+          console.log('Cache miss, fetching from network:', { url, cacheKey });
         return await this.fetchAndCache<T>(url, config, cacheKey, options);
       }
 
@@ -234,7 +241,7 @@ export class HttpClient {
   }
 
   /**
-   * Fetch data from network and cache the result
+   * Fetch data from the network and cache the result
    */
   private async fetchAndCache<T>(
     url: string, 

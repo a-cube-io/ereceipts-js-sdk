@@ -19,6 +19,8 @@
  * ```
  */
 
+import * as z from "zod";
+
 // Receipt schemas and types
 export {
   ReceiptItemSchema,
@@ -131,9 +133,6 @@ export const ValidationMessages = {
   pageMinValue: 'Page number must be at least 1',
   invalidDailyReportStatus: 'Daily report status must be one of: pending, sent, error',
 } as const;
-
-// Re-export zod for convenience
-import { z } from 'zod';
 
 
 // Validation helper functions

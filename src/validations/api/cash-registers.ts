@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from "zod";
 
 // Cash Register Create Schema
 export const CashRegisterCreateSchema = z.object({

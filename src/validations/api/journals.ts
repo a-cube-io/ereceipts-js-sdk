@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from "zod";
 
 // Journal Close Input Schema
 export const JournalCloseInputSchema = z.object({

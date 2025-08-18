@@ -61,7 +61,7 @@ export class ACubeSDK {
         this.adapters = loadPlatformAdapters();
       }
 
-      // Initialize API client with cache support and network monitoring
+      // Initialize the API client with cache support and network monitoring
       this.api = new APIClient(this.config, this.adapters.cache, this.adapters.networkMonitor);
 
       // Initialize auth manager

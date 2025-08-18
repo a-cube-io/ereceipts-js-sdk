@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from "zod";
 
 // Enum options arrays
 export const PEM_STATUS_OPTIONS = ['NEW', 'REGISTERED', 'ACTIVATED', 'ONLINE', 'OFFLINE', 'DISCARDED'] as const;

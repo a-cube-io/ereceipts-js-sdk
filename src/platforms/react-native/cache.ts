@@ -39,7 +39,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
       try {
         // Fallback to react-native-sqlite-storage
         const SQLite = require('react-native-sqlite-storage');
-        
+
         this.db = await new Promise<any>((resolve, reject) => {
           SQLite.openDatabase(
             {
@@ -84,13 +84,18 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     await this.ensureInitialized();
 
     const sql = `SELECT * FROM ${ReactNativeCacheAdapter.TABLE_NAME} WHERE cache_key = ?`;
+    //console.log('get SQL query', {sql})
     const results = await this.executeSql(sql, [key]);
+    //console.log('get SQL results', {results})
     
-    if (!results.rows || results.rows.length === 0) {
+    // Handle new structure {results:[{...}]} from Expo SQLite
+    const rows = results.results || results.rows || results;
+    
+    if (!rows || (Array.isArray(rows) ? rows.length === 0 : rows.length === 0)) {
       return null;
     }
 
-    const row = this.isExpo ? results.rows[0] : results.rows.item(0);
+    const row = Array.isArray(rows) ? rows[0] : (this.isExpo ? rows[0] : rows.item(0));
     
     // Check if expired
     if (this.isExpired(row)) {
@@ -116,6 +121,8 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
       timestamp: Date.now(),
       ttl: ttl || this.options.defaultTtl,
     };
+
+    // console.log('set', { key, item });
     
     return this.setItem(key, item);
   }
@@ -129,6 +136,8 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
+    //console.log('setItem', key, item);
+
     const params = [
       key,
       JSON.stringify(item.data),
@@ -139,6 +148,8 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
       item.source || 'server',
       item.syncStatus || 'synced',
     ];
+
+    //console.log('setItem', key, item, JSON.stringify(params, null, 2));
 
     await this.executeSql(sql, params);
   }
@@ -173,7 +184,8 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     `;
     
     const results = await this.executeSql(sql);
-    const row = this.isExpo ? results.rows[0] : results.rows.item(0);
+    const rows = results.results || results.rows || results;
+    const row = Array.isArray(rows) ? rows[0] : (this.isExpo ? rows[0] : rows.item(0));
 
     return {
       entries: row.entries || 0,
@@ -211,14 +223,16 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
 
     const results = await this.executeSql(sql, params);
     const keys: string[] = [];
+    
+    const rows = results.results || results.rows || results;
 
-    if (this.isExpo) {
-      for (const row of results.rows || []) {
+    if (Array.isArray(rows)) {
+      for (const row of rows) {
         keys.push(row.cache_key);
       }
-    } else {
-      for (let i = 0; i < (results.rows?.length || 0); i++) {
-        keys.push(results.rows.item(i).cache_key);
+    } else if (rows && rows.length) {
+      for (let i = 0; i < rows.length; i++) {
+        keys.push(rows.item(i).cache_key);
       }
     }
 
@@ -238,7 +252,9 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     if (this.isExpo) {
       // Expo SQLite
       if (sql.toLowerCase().includes('select') || sql.toLowerCase().includes('pragma')) {
-        return await this.db.getAllAsync(sql, params);
+        const result = await this.db.getAllAsync(sql, params);
+        // Normalize to match expected structure - wrap in results array if needed
+        return Array.isArray(result) ? { results: result } : result;
       } else {
         return await this.db.runAsync(sql, params);
       }

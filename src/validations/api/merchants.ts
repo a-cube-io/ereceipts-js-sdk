@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from "zod";
 import { AddressSchema } from './point-of-sales';
 
 // VAT number validation regex (Partita IVA - 11 digits)

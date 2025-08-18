@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from "zod";
 
 // Enum options arrays
 export const VAT_RATE_CODE_OPTIONS = [

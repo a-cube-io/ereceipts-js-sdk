@@ -1,5 +1,4 @@
-import { z } from 'zod';
-
+import * as z from "zod";
 // Cashier Create Input Schema
 export const CashierCreateInputSchema = z.object({
   first_name: z

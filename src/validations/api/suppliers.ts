@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from "zod";
 import { AddressSchema } from './point-of-sales';
 
 // Italian Fiscal ID validation regex (Codice Fiscale for individuals or Partita IVA for companies)
