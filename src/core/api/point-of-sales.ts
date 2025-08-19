@@ -6,7 +6,8 @@ import {
   ActivationRequest,
   PEMStatusOfflineRequest,
   Page, 
-  PointOfSaleListParams
+  PointOfSaleListParams,
+  PointOfSaleOutputMf2
 } from './types';
 
 
@@ -78,5 +79,12 @@ export class PointOfSalesAPI {
    */
   async setOffline(serialNumber: string, offlineData: PEMStatusOfflineRequest): Promise<void> {
     return this.httpClient.post(`/mf1/point-of-sales/${serialNumber}/status/offline`, offlineData);
+  }
+
+   /**
+   * Retrieve a POS resource by UUID
+   */
+  async getMf2Pos(serialNumber: string): Promise<PointOfSaleOutputMf2> {
+    return this.httpClient.get<PointOfSaleOutputMf2>(`/mf2/point-of-sales/${serialNumber}`);
   }
 }

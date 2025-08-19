@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ConfigManager } from '../config';
 import { ACubeSDKError } from '../types';
 import { ICacheAdapter, INetworkMonitor } from '../../adapters';
+import { clearObject } from '../../utils/object';
 
 /**
  * Extended request configuration with cache options
@@ -172,49 +173,51 @@ export class HttpClient {
   }
 
   /**
-   * Cache-aware GET request implementation
+   * Cache-aware GET request implementation with network-first strategy
+   * - When ONLINE: Always fetch from network and update cache
+   * - When OFFLINE: Use cache if available
    */
   private async getCached<T>(url: string, config?: AxiosRequestConfig, options?: CacheRequestConfig): Promise<T> {
     const cacheKey = this.generateCacheKey(url, config);
     const isOnline = this.isOnline();
 
     if (this.config.isDebugEnabled()) {
-      console.log('Cache request:', {
+      console.log('Cache request (network-first):', {
         url,
         isOnline,
         cacheKey,
+        strategy: isOnline ? 'network-first' : 'cache-only',
         hasNetworkMonitor: !!this.networkMonitor,
         networkMonitorType: this.networkMonitor?.constructor.name
       });
     }
+
     try {
-      // Try cache first
+      // ONLINE: Network-first strategy - always fetch fresh data and update cache
+      if (isOnline) {
+        if (this.config.isDebugEnabled()) {
+          console.log('Online: Fetching fresh data from network:', { url, cacheKey });
+        }
+        return await this.fetchAndCache<T>(url, config, cacheKey, options);
+      }
+
+      // OFFLINE: Cache-only strategy - use cached data if available
+      if (this.config.isDebugEnabled()) {
+        console.log('Offline: Checking cache for data:', { url, cacheKey });
+      }
+
       const cached = await this.cache!.get<T>(cacheKey);
-      //console.log('cached', JSON.stringify(cached))
       
       if (cached) {
         if (this.config.isDebugEnabled()) {
-          console.log('Cache hit:', { url, cacheKey, source: cached.source });
+          console.log('Cache hit (offline mode):', { 
+            url, 
+            cacheKey, 
+            source: cached.source,
+            age: Date.now() - cached.timestamp + 'ms'
+          });
         }
-
-        // If online, consider background refresh for stale data
-        if (isOnline && this.isCacheStale(cached, options?.cacheTtl)) {
-            console.log('Cache stale, background refresh:', { url, cacheKey });
-          // Background refresh (fire and forget)
-          this.refreshCacheInBackground<T>(url, config, cacheKey, options).catch(console.error);
-        }
-
-          if (this.config.isDebugEnabled()) {
-              console.log('Cache hit:', { url, cacheKey, source: cached.source });
-          }
-
         return cached.data;
-      }
-
-      // Cache miss - fetch from network if online
-      if (isOnline) {
-          console.log('Cache miss, fetching from network:', { url, cacheKey });
-        return await this.fetchAndCache<T>(url, config, cacheKey, options);
       }
 
       // Offline and no cache - throw error
@@ -231,7 +234,7 @@ export class HttpClient {
       // Cache error - fallback to direct request if online
       if (isOnline) {
         if (this.config.isDebugEnabled()) {
-          console.warn('Cache error, falling back to direct request:', error);
+          console.warn('Cache error, falling back to direct network request:', error);
         }
         return await this.fetchAndCache<T>(url, config, cacheKey, options);
       }
@@ -271,23 +274,6 @@ export class HttpClient {
     }
   }
 
-  /**
-   * Refresh cache in background without blocking the current request
-   */
-  private async refreshCacheInBackground<T>(
-    url: string,
-    config?: AxiosRequestConfig,
-    cacheKey?: string,
-    options?: CacheRequestConfig
-  ): Promise<void> {
-    try {
-      await this.fetchAndCache<T>(url, config, cacheKey, options);
-    } catch (error) {
-      if (this.config.isDebugEnabled()) {
-        console.warn('Background cache refresh failed:', error);
-      }
-    }
-  }
 
   /**
    * Generate cache key from URL and config
@@ -303,13 +289,6 @@ export class HttpClient {
     return baseKey;
   }
 
-  /**
-   * Check if cached data is stale based on TTL
-   */
-  private isCacheStale(cached: any, customTtl?: number): boolean {
-    const ttl = customTtl || cached.ttl || 300000; // 5 minutes default
-    return Date.now() - cached.timestamp > ttl;
-  }
 
   /**
    * Check if the device/application is online using the network monitor
@@ -318,6 +297,7 @@ export class HttpClient {
     // Priority 1: Use injected network monitor for accurate platform-specific detection
     if (this.networkMonitor) {
       try {
+        console.log('online',this.networkMonitor.isOnline())
         return this.networkMonitor.isOnline();
       } catch (error) {
         // Network monitor failed, log warning and continue with fallbacks
@@ -343,7 +323,14 @@ export class HttpClient {
    */
   async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     try {
-      const response: AxiosResponse<T> = await this.client.post(url, data, config);
+      // Clear empty/null/undefined values from data before sending
+      const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
+      
+      if (this.config.isDebugEnabled() && data !== cleanedData) {
+        console.log('POST data cleaned:', { original: data, cleaned: cleanedData });
+      }
+      
+      const response: AxiosResponse<T> = await this.client.post(url, cleanedData, config);
       return response.data;
     } catch (error) {
       throw this.transformError(error);
@@ -355,6 +342,9 @@ export class HttpClient {
    */
   async postOptimistic<T>(url: string, data: any, config?: OptimisticRequestConfig<T>): Promise<T> {
     const options = config as OptimisticRequestConfig<T> | undefined;
+    
+    // Clear data before processing
+    const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
     
     if (options?.optimistic && this.cache && options.optimisticData && options.cacheKey) {
       // Store optimistic data immediately
@@ -376,8 +366,8 @@ export class HttpClient {
       return options.optimisticData;
     }
     
-    // Fallback to regular POST
-    return this.post<T>(url, data, config);
+    // Fallback to regular POST with cleaned data
+    return this.post<T>(url, cleanedData, config);
   }
 
   /**
@@ -385,7 +375,14 @@ export class HttpClient {
    */
   async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     try {
-      const response: AxiosResponse<T> = await this.client.put(url, data, config);
+      // Clear empty/null/undefined values from data before sending
+      const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
+      
+      if (this.config.isDebugEnabled() && data !== cleanedData) {
+        console.log('PUT data cleaned:', { original: data, cleaned: cleanedData });
+      }
+      
+      const response: AxiosResponse<T> = await this.client.put(url, cleanedData, config);
       return response.data;
     } catch (error) {
       throw this.transformError(error);
@@ -397,6 +394,9 @@ export class HttpClient {
    */
   async putOptimistic<T>(url: string, data: any, config?: OptimisticRequestConfig<T>): Promise<T> {
     const options = config as OptimisticRequestConfig<T> | undefined;
+    
+    // Clear data before processing
+    const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
     
     if (options?.optimistic && this.cache && options.optimisticData && options.cacheKey) {
       // Store optimistic data immediately
@@ -418,8 +418,8 @@ export class HttpClient {
       return options.optimisticData;
     }
     
-    // Fallback to regular PUT
-    return this.put<T>(url, data, config);
+    // Fallback to regular PUT with cleaned data
+    return this.put<T>(url, cleanedData, config);
   }
 
   /**
@@ -479,7 +479,14 @@ export class HttpClient {
    */
   async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     try {
-      const response: AxiosResponse<T> = await this.client.patch(url, data, config);
+      // Clear empty/null/undefined values from data before sending
+      const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
+      
+      if (this.config.isDebugEnabled() && data !== cleanedData) {
+        console.log('PATCH data cleaned:', { original: data, cleaned: cleanedData });
+      }
+      
+      const response: AxiosResponse<T> = await this.client.patch(url, cleanedData, config);
       return response.data;
     } catch (error) {
       throw this.transformError(error);
@@ -491,6 +498,9 @@ export class HttpClient {
    */
   async patchOptimistic<T>(url: string, data: any, config?: OptimisticRequestConfig<T>): Promise<T> {
     const options = config as OptimisticRequestConfig<T> | undefined;
+    
+    // Clear data before processing
+    const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
     
     if (options?.optimistic && this.cache && options.optimisticData && options.cacheKey) {
       // Store optimistic data immediately
@@ -512,8 +522,8 @@ export class HttpClient {
       return options.optimisticData;
     }
     
-    // Fallback to regular PATCH
-    return this.patch<T>(url, data, config);
+    // Fallback to regular PATCH with cleaned data
+    return this.patch<T>(url, cleanedData, config);
   }
 
   /**

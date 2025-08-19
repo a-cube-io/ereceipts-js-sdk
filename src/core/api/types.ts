@@ -48,16 +48,24 @@ export interface Address {
   province: string;
 }
 
-export interface PointOfSaleListParams { 
-  status?: PEMStatus; 
-  page?: number; 
-  size?: number;
+export type PointOfSaleMf2Type =  'AP' | 'SP' | 'TM' | 'PV'
+
+export interface PointOfSaleOutputMf2 {
+  id: string;
+  status: PEMStatus;
+  type: PointOfSaleMf2Type;
 }
 
 export interface PointOfSaleOutput {
   serial_number: string;
   status: PEMStatus;
   address: Address;
+}
+
+export interface PointOfSaleListParams { 
+  status?: PEMStatus; 
+  page?: number; 
+  size?: number;
 }
 
 export interface PointOfSaleDetailedOutput {
@@ -232,7 +240,7 @@ export interface PemCreateInput {
 
 export interface PemData {
   version: string;
-  type: 'AP' | 'SP' | 'TM' | 'PV';
+  type: PointOfSaleMf2Type;
 }
 
 export interface PemCreateOutput {
