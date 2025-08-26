@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from "zod";
 import { AddressSchema } from './point-of-sales';
 
 // Enum options arrays
@@ -6,9 +6,9 @@ export const PEM_TYPE_OPTIONS = ['AP', 'SP', 'TM', 'PV'] as const;
 
 // PEM Data Schema
 export const PemDataSchema = z.object({
-  version: z.string().min(1, { message: 'fieldIsRequired' }),
+  version: z.string().min(1, { error: 'fieldIsRequired' }),
   type: z.enum(PEM_TYPE_OPTIONS, { 
-    message: 'invalidPemType'
+    error: 'invalidPemType'
   }),
 });
 
@@ -16,8 +16,8 @@ export const PemDataSchema = z.object({
 export const PemCreateInputSchema = z.object({
   merchant_uuid: z
     .string()
-    .min(1, { message: 'fieldIsRequired' })
-    .uuid({ message: 'invalidUuid' }),
+    .min(1, { error: 'fieldIsRequired' })
+    .uuid({ error: 'invalidUuid' }),
   address: AddressSchema.optional(),
   external_pem_data: PemDataSchema.optional(),
 });

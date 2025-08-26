@@ -9,11 +9,12 @@ The ACube E-Receipt SDK includes a comprehensive role management system that pro
 1. [Role System Architecture](#role-system-architecture)
 2. [Core Types and Interfaces](#core-types-and-interfaces)
 3. [Role Hierarchy](#role-hierarchy)
-4. [API Reference](#api-reference)
-5. [Usage Examples](#usage-examples)
-6. [Integration Patterns](#integration-patterns)
-7. [Best Practices](#best-practices)
-8. [Migration Guide](#migration-guide)
+4. [Current Implementation Scope](#current-implementation-scope)
+5. [API Reference](#api-reference)
+6. [Usage Examples](#usage-examples)
+7. [Integration Patterns](#integration-patterns)
+8. [Best Practices](#best-practices)
+9. [Migration Guide](#migration-guide)
 
 ## Role System Architecture
 
@@ -57,10 +58,10 @@ export type BaseRole =
 
 ### RoleContext
 
-Represents different contexts where roles can be applied:
+Represents the specific context for e-receipt operations:
 
 ```typescript
-export type RoleContext = string;
+export type RoleContext = 'ereceipts-it.acubeapi.com';
 
 // Default context for e-receipt operations
 export const DEFAULT_CONTEXT: RoleContext = 'ereceipts-it.acubeapi.com';
@@ -71,12 +72,11 @@ export const DEFAULT_CONTEXT: RoleContext = 'ereceipts-it.acubeapi.com';
 Main interface for user role assignments:
 
 ```typescript
-export type UserRoles = Record<RoleContext, BaseRole[]>;
+export type UserRoles = Partial<Record<RoleContext, BaseRole[]>>;
 
 // Example:
 const userRoles: UserRoles = {
-  'ereceipts-it.acubeapi.com': ['ROLE_MERCHANT', 'ROLE_SUPPLIER'],
-  'another-system.com': ['ROLE_CACHIER']
+  'ereceipts-it.acubeapi.com': ['ROLE_MERCHANT', 'ROLE_SUPPLIER']
 };
 ```
 
@@ -113,6 +113,41 @@ export const ROLE_HIERARCHY: RoleHierarchy = {
 | ROLE_SUPPLIER | 1 | Basic operations, view data | None |
 | ROLE_CACHIER | 2 | Cash operations, receipt management | None |
 | ROLE_MERCHANT | 3 | Store management, all cash operations | ROLE_CACHIER |
+
+## Current Implementation Scope
+
+### Single Context Design
+
+The current implementation is designed for single-context operations within the ACube E-Receipt system:
+
+- **Context**: Only supports `'ereceipts-it.acubeapi.com'`
+- **Type Safety**: Uses literal type for context to prevent invalid contexts
+- **Simplified API**: Functions default to the single supported context
+
+### Implementation Characteristics
+
+```typescript
+// Current implementation constraints
+export type RoleContext = 'ereceipts-it.acubeapi.com';  // Literal type, not string
+export type UserRoles = Partial<Record<RoleContext, BaseRole[]>>;  // Partial for flexibility
+
+// Single context operations
+const user: UserRoles = {
+  'ereceipts-it.acubeapi.com': ['ROLE_MERCHANT']
+};
+
+// Context parameter is optional and defaults to DEFAULT_CONTEXT
+hasRole(user, 'ROLE_MERCHANT');  // Uses default context
+hasRole(user, 'ROLE_MERCHANT', 'ereceipts-it.acubeapi.com');  // Explicit
+```
+
+### Future Extensibility
+
+The system is designed to be easily extended for multi-context scenarios:
+
+- Change `RoleContext` from literal to `string` type
+- Update `getUserContexts()` to handle multiple contexts
+- Extend validation logic for cross-context scenarios
 
 ## API Reference
 
@@ -201,11 +236,13 @@ function hasContext(
 
 #### getUserContexts(userRoles)
 
-Gets all contexts that a user has access to.
+Gets all contexts that a user has access to. Currently returns only the default context.
 
 ```typescript
 function getUserContexts(userRoles: UserRoles): RoleContext[]
 ```
+
+**Note**: The current implementation only supports the default e-receipts context.
 
 #### hasMinimumRoleLevel(userRoles, minimumLevel, context?)
 
@@ -489,35 +526,32 @@ function roleMiddleware(endpoint: string, method: string) {
 }
 ```
 
-### Multi-Context Role Management
+### Single-Context Role Management
 
 ```typescript
-import { hasRole, getUserContexts } from '@a-cube-io/ereceipts-js-sdk';
+import { hasRole, getUserContexts, DEFAULT_CONTEXT } from '@a-cube-io/ereceipts-js-sdk';
 
-const multiContextUser: UserRoles = {
-  'ereceipts-it.acubeapi.com': ['ROLE_MERCHANT'],
-  'partner-system.com': ['ROLE_CACHIER'],
-  'staging.acubeapi.com': ['ROLE_SUPPLIER'],
+const user: UserRoles = {
+  'ereceipts-it.acubeapi.com': ['ROLE_MERCHANT']
 };
 
-// Check role in specific context
-const canManageInProduction = hasRole(
-  multiContextUser, 
+// Check role (context defaults to DEFAULT_CONTEXT)
+const canManage = hasRole(user, 'ROLE_MERCHANT'); // true
+
+// Explicit context check
+const canManageExplicit = hasRole(
+  user, 
   'ROLE_MERCHANT', 
   'ereceipts-it.acubeapi.com'
 ); // true
 
-const canManageInPartner = hasRole(
-  multiContextUser, 
-  'ROLE_MERCHANT', 
-  'partner-system.com'
-); // false
-
-// Get all user contexts
-const contexts = getUserContexts(multiContextUser);
+// Get user contexts (currently returns only default context)
+const contexts = getUserContexts(user);
 console.log('User has access to:', contexts);
-// ['ereceipts-it.acubeapi.com', 'partner-system.com', 'staging.acubeapi.com']
+// ['ereceipts-it.acubeapi.com']
 ```
+
+**Note**: The current implementation is designed for single-context operations within the e-receipts system.
 
 ## Integration Patterns
 
@@ -816,20 +850,24 @@ const user = await authManager.getCurrentUser();
 const userRoles = req.body.roles; // Could be manipulated
 ```
 
-### 3. Context Isolation
+### 3. Context Validation
 
-Ensure proper context isolation to prevent cross-tenant access:
+Ensure proper context validation within the e-receipts system:
 
 ```typescript
-// ✅ Good - Context-specific check
-const userContext = getUserContext(req);
-if (!hasRole(user.roles, 'ROLE_MERCHANT', userContext)) {
-  // Denied
+// ✅ Good - Use default context (recommended)
+if (!hasRole(user.roles, 'ROLE_MERCHANT')) {
+  // Uses DEFAULT_CONTEXT
 }
 
-// ❌ Bad - Using default context might allow cross-tenant access
-if (!hasRole(user.roles, 'ROLE_MERCHANT')) {
-  // Could be checking wrong context
+// ✅ Also good - Explicit context check
+if (!hasRole(user.roles, 'ROLE_MERCHANT', DEFAULT_CONTEXT)) {
+  // Explicit context validation
+}
+
+// ✅ Good - Check context access first
+if (!hasContext(user.roles, DEFAULT_CONTEXT)) {
+  throw new Error('No access to e-receipts system');
 }
 ```
 

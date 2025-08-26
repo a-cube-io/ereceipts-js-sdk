@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from "zod";
 
 // Enum options arrays
 export const VAT_RATE_CODE_OPTIONS = [
@@ -20,9 +20,9 @@ export const ReceiptProofTypeSchema = z.enum(RECEIPT_PROOF_TYPE_OPTIONS);
 // Receipt Item Schema
 export const ReceiptItemSchema = z.object({
   good_or_service: GoodOrServiceSchema.optional(),
-  quantity: z.string().min(1, { message: 'fieldIsRequired' }),
-  description: z.string().min(1, { message: 'fieldIsRequired' }),
-  unit_price: z.string().min(1, { message: 'fieldIsRequired' }),
+  quantity: z.string().min(1, { error: 'fieldIsRequired' }),
+  description: z.string().min(1, { error: 'fieldIsRequired' }),
+  unit_price: z.string().min(1, { error: 'fieldIsRequired' }),
   vat_rate_code: VatRateCodeSchema.optional(),
   simplified_vat_allocation: z.boolean().optional(),
   discount: z.string().nullable().optional(),
@@ -32,7 +32,7 @@ export const ReceiptItemSchema = z.object({
 
 // Main Receipt Input Schema
 export const ReceiptInputSchema = z.object({
-  items: z.array(ReceiptItemSchema).min(1, { message: 'arrayMin1' }),
+  items: z.array(ReceiptItemSchema).min(1, { error: 'arrayMin1' }),
   customer_tax_code: z.string().optional(),
   customer_lottery_code: z.string().optional(),
   discount: z.string().nullable().optional(),
@@ -52,24 +52,24 @@ export const ReceiptInputSchema = z.object({
   
   return hasCashPayment || hasElectronicPayment || hasTicketPayment;
 }, {
-  message: 'At least one payment method is required',
+  error: 'At least one payment method is required',
   path: ['payment_methods']
 });
 
 // Receipt Return or Void via PEM Schema
 export const ReceiptReturnOrVoidViaPEMInputSchema = z.object({
   pem_id: z.string().optional(),
-  items: z.array(ReceiptItemSchema).min(1, { message: 'arrayMin1' }),
-  document_number: z.string().min(1, { message: 'fieldIsRequired' }),
+  items: z.array(ReceiptItemSchema).min(1, { error: 'arrayMin1' }),
+  document_number: z.string().min(1, { error: 'fieldIsRequired' }),
   document_date: z.string().optional(),
   lottery_code: z.string().optional(),
 });
 
 // Receipt Return or Void with Proof Schema
 export const ReceiptReturnOrVoidWithProofInputSchema = z.object({
-  items: z.array(ReceiptItemSchema).min(1, { message: 'arrayMin1' }),
+  items: z.array(ReceiptItemSchema).min(1, { error: 'arrayMin1' }),
   proof: ReceiptProofTypeSchema,
-  document_datetime: z.string().min(1, { message: 'fieldIsRequired' }),
+  document_datetime: z.string().min(1, { error: 'fieldIsRequired' }),
 });
 
 // Type exports

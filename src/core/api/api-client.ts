@@ -1,5 +1,6 @@
 import { ConfigManager } from '../config';
 import { HttpClient } from './http-client';
+import { ICacheAdapter, INetworkMonitor } from '../../adapters';
 import { ReceiptsAPI } from './receipts';
 import { CashiersAPI } from './cashiers';
 import { PointOfSalesAPI } from './point-of-sales';
@@ -15,6 +16,8 @@ import { JournalsAPI } from './journals';
  */
 export class APIClient {
   private httpClient: HttpClient;
+  private cache?: ICacheAdapter;
+  private networkMonitor?: INetworkMonitor;
 
   // Resource managers
   public readonly receipts: ReceiptsAPI;
@@ -27,8 +30,14 @@ export class APIClient {
   public readonly dailyReports: DailyReportsAPI;
   public readonly journals: JournalsAPI;
 
-  constructor(config: ConfigManager) {
-    this.httpClient = new HttpClient(config);
+  constructor(
+    config: ConfigManager, 
+    cache?: ICacheAdapter,
+    networkMonitor?: INetworkMonitor
+  ) {
+    this.cache = cache;
+    this.networkMonitor = networkMonitor;
+    this.httpClient = new HttpClient(config, cache, networkMonitor);
 
     // Initialize resource managers
     this.receipts = new ReceiptsAPI(this.httpClient);
@@ -61,5 +70,47 @@ export class APIClient {
    */
   getHttpClient(): HttpClient {
     return this.httpClient;
+  }
+
+  /**
+   * Get the cache adapter if available
+   */
+  getCache(): ICacheAdapter | undefined {
+    return this.cache;
+  }
+
+  /**
+   * Check if cache is available and enabled
+   */
+  isCacheEnabled(): boolean {
+    return !!this.cache;
+  }
+
+  /**
+   * Get the network monitor if available
+   */
+  getNetworkMonitor(): INetworkMonitor | undefined {
+    return this.networkMonitor;
+  }
+
+  /**
+   * Check if network monitoring is enabled
+   */
+  isNetworkMonitorEnabled(): boolean {
+    return !!this.networkMonitor;
+  }
+
+  /**
+   * Get current network status
+   */
+  getNetworkStatus(): { isOnline: boolean; hasMonitor: boolean } {
+    return this.httpClient.getNetworkStatus();
+  }
+
+  /**
+   * Check if currently online
+   */
+  isOnline(): boolean {
+    return this.getNetworkStatus().isOnline;
   }
 }

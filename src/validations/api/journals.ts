@@ -1,16 +1,16 @@
-import { z } from 'zod';
+import * as z from "zod";
 
 // Journal Close Input Schema
 export const JournalCloseInputSchema = z.object({
   closing_timestamp: z
     .string()
-    .min(1, { message: 'fieldIsRequired' })
+    .min(1, { error: 'fieldIsRequired' })
     .refine((val) => !isNaN(Date.parse(val)), {
-      message: 'invalidDateFormat'
+      error: 'invalidDateFormat'
     }),
   reason: z
     .string()
-    .max(255, { message: 'reasonMaxLength' })
+    .max(255, { error: 'reasonMaxLength' })
     .optional(),
 });
 

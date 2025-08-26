@@ -1,25 +1,24 @@
-import { z } from 'zod';
+import * as z from "zod";
 
-// Cashier Create Input Schema
+// Cashier Create Input Schema (MF1)
 export const CashierCreateInputSchema = z.object({
-  first_name: z
-    .string()
-    .min(1, { message: 'fieldIsRequired' })
-    .max(50, { message: 'firstNameMaxLength' }),
-  last_name: z
-    .string()
-    .min(1, { message: 'fieldIsRequired' })
-    .max(50, { message: 'lastNameMaxLength' }),
   email: z
     .string()
-    .min(1, { message: 'fieldIsRequired' })
-    .email({ message: 'invalidEmail' }),
+    .min(1, { error: 'fieldIsRequired' })
+    .max(255, { error: 'emailMaxLength' })
+    .email({ error: 'invalidEmail' }),
   password: z
     .string()
-    .min(8, { message: 'passwordMinLength' })
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
-      message: 'passwordComplexity'
-    }),
+    .min(8, { error: 'passwordMinLength' })
+    .max(40, { error: 'passwordMaxLength' }),
+  first_name: z
+    .string()
+    .min(1, { error: 'fieldIsRequired' })
+    .max(255, { error: 'firstNameMaxLength' }),
+  last_name: z
+    .string()
+    .min(1, { error: 'fieldIsRequired' })
+    .max(255, { error: 'lastNameMaxLength' }),
 });
 
 // Type exports

@@ -11,19 +11,20 @@ export interface Page<T> {
   pages?: number;
 }
 
-// Cashier types
+// Cashier types (MF1)
 export interface CashierCreateInput {
-  first_name: string;
-  last_name: string;
   email: string;
   password: string;
+  first_name: string;
+  last_name: string;
 }
 
 export interface CashierOutput {
-  id: number;
+  uuid: string;
+  merchant_uuid: string;
+  email: string;
   first_name: string;
   last_name: string;
-  email: string;
 }
 
 export interface CashierSimpleOutput {
@@ -48,16 +49,24 @@ export interface Address {
   province: string;
 }
 
-export interface PointOfSaleListParams { 
-  status?: PEMStatus; 
-  page?: number; 
-  size?: number;
+export type PointOfSaleMf2Type =  'AP' | 'SP' | 'TM' | 'PV'
+
+export interface PointOfSaleOutputMf2 {
+  id: string;
+  status: PEMStatus;
+  type: PointOfSaleMf2Type;
 }
 
 export interface PointOfSaleOutput {
   serial_number: string;
   status: PEMStatus;
   address: Address;
+}
+
+export interface PointOfSaleListParams { 
+  status?: PEMStatus; 
+  page?: number; 
+  size?: number;
 }
 
 export interface PointOfSaleDetailedOutput {
@@ -232,7 +241,7 @@ export interface PemCreateInput {
 
 export interface PemData {
   version: string;
-  type: 'AP' | 'SP' | 'TM' | 'PV';
+  type: PointOfSaleMf2Type;
 }
 
 export interface PemCreateOutput {

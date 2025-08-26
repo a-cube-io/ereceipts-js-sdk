@@ -111,10 +111,10 @@ describe('Receipt Validation', () => {
 describe('Cashier Validation', () => {
   it('should validate a valid cashier creation', () => {
     const validCashier = {
-      first_name: 'John',
-      last_name: 'Doe',
       email: 'cashier@example.com',
       password: 'SecurePass123!',
+      first_name: 'John',
+      last_name: 'Doe',
     };
 
     const result = validateInput(CashierCreateInputSchema, validCashier);
@@ -125,6 +125,8 @@ describe('Cashier Validation', () => {
     const invalidCashier = {
       email: 'not-an-email',
       password: 'SecurePass123!',
+      first_name: 'John',
+      last_name: 'Doe',
     };
 
     const result = validateInput(CashierCreateInputSchema, invalidCashier);
@@ -136,6 +138,8 @@ describe('Cashier Validation', () => {
     const invalidCashier = {
       email: 'cashier@example.com',
       password: 'weak',
+      first_name: 'John',
+      last_name: 'Doe',
     };
 
     const result = validateInput(CashierCreateInputSchema, invalidCashier);
@@ -143,15 +147,41 @@ describe('Cashier Validation', () => {
     expect(result.errors.some((e: any) => e.message === 'passwordMinLength')).toBe(true);
   });
 
-  it('should reject password without complexity', () => {
+  it('should reject password that exceeds maximum length', () => {
     const invalidCashier = {
       email: 'cashier@example.com',
-      password: 'onlylowercase',
+      password: 'ThisPasswordIsTooLongAndExceedsThe40CharLimit123456789',
+      first_name: 'John',
+      last_name: 'Doe',
     };
 
     const result = validateInput(CashierCreateInputSchema, invalidCashier);
     expect(result.success).toBe(false);
-    expect(result.errors.some((e: any) => e.message === 'passwordComplexity')).toBe(true);
+    expect(result.errors.some((e: any) => e.message === 'passwordMaxLength')).toBe(true);
+  });
+
+  it('should reject missing required fields', () => {
+    const invalidCashier = {
+      email: 'cashier@example.com',
+      // Missing password, first_name, and last_name
+    };
+
+    const result = validateInput(CashierCreateInputSchema, invalidCashier);
+    expect(result.success).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it('should reject names that exceed maximum length', () => {
+    const invalidCashier = {
+      email: 'cashier@example.com',
+      password: 'ValidPass123!',
+      first_name: 'A'.repeat(256), // Exceeds 255 character limit
+      last_name: 'Doe',
+    };
+
+    const result = validateInput(CashierCreateInputSchema, invalidCashier);
+    expect(result.success).toBe(false);
+    expect(result.errors.some((e: any) => e.message === 'firstNameMaxLength')).toBe(true);
   });
 });
 
