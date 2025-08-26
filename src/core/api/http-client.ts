@@ -61,12 +61,18 @@ export class HttpClient {
   }
 
   private createClient(): AxiosInstance {
+    if (this.config.isDebugEnabled()) {
+      console.log({
+        customHeaders: this.config.getCustomHeaders()
+      })
+    }
     const client = axios.create({
       baseURL: this.config.getApiUrl(),
       timeout: this.config.getTimeout(),
       headers: {
         'Content-Type': 'application/json',
-        ...this.config.getCustomHeaders(),
+ //       'Access-Control-Allow-Origin': '*',
+  //      ...this.config.getCustomHeaders(),
       },
     });
 

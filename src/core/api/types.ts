@@ -11,19 +11,20 @@ export interface Page<T> {
   pages?: number;
 }
 
-// Cashier types
+// Cashier types (MF1)
 export interface CashierCreateInput {
-  first_name: string;
-  last_name: string;
   email: string;
   password: string;
+  first_name: string;
+  last_name: string;
 }
 
 export interface CashierOutput {
-  id: number;
+  uuid: string;
+  merchant_uuid: string;
+  email: string;
   first_name: string;
   last_name: string;
-  email: string;
 }
 
 export interface CashierSimpleOutput {

@@ -1,24 +1,24 @@
 import * as z from "zod";
-// Cashier Create Input Schema
+
+// Cashier Create Input Schema (MF1)
 export const CashierCreateInputSchema = z.object({
-  first_name: z
-    .string()
-    .min(1, { error: 'fieldIsRequired' })
-    .max(50, { error: 'firstNameMaxLength' }),
-  last_name: z
-    .string()
-    .min(1, { error: 'fieldIsRequired' })
-    .max(50, { error: 'lastNameMaxLength' }),
   email: z
     .string()
     .min(1, { error: 'fieldIsRequired' })
+    .max(255, { error: 'emailMaxLength' })
     .email({ error: 'invalidEmail' }),
   password: z
     .string()
     .min(8, { error: 'passwordMinLength' })
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
-      error: 'passwordComplexity'
-    }),
+    .max(40, { error: 'passwordMaxLength' }),
+  first_name: z
+    .string()
+    .min(1, { error: 'fieldIsRequired' })
+    .max(255, { error: 'firstNameMaxLength' }),
+  last_name: z
+    .string()
+    .min(1, { error: 'fieldIsRequired' })
+    .max(255, { error: 'lastNameMaxLength' }),
 });
 
 // Type exports
