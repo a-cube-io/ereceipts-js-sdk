@@ -2,10 +2,22 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ConfigManager } from '../config';
 import { ACubeSDKError } from '../types';
 import { ICacheAdapter, INetworkMonitor } from '../../adapters';
-import { clearObject } from '../../utils/object';
+import { clearObject } from '../../utils';
+import { 
+  IMTLSAdapter, 
+  CertificateData, 
+  MTLSError, 
+  MTLSErrorType,
+  MTLSRequestConfig
+} from '../../adapters';
 
 /**
- * Extended request configuration with cache options
+ * Authentication modes for requests
+ */
+export type AuthMode = 'jwt' | 'mtls' | 'dual' | 'auto';
+
+/**
+ * Extended request configuration with cache and mTLS options
  */
 export interface CacheRequestConfig extends AxiosRequestConfig {
   /** Whether to use cache for this request (default: true if cache available) */
@@ -14,8 +26,16 @@ export interface CacheRequestConfig extends AxiosRequestConfig {
   cacheTtl?: number;
   /** Cache tags for group invalidation */
   cacheTags?: string[];
-  /** Force refresh from server */
+  /** Force refresh from the server */
   forceRefresh?: boolean;
+  /** Authentication mode for this request */
+  authMode?: AuthMode;
+  /** Force specific port (e.g., 444 for mTLS) */
+  port?: number;
+  /** Skip mTLS fallback to JWT */
+  noFallback?: boolean;
+  /** Custom certificate for this request */
+  customCertificate?: CertificateData;
 }
 
 /**
@@ -35,30 +55,107 @@ export interface OptimisticRequestConfig<T = any> extends AxiosRequestConfig {
 }
 
 /**
- * HTTP client for API requests with optional caching and network monitoring support
+ * Certificate configuration for cash registers
+ */
+export interface CashRegisterCertificate {
+  cashRegisterId: string;
+  certificate: string;
+  privateKey: string;
+  configuredAt: Date;
+  isActive: boolean;
+}
+
+/**
+ * HTTP client for API requests with mTLS, caching and network monitoring support
  */
 export class HttpClient {
   private client: AxiosInstance;
   private cache?: ICacheAdapter;
   private networkMonitor?: INetworkMonitor;
+  private mtlsAdapter: IMTLSAdapter | null;
+  private certificateCache: Map<string, CashRegisterCertificate> = new Map();
+  private isDebugEnabled: boolean = false;
 
   constructor(
     private config: ConfigManager, 
     cache?: ICacheAdapter,
-    networkMonitor?: INetworkMonitor
+    networkMonitor?: INetworkMonitor,
+    mtlsAdapter?: IMTLSAdapter
   ) {
     this.client = this.createClient();
     this.cache = cache;
     this.networkMonitor = networkMonitor;
+    this.mtlsAdapter = mtlsAdapter || null;
+    this.isDebugEnabled = config.isDebugEnabled();
     
-    // Log network state on initialization if debug is enabled
-    if (this.config.isDebugEnabled() && this.networkMonitor) {
-      console.log('HttpClient initialized with network monitor:', {
-        isOnline: this.networkMonitor.isOnline(),
-        monitorType: this.networkMonitor.constructor.name
+    // Log initialization state
+    if (this.isDebugEnabled) {
+      console.log('[HTTP-CLIENT] Initialized:', {
+        hasCache: !!cache,
+        hasNetworkMonitor: !!networkMonitor,
+        hasMTLSAdapter: !!mtlsAdapter,
+        networkState: networkMonitor?.isOnline() || 'unknown'
       });
     }
   }
+
+  /**
+   * Get the mTLS adapter instance (for advanced usage or debugging)
+   */
+  getMTLSAdapter(): IMTLSAdapter | null {
+    return this.mtlsAdapter;
+  }
+
+  /**
+   * Construct full absolute URL for mTLS requests
+   * Uses the mTLS adapter's configured base URL to avoid duplicate transformation
+   */
+  private constructMTLSUrl(relativePath: string): string {
+    // Get the configured mTLS base URL from the adapter
+    const mtlsBaseUrl = this.mtlsAdapter?.getBaseUrl();
+    
+    if (!mtlsBaseUrl) {
+      // Fallback: transform JWT base URL to mTLS URL if the adapter doesn't have it configured
+      const jwtBaseUrl = this.config.getApiUrl();
+      const fallbackMtlsBaseUrl = jwtBaseUrl.includes(':443') 
+        ? jwtBaseUrl.replace(':443', ':444')
+        : jwtBaseUrl.replace(/:\d+$/, '') + ':444';
+      
+      if (this.isDebugEnabled) {
+        console.warn('[HTTP-CLIENT] mTLS adapter base URL not configured, using fallback transformation');
+      }
+      
+      return this.combineUrlAndPath(fallbackMtlsBaseUrl, relativePath);
+    }
+    
+    return this.combineUrlAndPath(mtlsBaseUrl, relativePath);
+  }
+
+  /**
+   * Combine base URL with a relative path, handling slashes correctly
+   */
+  private combineUrlAndPath(baseUrl: string, relativePath: string): string {
+    // Remove the leading slash from a relative path to avoid double slashes
+    const cleanPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
+    
+    // Combine base URL with a path
+    const fullUrl = baseUrl.endsWith('/') 
+      ? `${baseUrl}${cleanPath}`
+      : `${baseUrl}/${cleanPath}`;
+    
+    if (this.isDebugEnabled) {
+      console.log('[HTTP-CLIENT] URL construction:', {
+        baseUrl,
+        relativePath,
+        cleanPath,
+        fullUrl,
+        source: this.mtlsAdapter?.getBaseUrl() ? 'adapter' : 'fallback'
+      });
+    }
+    
+    return fullUrl;
+  }
+
 
   private createClient(): AxiosInstance {
     if (this.config.isDebugEnabled()) {
@@ -158,10 +255,306 @@ export class HttpClient {
     delete this.client.defaults.headers.common['Authorization'];
   }
 
+  // ==================== mTLS METHODS ====================
+
   /**
-   * GET request with optional caching support
+   * Configure a certificate for a cash register
    */
-  async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  async configureCashRegisterCertificate(
+    cashRegisterId: string, 
+    certificate: string, 
+    privateKey: string
+  ): Promise<void> {
+    if (!this.mtlsAdapter) {
+      if (this.isDebugEnabled) {
+        console.log('[HTTP-CLIENT] mTLS not available, skipping certificate configuration');
+      }
+      return;
+    }
+
+    if (this.isDebugEnabled) {
+      console.log('[HTTP-CLIENT] Configuring certificate for cash register:', {
+        cashRegisterId,
+        certificateLength: certificate.length,
+        privateKeyLength: privateKey.length
+      });
+    }
+
+    try {
+      const certificateData: CertificateData = {
+        certificate,
+        privateKey,
+        format: 'PEM' // A-Cube uses a PEM format
+      };
+
+      await this.mtlsAdapter.configureCertificate(certificateData);
+
+      // Cache certificate configuration
+      this.certificateCache.set(cashRegisterId, {
+        cashRegisterId,
+        certificate,
+        privateKey,
+        configuredAt: new Date(),
+        isActive: true
+      });
+
+      if (this.isDebugEnabled) {
+        console.log('[HTTP-CLIENT] Certificate configured successfully for cash register:', cashRegisterId);
+      }
+    } catch (error) {
+      if (this.isDebugEnabled) {
+        console.error('[HTTP-CLIENT] Certificate configuration failed:', error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Check if mTLS is available and configured
+   */
+  async isMTLSReady(): Promise<boolean> {
+    if (!this.mtlsAdapter) return false;
+    
+    try {
+      const hasCert = await this.mtlsAdapter.hasCertificate();
+      
+      if (this.isDebugEnabled) {
+        console.log('[HTTP-CLIENT] mTLS ready check:', {
+          adapterAvailable: !!this.mtlsAdapter,
+          hasCertificate: hasCert
+        });
+      }
+      
+      return hasCert;
+    } catch (error) {
+      if (this.isDebugEnabled) {
+        console.error('[HTTP-CLIENT] mTLS ready check failed:', error);
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Test mTLS connection
+   */
+  async testMTLSConnection(): Promise<boolean> {
+    if (!this.mtlsAdapter) return false;
+    
+    try {
+      const result = await this.mtlsAdapter.testConnection();
+      
+      if (this.isDebugEnabled) {
+        console.log('[HTTP-CLIENT] mTLS connection test:', result);
+      }
+      
+      return result;
+    } catch (error) {
+      if (this.isDebugEnabled) {
+        console.error('[HTTP-CLIENT] mTLS connection test failed:', error);
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Determine authentication mode for a request
+   */
+  private determineAuthMode(url: string, config?: CacheRequestConfig): AuthMode {
+    // Explicit mode specified
+    if (config?.authMode) {
+      if (this.isDebugEnabled) {
+        console.log('[HTTP-CLIENT] Using explicit auth mode:', config.authMode);
+      }
+      return config.authMode;
+    }
+
+    // Receipt endpoints should use mTLS (A-Cube requirement)
+    if (url.includes('/receipts') || url.includes('/mf1/receipts')) {
+      if (this.isDebugEnabled) {
+        console.log('[HTTP-CLIENT] Receipt endpoint detected, using mTLS mode');
+      }
+      return 'mtls';
+    }
+
+    // Default to auto mode
+    if (this.isDebugEnabled) {
+      console.log('[HTTP-CLIENT] Using auto auth mode');
+    }
+    return 'auto';
+  }
+
+  /**
+   * Make a request with mTLS authentication + JWT dual authentication
+   * This method combines both mTLS client certificates and JWT tokens
+   * for enhanced security as required by A-Cube endpoints
+   */
+  private async makeRequestMTLS<T>(
+    url: string, 
+    config: AxiosRequestConfig & { method?: string } = {}
+  ): Promise<T> {
+    if (!this.mtlsAdapter) {
+      throw new MTLSError(
+        MTLSErrorType.NOT_SUPPORTED,
+        'mTLS adapter not available'
+      );
+    }
+
+    const isMTLSReady = await this.isMTLSReady();
+    if (!isMTLSReady) {
+      throw new MTLSError(
+        MTLSErrorType.CERTIFICATE_NOT_FOUND,
+        'mTLS certificate not configured'
+      );
+    }
+
+    if (this.isDebugEnabled) {
+      console.log('[HTTP-CLIENT] Making mTLS request:', {
+        method: config.method || 'GET',
+        url,
+        hasData: !!config.data,
+        baseUrl: config.baseURL,
+      });
+    }
+
+    try {
+      // Prepare headers including both request-specific headers and JWT Authorization
+      const headers: Record<string, string> = {
+        ...(config.headers as Record<string, string> || {}),
+      };
+
+      // Include JWT Authorization header from axios client defaults if available
+      const jwtToken = this.client.defaults.headers.common['Authorization'];
+      if (jwtToken && typeof jwtToken === 'string') {
+        headers['Authorization'] = jwtToken;
+        
+        if (this.isDebugEnabled) {
+          console.log('[HTTP-CLIENT] Including JWT Authorization header in mTLS request');
+        }
+      }
+
+      // Construct full absolute URL for mTLS request
+      const fullUrl = this.constructMTLSUrl(url);
+
+      const mtlsConfig: MTLSRequestConfig = {
+        url: fullUrl,
+        method: (config.method || 'GET') as any,
+        headers,
+        data: config.data,
+        timeout: config.timeout
+      };
+
+      if (this.isDebugEnabled) {
+        console.log('[HTTP-CLIENT] mTLS request config:', mtlsConfig);
+      }
+
+      const response = await this.mtlsAdapter.request<T>(mtlsConfig);
+
+      if (this.isDebugEnabled) {
+        console.log('[HTTP-CLIENT] mTLS request successful:', {
+          status: response.status,
+          hasData: !!response.data
+        });
+      }
+
+      return response.data;
+    } catch (error) {
+      if (this.isDebugEnabled) {
+        console.error('[HTTP-CLIENT] mTLS request failed:', error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get mTLS status and certificate information
+   */
+  async getMTLSStatus() {
+    const status = {
+      adapterAvailable: !!this.mtlsAdapter,
+      isReady: false,
+      certificateCount: this.certificateCache.size,
+      platformInfo: this.mtlsAdapter?.getPlatformInfo() || null,
+      connectionTest: false
+    };
+
+    if (this.mtlsAdapter) {
+      try {
+        status.isReady = await this.isMTLSReady();
+        status.connectionTest = await this.testMTLSConnection();
+      } catch (error) {
+        if (this.isDebugEnabled) {
+          console.error('[HTTP-CLIENT] Status check failed:', error);
+        }
+      }
+    }
+
+    if (this.isDebugEnabled) {
+      console.log('[HTTP-CLIENT] mTLS Status:', status);
+    }
+
+    return status;
+  }
+
+  /**
+   * Remove certificate configuration
+   */
+  async removeCertificate(cashRegisterId?: string): Promise<void> {
+    if (cashRegisterId) {
+      this.certificateCache.delete(cashRegisterId);
+      
+      if (this.isDebugEnabled) {
+        console.log('[HTTP-CLIENT] Removed certificate for cash register:', cashRegisterId);
+      }
+    } else {
+      // Remove all certificates
+      this.certificateCache.clear();
+      
+      if (this.mtlsAdapter) {
+        try {
+          await this.mtlsAdapter.removeCertificate();
+          
+          if (this.isDebugEnabled) {
+            console.log('[HTTP-CLIENT] All certificates removed');
+          }
+        } catch (error) {
+          if (this.isDebugEnabled) {
+            console.error('[HTTP-CLIENT] Failed to remove certificates:', error);
+          }
+        }
+      }
+    }
+  }
+
+  // ==================== END mTLS METHODS ====================
+
+  /**
+   * GET request with mTLS support and optional caching
+   */
+  async get<T>(url: string, config?: CacheRequestConfig): Promise<T> {
+    const authMode = this.determineAuthMode(url, config);
+
+    // Try mTLS first for relevant modes
+    if (authMode === 'mtls' || authMode === 'auto') {
+      try {
+        if (await this.isMTLSReady()) {
+          return await this.makeRequestMTLS<T>(url, { ...config, method: 'GET' });
+        }
+      } catch (error) {
+        if (this.isDebugEnabled) {
+          console.warn('[HTTP-CLIENT] mTLS GET failed, checking fallback:', error);
+        }
+        
+        if (authMode === 'mtls' && config?.noFallback) {
+          throw error;
+        }
+      }
+    }
+
+    // Fallback to JWT with caching support
+    if (this.isDebugEnabled) {
+      console.log('[HTTP-CLIENT] Using JWT fallback for GET:', url);
+    }
+    
     const options = config as CacheRequestConfig | undefined;
     const useCache = options?.useCache !== false && this.cache; // Default to true if cache available
 
@@ -169,7 +562,7 @@ export class HttpClient {
       return this.getCached<T>(url, config, options);
     }
 
-    // Fallback to direct HTTP request (existing behavior)
+    // Direct HTTP request (existing behavior)
     try {
       const response: AxiosResponse<T> = await this.client.get(url, config);
       return response.data;
@@ -319,23 +712,51 @@ export class HttpClient {
       return navigator.onLine;
     }
     
-    // Priority 3: Conservative default - assume offline if cannot determine
-    // This prevents failed requests when network state is unknown
+    // Priority 3: Conservative default - assume it offline if you cannot determine
+    // This prevents failed requests when the network state is unknown
     return false;
   }
 
   /**
    * POST request
    */
-  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    try {
-      // Clear empty/null/undefined values from data before sending
-      const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
-      
-      if (this.config.isDebugEnabled() && data !== cleanedData) {
-        console.log('POST data cleaned:', { original: data, cleaned: cleanedData });
+  async post<T>(url: string, data?: any, config?: CacheRequestConfig): Promise<T> {
+    const authMode = this.determineAuthMode(url, config);
+
+    // Clear empty/null/undefined values from data before sending
+    const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
+    
+    if (this.isDebugEnabled && data !== cleanedData) {
+      console.log('[HTTP-CLIENT] POST data cleaned:', { original: data, cleaned: cleanedData });
+    }
+
+    // Try mTLS first for relevant modes
+    if (authMode === 'mtls' || authMode === 'auto') {
+      try {
+        if (await this.isMTLSReady()) {
+          return await this.makeRequestMTLS<T>(url, { 
+            ...config, 
+            method: 'POST', 
+            data: cleanedData 
+          });
+        }
+      } catch (error) {
+        if (this.isDebugEnabled) {
+          console.warn('[HTTP-CLIENT] mTLS POST failed, checking fallback:', error);
+        }
+        
+        if (authMode === 'mtls' && config?.noFallback) {
+          throw error;
+        }
       }
-      
+    }
+
+    // Fallback to JWT
+    if (this.isDebugEnabled) {
+      console.log('[HTTP-CLIENT] Using JWT fallback for POST:', url);
+    }
+    
+    try {
       const response: AxiosResponse<T> = await this.client.post(url, cleanedData, config);
       return response.data;
     } catch (error) {
@@ -379,15 +800,43 @@ export class HttpClient {
   /**
    * PUT request
    */
-  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    try {
-      // Clear empty/null/undefined values from data before sending
-      const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
-      
-      if (this.config.isDebugEnabled() && data !== cleanedData) {
-        console.log('PUT data cleaned:', { original: data, cleaned: cleanedData });
+  async put<T>(url: string, data?: any, config?: CacheRequestConfig): Promise<T> {
+    const authMode = this.determineAuthMode(url, config);
+
+    // Clear empty/null/undefined values from data before sending
+    const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
+    
+    if (this.isDebugEnabled && data !== cleanedData) {
+      console.log('[HTTP-CLIENT] PUT data cleaned:', { original: data, cleaned: cleanedData });
+    }
+
+    // Try mTLS first for relevant modes
+    if (authMode === 'mtls' || authMode === 'auto') {
+      try {
+        if (await this.isMTLSReady()) {
+          return await this.makeRequestMTLS<T>(url, { 
+            ...config, 
+            method: 'PUT', 
+            data: cleanedData 
+          });
+        }
+      } catch (error) {
+        if (this.isDebugEnabled) {
+          console.warn('[HTTP-CLIENT] mTLS PUT failed, checking fallback:', error);
+        }
+        
+        if (authMode === 'mtls' && config?.noFallback) {
+          throw error;
+        }
       }
-      
+    }
+
+    // Fallback to JWT
+    if (this.isDebugEnabled) {
+      console.log('[HTTP-CLIENT] Using JWT fallback for PUT:', url);
+    }
+    
+    try {
       const response: AxiosResponse<T> = await this.client.put(url, cleanedData, config);
       return response.data;
     } catch (error) {
@@ -431,7 +880,34 @@ export class HttpClient {
   /**
    * DELETE request
    */
-  async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  async delete<T>(url: string, config?: CacheRequestConfig): Promise<T> {
+    const authMode = this.determineAuthMode(url, config);
+
+    // Try mTLS first for relevant modes
+    if (authMode === 'mtls' || authMode === 'auto') {
+      try {
+        if (await this.isMTLSReady()) {
+          return await this.makeRequestMTLS<T>(url, { 
+            ...config, 
+            method: 'DELETE' 
+          });
+        }
+      } catch (error) {
+        if (this.isDebugEnabled) {
+          console.warn('[HTTP-CLIENT] mTLS DELETE failed, checking fallback:', error);
+        }
+        
+        if (authMode === 'mtls' && config?.noFallback) {
+          throw error;
+        }
+      }
+    }
+
+    // Fallback to JWT
+    if (this.isDebugEnabled) {
+      console.log('[HTTP-CLIENT] Using JWT fallback for DELETE:', url);
+    }
+    
     try {
       const response: AxiosResponse<T> = await this.client.delete(url, config);
       return response.data;

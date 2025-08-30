@@ -10,3 +10,18 @@ export * from './pems';
 export * from './suppliers';
 export * from './daily-reports';
 export * from './journals';
+
+// Re-export mTLS types for convenience
+export type { 
+  AuthMode, 
+  CacheRequestConfig, 
+  CashRegisterCertificate 
+} from './http-client';
+
+export type {
+  UserContext 
+} from './receipts';
+
+export type {
+  CertificateSource 
+} from './cash-registers';

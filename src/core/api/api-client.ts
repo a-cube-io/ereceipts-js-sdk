@@ -1,6 +1,6 @@
 import { ConfigManager } from '../config';
 import { HttpClient } from './http-client';
-import { ICacheAdapter, INetworkMonitor } from '../../adapters';
+import { ICacheAdapter, INetworkMonitor, IMTLSAdapter } from '../../adapters';
 import { ReceiptsAPI } from './receipts';
 import { CashiersAPI } from './cashiers';
 import { PointOfSalesAPI } from './point-of-sales';
@@ -33,11 +33,12 @@ export class APIClient {
   constructor(
     config: ConfigManager, 
     cache?: ICacheAdapter,
-    networkMonitor?: INetworkMonitor
+    networkMonitor?: INetworkMonitor,
+    mtlsAdapter?: IMTLSAdapter
   ) {
     this.cache = cache;
     this.networkMonitor = networkMonitor;
-    this.httpClient = new HttpClient(config, cache, networkMonitor);
+    this.httpClient = new HttpClient(config, cache, networkMonitor, mtlsAdapter);
 
     // Initialize resource managers
     this.receipts = new ReceiptsAPI(this.httpClient);
@@ -52,7 +53,7 @@ export class APIClient {
   }
 
   /**
-   * Set authorization header for all requests
+   * Set an authorization header for all requests
    */
   setAuthorizationHeader(token: string): void {
     this.httpClient.setAuthorizationHeader(token);
@@ -112,5 +113,19 @@ export class APIClient {
    */
   isOnline(): boolean {
     return this.getNetworkStatus().isOnline;
+  }
+
+  /**
+   * Get mTLS adapter if available through HttpClient
+   */
+  getMTLSAdapter(): IMTLSAdapter | null {
+    return this.httpClient.getMTLSAdapter();
+  }
+
+  /**
+   * Check if mTLS is ready
+   */
+  async isMTLSReady(): Promise<boolean> {
+    return this.httpClient.isMTLSReady();
   }
 }

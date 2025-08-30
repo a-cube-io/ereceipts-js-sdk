@@ -14,12 +14,23 @@ const external = [
     'expo-sqlite',
     'react-native-keychain',
     'react-native-sqlite-storage',
-    'zod'
+    'zod',
+    '@a-cube-io/expo-mutual-tls'
 ];
 
-const baseConfig = {
+// Node.js specific externals (only for Node.js/web builds, not React Native)
+const nodeExternals = [
+    'https',
+    'fs',
+    'fs/promises'
+];
+
+const createBaseConfig = (includeNodeExternals = true) => ({
     input: 'src/index.ts',
-    external: id => external.some(dep => id.startsWith(dep)),
+    external: id => {
+        const allExternals = includeNodeExternals ? [...external, ...nodeExternals] : external;
+        return allExternals.some(dep => id.startsWith(dep));
+    },
     plugins: [
         json(),
         resolve({
@@ -28,12 +39,12 @@ const baseConfig = {
         }),
         commonjs(),
     ],
-};
+});
 
 export default [
-    // Browser ESM build
+    // Browser ESM build (includes Node.js externals)
     {
-        ...baseConfig,
+        ...createBaseConfig(true),
         output: {
             file: 'dist/index.esm.js',
             format: 'es',
@@ -41,16 +52,16 @@ export default [
             inlineDynamicImports: true,
         },
         plugins: [
-            ...baseConfig.plugins,
+            ...createBaseConfig(true).plugins,
             typescript({
                 tsconfig: './tsconfig.json',
                 declaration: false,
             }),
         ],
     },
-    // CommonJS build for Node/React Native
+    // CommonJS build for Node.js (includes Node.js externals)
     {
-        ...baseConfig,
+        ...createBaseConfig(true),
         output: {
             file: 'dist/index.cjs.js',
             format: 'cjs',
@@ -59,16 +70,16 @@ export default [
             inlineDynamicImports: true,
         },
         plugins: [
-            ...baseConfig.plugins,
+            ...createBaseConfig(true).plugins,
             typescript({
                 tsconfig: './tsconfig.json',
                 declaration: false,
             }),
         ],
     },
-    // React Native specific build
+    // React Native specific build (excludes Node.js externals)
     {
-        ...baseConfig,
+        ...createBaseConfig(false),
         output: {
             file: 'dist/index.native.js',
             format: 'es',
@@ -76,18 +87,21 @@ export default [
             inlineDynamicImports: true,
         },
         plugins: [
-            ...baseConfig.plugins,
+            ...createBaseConfig(false).plugins,
             typescript({
                 tsconfig: './tsconfig.json',
                 declaration: false,
             }),
         ],
     },
-    // React components ESM build
+    // React components ESM build (includes Node.js externals)
     {
-        ...baseConfig,
+        ...createBaseConfig(true),
         input: 'src/react/index.ts',
-        external: [...external, './index', '../index'],
+        external: id => {
+            const allExternals = [...external, ...nodeExternals, './index', '../index'];
+            return allExternals.some(dep => id.startsWith(dep));
+        },
         output: {
             file: 'dist/react.esm.js',
             format: 'es',
@@ -95,18 +109,21 @@ export default [
             inlineDynamicImports: true,
         },
         plugins: [
-            ...baseConfig.plugins,
+            ...createBaseConfig(true).plugins,
             typescript({
                 tsconfig: './tsconfig.json',
                 declaration: false,
             }),
         ],
     },
-    // React components CJS build
+    // React components CJS build (includes Node.js externals)
     {
-        ...baseConfig,
+        ...createBaseConfig(true),
         input: 'src/react/index.ts',
-        external: [...external, './index', '../index'],
+        external: id => {
+            const allExternals = [...external, ...nodeExternals, './index', '../index'];
+            return allExternals.some(dep => id.startsWith(dep));
+        },
         output: {
             file: 'dist/react.cjs.js',
             format: 'cjs',
@@ -115,7 +132,7 @@ export default [
             inlineDynamicImports: true,
         },
         plugins: [
-            ...baseConfig.plugins,
+            ...createBaseConfig(true).plugins,
             typescript({
                 tsconfig: './tsconfig.json',
                 declaration: false,
@@ -129,7 +146,7 @@ export default [
             file: 'dist/index.d.ts',
             format: 'es',
         },
-        external,
+        external: [...external, ...nodeExternals],
         plugins: [dts()],
     },
     // React TypeScript declarations
@@ -139,7 +156,7 @@ export default [
             file: 'dist/react.d.ts',
             format: 'es',
         },
-        external: [...external, './index', '../index'],
+        external: [...external, ...nodeExternals, './index', '../index'],
         plugins: [dts()],
     },
 ];
