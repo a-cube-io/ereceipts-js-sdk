@@ -359,7 +359,9 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
         method: requestConfig.method,
         url: requestConfig.url,
         hasData: !!requestConfig.data,
-        headerCount: Object.keys(requestConfig.headers || {}).length
+        dataInput: requestConfig.data,
+        headerCount: Object.keys(requestConfig.headers || {}).length,
+        headers: requestConfig.headers
       });
     }
 
@@ -377,6 +379,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
           statusCode: response.statusCode,
           statusMessage: response.statusMessage,
           hasBody: !!response.body,
+          body: response.body,
           tlsVersion: response.tlsVersion,
           cipherSuite: response.cipherSuite
         });

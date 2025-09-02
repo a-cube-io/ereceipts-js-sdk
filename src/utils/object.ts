@@ -2,35 +2,48 @@
  * Object utility functions
  */
 
+
 /**
- * Removes all keys with null, undefined, or empty string values from an object
- * @param obj - The object to clean
- * @returns A new object with cleaned values
+ * Deeply removes null, undefined, or empty string values from objects and arrays
+ * @param input - The object or array to clean
+ * @returns A new cleaned object/array
  */
-export function clearObject<T extends Record<string, any>>(obj: T): Partial<T> {
-  if (!obj || typeof obj !== 'object') {
-    return {} as Partial<T>;
-  }
+export type Cleaned<T> =
+    T extends (infer U)[] ? Cleaned<U>[] :
+        T extends object ? {
+                [K in keyof T as T[K] extends null | undefined | '' ? never : K]: Cleaned<T[K]>
+            } :
+            T;
 
-  const cleaned: Partial<T> = {};
-
-  for (const [key, value] of Object.entries(obj)) {
-    // Skip null, undefined, or empty string values
-    if (value !== null && value !== undefined && value !== '') {
-      // Handle nested objects recursively
-      if (typeof value === 'object' && !Array.isArray(value)) {
-        const cleanedNested = clearObject(value);
-        // Only add nested object if it has properties after cleaning
-        if (Object.keys(cleanedNested).length > 0) {
-          (cleaned as any)[key] = cleanedNested;
-        }
-      } else {
-        (cleaned as any)[key] = value;
-      }
+/**
+ * Recursively cleans objects and arrays
+ * @param input - The object or array to clean
+ * @returns A new cleaned object/array
+ */
+export function clearObject<T>(input: T): Cleaned<T> {
+    if (input === null || input === undefined || (input as any) === '') {
+        return undefined as unknown as Cleaned<T>;
     }
-  }
 
-  return cleaned;
+    if (Array.isArray(input)) {
+        const cleanedArray = input
+            .map(item => clearObject(item))
+            .filter((item): item is NonNullable<typeof item> => item !== undefined);
+        return cleanedArray as unknown as Cleaned<T>;
+    }
+
+    if (typeof input === 'object' && input.constructor === Object) {
+        const cleaned: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(input)) {
+            const cleanedValue = clearObject(value);
+            if (cleanedValue !== undefined) {
+                cleaned[key] = cleanedValue;
+            }
+        }
+        return cleaned as Cleaned<T>;
+    }
+
+    return input as Cleaned<T>;
 }
 
 /**
@@ -38,21 +51,25 @@ export function clearObject<T extends Record<string, any>>(obj: T): Partial<T> {
  * @param obj - The object to clean
  * @returns A new object with cleaned values (only top-level cleaning)
  */
-export function clearObjectShallow<T extends Record<string, any>>(obj: T): Partial<T> {
-  if (!obj || typeof obj !== 'object') {
-    return {} as Partial<T>;
-  }
 
-  const cleaned: Partial<T> = {};
+export type CleanedShallow<T> = {
+    [K in keyof T as T[K] extends null | undefined | '' ? never : K]: T[K]
+};
 
-  for (const [key, value] of Object.entries(obj)) {
-    // Skip null, undefined, or empty string values
-    if (value !== null && value !== undefined && value !== '') {
-      (cleaned as any)[key] = value;
+export function clearObjectShallow<T extends Record<string, unknown>>(obj: T): CleanedShallow<T> {
+    if (!obj || typeof obj !== 'object') {
+        return {} as CleanedShallow<T>;
     }
-  }
 
-  return cleaned;
+    const cleaned: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+        if (value !== null && value !== undefined && value !== '') {
+            cleaned[key] = value;
+        }
+    }
+
+    return cleaned as CleanedShallow<T>;
 }
 
 /**

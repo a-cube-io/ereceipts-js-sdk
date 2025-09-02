@@ -113,6 +113,14 @@ export class HttpClient {
   private constructMTLSUrl(relativePath: string): string {
     // Get the configured mTLS base URL from the adapter
     const mtlsBaseUrl = this.mtlsAdapter?.getBaseUrl();
+
+    if (this.isDebugEnabled) {
+      console.log('[HTTP-CLIENT] Constructing mTLS URL:', {
+        relativePath,
+        mtlsBaseUrl,
+        source: mtlsBaseUrl ? 'adapter' : 'fallback'
+      });
+    }
     
     if (!mtlsBaseUrl) {
       // Fallback: transform JWT base URL to mTLS URL if the adapter doesn't have it configured
@@ -419,7 +427,10 @@ export class HttpClient {
     try {
       // Prepare headers including both request-specific headers and JWT Authorization
       const headers: Record<string, string> = {
-        ...(config.headers as Record<string, string> || {}),
+        ...(config.headers as Record<string, string> || {
+            ...(this.client.defaults.headers.common as Record<string, string>),
+            ...(config.method !== 'GET' && config.data ? { 'Content-Type': 'application/json' } : {})
+        }),
       };
 
       // Include JWT Authorization header from axios client defaults if available
@@ -444,7 +455,7 @@ export class HttpClient {
       };
 
       if (this.isDebugEnabled) {
-        console.log('[HTTP-CLIENT] mTLS request config:', mtlsConfig);
+        console.log('[HTTP-CLIENT] mTLS request config:', JSON.stringify(mtlsConfig, undefined, 2));
       }
 
       const response = await this.mtlsAdapter.request<T>(mtlsConfig);
@@ -452,7 +463,8 @@ export class HttpClient {
       if (this.isDebugEnabled) {
         console.log('[HTTP-CLIENT] mTLS request successful:', {
           status: response.status,
-          hasData: !!response.data
+          hasData: !!response.data,
+          str: JSON.stringify(response.data)
         });
       }
 
@@ -675,7 +687,7 @@ export class HttpClient {
 
 
   /**
-   * Generate cache key from URL and config
+   * Generate a cache key from URL and config
    */
   private generateCacheKey(url: string, config?: AxiosRequestConfig): string {
     const baseKey = `${this.client.defaults.baseURL}${url}`;
@@ -724,7 +736,7 @@ export class HttpClient {
     const authMode = this.determineAuthMode(url, config);
 
     // Clear empty/null/undefined values from data before sending
-    const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
+    const cleanedData = data  ? clearObject(data) : data;
     
     if (this.isDebugEnabled && data !== cleanedData) {
       console.log('[HTTP-CLIENT] POST data cleaned:', { original: data, cleaned: cleanedData });
@@ -732,23 +744,31 @@ export class HttpClient {
 
     // Try mTLS first for relevant modes
     if (authMode === 'mtls' || authMode === 'auto') {
-      try {
+
         if (await this.isMTLSReady()) {
-          return await this.makeRequestMTLS<T>(url, { 
-            ...config, 
-            method: 'POST', 
-            data: cleanedData 
-          });
+
+            if (this.isDebugEnabled) {
+                console.log('[HTTP-CLIENT] Making mTLS POST request:', {
+                    url,
+                    Data: cleanedData
+                });
+            }
+
+            const response = await this.makeRequestMTLS<T>(url, {
+                ...config,
+                method: 'POST',
+                data: cleanedData
+            });
+
+            if (this.isDebugEnabled) {
+                console.log('[HTTP-CLIENT] mTLS POST successful:', {
+                    response,
+                    str: JSON.stringify(response)
+                });
+            }
+
+            return response
         }
-      } catch (error) {
-        if (this.isDebugEnabled) {
-          console.warn('[HTTP-CLIENT] mTLS POST failed, checking fallback:', error);
-        }
-        
-        if (authMode === 'mtls' && config?.noFallback) {
-          throw error;
-        }
-      }
     }
 
     // Fallback to JWT

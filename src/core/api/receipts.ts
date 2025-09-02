@@ -49,7 +49,7 @@ export class ReceiptsAPI {
   }
 
   /**
-   * Check if user has merchant role
+   * Check if a user has a merchant role
    */
   private hasMerchantRole(): boolean {
     const isMerchant = this.userContext?.roles.includes('ROLE_MERCHANT') || false;
@@ -71,7 +71,7 @@ export class ReceiptsAPI {
     return {
       authMode: 'mtls',
       port: 444, // A-Cube mTLS port
-      noFallback: false, // Allow fallback for resilience
+      noFallback: true, // Allow fallback for resilience
       ...config
     };
   }
@@ -162,7 +162,7 @@ export class ReceiptsAPI {
       headers['Accept'] = 'application/pdf';
       config.headers = headers;
       
-      // For PDF downloads, use download method if available
+      // For PDF downloads, use the download method if available
       if (typeof (this.httpClient as any).download === 'function') {
         return (this.httpClient as any).download(`/mf1/receipts/${receiptUuid}/details`, config);
       } else {
