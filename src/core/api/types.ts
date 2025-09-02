@@ -131,7 +131,7 @@ export interface ReceiptOutput {
   customer_lottery_code?: string;
   created_at: string;
   total_amount: string;
-  document_number?: string;
+  document_number: string;
   document_datetime?: string;
 }
 

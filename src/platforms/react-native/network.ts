@@ -30,6 +30,11 @@ export class ReactNativeNetworkMonitor implements INetworkMonitor {
     if (!this.NetInfo) return;
 
     this.unsubscribe = this.NetInfo.addEventListener((state: any) => {
+      // Handle null/undefined state objects
+      if (!state) {
+        return;
+      }
+      
       const isOnline = state.isConnected && state.isInternetReachable !== false;
       
       if (isOnline !== this.currentState) {

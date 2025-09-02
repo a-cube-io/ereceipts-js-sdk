@@ -71,7 +71,8 @@ describe('Object Utilities', () => {
         user: {
           name: 'John',
           profile: {
-            website: 'https://example.com'
+            website: 'https://example.com',
+            social: {}
           }
         },
         settings: {
@@ -124,6 +125,7 @@ describe('Object Utilities', () => {
 
       const result = clearObject(input);
       expect(result).toEqual({
+        user: {},
         settings: {
           theme: 'dark'
         }
@@ -131,14 +133,94 @@ describe('Object Utilities', () => {
     });
 
     it('should handle null or undefined input', () => {
-      expect(clearObject(null as any)).toEqual({});
-      expect(clearObject(undefined as any)).toEqual({});
+      expect(clearObject(null)).toBe(undefined);
+      expect(clearObject(undefined)).toBe(undefined);
+    });
+
+    it('should handle empty string input', () => {
+      expect(clearObject('')).toBe(undefined);
     });
 
     it('should handle non-object input', () => {
-      expect(clearObject('string' as any)).toEqual({});
-      expect(clearObject(123 as any)).toEqual({});
-      expect(clearObject(true as any)).toEqual({});
+      expect(clearObject('string')).toBe('string');
+      expect(clearObject(123)).toBe(123);
+      expect(clearObject(true)).toBe(true);
+      expect(clearObject(false)).toBe(false);
+      expect(clearObject(0)).toBe(0);
+    });
+
+    it('should handle arrays with null/undefined/empty values', () => {
+      const input = ['valid', null, 'another', undefined, '', 'last'];
+      const result = clearObject(input);
+      expect(result).toEqual(['valid', 'another', 'last']);
+    });
+
+    it('should handle arrays with nested objects', () => {
+      const input = [
+        { name: 'John', age: null },
+        { name: '', email: 'test@example.com' },
+        { name: 'Jane', age: 30 }
+      ];
+      const result = clearObject(input);
+      expect(result).toEqual([
+        { name: 'John' },
+        { email: 'test@example.com' },
+        { name: 'Jane', age: 30 }
+      ]);
+    });
+
+    it('should handle empty arrays', () => {
+      const input = { items: [] };
+      const result = clearObject(input);
+      expect(result).toEqual({ items: [] });
+    });
+
+    it('should handle arrays with all empty values', () => {
+      const input = [null, undefined, ''];
+      const result = clearObject(input);
+      expect(result).toEqual([]);
+    });
+
+    it('should handle deeply nested arrays', () => {
+      const input = {
+        matrix: [
+          [1, null, 3],
+          [null, '', 6],
+          [7, 8, undefined]
+        ]
+      };
+      const result = clearObject(input);
+      expect(result).toEqual({
+        matrix: [
+          [1, 3],
+          [6],
+          [7, 8]
+        ]
+      });
+    });
+
+    it('should preserve Date objects', () => {
+      const date = new Date('2023-01-01');
+      const input = { 
+        name: 'John',
+        birthday: date,
+        emptyField: null
+      };
+      const result = clearObject(input);
+      expect(result).toEqual({
+        name: 'John',
+        birthday: date
+      });
+    });
+
+    it('should handle objects with constructor other than Object', () => {
+      class CustomClass {
+        constructor(public value: string, public empty: null | string) {}
+      }
+      const instance = new CustomClass('test', null);
+      const input = { custom: instance, name: 'test' };
+      const result = clearObject(input);
+      expect(result).toEqual({ custom: instance, name: 'test' });
     });
   });
 

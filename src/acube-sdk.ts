@@ -4,6 +4,7 @@ import {
   AuthManager, 
   APIClient,
   loadPlatformAdapters,
+  createACubeMTLSConfig,
   AuthCredentials,
   User,
   ACubeSDKError 
@@ -56,13 +57,27 @@ export class ACubeSDK {
     }
 
     try {
-      // Load platform adapters if not provided
+      // Load platform adapters if not provided with automatic mTLS configuration
       if (!this.adapters) {
-        this.adapters = loadPlatformAdapters();
+        const mtlsConfig = createACubeMTLSConfig(
+          this.config.getApiUrl(),
+          this.config.getTimeout(),
+          true // autoInitialize
+        );
+
+        this.adapters = loadPlatformAdapters({
+          debugEnabled: this.config.isDebugEnabled(),
+          mtlsConfig
+        });
       }
 
-      // Initialize the API client with cache support and network monitoring
-      this.api = new APIClient(this.config, this.adapters.cache, this.adapters.networkMonitor);
+      // Initialize the API client with all adapters (mTLS is pre-configured)
+      this.api = new APIClient(
+        this.config, 
+        this.adapters.cache, 
+        this.adapters.networkMonitor,
+        this.adapters.mtls
+      );
 
       // Initialize auth manager
       this.authManager = new AuthManager(
@@ -107,7 +122,7 @@ export class ACubeSDK {
         }
       });
 
-      // Check if user is already authenticated
+      // Check if the user is already authenticated
       if (await this.authManager.isAuthenticated()) {
         const token = await this.authManager.getAccessToken();
         if (token) {
@@ -209,6 +224,91 @@ export class ACubeSDK {
   getAdapters(): PlatformAdapters | undefined {
     return this.adapters;
   }
+
+  /**
+   * Configure mTLS certificate for cash register
+   */
+  async configureMTLSCertificate(
+    cashRegisterId: string,
+    certificate: string,
+    privateKey: string
+  ): Promise<void> {
+    this.ensureInitialized();
+    
+    if (!this.api) {
+      throw new ACubeSDKError(
+        'UNKNOWN_ERROR',
+        'API client not initialized'
+      );
+    }
+
+    const httpClient = this.api.getHttpClient();
+    await httpClient.configureCashRegisterCertificate(
+      cashRegisterId, 
+      certificate, 
+      privateKey
+    );
+
+    if (this.config.isDebugEnabled()) {
+      console.log('[ACUBE-SDK] mTLS certificate configured for cash register:', cashRegisterId);
+    }
+  }
+
+  /**
+   * Get mTLS status and configuration info
+   */
+  async getMTLSStatus() {
+    this.ensureInitialized();
+    
+    if (!this.api) {
+      throw new ACubeSDKError(
+        'UNKNOWN_ERROR',
+        'API client not initialized'
+      );
+    }
+
+    const httpClient = this.api.getHttpClient();
+    return await httpClient.getMTLSStatus();
+  }
+
+  /**
+   * Test mTLS connection
+   */
+  async testMTLSConnection(): Promise<boolean> {
+    this.ensureInitialized();
+    
+    if (!this.api) {
+      throw new ACubeSDKError(
+        'UNKNOWN_ERROR',
+        'API client not initialized'
+      );
+    }
+
+    const httpClient = this.api.getHttpClient();
+    return await httpClient.testMTLSConnection();
+  }
+
+  /**
+   * Remove mTLS certificate
+   */
+  async removeMTLSCertificate(cashRegisterId?: string): Promise<void> {
+    this.ensureInitialized();
+    
+    if (!this.api) {
+      throw new ACubeSDKError(
+        'UNKNOWN_ERROR',
+        'API client not initialized'
+      );
+    }
+
+    const httpClient = this.api.getHttpClient();
+    await httpClient.removeCertificate(cashRegisterId);
+
+    if (this.config.isDebugEnabled()) {
+      console.log('[ACUBE-SDK] mTLS certificate removed:', cashRegisterId || 'all');
+    }
+  }
+
 
   /**
    * Destroy SDK and cleanup resources

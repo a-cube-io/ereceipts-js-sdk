@@ -2,8 +2,11 @@ import { ReactNativeNetworkMonitor } from '../network';
 
 describe('ReactNativeNetworkMonitor - Unit Tests', () => {
   let networkMonitor: ReactNativeNetworkMonitor;
+  let consoleWarnSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    // Mock console.warn to suppress NetInfo warnings in unit tests
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
     // Create monitor without mocking external dependencies
     networkMonitor = new ReactNativeNetworkMonitor();
   });
@@ -12,6 +15,8 @@ describe('ReactNativeNetworkMonitor - Unit Tests', () => {
     if (networkMonitor) {
       networkMonitor.destroy();
     }
+    // Restore console.warn
+    consoleWarnSpy.mockRestore();
   });
 
   describe('Basic Functionality', () => {

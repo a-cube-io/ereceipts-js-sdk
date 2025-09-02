@@ -64,6 +64,7 @@ export function useReceipts(): UseReceiptsReturn {
         uuid: tempReceiptUuid,
         type: 'sale',
         created_at: new Date().toISOString(),
+        document_number: `TEMP-${tempReceiptUuid}`,
         total_amount: receiptData.items.reduce((sum, item) => {
           const itemTotal = parseFloat(item.unit_price) * parseFloat(item.quantity);
           const discount = parseFloat(item.discount || '0');
@@ -178,6 +179,7 @@ export function useReceipts(): UseReceiptsReturn {
           uuid: operationId,
           type: 'return',
           created_at: new Date().toISOString(),
+          document_number: `TEMP-RETURN-${operationId}`,
           total_amount: returnData.items.reduce((sum, item) => {
             const itemTotal = parseFloat(item.unit_price) * parseFloat(item.quantity);
             const discount = parseFloat(item.discount || '0');
