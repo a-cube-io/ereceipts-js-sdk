@@ -179,13 +179,13 @@ export interface CashRegisterCreate {
 }
 
 export interface CashRegisterBasicOutput {
-  id: string;
+  uuid: string;
   pem_serial_number: string;
   name: string;
 }
 
 export interface CashRegisterDetailedOutput {
-  id: string;
+  uuid: string;
   pem_serial_number: string;
   name: string;
   mtls_certificate: string;

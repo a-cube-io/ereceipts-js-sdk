@@ -11,6 +11,7 @@ import {
 } from './core';
 import { PlatformAdapters } from './adapters';
 import { OfflineManager, QueueEvents } from './offline';
+import { CertificateManager } from './core/certificates/certificate-manager';
 
 /**
  * SDK Events interface
@@ -31,6 +32,7 @@ export class ACubeSDK {
   private adapters?: PlatformAdapters;
   private authManager?: AuthManager;
   private offlineManager?: OfflineManager;
+  private certificateManager?: CertificateManager;
   private isInitialized = false;
 
   // Public API clients
@@ -71,9 +73,20 @@ export class ACubeSDK {
         });
       }
 
+      // Initialize a certificate manager with optional configuration
+      const certificateConfig = this.config.getConfig().certificateConfig;
+      this.certificateManager = new CertificateManager(
+        this.adapters.secureStorage,
+        {
+          storageKey: certificateConfig?.storagePrefix || 'acube_certificate'
+        },
+        this.config.isDebugEnabled()
+      );
+
       // Initialize the API client with all adapters (mTLS is pre-configured)
       this.api = new APIClient(
         this.config, 
+        this.certificateManager,
         this.adapters.cache, 
         this.adapters.networkMonitor,
         this.adapters.mtls
@@ -133,7 +146,7 @@ export class ACubeSDK {
       this.isInitialized = true;
     } catch (error) {
       throw new ACubeSDKError(
-        'UNKNOWN_ERROR',
+        'SDK_INITIALIZATION_ERROR',
         `Failed to initialize SDK: ${error instanceof Error ? error.message : 'Unknown error'}`,
         error
       );
@@ -225,32 +238,44 @@ export class ACubeSDK {
     return this.adapters;
   }
 
+
   /**
-   * Configure mTLS certificate for cash register
+   * Store mTLS certificate (replaces any existing certificate)
    */
-  async configureMTLSCertificate(
-    cashRegisterId: string,
+  async storeCertificate(
     certificate: string,
-    privateKey: string
+    privateKey: string,
+    options: {
+      name?: string;
+      format?: 'pem' | 'p12' | 'pkcs12';
+      password?: string;
+    } = {}
   ): Promise<void> {
     this.ensureInitialized();
     
     if (!this.api) {
       throw new ACubeSDKError(
-        'UNKNOWN_ERROR',
+        'API_CLIENT_NOT_INITIALIZED',
         'API client not initialized'
       );
     }
 
-    const httpClient = this.api.getHttpClient();
-    await httpClient.configureCashRegisterCertificate(
-      cashRegisterId, 
-      certificate, 
-      privateKey
+    const certificateManager = this.api.getHttpClient().getCertificateManager();
+    if (!certificateManager) {
+      throw new ACubeSDKError(
+        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
+        'Certificate manager not available'
+      );
+    }
+
+    await certificateManager.storeCertificate(
+      certificate,
+      privateKey,
+      options
     );
 
     if (this.config.isDebugEnabled()) {
-      console.log('[ACUBE-SDK] mTLS certificate configured for cash register:', cashRegisterId);
+      console.log('[ACUBE-SDK] mTLS certificate stored successfully');
     }
   }
 
@@ -262,7 +287,7 @@ export class ACubeSDK {
     
     if (!this.api) {
       throw new ACubeSDKError(
-        'UNKNOWN_ERROR',
+        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
         'API client not initialized'
       );
     }
@@ -289,24 +314,88 @@ export class ACubeSDK {
   }
 
   /**
-   * Remove mTLS certificate
+   * Clear the stored certificate
    */
-  async removeMTLSCertificate(cashRegisterId?: string): Promise<void> {
+  async clearCertificate(): Promise<void> {
     this.ensureInitialized();
     
     if (!this.api) {
       throw new ACubeSDKError(
-        'UNKNOWN_ERROR',
+        'SDK_INITIALIZATION_ERROR',
         'API client not initialized'
       );
     }
 
-    const httpClient = this.api.getHttpClient();
-    await httpClient.removeCertificate(cashRegisterId);
+    const certificateManager = this.api.getHttpClient().getCertificateManager();
+    if (!certificateManager) {
+      throw new ACubeSDKError(
+        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
+        'Certificate manager not available'
+      );
+    }
+
+    await certificateManager.clearCertificate();
 
     if (this.config.isDebugEnabled()) {
-      console.log('[ACUBE-SDK] mTLS certificate removed:', cashRegisterId || 'all');
+      console.log('[ACUBE-SDK] mTLS certificate cleared');
     }
+  }
+
+
+  /**
+   * Get certificate manager for advanced certificate operations
+   */
+  getCertificateManager() {
+    this.ensureInitialized();
+    return this.certificateManager;
+  }
+
+  /**
+   * Get the stored certificate
+   */
+  async getCertificate() {
+    this.ensureInitialized();
+    
+    if (!this.certificateManager) {
+      throw new ACubeSDKError(
+        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
+        'Certificate manager not initialized'
+      );
+    }
+
+    return await this.certificateManager.getCertificate();
+  }
+
+  /**
+   * Get certificate information (without private key)
+   */
+  async getCertificateInfo() {
+    this.ensureInitialized();
+    
+    if (!this.certificateManager) {
+      throw new ACubeSDKError(
+        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
+        'Certificate manager not initialized'
+      );
+    }
+
+    return await this.certificateManager.getCertificateInfo();
+  }
+
+  /**
+   * Check if certificate is stored
+   */
+  async hasCertificate() {
+    this.ensureInitialized();
+    
+    if (!this.certificateManager) {
+      throw new ACubeSDKError(
+        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
+        'Certificate manager not initialized'
+      );
+    }
+
+    return await this.certificateManager.hasCertificate();
   }
 
 
@@ -324,7 +413,7 @@ export class ACubeSDK {
   private ensureInitialized(): void {
     if (!this.isInitialized) {
       throw new ACubeSDKError(
-        'UNKNOWN_ERROR',
+        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
         'SDK not initialized. Call initialize() first.'
       );
     }

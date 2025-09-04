@@ -126,14 +126,14 @@ export class CertificateValidator {
   }
   
   /**
-   * Check if certificate is expired
+   * Check if the certificate is expired
    */
   static isCertificateExpired(validTo: Date): boolean {
     return new Date() > validTo;
   }
   
   /**
-   * Get days until certificate expires
+   * Get days until the certificate expires
    */
   static getDaysUntilExpiry(validTo: Date): number {
     const now = new Date();
@@ -171,7 +171,7 @@ export class MTLSError extends Error {
  */
 export class PlatformDetector {
   /**
-   * Detect current platform and return appropriate platform identifier
+   * Detect the current platform and return the appropriate platform identifier
    */
   static detectPlatform(): 'react-native' | 'node' | 'web' {
     // React Native detection
@@ -198,14 +198,14 @@ export class PlatformDetector {
   }
 
   /**
-   * Check if running in Node.js environment
+   * Check if running in a Node.js environment
    */
   static isNode(): boolean {
     return this.detectPlatform() === 'node';
   }
 
   /**
-   * Check if running in web browser environment
+   * Check if running in a web browser environment
    */
   static isWeb(): boolean {
     return this.detectPlatform() === 'web';
@@ -243,7 +243,7 @@ export class MTLSAdapterFactory {
   }
 
   /**
-   * Create appropriate mTLS adapter based on current platform
+   * Create the appropriate mTLS adapter based on the current platform
    */
   static async createAdapter(debugEnabled?: boolean): Promise<IMTLSAdapter | null> {
     const debug = debugEnabled ?? this.debugEnabled;
@@ -290,7 +290,7 @@ export class MTLSAdapterFactory {
   }
 
   /**
-   * Check if mTLS is supported on current platform
+   * Check if mTLS is supported on the current platform
    */
   static async isMTLSSupported(): Promise<boolean> {
     try {

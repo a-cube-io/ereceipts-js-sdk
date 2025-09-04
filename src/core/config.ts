@@ -11,6 +11,7 @@ const DEFAULT_CONFIG: Required<SDKConfig> = {
   retryAttempts: 3,
   debug: false,
   customHeaders: {},
+  certificateConfig: {},
 };
 
 /**
@@ -29,6 +30,10 @@ export class ConfigManager {
         ...userConfig,
         apiUrl: userConfig.apiUrl || this.getDefaultApiUrl(userConfig.environment),
         authUrl: userConfig.authUrl || this.getDefaultAuthUrl(userConfig.environment),
+        certificateConfig: {
+          ...DEFAULT_CONFIG.certificateConfig,
+          ...userConfig.certificateConfig
+        }
     };
   }
 

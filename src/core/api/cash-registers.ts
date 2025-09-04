@@ -1,4 +1,4 @@
-import { HttpClient } from './http-client';
+import { HttpClient } from '../http';
 import { 
   CashRegisterCreate, 
   CashRegisterBasicOutput, 
@@ -8,32 +8,21 @@ import {
 } from './types';
 
 /**
- * Certificate source information
- */
-export interface CertificateSource {
-  type: 'cash-register' | 'pem';
-  id: string;
-  certificate: string;
-  privateKey: string;
-  retrievedAt: Date;
-}
-
-/**
- * Cash Registers API manager with mTLS certificate management
+ * Cash Registers API manager
  */
 export class CashRegistersAPI {
   private debugEnabled: boolean = false;
 
   constructor(private httpClient: HttpClient) {
-    this.debugEnabled = (httpClient as any).isDebugEnabled || false;
+    this.debugEnabled = httpClient.isDebugEnabled || false;
 
     if (this.debugEnabled) {
-      console.log('[CASH-REGISTERS-API] Cash Registers API initialized with mTLS support');
+      console.log('[CASH-REGISTERS-API] Cash Registers API initialized');
     }
   }
 
   /**
-   * Create a new cash register with automatic mTLS certificate configuration
+   * Create a new cash register
    */
   async create(cashRegisterData: CashRegisterCreate): Promise<CashRegisterDetailedOutput> {
     if (this.debugEnabled) {
@@ -44,7 +33,7 @@ export class CashRegistersAPI {
     }
 
     try {
-      // Create cash register using standard JWT authentication
+      // Create a cash register using standard JWT authentication
       const cashRegister = await this.httpClient.post<CashRegisterDetailedOutput>(
         '/mf1/cash-registers', 
         cashRegisterData,
@@ -53,35 +42,11 @@ export class CashRegistersAPI {
 
       if (this.debugEnabled) {
         console.log('[CASH-REGISTERS-API] Cash register created successfully:', {
-          id: cashRegister.id,
+          id: cashRegister.uuid,
           name: cashRegister.name,
           hasCertificate: !!cashRegister.mtls_certificate,
           hasPrivateKey: !!cashRegister.private_key
         });
-      }
-
-      // Auto-configure mTLS certificate if available
-      if (cashRegister.mtls_certificate && cashRegister.private_key) {
-        try {
-          await this.httpClient.configureCashRegisterCertificate(
-            cashRegister.id,
-            cashRegister.mtls_certificate,
-            cashRegister.private_key
-          );
-          
-          if (this.debugEnabled) {
-            console.log('[CASH-REGISTERS-API] mTLS certificate auto-configured for:', cashRegister.id);
-          }
-        } catch (certError) {
-          if (this.debugEnabled) {
-            console.warn('[CASH-REGISTERS-API] Certificate auto-configuration failed:', certError);
-          }
-          // Don't fail the creation if certificate config fails
-        }
-      } else {
-        if (this.debugEnabled) {
-          console.log('[CASH-REGISTERS-API] Cash register created without mTLS certificates');
-        }
       }
 
       return cashRegister;
@@ -124,14 +89,11 @@ export class CashRegistersAPI {
   }
 
   /**
-   * Get a cash register by ID with automatic certificate configuration
+   * Get a cash register by ID
    */
-  async get(id: string, configureCertificate = true): Promise<CashRegisterBasicOutput> {
+  async get(id: string): Promise<CashRegisterBasicOutput> {
     if (this.debugEnabled) {
-      console.log('[CASH-REGISTERS-API] Getting cash register:', {
-        id,
-        configureCertificate
-      });
+      console.log('[CASH-REGISTERS-API] Getting cash register:', { id });
     }
 
     try {
@@ -143,31 +105,9 @@ export class CashRegistersAPI {
 
       if (this.debugEnabled) {
         console.log('[CASH-REGISTERS-API] Cash register retrieved:', {
-          id: cashRegister.id,
+          id: cashRegister.uuid,
           name: cashRegister.name
         });
-      }
-
-      // Try to configure certificate if requested and cash register is detailed
-      if (configureCertificate && this.isCashRegisterDetailed(cashRegister)) {
-        try {
-          if (cashRegister.mtls_certificate && cashRegister.private_key) {
-            await this.httpClient.configureCashRegisterCertificate(
-              id,
-              cashRegister.mtls_certificate,
-              cashRegister.private_key
-            );
-            
-            if (this.debugEnabled) {
-              console.log('[CASH-REGISTERS-API] Certificate configured for cash register:', id);
-            }
-          }
-        } catch (certError) {
-          if (this.debugEnabled) {
-            console.warn('[CASH-REGISTERS-API] Certificate configuration failed:', certError);
-          }
-          // Don't fail the get operation if certificate config fails
-        }
       }
 
       return cashRegister;
@@ -180,7 +120,7 @@ export class CashRegistersAPI {
   }
 
   /**
-   * Get detailed cash register information with automatic certificate configuration
+   * Get detailed cash register information
    */
   async getDetailed(id: string): Promise<CashRegisterDetailedOutput> {
     if (this.debugEnabled) {
@@ -196,35 +136,11 @@ export class CashRegistersAPI {
 
       if (this.debugEnabled) {
         console.log('[CASH-REGISTERS-API] Detailed cash register retrieved:', {
-          id: cashRegister.id,
+          id: cashRegister.uuid,
           name: cashRegister.name,
           hasCertificate: !!cashRegister.mtls_certificate,
           hasPrivateKey: !!cashRegister.private_key
         });
-      }
-
-      // Auto-configure certificate if available
-      if (cashRegister.mtls_certificate && cashRegister.private_key) {
-        try {
-          await this.httpClient.configureCashRegisterCertificate(
-            id,
-            cashRegister.mtls_certificate,
-            cashRegister.private_key
-          );
-          
-          if (this.debugEnabled) {
-            console.log('[CASH-REGISTERS-API] Certificate auto-configured for detailed cash register:', id);
-          }
-        } catch (certError) {
-          if (this.debugEnabled) {
-            console.warn('[CASH-REGISTERS-API] Detailed certificate configuration failed:', certError);
-          }
-          // Don't fail the operation if certificate config fails
-        }
-      } else {
-        if (this.debugEnabled) {
-          console.log('[CASH-REGISTERS-API] Detailed cash register without mTLS certificates:', id);
-        }
       }
 
       return cashRegister;
@@ -235,6 +151,7 @@ export class CashRegistersAPI {
       throw error;
     }
   }
+
 
   /**
    * Get certificate status for a cash register
@@ -252,66 +169,55 @@ export class CashRegistersAPI {
       console.log('[CASH-REGISTERS-API] Getting certificate status for:', cashRegisterId);
     }
 
-    const mtlsStatus = await this.httpClient.getMTLSStatus();
-    const hasCertificate = mtlsStatus.certificateCount > 0;
-    let canConnect = false;
-
-    if (hasCertificate) {
-      // Test connection if certificate is configured
-      try {
-        canConnect = await this.httpClient.testMTLSConnection();
-      } catch (error) {
-        if (this.debugEnabled) {
-          console.warn('[CASH-REGISTERS-API] Connection test failed:', error);
-        }
-      }
-    }
-
-    const status = {
-      hasCertificate,
-      isConfigured: hasCertificate,
-      canConnect,
-      certificateInfo: hasCertificate ? {
-        configuredAt: new Date(),
-        source: 'cash-register'
-      } : undefined
-    };
-
-    if (this.debugEnabled) {
-      console.log('[CASH-REGISTERS-API] Certificate status:', status);
-    }
-
-    return status;
-  }
-
-  /**
-   * Remove certificate configuration for a cash register
-   */
-  async removeCertificate(cashRegisterId: string): Promise<void> {
-    if (this.debugEnabled) {
-      console.log('[CASH-REGISTERS-API] Removing certificate for:', cashRegisterId);
+    const certificateManager = this.httpClient.getCertificateManager();
+    if (!certificateManager) {
+      return {
+        hasCertificate: false,
+        isConfigured: false,
+        canConnect: false
+      };
     }
 
     try {
-      await this.httpClient.removeCertificate(cashRegisterId);
+      const hasCertificate = await certificateManager.hasCertificate();
+      let canConnect = false;
+
+      if (hasCertificate) {
+        // Test connection if the certificate is configured
+        try {
+          canConnect = await this.httpClient.testMTLSConnection();
+        } catch (error) {
+          if (this.debugEnabled) {
+            console.warn('[CASH-REGISTERS-API] Connection test failed:', error);
+          }
+        }
+      }
+
+      const status = {
+        hasCertificate,
+        isConfigured: hasCertificate,
+        canConnect,
+        certificateInfo: hasCertificate ? {
+          configuredAt: new Date(), // Since we don't have specific metadata anymore
+          source: 'device'
+        } : undefined
+      };
 
       if (this.debugEnabled) {
-        console.log('[CASH-REGISTERS-API] Certificate removed successfully for:', cashRegisterId);
+        console.log('[CASH-REGISTERS-API] Certificate status:', status);
       }
+
+      return status;
     } catch (error) {
       if (this.debugEnabled) {
-        console.error('[CASH-REGISTERS-API] Certificate removal failed:', error);
+        console.error('[CASH-REGISTERS-API] Certificate status check failed:', error);
       }
-      throw error;
+      return {
+        hasCertificate: false,
+        isConfigured: false,
+        canConnect: false
+      };
     }
   }
 
-  /**
-   * Type guard to check if cash register is detailed
-   */
-  private isCashRegisterDetailed(
-    cashRegister: CashRegisterBasicOutput
-  ): cashRegister is CashRegisterDetailedOutput {
-    return 'mtls_certificate' in cashRegister && 'private_key' in cashRegister;
-  }
 }

@@ -31,7 +31,7 @@
     "test": "jest --passWithNoTests --detectOpenHandles",
     "test:watch": "npm run test -- --watch",
     "lint": "eslint src --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npx tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

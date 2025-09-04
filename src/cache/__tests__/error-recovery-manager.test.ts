@@ -1,5 +1,4 @@
 import { ErrorRecoveryManager } from '../error-recovery-manager';
-import { OptimisticManager } from '../optimistic-manager';
 import { PerformanceMonitor } from '../performance-monitor';
 import { ICacheAdapter, CachedItem, CacheSize } from '../../adapters';
 
