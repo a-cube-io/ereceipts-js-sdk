@@ -260,18 +260,19 @@ export class ACubeSDK {
       );
     }
 
-    const certificateManager = this.api.getHttpClient().getCertificateManager();
-    if (!certificateManager) {
+    const httpClient = this.api.getHttpClient();
+    if (!httpClient) {
       throw new ACubeSDKError(
-        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
-        'Certificate manager not available'
+        'API_CLIENT_NOT_INITIALIZED',
+        'HTTP client not available'
       );
     }
 
-    await certificateManager.storeCertificate(
+    // Use coordinated storage to ensure proper clearing of old certificates
+    await httpClient.storeCertificate(
       certificate,
       privateKey,
-      options
+      { format: options.format }
     );
 
     if (this.config.isDebugEnabled()) {
@@ -326,15 +327,16 @@ export class ACubeSDK {
       );
     }
 
-    const certificateManager = this.api.getHttpClient().getCertificateManager();
-    if (!certificateManager) {
+    const httpClient = this.api.getHttpClient();
+    if (!httpClient) {
       throw new ACubeSDKError(
-        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
-        'Certificate manager not available'
+        'API_CLIENT_NOT_INITIALIZED',
+        'HTTP client not available'
       );
     }
 
-    await certificateManager.clearCertificate();
+    // Use coordinated clearing to ensure certificate is removed from both storages
+    await httpClient.clearCertificate();
 
     if (this.config.isDebugEnabled()) {
       console.log('[ACUBE-SDK] mTLS certificate cleared');

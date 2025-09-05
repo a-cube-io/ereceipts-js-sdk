@@ -364,6 +364,25 @@ export class HttpClient {
   }
 
   /**
+   * Store certificate with coordination between certificate manager and mTLS adapter
+   * This ensures old certificates are properly cleared from both SDK storage and native keychain
+   */
+  async storeCertificate(
+    certificate: string,
+    privateKey: string,
+    options: { format?: 'pem' | 'p12' | 'pkcs12' } = {}
+  ): Promise<void> {
+    return this.mtlsHandler.storeCertificate(certificate, privateKey, options);
+  }
+
+  /**
+   * Clear certificate from both certificate manager and native keychain
+   */
+  async clearCertificate(): Promise<void> {
+    return this.mtlsHandler.clearCertificate();
+  }
+
+  /**
    * Test mTLS connection
    */
   async testMTLSConnection(): Promise<boolean> {

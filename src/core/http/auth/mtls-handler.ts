@@ -57,23 +57,61 @@ export class MTLSHandler {
   }
 
   /**
-   * Check if mTLS is ready for requests
+   * Check if mTLS is ready for requests (self-healing after app restart)
    */
   async isMTLSReady(): Promise<boolean> {
     if (!this.mtlsAdapter || !this.certificateManager) return false;
     
     try {
-      const hasCertificate = await this.certificateManager.hasCertificate();
+      // Check if certificate exists in Certificate Manager
+      const hasCertificateInStorage = await this.certificateManager.hasCertificate();
+      
+      if (!hasCertificateInStorage) {
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] No certificate in storage');
+        }
+        return false;
+      }
+
+      // Check if mTLS adapter also has the certificate
+      const hasCertificateInAdapter = await this.mtlsAdapter.hasCertificate();
       
       if (this.isDebugEnabled) {
         console.log('[MTLS-HANDLER] mTLS ready check:', {
           adapterAvailable: !!this.mtlsAdapter,
           certificateManagerAvailable: !!this.certificateManager,
-          hasCertificate
+          hasCertificateInStorage,
+          hasCertificateInAdapter
         });
       }
+
+      // If the certificate exists in storage but not in adapter (app restart scenario)
+      if (hasCertificateInStorage && !hasCertificateInAdapter) {
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] Certificate exists in storage but not in adapter - auto-configuring');
+        }
+        
+        try {
+          // Get a certificate from storage and configure an adapter
+          const certificate = await this.certificateManager.getCertificate();
+          if (certificate) {
+            const certificateData = this.certificateToData(certificate);
+            await this.mtlsAdapter.configureCertificate(certificateData);
+            
+            if (this.isDebugEnabled) {
+              console.log('[MTLS-HANDLER] Successfully auto-configured certificate from storage');
+            }
+            return true;
+          }
+        } catch (configError) {
+          if (this.isDebugEnabled) {
+            console.error('[MTLS-HANDLER] Failed to auto-configure certificate:', configError);
+          }
+          return false;
+        }
+      }
       
-      return hasCertificate;
+      return hasCertificateInStorage && hasCertificateInAdapter;
     } catch (error) {
       if (this.isDebugEnabled) {
         console.error('[MTLS-HANDLER] mTLS ready check failed:', error);
@@ -148,18 +186,7 @@ export class MTLSHandler {
       );
     }
 
-    // Configure certificate for this request
-    try {
-      await this.mtlsAdapter.configureCertificate(certificateData);
-    } catch (error) {
-      if (this.isDebugEnabled) {
-        console.error('[MTLS-HANDLER] Failed to configure certificate:', error);
-      }
-      throw new MTLSError(
-        MTLSErrorType.CONFIGURATION_ERROR,
-        `Failed to configure certificate: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    // Certificate configuration is now handled by isMTLSReady() method
 
     if (this.isDebugEnabled) {
       console.log('[MTLS-HANDLER] Making mTLS request:', {
@@ -210,6 +237,135 @@ export class MTLSHandler {
     } catch (error) {
       if (this.isDebugEnabled) {
         console.error('[MTLS-HANDLER] mTLS request failed:', error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Store certificate with proper coordination between certificate manager and mTLS adapter
+   * Ensures old certificates are cleared from both SDK storage and native keychain
+   */
+  async storeCertificate(
+    certificate: string,
+    privateKey: string,
+    options: { format?: 'pem' | 'p12' | 'pkcs12' } = {}
+  ): Promise<void> {
+    if (!this.certificateManager) {
+      throw new MTLSError(
+        MTLSErrorType.CONFIGURATION_ERROR,
+        'Certificate manager not available'
+      );
+    }
+
+    if (this.isDebugEnabled) {
+      console.log('[MTLS-HANDLER] Coordinated certificate storage initiated:', {
+        format: options.format || 'pem',
+        certificateLength: certificate.length,
+        privateKeyLength: privateKey.length
+      });
+    }
+
+    try {
+      // Step 1: Clear any existing certificate from a native keychain
+      if (this.mtlsAdapter) {
+        try {
+          await this.mtlsAdapter.removeCertificate();
+          if (this.isDebugEnabled) {
+            console.log('[MTLS-HANDLER] Cleared old certificate from native keychain');
+          }
+        } catch (error) {
+          if (this.isDebugEnabled) {
+            console.warn('[MTLS-HANDLER] No existing certificate to clear from keychain:', error);
+          }
+        }
+      }
+
+      // Step 2: Store new certificate in certificate manager
+      await this.certificateManager.storeCertificate(certificate, privateKey, options);
+
+      // Step 3: Configure a certificate in mTLS adapter for immediate use
+      if (this.mtlsAdapter) {
+        try {
+          const certificateData = {
+            certificate,
+            privateKey,
+            format: (options.format?.toUpperCase() || 'PEM') as 'PEM' | 'P12',
+            password: undefined // Not used in our simplified system
+          };
+          
+          await this.mtlsAdapter.configureCertificate(certificateData);
+          
+          if (this.isDebugEnabled) {
+            console.log('[MTLS-HANDLER] Certificate configured in mTLS adapter');
+          }
+        } catch (error) {
+          if (this.isDebugEnabled) {
+            console.error('[MTLS-HANDLER] Failed to configure certificate in adapter:', error);
+          }
+          throw new MTLSError(
+            MTLSErrorType.CONFIGURATION_ERROR,
+            `Failed to configure certificate in mTLS adapter: ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
+        }
+      }
+
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] Certificate stored and configured successfully');
+      }
+
+    } catch (error) {
+      if (this.isDebugEnabled) {
+        console.error('[MTLS-HANDLER] Coordinated certificate storage failed:', error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Clear certificate from both certificate manager and native keychain
+   */
+  async clearCertificate(): Promise<void> {
+    if (this.isDebugEnabled) {
+      console.log('[MTLS-HANDLER] Coordinated certificate clearing initiated');
+    }
+
+    try {
+      // Step 1: Clear from the native keychain
+      if (this.mtlsAdapter) {
+        try {
+          await this.mtlsAdapter.removeCertificate();
+          if (this.isDebugEnabled) {
+            console.log('[MTLS-HANDLER] Cleared certificate from native keychain');
+          }
+        } catch (error) {
+          if (this.isDebugEnabled) {
+            console.warn('[MTLS-HANDLER] No certificate to clear from keychain:', error);
+          }
+        }
+      }
+
+      // Step 2: Clear from the certificate manager
+      if (this.certificateManager) {
+        try {
+          await this.certificateManager.clearCertificate();
+          if (this.isDebugEnabled) {
+            console.log('[MTLS-HANDLER] Cleared certificate from certificate manager');
+          }
+        } catch (error) {
+          if (this.isDebugEnabled) {
+            console.warn('[MTLS-HANDLER] No certificate to clear from manager:', error);
+          }
+        }
+      }
+
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] Certificate cleared successfully from all storage systems');
+      }
+
+    } catch (error) {
+      if (this.isDebugEnabled) {
+        console.error('[MTLS-HANDLER] Coordinated certificate clearing failed:', error);
       }
       throw error;
     }
