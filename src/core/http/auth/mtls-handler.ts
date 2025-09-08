@@ -66,18 +66,33 @@ export class MTLSHandler {
       // Check if certificate exists in Certificate Manager
       const hasCertificateInStorage = await this.certificateManager.hasCertificate();
       
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] Certificate storage check:', { hasCertificateInStorage });
+      }
+      
       if (!hasCertificateInStorage) {
         if (this.isDebugEnabled) {
-          console.log('[MTLS-HANDLER] No certificate in storage');
+          console.log('[MTLS-HANDLER] No certificate in storage - mTLS not ready');
         }
         return false;
       }
 
       // Check if mTLS adapter also has the certificate
-      const hasCertificateInAdapter = await this.mtlsAdapter.hasCertificate();
+      let hasCertificateInAdapter = false;
+      try {
+        hasCertificateInAdapter = await this.mtlsAdapter.hasCertificate();
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] Adapter certificate check result:', { hasCertificateInAdapter });
+        }
+      } catch (adapterError) {
+        if (this.isDebugEnabled) {
+          console.warn('[MTLS-HANDLER] Error checking adapter certificate:', adapterError);
+        }
+        hasCertificateInAdapter = false;
+      }
       
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] mTLS ready check:', {
+        console.log('[MTLS-HANDLER] mTLS ready check summary:', {
           adapterAvailable: !!this.mtlsAdapter,
           certificateManagerAvailable: !!this.certificateManager,
           hasCertificateInStorage,
@@ -88,24 +103,46 @@ export class MTLSHandler {
       // If the certificate exists in storage but not in adapter (app restart scenario)
       if (hasCertificateInStorage && !hasCertificateInAdapter) {
         if (this.isDebugEnabled) {
-          console.log('[MTLS-HANDLER] Certificate exists in storage but not in adapter - auto-configuring');
+          console.log('[MTLS-HANDLER] 🔄 Auto-configuration needed: certificate in storage but not in adapter');
         }
         
         try {
           // Get a certificate from storage and configure an adapter
+          if (this.isDebugEnabled) {
+            console.log('[MTLS-HANDLER] 📄 Retrieving certificate from storage...');
+          }
+          
           const certificate = await this.certificateManager.getCertificate();
           if (certificate) {
+            if (this.isDebugEnabled) {
+              console.log('[MTLS-HANDLER] 📄 Certificate retrieved, converting to adapter format...');
+            }
+            
             const certificateData = this.certificateToData(certificate);
+            
+            if (this.isDebugEnabled) {
+              console.log('[MTLS-HANDLER] ⚙️ Configuring certificate in mTLS adapter...', {
+                format: certificateData.format,
+                certificateLength: certificateData.certificate.length,
+                privateKeyLength: certificateData.privateKey.length
+              });
+            }
+            
             await this.mtlsAdapter.configureCertificate(certificateData);
             
             if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] Successfully auto-configured certificate from storage');
+              console.log('[MTLS-HANDLER] ✅ Successfully auto-configured certificate from storage');
             }
             return true;
+          } else {
+            if (this.isDebugEnabled) {
+              console.error('[MTLS-HANDLER] ❌ Certificate retrieved but is null/empty');
+            }
+            return false;
           }
         } catch (configError) {
           if (this.isDebugEnabled) {
-            console.error('[MTLS-HANDLER] Failed to auto-configure certificate:', configError);
+            console.error('[MTLS-HANDLER] ❌ Failed to auto-configure certificate:', configError);
           }
           return false;
         }
