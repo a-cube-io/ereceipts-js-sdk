@@ -77,6 +77,14 @@ export interface User {
 }
 
 /**
+ * User provider interface for accessing current user information
+ */
+export interface IUserProvider {
+  getCurrentUser(): Promise<User | null>;
+  isAuthenticated(): Promise<boolean>;
+}
+
+/**
  * API Error response
  */
 export interface APIError {

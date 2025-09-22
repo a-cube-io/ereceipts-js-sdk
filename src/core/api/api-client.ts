@@ -2,6 +2,7 @@ import { ConfigManager } from '../config';
 import { HttpClient } from './http-client';
 import { ICacheAdapter, INetworkMonitor, IMTLSAdapter } from '../../adapters';
 import { CertificateManager } from '../certificates/certificate-manager';
+import { IUserProvider } from '../types';
 import { ReceiptsAPI } from './receipts';
 import { CashiersAPI } from './cashiers';
 import { PointOfSalesAPI } from './point-of-sales';
@@ -32,15 +33,16 @@ export class APIClient {
   public readonly journals: JournalsAPI;
 
   constructor(
-    config: ConfigManager, 
+    config: ConfigManager,
     certificateManager?: CertificateManager,
     cache?: ICacheAdapter,
     networkMonitor?: INetworkMonitor,
-    mtlsAdapter?: IMTLSAdapter
+    mtlsAdapter?: IMTLSAdapter,
+    userProvider?: IUserProvider
   ) {
     this.cache = cache;
     this.networkMonitor = networkMonitor;
-    this.httpClient = new HttpClient(config, certificateManager, cache, networkMonitor, mtlsAdapter);
+    this.httpClient = new HttpClient(config, certificateManager, cache, networkMonitor, mtlsAdapter, userProvider);
 
     // Initialize resource managers
     this.receipts = new ReceiptsAPI(this.httpClient);

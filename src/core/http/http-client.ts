@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { ConfigManager } from '../config';
 import { ICacheAdapter, INetworkMonitor, IMTLSAdapter } from '../../adapters';
 import { CertificateManager } from '../certificates/certificate-manager';
+import { IUserProvider } from '../types';
 import { clearObject } from '../../utils';
 
 import { MTLSHandler } from './auth/mtls-handler';
@@ -25,11 +26,12 @@ export class HttpClient {
   private _isDebugEnabled: boolean = false;
 
   constructor(
-    private config: ConfigManager, 
+    private config: ConfigManager,
     certificateManager?: CertificateManager,
     cache?: ICacheAdapter,
     networkMonitor?: INetworkMonitor,
-    mtlsAdapter?: IMTLSAdapter
+    mtlsAdapter?: IMTLSAdapter,
+    userProvider?: IUserProvider
   ) {
     this.client = this.createClient();
     this.certificateManager = certificateManager || null;
@@ -40,7 +42,8 @@ export class HttpClient {
     this.mtlsHandler = new MTLSHandler(
       mtlsAdapter || null,
       certificateManager || null,
-      this._isDebugEnabled
+      this._isDebugEnabled,
+      userProvider
     );
     
     this.cacheHandler = new CacheHandler(
@@ -154,7 +157,7 @@ export class HttpClient {
    * GET request with mTLS support and caching
    */
   async get<T>(url: string, config?: HttpRequestConfig): Promise<T> {
-    const authMode = this.mtlsHandler.determineAuthMode(url, config?.authMode);
+    const authMode = await this.mtlsHandler.determineAuthMode(url, config?.authMode);
     const requiresMTLS = this.mtlsHandler.requiresMTLS(url);
 
     // Try mTLS first for relevant modes
@@ -209,7 +212,7 @@ export class HttpClient {
    * POST request with mTLS support
    */
   async post<T>(url: string, data?: any, config?: HttpRequestConfig): Promise<T> {
-    const authMode = this.mtlsHandler.determineAuthMode(url, config?.authMode);
+    const authMode = await this.mtlsHandler.determineAuthMode(url, config?.authMode);
     const cleanedData = data ? clearObject(data) : data;
     
     if (this._isDebugEnabled && data !== cleanedData) {
@@ -255,7 +258,7 @@ export class HttpClient {
    * PUT request with mTLS support
    */
   async put<T>(url: string, data?: any, config?: HttpRequestConfig): Promise<T> {
-    const authMode = this.mtlsHandler.determineAuthMode(url, config?.authMode);
+    const authMode = await this.mtlsHandler.determineAuthMode(url, config?.authMode);
     const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
     
     if (this._isDebugEnabled && data !== cleanedData) {
@@ -301,7 +304,7 @@ export class HttpClient {
    * DELETE request with mTLS support
    */
   async delete<T>(url: string, config?: HttpRequestConfig): Promise<T> {
-    const authMode = this.mtlsHandler.determineAuthMode(url, config?.authMode);
+    const authMode = await this.mtlsHandler.determineAuthMode(url, config?.authMode);
 
     // Try mTLS first for relevant modes
     if (authMode === 'mtls' || authMode === 'auto') {

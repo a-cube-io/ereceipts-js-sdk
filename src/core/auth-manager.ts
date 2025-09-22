@@ -1,13 +1,14 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { ISecureStorage } from '../adapters';
 import { ConfigManager } from './config';
-import { 
-  AuthCredentials, 
-  TokenResponse, 
-  StoredTokenData, 
+import {
+  AuthCredentials,
+  TokenResponse,
+  StoredTokenData,
   User,
   ACubeSDKError,
-  JWTPayload 
+  JWTPayload,
+  IUserProvider
 } from './types';
 import { parseLegacyRoles } from './roles';
 
@@ -22,7 +23,7 @@ export interface AuthEvents {
 /**
  * JWT Authentication Manager
  */
-export class AuthManager {
+export class AuthManager implements IUserProvider {
   private static readonly TOKEN_KEY = 'acube_tokens';
   private static readonly USER_KEY = 'acube_user';
   

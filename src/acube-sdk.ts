@@ -83,16 +83,7 @@ export class ACubeSDK {
         this.config.isDebugEnabled()
       );
 
-      // Initialize the API client with all adapters (mTLS is pre-configured)
-      this.api = new APIClient(
-        this.config, 
-        this.certificateManager,
-        this.adapters.cache, 
-        this.adapters.networkMonitor,
-        this.adapters.mtls
-      );
-
-      // Initialize auth manager
+      // Initialize auth manager first (needed for API client)
       this.authManager = new AuthManager(
         this.config,
         this.adapters.secureStorage,
@@ -100,6 +91,17 @@ export class ACubeSDK {
           onUserChanged: this.events.onUserChanged,
           onAuthError: this.events.onAuthError,
         }
+      );
+
+      // Initialize the API client with all adapters (mTLS is pre-configured)
+      // Pass authManager as userProvider for role-based auth decisions
+      this.api = new APIClient(
+        this.config,
+        this.certificateManager,
+        this.adapters.cache,
+        this.adapters.networkMonitor,
+        this.adapters.mtls,
+        this.authManager // AuthManager implements IUserProvider
       );
 
       // Initialize offline manager

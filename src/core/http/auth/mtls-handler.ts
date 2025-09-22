@@ -1,11 +1,13 @@
-import { 
-  IMTLSAdapter, 
-  CertificateData, 
-  MTLSError, 
+import {
+  IMTLSAdapter,
+  CertificateData,
+  MTLSError,
   MTLSErrorType,
   MTLSRequestConfig
 } from '../../../adapters';
 import { CertificateManager, StoredCertificate } from '../../certificates';
+import { IUserProvider } from '../../types';
+import { hasRole } from '../../roles';
 
 /**
  * Simplified authentication modes
@@ -21,7 +23,8 @@ export class MTLSHandler {
   constructor(
     private mtlsAdapter: IMTLSAdapter | null,
     private certificateManager: CertificateManager | null,
-    debugEnabled: boolean = false
+    debugEnabled: boolean = false,
+    private userProvider?: IUserProvider
   ) {
     this.isDebugEnabled = debugEnabled;
   }
@@ -58,82 +61,100 @@ export class MTLSHandler {
 
   /**
    * Check if mTLS is ready for requests (self-healing after app restart)
+   *
+   * Enhanced logic to handle expo-mutual-tls state management:
+   * - Certificate data persists in iOS keychain (survives app restart)
+   * - Service configuration is in-memory only (lost on app restart)
+   * - hasCertificate() only checks data, not configuration
+   * - Must test actual configuration to detect app restart scenario
    */
   async isMTLSReady(): Promise<boolean> {
     if (!this.mtlsAdapter || !this.certificateManager) return false;
-    
+
     try {
-      // Check if certificate exists in Certificate Manager
+      // Check if certificate exists in Certificate Manager (SDK storage)
       const hasCertificateInStorage = await this.certificateManager.hasCertificate();
-      
+
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] Certificate storage check:', { hasCertificateInStorage });
+        console.log('[MTLS-HANDLER] 📋 Certificate storage check:', { hasCertificateInStorage });
       }
-      
+
       if (!hasCertificateInStorage) {
         if (this.isDebugEnabled) {
-          console.log('[MTLS-HANDLER] No certificate in storage - mTLS not ready');
+          console.log('[MTLS-HANDLER] ❌ No certificate in storage - mTLS not ready');
         }
         return false;
       }
 
-      // Check if mTLS adapter also has the certificate
-      let hasCertificateInAdapter = false;
-      try {
-        hasCertificateInAdapter = await this.mtlsAdapter.hasCertificate();
-        if (this.isDebugEnabled) {
-          console.log('[MTLS-HANDLER] Adapter certificate check result:', { hasCertificateInAdapter });
-        }
-      } catch (adapterError) {
-        if (this.isDebugEnabled) {
-          console.warn('[MTLS-HANDLER] Error checking adapter certificate:', adapterError);
-        }
-        hasCertificateInAdapter = false;
-      }
-      
+      // Test if mTLS configuration actually works (not just if data exists)
+      // This is critical because expo-mutual-tls has two types of state:
+      // 1. Certificate data (persists in keychain)
+      // 2. Service configuration (lost on app restart)
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] mTLS ready check summary:', {
-          adapterAvailable: !!this.mtlsAdapter,
-          certificateManagerAvailable: !!this.certificateManager,
-          hasCertificateInStorage,
-          hasCertificateInAdapter
-        });
+        console.log('[MTLS-HANDLER] 🔍 Testing mTLS configuration...');
       }
 
-      // If the certificate exists in storage but not in adapter (app restart scenario)
-      if (hasCertificateInStorage && !hasCertificateInAdapter) {
+      let configurationWorks = false;
+      try {
+        configurationWorks = await this.mtlsAdapter.testConnection();
         if (this.isDebugEnabled) {
-          console.log('[MTLS-HANDLER] 🔄 Auto-configuration needed: certificate in storage but not in adapter');
+          console.log('[MTLS-HANDLER] 🧪 Configuration test result:', { configurationWorks });
         }
-        
+      } catch (testError) {
+        if (this.isDebugEnabled) {
+          console.warn('[MTLS-HANDLER] ⚠️ Configuration test failed:', testError);
+        }
+        configurationWorks = false;
+      }
+
+      // If certificate exists in storage but configuration doesn't work (app restart scenario)
+      if (!configurationWorks) {
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] 🔄 Auto-configuration needed: certificate data exists but service configuration lost');
+        }
+
         try {
-          // Get a certificate from storage and configure an adapter
+          // Get certificate from storage and reconfigure the adapter
           if (this.isDebugEnabled) {
             console.log('[MTLS-HANDLER] 📄 Retrieving certificate from storage...');
           }
-          
+
           const certificate = await this.certificateManager.getCertificate();
           if (certificate) {
             if (this.isDebugEnabled) {
               console.log('[MTLS-HANDLER] 📄 Certificate retrieved, converting to adapter format...');
             }
-            
+
             const certificateData = this.certificateToData(certificate);
-            
+
             if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] ⚙️ Configuring certificate in mTLS adapter...', {
+              console.log('[MTLS-HANDLER] ⚙️ Reconfiguring certificate in mTLS adapter...', {
                 format: certificateData.format,
                 certificateLength: certificateData.certificate.length,
                 privateKeyLength: certificateData.privateKey.length
               });
             }
-            
+
+            // This will do both service configuration AND data storage
             await this.mtlsAdapter.configureCertificate(certificateData);
-            
+
             if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] ✅ Successfully auto-configured certificate from storage');
+              console.log('[MTLS-HANDLER] ✅ Successfully auto-configured certificate after app restart');
             }
-            return true;
+
+            // Verify the configuration now works
+            try {
+              const retestResult = await this.mtlsAdapter.testConnection();
+              if (this.isDebugEnabled) {
+                console.log('[MTLS-HANDLER] 🧪 Post-configuration test result:', { retestResult });
+              }
+              return retestResult;
+            } catch (retestError) {
+              if (this.isDebugEnabled) {
+                console.error('[MTLS-HANDLER] ❌ Post-configuration test failed:', retestError);
+              }
+              return false;
+            }
           } else {
             if (this.isDebugEnabled) {
               console.error('[MTLS-HANDLER] ❌ Certificate retrieved but is null/empty');
@@ -147,11 +168,16 @@ export class MTLSHandler {
           return false;
         }
       }
-      
-      return hasCertificateInStorage && hasCertificateInAdapter;
+
+      // Configuration works, mTLS is ready
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] ✅ mTLS is ready and properly configured');
+      }
+
+      return true;
     } catch (error) {
       if (this.isDebugEnabled) {
-        console.error('[MTLS-HANDLER] mTLS ready check failed:', error);
+        console.error('[MTLS-HANDLER] ❌ mTLS ready check failed:', error);
       }
       return false;
     }
@@ -159,9 +185,44 @@ export class MTLSHandler {
 
   /**
    * Determine authentication mode for a request
+   *
+   * Enhanced with role-based authentication:
+   * - Supplier users (ROLE_SUPPLIER) are restricted to JWT-only authentication
+   * - Other users follow URL-based logic for mTLS on receipt endpoints
    */
-  determineAuthMode(url: string, explicitMode?: AuthMode): AuthMode {
-    // Explicit mode specified
+  async determineAuthMode(url: string, explicitMode?: AuthMode): Promise<AuthMode> {
+    // Check if current user is a Supplier (ROLE_SUPPLIER users must use JWT only)
+    if (this.userProvider) {
+      try {
+        const currentUser = await this.userProvider.getCurrentUser();
+        if (currentUser) {
+          const isSupplier = hasRole(currentUser.roles, 'ROLE_SUPPLIER');
+
+          if (isSupplier) {
+            if (this.isDebugEnabled) {
+              console.log('[MTLS-HANDLER] 🚫 Supplier user detected - enforcing JWT-only authentication');
+            }
+            return 'jwt';
+          }
+
+          if (this.isDebugEnabled) {
+            console.log('[MTLS-HANDLER] 👤 User role check:', {
+              userId: currentUser.id,
+              username: currentUser.username,
+              isSupplier,
+              roles: currentUser.roles
+            });
+          }
+        }
+      } catch (error) {
+        if (this.isDebugEnabled) {
+          console.warn('[MTLS-HANDLER] ⚠️ Failed to get current user for role-based auth decision:', error);
+        }
+        // Continue with URL-based logic if user check fails
+      }
+    }
+
+    // Explicit mode specified (overrides URL-based logic but not role restrictions)
     if (explicitMode) {
       if (this.isDebugEnabled) {
         console.log('[MTLS-HANDLER] Using explicit auth mode:', explicitMode);
