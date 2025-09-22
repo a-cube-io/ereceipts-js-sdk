@@ -1,4 +1,4 @@
-import { SDKConfig, Environment } from './types';
+import {Environment, SDKConfig} from './types';
 
 /**
  * Default SDK configuration
@@ -11,6 +11,7 @@ const DEFAULT_CONFIG: Required<SDKConfig> = {
   retryAttempts: 3,
   debug: false,
   customHeaders: {},
+  certificateConfig: {},
 };
 
 /**
@@ -24,14 +25,16 @@ export class ConfigManager {
   }
 
   private mergeConfig(userConfig: SDKConfig): Required<SDKConfig> {
-    const baseConfig = {
-      ...DEFAULT_CONFIG,
-      ...userConfig,
-      apiUrl: userConfig.apiUrl || this.getDefaultApiUrl(userConfig.environment),
-      authUrl: userConfig.authUrl || this.getDefaultAuthUrl(userConfig.environment),
+      return {
+        ...DEFAULT_CONFIG,
+        ...userConfig,
+        apiUrl: userConfig.apiUrl || this.getDefaultApiUrl(userConfig.environment),
+        authUrl: userConfig.authUrl || this.getDefaultAuthUrl(userConfig.environment),
+        certificateConfig: {
+          ...DEFAULT_CONFIG.certificateConfig,
+          ...userConfig.certificateConfig
+        }
     };
-
-    return baseConfig;
   }
 
   private getDefaultApiUrl(environment: Environment): string {

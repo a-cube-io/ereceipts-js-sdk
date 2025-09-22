@@ -1,74 +1,102 @@
 import { PlatformAdapters } from '../adapters';
 import { detectPlatform } from './platform-detector';
+import { 
+  loadCacheAdapter, 
+  loadStorageAdapters, 
+  loadNetworkMonitor,
+  loadMTLSAdapter
+} from './loaders';
 
 /**
- * Dynamically load platform-specific adapters
+ * Configuration for mTLS adapter initialization
  */
-export async function loadPlatformAdapters(): Promise<PlatformAdapters> {
+export interface MTLSAdapterConfig {
+  baseUrl?: string;
+  port?: number;
+  timeout?: number;
+  validateCertificate?: boolean;
+  autoInitialize?: boolean;
+}
+
+/**
+ * Options for platform adapter loading
+ */
+export interface PlatformAdapterOptions {
+  debugEnabled?: boolean;
+  mtlsConfig?: MTLSAdapterConfig;
+}
+
+/**
+ * Dynamically load platform-specific adapters with enhanced mTLS support
+ */
+export function loadPlatformAdapters(
+  optionsOrDebug: PlatformAdapterOptions | boolean = {}
+): PlatformAdapters {
+  // Handle legacy boolean parameter for backward compatibility
+  const options: PlatformAdapterOptions = typeof optionsOrDebug === 'boolean' 
+    ? { debugEnabled: optionsOrDebug }
+    : optionsOrDebug;
+    
+  const { debugEnabled = false, mtlsConfig } = options;
   const { platform } = detectPlatform();
-
-  console.log({platform})
   
-  switch (platform) {
-    case 'web':
-      return loadWebAdapters();
-    case 'react-native':
-      return loadReactNativeAdapters();
-    case 'node':
-      return loadNodeAdapters();
-    default:
-      // Fallback to memory adapters
-      return loadMemoryAdapters();
+  if (debugEnabled) {
+    console.log('[ADAPTER-LOADER] Loading adapters for platform:', platform);
   }
-}
-
-async function loadWebAdapters(): Promise<PlatformAdapters> {
-  const [storage, network] = await Promise.all([
-    import('../platforms/web/storage'),
-    import('../platforms/web/network'),
-  ]);
+  
+  // Load all adapters using dedicated loaders
+  const storageAdapters = loadStorageAdapters(platform);
+  const networkMonitor = loadNetworkMonitor(platform);
+  const cache = loadCacheAdapter(platform);
+  
+  // Load mTLS adapter with optional configuration
+  const mtls = loadMTLSAdapter(platform, debugEnabled, mtlsConfig ? {
+    baseUrl: mtlsConfig.baseUrl,
+    port: mtlsConfig.port,
+    timeout: mtlsConfig.timeout,
+    validateCertificate: mtlsConfig.validateCertificate,
+    autoInitialize: mtlsConfig.autoInitialize
+  } : undefined);
+  
+  if (debugEnabled) {
+    console.log('[ADAPTER-LOADER] Adapters loaded:', {
+      platform,
+      hasStorage: !!storageAdapters.storage,
+      hasSecureStorage: !!storageAdapters.secureStorage,
+      hasNetworkMonitor: !!networkMonitor,
+      hasCache: !!cache,
+      hasMTLS: !!mtls,
+      mtlsAutoInitialize: mtlsConfig?.autoInitialize || false,
+      baseUrl: mtlsConfig?.baseUrl || 'N/A',
+    });
+  }
   
   return {
-    storage: new storage.WebStorageAdapter(),
-    secureStorage: new storage.WebSecureStorageAdapter(),
-    networkMonitor: new network.WebNetworkMonitor(),
+    ...storageAdapters,
+    networkMonitor,
+    cache,
+    mtls: mtls || undefined,
   };
 }
 
-async function loadReactNativeAdapters(): Promise<PlatformAdapters> {
-  const [storage, network] = await Promise.all([
-    import('../platforms/react-native/storage'),
-    import('../platforms/react-native/network'),
-  ]);
-  
-  return {
-    storage: new storage.ReactNativeStorageAdapter(),
-    secureStorage: new storage.ReactNativeSecureStorageAdapter(),
-    networkMonitor: new network.ReactNativeNetworkMonitor(),
-  };
-}
+/**
+ * Create mTLS configuration for A-Cube endpoints
+ */
+export function createACubeMTLSConfig(
+  baseUrl: string,
+  timeout?: number,
+  autoInitialize = true
+): MTLSAdapterConfig {
+  // Convert JWT base URL to mTLS URL (443 -> 444)
+  const mtlsBaseUrl = baseUrl.includes(':443') 
+    ? baseUrl.replace(':443', ':444')
+    : baseUrl.replace(/:\d+$/, '') + ':444';
 
-async function loadNodeAdapters(): Promise<PlatformAdapters> {
-  const [storage, network] = await Promise.all([
-    import('../platforms/node/storage'),
-    import('../platforms/node/network'),
-  ]);
-  
   return {
-    storage: new storage.NodeStorageAdapter(),
-    secureStorage: new storage.NodeSecureStorageAdapter(),
-    networkMonitor: new network.NodeNetworkMonitor(),
-  };
-}
-
-async function loadMemoryAdapters(): Promise<PlatformAdapters> {
-  const storage = await import('../platforms/node/storage');
-  const network = await import('../platforms/node/network');
-  
-  // Use memory adapters as fallback
-  return {
-    storage: new storage.NodeStorageAdapter(),
-    secureStorage: new storage.NodeSecureStorageAdapter(),
-    networkMonitor: new network.NodeNetworkMonitor(),
+    baseUrl: mtlsBaseUrl,
+    port: 444,
+    timeout: timeout || 30000,
+    validateCertificate: true,
+    autoInitialize
   };
 }

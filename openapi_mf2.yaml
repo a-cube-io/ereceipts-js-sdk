@@ -1,0 +1,3076 @@
+openapi: 3.1.0
+info:
+  title: 'A-Cube GOV-IT PEL Platform'
+  description: ''
+  version: 1.0.0
+servers:
+  -
+    url: /
+    description: ''
+paths:
+  /mf2/daily_reports:
+    get:
+      operationId: api_daily_reports_get_collection
+      tags:
+        - DailyReport
+      responses:
+        '200':
+          description: 'DailyReport collection'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyReport'
+            application/ld+json:
+              schema:
+                type: object
+                properties:
+                  member: { type: array, items: { $ref: '#/components/schemas/DailyReport.jsonld' } }
+                  totalItems: { type: integer, minimum: 0 }
+                  view: { type: object, properties: { '@id': { type: string, format: iri-reference }, '@type': { type: string }, first: { type: string, format: iri-reference }, last: { type: string, format: iri-reference }, previous: { type: string, format: iri-reference }, next: { type: string, format: iri-reference } }, example: { '@id': string, type: string, first: string, last: string, previous: string, next: string } }
+                  search: { type: object, properties: { '@type': { type: string }, template: { type: string }, variableRepresentation: { type: string }, mapping: { type: array, items: { type: object, properties: { '@type': { type: string }, variable: { type: string }, property: { type: [string, 'null'] }, required: { type: boolean } } } } } }
+                required:
+                  - member
+            application/xml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyReport'
+      summary: 'Retrieves the collection of DailyReport resources.'
+      description: 'Retrieves the collection of DailyReport resources.'
+      parameters:
+        -
+          name: page
+          in: query
+          description: 'The collection page number'
+          required: false
+          deprecated: false
+          allowEmptyValue: true
+          schema:
+            type: integer
+            default: 1
+          style: form
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+    post:
+      operationId: api_daily_reports_post
+      tags:
+        - DailyReport
+      responses:
+        '201':
+          description: 'DailyReport resource created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyReport'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DailyReport.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/DailyReport'
+          links: {  }
+        '400':
+          description: 'Invalid input'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '422':
+          description: 'An error occurred'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation.jsonld-jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+          links: {  }
+      summary: 'Creates a DailyReport resource.'
+      description: 'Creates a DailyReport resource.'
+      parameters: []
+      requestBody:
+        description: 'The new DailyReport resource'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DailyReport'
+          application/ld+json:
+            schema:
+              $ref: '#/components/schemas/DailyReport.jsonld'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/DailyReport'
+        required: true
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+  '/mf2/daily_reports/{id}':
+    get:
+      operationId: api_daily_reports_id_get
+      tags:
+        - DailyReport
+      responses:
+        '200':
+          description: 'DailyReport resource'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyReport'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DailyReport.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/DailyReport'
+        '404':
+          description: 'Not found'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Retrieves a DailyReport resource.'
+      description: 'Retrieves a DailyReport resource.'
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'DailyReport identifier'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+    delete:
+      operationId: api_daily_reports_id_delete
+      tags:
+        - DailyReport
+      responses:
+        '204':
+          description: 'DailyReport resource deleted'
+        '404':
+          description: 'Not found'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Removes the DailyReport resource.'
+      description: 'Removes the DailyReport resource.'
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'DailyReport identifier'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+    patch:
+      operationId: api_daily_reports_id_patch
+      tags:
+        - DailyReport
+      responses:
+        '200':
+          description: 'DailyReport resource updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyReport'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DailyReport.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/DailyReport'
+          links: {  }
+        '400':
+          description: 'Invalid input'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '422':
+          description: 'An error occurred'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation.jsonld-jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+          links: {  }
+        '404':
+          description: 'Not found'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Updates the DailyReport resource.'
+      description: 'Updates the DailyReport resource.'
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'DailyReport identifier'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      requestBody:
+        description: 'The updated DailyReport resource'
+        content:
+          application/merge-patch+json:
+            schema:
+              $ref: '#/components/schemas/DailyReport'
+        required: true
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+  /mf2/journals:
+    get:
+      operationId: api_journals_get_collection
+      tags:
+        - Journal
+      responses:
+        '200':
+          description: 'Journal collection'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Journal'
+            application/ld+json:
+              schema:
+                type: object
+                properties:
+                  member: { type: array, items: { $ref: '#/components/schemas/Journal.jsonld' } }
+                  totalItems: { type: integer, minimum: 0 }
+                  view: { type: object, properties: { '@id': { type: string, format: iri-reference }, '@type': { type: string }, first: { type: string, format: iri-reference }, last: { type: string, format: iri-reference }, previous: { type: string, format: iri-reference }, next: { type: string, format: iri-reference } }, example: { '@id': string, type: string, first: string, last: string, previous: string, next: string } }
+                  search: { type: object, properties: { '@type': { type: string }, template: { type: string }, variableRepresentation: { type: string }, mapping: { type: array, items: { type: object, properties: { '@type': { type: string }, variable: { type: string }, property: { type: [string, 'null'] }, required: { type: boolean } } } } } }
+                required:
+                  - member
+            application/xml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Journal'
+      summary: 'Retrieves the collection of Journal resources.'
+      description: 'Retrieves the collection of Journal resources.'
+      parameters:
+        -
+          name: page
+          in: query
+          description: 'The collection page number'
+          required: false
+          deprecated: false
+          allowEmptyValue: true
+          schema:
+            type: integer
+            default: 1
+          style: form
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+    post:
+      operationId: api_journals_post
+      tags:
+        - Journal
+      responses:
+        '201':
+          description: 'Journal resource created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Journal'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Journal.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Journal'
+          links: {  }
+        '400':
+          description: 'Invalid input'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '422':
+          description: 'An error occurred'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation.jsonld-jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+          links: {  }
+      summary: 'Creates a Journal resource.'
+      description: 'Creates a Journal resource.'
+      parameters: []
+      requestBody:
+        description: 'The new Journal resource'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Journal'
+          application/ld+json:
+            schema:
+              $ref: '#/components/schemas/Journal.jsonld'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Journal'
+        required: true
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+  '/mf2/journals/{id}':
+    get:
+      operationId: api_journals_id_get
+      tags:
+        - Journal
+      responses:
+        '200':
+          description: 'Journal resource'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Journal'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Journal.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Journal'
+        '404':
+          description: 'Not found'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Retrieves a Journal resource.'
+      description: 'Retrieves a Journal resource.'
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Journal identifier'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+    delete:
+      operationId: api_journals_id_delete
+      tags:
+        - Journal
+      responses:
+        '204':
+          description: 'Journal resource deleted'
+        '404':
+          description: 'Not found'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Removes the Journal resource.'
+      description: 'Removes the Journal resource.'
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Journal identifier'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+    patch:
+      operationId: api_journals_id_patch
+      tags:
+        - Journal
+      responses:
+        '200':
+          description: 'Journal resource updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Journal'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Journal.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Journal'
+          links: {  }
+        '400':
+          description: 'Invalid input'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '422':
+          description: 'An error occurred'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation.jsonld-jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+          links: {  }
+        '404':
+          description: 'Not found'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Updates the Journal resource.'
+      description: 'Updates the Journal resource.'
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Journal identifier'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      requestBody:
+        description: 'The updated Journal resource'
+        content:
+          application/merge-patch+json:
+            schema:
+              $ref: '#/components/schemas/Journal'
+        required: true
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+  /mf2/merchants:
+    get:
+      operationId: api_merchants_get_collection
+      tags:
+        - Merchant
+      responses:
+        '200':
+          description: 'Merchant collection'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Merchant.MerchantOutput'
+            application/ld+json:
+              schema:
+                type: object
+                properties:
+                  member: { type: array, items: { $ref: '#/components/schemas/Merchant.MerchantOutput.jsonld' } }
+                  totalItems: { type: integer, minimum: 0 }
+                  view: { type: object, properties: { '@id': { type: string, format: iri-reference }, '@type': { type: string }, first: { type: string, format: iri-reference }, last: { type: string, format: iri-reference }, previous: { type: string, format: iri-reference }, next: { type: string, format: iri-reference } }, example: { '@id': string, type: string, first: string, last: string, previous: string, next: string } }
+                  search: { type: object, properties: { '@type': { type: string }, template: { type: string }, variableRepresentation: { type: string }, mapping: { type: array, items: { type: object, properties: { '@type': { type: string }, variable: { type: string }, property: { type: [string, 'null'] }, required: { type: boolean } } } } } }
+                required:
+                  - member
+            application/xml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Merchant.MerchantOutput'
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Retrieves the collection of Merchant resources.'
+      description: 'Retrieves the collection of Merchant resources.'
+      parameters:
+        -
+          name: page
+          in: query
+          description: 'The collection page number'
+          required: false
+          deprecated: false
+          allowEmptyValue: true
+          schema:
+            type: integer
+            default: 1
+          style: form
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2
+    post:
+      operationId: api_merchants_post
+      tags:
+        - Merchant
+      responses:
+        '201':
+          description: 'Merchant resource created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Merchant.MerchantOutput'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Merchant.MerchantOutput.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Merchant.MerchantOutput'
+          links: {  }
+        '400':
+          description: 'Invalid input'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '422':
+          description: 'An error occurred'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation.jsonld-jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+          links: {  }
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Creates a Merchant resource.'
+      description: 'Creates a Merchant resource.'
+      parameters: []
+      requestBody:
+        description: 'The new Merchant resource'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Merchant.MerchantCreateInput'
+          application/ld+json:
+            schema:
+              $ref: '#/components/schemas/Merchant.MerchantCreateInput.jsonld'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Merchant.MerchantCreateInput'
+        required: true
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2
+  '/mf2/merchants/{uuid}':
+    get:
+      operationId: api_merchants_uuid_get
+      tags:
+        - Merchant
+      responses:
+        '200':
+          description: 'Merchant resource'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Merchant.MerchantOutput'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Merchant.MerchantOutput.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Merchant.MerchantOutput'
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '404':
+          description: 'Not found'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Retrieves a Merchant resource.'
+      description: 'Retrieves a Merchant resource.'
+      parameters:
+        -
+          name: uuid
+          in: path
+          description: 'The uuid of the Merchant'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2
+    put:
+      operationId: api_merchants_uuid_put
+      tags:
+        - Merchant
+      responses:
+        '200':
+          description: 'Merchant resource updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Merchant.MerchantOutput'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Merchant.MerchantOutput.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Merchant.MerchantOutput'
+          links: {  }
+        '400':
+          description: 'Invalid input'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '422':
+          description: 'An error occurred'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation.jsonld-jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+          links: {  }
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '404':
+          description: 'Not found'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Replaces the Merchant resource.'
+      description: 'Replaces the Merchant resource.'
+      parameters:
+        -
+          name: uuid
+          in: path
+          description: 'The uuid of the Merchant'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      requestBody:
+        description: 'The updated Merchant resource'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Merchant.MerchantUpdateInput'
+          application/ld+json:
+            schema:
+              $ref: '#/components/schemas/Merchant.MerchantUpdateInput.jsonld'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Merchant.MerchantUpdateInput'
+        required: true
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2
+  '/mf2/system/pems/{serial_number}/request-certificate':
+    post:
+      operationId: api_systempems_serial_numberrequest-certificate_post
+      tags:
+        - Pem
+      responses:
+        '200':
+          description: 'Pem resource created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pem'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Pem.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Pem'
+          links: {  }
+        '400':
+          description: 'Invalid input'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '422':
+          description: 'An error occurred'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation.jsonld-jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+          links: {  }
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Initiates the registration process for the PEM by requesting the certificate'
+      description: 'Creates a Pem resource.'
+      parameters:
+        -
+          name: serial_number
+          in: path
+          description: 'The serial number of the Point of Sale'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      requestBody:
+        description: 'The new Pem resource'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pem.PemCsrInput'
+          application/ld+json:
+            schema:
+              $ref: '#/components/schemas/Pem.PemCsrInput.jsonld'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Pem.PemCsrInput'
+        required: true
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+  '/mf2/merchants/{merchant_uuid}/point-of-sales':
+    get:
+      operationId: api_merchants_merchant_uuidpoint-of-sales_get_collection
+      tags:
+        - 'Point of Sale'
+      responses:
+        '200':
+          description: 'Point of Sale resources'
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Retrieves a list of Point of Sale resources.'
+      description: 'Retrieves the collection of Pem resources.'
+      parameters:
+        -
+          name: merchant_uuid
+          in: path
+          description: 'The uuid of the Merchant.'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+        -
+          name: page
+          in: query
+          description: 'The collection page number'
+          required: false
+          deprecated: false
+          allowEmptyValue: true
+          schema:
+            type: integer
+            default: 1
+          style: form
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2
+  /mf2/point-of-sales:
+    post:
+      operationId: api_point-of-sales_post
+      tags:
+        - 'Point of Sale'
+      responses:
+        '200':
+          description: 'Point of Sale resource'
+        '201':
+          description: 'Pem resource created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pem.PointOfSaleCreateOutput'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Pem.PointOfSaleCreateOutput.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Pem.PointOfSaleCreateOutput'
+          links: {  }
+        '400':
+          description: 'Invalid input'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '422':
+          description: 'An error occurred'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation.jsonld-jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+          links: {  }
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Creates a new Point of Sale.'
+      description: 'Creates a Point of Sale resource'
+      parameters: []
+      requestBody:
+        description: 'The new Point of Sale resource'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pem.PointOfSaleCreateInput'
+          application/ld+json:
+            schema:
+              $ref: '#/components/schemas/Pem.PointOfSaleCreateInput.jsonld'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Pem.PointOfSaleCreateInput'
+        required: true
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2
+  '/mf2/point-of-sales/{serial_number}':
+    get:
+      operationId: api_point-of-sales_serial_number_get
+      tags:
+        - 'Point of Sale'
+      responses:
+        '200':
+          description: 'Point of Sale resource'
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '404':
+          description: 'Not found'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Retrieves a Point of Sale resource.'
+      description: 'Retrieves a Pem resource.'
+      parameters:
+        -
+          name: serial_number
+          in: path
+          description: 'The serial number of the Point of Sale'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2
+  '/mf2/system/pems/{serial_number}/certificates':
+    get:
+      operationId: api_systempems_serial_numbercertificates_get
+      tags:
+        - 'Point of Sale'
+      responses:
+        '200':
+          description: 'Point of Sale resource'
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '404':
+          description: 'Not found'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Returns the mTLS and the activation response of the Point of Sale'
+      description: 'Returns a Point of Sale certificates resource'
+      parameters:
+        -
+          name: serial_number
+          in: path
+          description: 'The serial number of the Point of Sale'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+  '/mf2/system/pems/{serial_number}/receipts/{id}':
+    get:
+      operationId: api_systempems_serial_numberreceipts_id_get
+      tags:
+        - Receipt
+      responses:
+        '200':
+          description: 'Receipt resource'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Receipt.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '404':
+          description: 'Not found'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Retrieves a Receipt resource.'
+      description: 'Retrieves a Receipt resource.'
+      parameters:
+        -
+          name: serial_number
+          in: path
+          description: 'The serial number of the Point of Sale'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+        -
+          name: id
+          in: path
+          description: 'Receipt identifier'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+  '/mf2/system/pems/{serial_number}/upload-receipt':
+    post:
+      operationId: api_systempems_serial_numberupload-receipt_post
+      tags:
+        - Receipt
+      responses:
+        '202':
+          description: 'Receipt resource'
+        '400':
+          description: 'Invalid input'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '422':
+          description: 'An error occurred'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation.jsonld-jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+          links: {  }
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Creates a new receipt by uploading a DocumentoCommerciale XML.'
+      description: 'Returns a Receipt resource'
+      parameters:
+        -
+          name: serial_number
+          in: path
+          description: 'The serial number of the Point of Sale'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      requestBody:
+        description: 'The new Pem resource'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pem'
+          application/ld+json:
+            schema:
+              $ref: '#/components/schemas/Pem.jsonld'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Pem'
+        required: true
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+  /mf2/suppliers:
+    get:
+      operationId: api_suppliers_get_collection
+      tags:
+        - Supplier
+      responses:
+        '200':
+          description: 'Supplier collection'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Supplier.SupplierOutput'
+            application/ld+json:
+              schema:
+                type: object
+                properties:
+                  member: { type: array, items: { $ref: '#/components/schemas/Supplier.SupplierOutput.jsonld' } }
+                  totalItems: { type: integer, minimum: 0 }
+                  view: { type: object, properties: { '@id': { type: string, format: iri-reference }, '@type': { type: string }, first: { type: string, format: iri-reference }, last: { type: string, format: iri-reference }, previous: { type: string, format: iri-reference }, next: { type: string, format: iri-reference } }, example: { '@id': string, type: string, first: string, last: string, previous: string, next: string } }
+                  search: { type: object, properties: { '@type': { type: string }, template: { type: string }, variableRepresentation: { type: string }, mapping: { type: array, items: { type: object, properties: { '@type': { type: string }, variable: { type: string }, property: { type: [string, 'null'] }, required: { type: boolean } } } } } }
+                required:
+                  - member
+            application/xml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Supplier.SupplierOutput'
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Retrieves the collection of Supplier resources.'
+      description: 'Retrieves the collection of Supplier resources.'
+      parameters:
+        -
+          name: page
+          in: query
+          description: 'The collection page number'
+          required: false
+          deprecated: false
+          allowEmptyValue: true
+          schema:
+            type: integer
+            default: 1
+          style: form
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+    post:
+      operationId: api_suppliers_post
+      tags:
+        - Supplier
+      responses:
+        '201':
+          description: 'Supplier resource created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier.SupplierOutput'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Supplier.SupplierOutput.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Supplier.SupplierOutput'
+          links: {  }
+        '400':
+          description: 'Invalid input'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '422':
+          description: 'An error occurred'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation.jsonld-jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+          links: {  }
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Creates a Supplier resource.'
+      description: 'Creates a Supplier resource.'
+      parameters: []
+      requestBody:
+        description: 'The new Supplier resource'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Supplier.SupplierCreateInput'
+          application/ld+json:
+            schema:
+              $ref: '#/components/schemas/Supplier.SupplierCreateInput.jsonld'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Supplier.SupplierCreateInput'
+        required: true
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+  '/mf2/suppliers/{uuid}':
+    get:
+      operationId: api_suppliers_uuid_get
+      tags:
+        - Supplier
+      responses:
+        '200':
+          description: 'Supplier resource'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier.SupplierOutput'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Supplier.SupplierOutput.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Supplier.SupplierOutput'
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '404':
+          description: 'Not found'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Retrieves a Supplier resource.'
+      description: 'Retrieves a Supplier resource.'
+      parameters:
+        -
+          name: uuid
+          in: path
+          description: 'The uuid of the Supplier'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+    put:
+      operationId: api_suppliers_uuid_put
+      tags:
+        - Supplier
+      responses:
+        '200':
+          description: 'Supplier resource updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier.SupplierOutput'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Supplier.SupplierOutput.jsonld'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Supplier.SupplierOutput'
+          links: {  }
+        '400':
+          description: 'Invalid input'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '422':
+          description: 'An error occurred'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation.jsonld-jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstraintViolation-json'
+          links: {  }
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+        '404':
+          description: 'Not found'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          links: {  }
+      summary: 'Replaces the Supplier resource.'
+      description: 'Replaces the Supplier resource.'
+      parameters:
+        -
+          name: uuid
+          in: path
+          description: 'The uuid of the Supplier'
+          required: true
+          deprecated: false
+          allowEmptyValue: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+          allowReserved: false
+      requestBody:
+        description: 'The updated Supplier resource'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Supplier.SupplierUpdateInput'
+          application/ld+json:
+            schema:
+              $ref: '#/components/schemas/Supplier.SupplierUpdateInput.jsonld'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Supplier.SupplierUpdateInput'
+        required: true
+      deprecated: false
+      x-apiplatform-tag:
+        - mf2-system
+components:
+  schemas:
+    Address:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - street_address
+        - zip_code
+        - city
+        - province
+      properties:
+        street_address:
+          type: string
+        street_number:
+          type: string
+        zip_code:
+          minLength: 5
+          maxLength: 5
+          pattern: ^(\d+)$
+          type: string
+        city:
+          type: string
+        province:
+          minLength: 2
+          maxLength: 2
+          type: string
+    Address.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - street_address
+        - zip_code
+        - city
+        - province
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            -
+              type: string
+            -
+              type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum: ['http://www.w3.org/ns/hydra/core#']
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        street_address:
+          type: string
+        street_number:
+          type: string
+        zip_code:
+          minLength: 5
+          maxLength: 5
+          pattern: ^(\d+)$
+          type: string
+        city:
+          type: string
+        province:
+          minLength: 2
+          maxLength: 2
+          type: string
+    ConstraintViolation-json:
+      type: object
+      description: 'Unprocessable entity'
+      deprecated: false
+      properties:
+        status:
+          default: 422
+          example: 422
+          type: integer
+        violations:
+          type: array
+          items:
+            type: object
+            properties:
+              propertyPath:
+                type: string
+                description: 'The property path of the violation'
+              message:
+                type: string
+                description: 'The message associated with the violation'
+        detail:
+          readOnly: true
+          type: string
+        type:
+          readOnly: true
+          type: string
+        title:
+          readOnly: true
+          type:
+            - string
+            - 'null'
+        instance:
+          readOnly: true
+          type:
+            - string
+            - 'null'
+    ConstraintViolation.jsonld-jsonld:
+      type: object
+      description: 'Unprocessable entity'
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            -
+              type: string
+            -
+              type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum: ['http://www.w3.org/ns/hydra/core#']
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        status:
+          default: 422
+          example: 422
+          type: integer
+        violations:
+          type: array
+          items:
+            type: object
+            properties:
+              propertyPath:
+                type: string
+                description: 'The property path of the violation'
+              message:
+                type: string
+                description: 'The message associated with the violation'
+        detail:
+          readOnly: true
+          type: string
+        description:
+          readOnly: true
+          type: string
+        type:
+          readOnly: true
+          type: string
+        title:
+          readOnly: true
+          type:
+            - string
+            - 'null'
+        instance:
+          readOnly: true
+          type:
+            - string
+            - 'null'
+    DailyReport:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        pem:
+          type: string
+          format: iri-reference
+          example: 'https://example.com/'
+        date:
+          type: string
+          format: date-time
+        total_sales:
+          type: string
+    DailyReport.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            -
+              type: string
+            -
+              type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum: ['http://www.w3.org/ns/hydra/core#']
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        pem:
+          type: string
+          format: iri-reference
+          example: 'https://example.com/'
+        date:
+          type: string
+          format: date-time
+        total_sales:
+          type: string
+    Error:
+      type: object
+      description: 'A representation of common errors.'
+      deprecated: false
+      properties:
+        title:
+          readOnly: true
+          description: 'A short, human-readable summary of the problem.'
+          type:
+            - string
+            - 'null'
+        detail:
+          readOnly: true
+          description: 'A human-readable explanation specific to this occurrence of the problem.'
+          type:
+            - string
+            - 'null'
+        status:
+          type: number
+          examples:
+            - 404
+          default: 400
+        instance:
+          readOnly: true
+          description: 'A URI reference that identifies the specific occurrence of the problem. It may or may not yield further information if dereferenced.'
+          type:
+            - string
+            - 'null'
+        type:
+          readOnly: true
+          description: 'A URI reference that identifies the problem type'
+          type: string
+    Error.jsonld:
+      type: object
+      description: 'A representation of common errors.'
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            -
+              type: string
+            -
+              type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum: ['http://www.w3.org/ns/hydra/core#']
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        title:
+          readOnly: true
+          description: 'A short, human-readable summary of the problem.'
+          type:
+            - string
+            - 'null'
+        detail:
+          readOnly: true
+          description: 'A human-readable explanation specific to this occurrence of the problem.'
+          type:
+            - string
+            - 'null'
+        status:
+          type: number
+          examples:
+            - 404
+          default: 400
+        instance:
+          readOnly: true
+          description: 'A URI reference that identifies the specific occurrence of the problem. It may or may not yield further information if dereferenced.'
+          type:
+            - string
+            - 'null'
+        type:
+          readOnly: true
+          description: 'A URI reference that identifies the problem type'
+          type: string
+        description:
+          readOnly: true
+          type:
+            - string
+            - 'null'
+    Journal:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        pem:
+          type: string
+          format: iri-reference
+          example: 'https://example.com/'
+        id:
+          type: string
+        opened_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: string
+          format: date-time
+        hash:
+          type: string
+        path:
+          type: string
+    Journal.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            -
+              type: string
+            -
+              type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum: ['http://www.w3.org/ns/hydra/core#']
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        pem:
+          type: string
+          format: iri-reference
+          example: 'https://example.com/'
+        id:
+          type: string
+        opened_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: string
+          format: date-time
+        hash:
+          type: string
+        path:
+          type: string
+    Merchant.MerchantCreateInput:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - vat_number
+        - email
+        - password
+      properties:
+        vat_number:
+          minLength: 11
+          maxLength: 11
+          pattern: ^(\d+)$
+          description: 'The VAT number of the merchant (Partita IVA).'
+          type: string
+        fiscal_code:
+          minLength: 11
+          maxLength: 11
+          pattern: ^(\d+)$
+          description: 'The Fiscal Code of the merchant (Codice Fiscale).'
+          type: string
+        business_name:
+          description: 'The business name of the merchant (Ragione sociale).'
+          type:
+            - string
+            - 'null'
+        first_name:
+          description: 'The first name of the merchant, in case there is no business name.'
+          type:
+            - string
+            - 'null'
+        last_name:
+          description: 'The last name of the merchant, in case there is no business name.'
+          type:
+            - string
+            - 'null'
+        email:
+          format: email
+          description: 'The email address.'
+          externalDocs:
+            url: 'https://schema.org/email'
+          type: string
+        password:
+          pattern: '^((?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%\^&\*])(?=.{10,}).*)$'
+          description: 'The password.'
+          type: string
+        address:
+          description: 'The billing address.'
+          $ref: '#/components/schemas/Address'
+    Merchant.MerchantCreateInput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - vat_number
+        - email
+        - password
+      properties:
+        vat_number:
+          minLength: 11
+          maxLength: 11
+          pattern: ^(\d+)$
+          description: 'The VAT number of the merchant (Partita IVA).'
+          type: string
+        fiscal_code:
+          minLength: 11
+          maxLength: 11
+          pattern: ^(\d+)$
+          description: 'The Fiscal Code of the merchant (Codice Fiscale).'
+          type: string
+        business_name:
+          description: 'The business name of the merchant (Ragione sociale).'
+          type:
+            - string
+            - 'null'
+        first_name:
+          description: 'The first name of the merchant, in case there is no business name.'
+          type:
+            - string
+            - 'null'
+        last_name:
+          description: 'The last name of the merchant, in case there is no business name.'
+          type:
+            - string
+            - 'null'
+        email:
+          format: email
+          description: 'The email address.'
+          externalDocs:
+            url: 'https://schema.org/email'
+          type: string
+        password:
+          pattern: '^((?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%\^&\*])(?=.{10,}).*)$'
+          description: 'The password.'
+          type: string
+        address:
+          description: 'The billing address.'
+          $ref: '#/components/schemas/Address.jsonld'
+    Merchant.MerchantOutput:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        uuid:
+          type: string
+        vat_number:
+          type: string
+        fiscal_code:
+          type:
+            - string
+            - 'null'
+        email:
+          type: string
+        business_name:
+          type:
+            - string
+            - 'null'
+        first_name:
+          type:
+            - string
+            - 'null'
+        last_name:
+          type:
+            - string
+            - 'null'
+        address:
+          $ref: '#/components/schemas/Address'
+    Merchant.MerchantOutput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            -
+              type: string
+            -
+              type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum: ['http://www.w3.org/ns/hydra/core#']
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        uuid:
+          type: string
+        vat_number:
+          type: string
+        fiscal_code:
+          type:
+            - string
+            - 'null'
+        email:
+          type: string
+        business_name:
+          type:
+            - string
+            - 'null'
+        first_name:
+          type:
+            - string
+            - 'null'
+        last_name:
+          type:
+            - string
+            - 'null'
+        address:
+          $ref: '#/components/schemas/Address.jsonld'
+    Merchant.MerchantUpdateInput:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        business_name:
+          description: 'The business name of the merchant (Ragione sociale).'
+          type:
+            - string
+            - 'null'
+        first_name:
+          description: 'The first name of the merchant, in case there is no business name.'
+          type:
+            - string
+            - 'null'
+        last_name:
+          description: 'The last name of the merchant, in case there is no business name.'
+          type:
+            - string
+            - 'null'
+        address:
+          description: 'The billing address.'
+          anyOf:
+            -
+              $ref: '#/components/schemas/Address'
+            -
+              type: 'null'
+    Merchant.MerchantUpdateInput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        business_name:
+          description: 'The business name of the merchant (Ragione sociale).'
+          type:
+            - string
+            - 'null'
+        first_name:
+          description: 'The first name of the merchant, in case there is no business name.'
+          type:
+            - string
+            - 'null'
+        last_name:
+          description: 'The last name of the merchant, in case there is no business name.'
+          type:
+            - string
+            - 'null'
+        address:
+          description: 'The billing address.'
+          anyOf:
+            -
+              $ref: '#/components/schemas/Address.jsonld'
+            -
+              type: 'null'
+    Pem:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        id:
+          readOnly: true
+          type: string
+        type:
+          default: PV
+          example: PV
+          type: string
+          enum:
+            - AP
+            - SP
+            - TM
+            - PV
+        version:
+          type:
+            - string
+            - 'null'
+        status:
+          default: new
+          example: new
+          type: string
+          enum:
+            - new
+            - registered
+            - activated
+            - online
+            - offline
+            - discarded
+        receipt_header:
+          type:
+            - string
+            - 'null'
+        csr_path:
+          type:
+            - string
+            - 'null'
+        activation_code:
+          type:
+            - string
+            - 'null'
+        activation_response_path:
+          type:
+            - string
+            - 'null'
+        next_activation_check:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        mtls_cert_path:
+          type:
+            - string
+            - 'null'
+        merchant:
+          type: string
+          format: iri-reference
+          example: 'https://example.com/'
+        receipts:
+          type: array
+          items:
+            type: string
+            format: iri-reference
+            example: 'https://example.com/'
+        street_address:
+          type:
+            - string
+            - 'null'
+        street_number:
+          type:
+            - string
+            - 'null'
+        zip_code:
+          type:
+            - string
+            - 'null'
+        city:
+          type:
+            - string
+            - 'null'
+        province:
+          type:
+            - string
+            - 'null'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        owner_field:
+          readOnly: true
+        marking:
+          type: string
+    Pem.PemCsrInput:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - csr
+        - registration_key
+      properties:
+        csr:
+          description: 'The CSR'
+          type: string
+        registration_key:
+          description: 'The registration key returned when the PEM has been created'
+          type: string
+    Pem.PemCsrInput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - csr
+        - registration_key
+      properties:
+        csr:
+          description: 'The CSR'
+          type: string
+        registration_key:
+          description: 'The registration key returned when the PEM has been created'
+          type: string
+    Pem.PointOfSaleCertificatesOutput:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        mtls_certificate:
+          type: string
+        activation_xml_response:
+          type:
+            - string
+            - 'null'
+    Pem.PointOfSaleCertificatesOutput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            -
+              type: string
+            -
+              type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum: ['http://www.w3.org/ns/hydra/core#']
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        mtls_certificate:
+          type: string
+        activation_xml_response:
+          type:
+            - string
+            - 'null'
+    Pem.PointOfSaleCreateInput:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - merchant_uuid
+      properties:
+        merchant_uuid:
+          format: uuid
+          description: 'The merchant UUID.'
+          externalDocs:
+            url: 'https://schema.org/identifier'
+          type: string
+        receipt_header:
+          description: 'The receipt header. Leave empty to use the merchant name.'
+          type:
+            - string
+            - 'null'
+        address:
+          description: 'The address. Leave empty to use the default merchant address.'
+          anyOf:
+            -
+              $ref: '#/components/schemas/Address'
+            -
+              type: 'null'
+        external_pem_data:
+          description: 'The external PEM configuration. '
+          anyOf:
+            -
+              $ref: '#/components/schemas/PemData'
+            -
+              type: 'null'
+    Pem.PointOfSaleCreateInput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - merchant_uuid
+      properties:
+        merchant_uuid:
+          format: uuid
+          description: 'The merchant UUID.'
+          externalDocs:
+            url: 'https://schema.org/identifier'
+          type: string
+        receipt_header:
+          description: 'The receipt header. Leave empty to use the merchant name.'
+          type:
+            - string
+            - 'null'
+        address:
+          description: 'The address. Leave empty to use the default merchant address.'
+          anyOf:
+            -
+              $ref: '#/components/schemas/Address.jsonld'
+            -
+              type: 'null'
+        external_pem_data:
+          description: 'The external PEM configuration. '
+          anyOf:
+            -
+              $ref: '#/components/schemas/PemData.jsonld'
+            -
+              type: 'null'
+    Pem.PointOfSaleCreateOutput:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        serial_number:
+          type: string
+        registration_key:
+          type: string
+    Pem.PointOfSaleCreateOutput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            -
+              type: string
+            -
+              type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum: ['http://www.w3.org/ns/hydra/core#']
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        serial_number:
+          type: string
+        registration_key:
+          type: string
+    Pem.PointOfSaleOutput:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+    Pem.PointOfSaleOutput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            -
+              type: string
+            -
+              type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum: ['http://www.w3.org/ns/hydra/core#']
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        id:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+    Pem.Receipt:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        pem:
+          type: string
+          format: iri-reference
+          example: 'https://example.com/'
+        id:
+          type: string
+        date_time:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum:
+            - sale
+            - return
+            - void
+        hash_prev_journal:
+          type: string
+        hash_prev_element:
+          type: string
+        total_amount:
+          type:
+            - string
+            - 'null'
+        path:
+          type: string
+    Pem.Receipt.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            -
+              type: string
+            -
+              type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum: ['http://www.w3.org/ns/hydra/core#']
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        pem:
+          type: string
+          format: iri-reference
+          example: 'https://example.com/'
+        id:
+          type: string
+        date_time:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum:
+            - sale
+            - return
+            - void
+        hash_prev_journal:
+          type: string
+        hash_prev_element:
+          type: string
+        total_amount:
+          type:
+            - string
+            - 'null'
+        path:
+          type: string
+    Pem.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            -
+              type: string
+            -
+              type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum: ['http://www.w3.org/ns/hydra/core#']
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        id:
+          readOnly: true
+          type: string
+        type:
+          default: PV
+          example: PV
+          type: string
+          enum:
+            - AP
+            - SP
+            - TM
+            - PV
+        version:
+          type:
+            - string
+            - 'null'
+        status:
+          default: new
+          example: new
+          type: string
+          enum:
+            - new
+            - registered
+            - activated
+            - online
+            - offline
+            - discarded
+        receipt_header:
+          type:
+            - string
+            - 'null'
+        csr_path:
+          type:
+            - string
+            - 'null'
+        activation_code:
+          type:
+            - string
+            - 'null'
+        activation_response_path:
+          type:
+            - string
+            - 'null'
+        next_activation_check:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        mtls_cert_path:
+          type:
+            - string
+            - 'null'
+        merchant:
+          type: string
+          format: iri-reference
+          example: 'https://example.com/'
+        receipts:
+          type: array
+          items:
+            type: string
+            format: iri-reference
+            example: 'https://example.com/'
+        street_address:
+          type:
+            - string
+            - 'null'
+        street_number:
+          type:
+            - string
+            - 'null'
+        zip_code:
+          type:
+            - string
+            - 'null'
+        city:
+          type:
+            - string
+            - 'null'
+        province:
+          type:
+            - string
+            - 'null'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        owner_field:
+          readOnly: true
+        marking:
+          type: string
+    PemData:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - version
+        - type
+      properties:
+        version:
+          pattern: ^(\d+\.\d+\.\d+)$
+          type: string
+        type:
+          type: string
+          enum:
+            - AP
+            - SP
+            - TM
+            - PV
+    PemData.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - version
+        - type
+      properties:
+        version:
+          pattern: ^(\d+\.\d+\.\d+)$
+          type: string
+        type:
+          type: string
+          enum:
+            - AP
+            - SP
+            - TM
+            - PV
+    Receipt:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        pem:
+          type: string
+          format: iri-reference
+          example: 'https://example.com/'
+        id:
+          type: string
+        date_time:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum:
+            - sale
+            - return
+            - void
+        hash_prev_journal:
+          type: string
+        hash_prev_element:
+          type: string
+        total_amount:
+          type:
+            - string
+            - 'null'
+        path:
+          type: string
+    Receipt.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            -
+              type: string
+            -
+              type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum: ['http://www.w3.org/ns/hydra/core#']
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        pem:
+          type: string
+          format: iri-reference
+          example: 'https://example.com/'
+        id:
+          type: string
+        date_time:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum:
+            - sale
+            - return
+            - void
+        hash_prev_journal:
+          type: string
+        hash_prev_element:
+          type: string
+        total_amount:
+          type:
+            - string
+            - 'null'
+        path:
+          type: string
+    Supplier.SupplierCreateInput:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - vat_number
+        - business_name
+        - email
+        - password
+      properties:
+        vat_number:
+          minLength: 11
+          maxLength: 11
+          pattern: ^(\d+)$
+          description: 'The VAT number of the supplier (Partita IVA).'
+          type: string
+        business_name:
+          description: 'The business name of the supplier (Ragione sociale).'
+          type: string
+        email:
+          format: email
+          description: 'The email address.'
+          externalDocs:
+            url: 'https://schema.org/email'
+          type: string
+        password:
+          pattern: '^((?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%\^&\*])(?=.{10,}).*)$'
+          description: 'The password.'
+          type: string
+        address:
+          description: 'The billing address.'
+          $ref: '#/components/schemas/Address'
+    Supplier.SupplierCreateInput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - vat_number
+        - business_name
+        - email
+        - password
+      properties:
+        vat_number:
+          minLength: 11
+          maxLength: 11
+          pattern: ^(\d+)$
+          description: 'The VAT number of the supplier (Partita IVA).'
+          type: string
+        business_name:
+          description: 'The business name of the supplier (Ragione sociale).'
+          type: string
+        email:
+          format: email
+          description: 'The email address.'
+          externalDocs:
+            url: 'https://schema.org/email'
+          type: string
+        password:
+          pattern: '^((?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%\^&\*])(?=.{10,}).*)$'
+          description: 'The password.'
+          type: string
+        address:
+          description: 'The billing address.'
+          $ref: '#/components/schemas/Address.jsonld'
+    Supplier.SupplierOutput:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        uuid:
+          type: string
+        vat_number:
+          type: string
+        business_name:
+          type: string
+        email:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+    Supplier.SupplierOutput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      properties:
+        '@context':
+          readOnly: true
+          oneOf:
+            -
+              type: string
+            -
+              type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum: ['http://www.w3.org/ns/hydra/core#']
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          readOnly: true
+          type: string
+        '@type':
+          readOnly: true
+          type: string
+        uuid:
+          type: string
+        vat_number:
+          type: string
+        business_name:
+          type: string
+        email:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address.jsonld'
+    Supplier.SupplierUpdateInput:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - business_name
+      properties:
+        business_name:
+          description: 'The business name of the supplier (Ragione sociale).'
+          type: string
+        address:
+          description: 'The billing address.'
+          anyOf:
+            -
+              $ref: '#/components/schemas/Address'
+            -
+              type: 'null'
+    Supplier.SupplierUpdateInput.jsonld:
+      type: object
+      description: ''
+      deprecated: false
+      required:
+        - business_name
+      properties:
+        business_name:
+          description: 'The business name of the supplier (Ragione sociale).'
+          type: string
+        address:
+          description: 'The billing address.'
+          anyOf:
+            -
+              $ref: '#/components/schemas/Address.jsonld'
+            -
+              type: 'null'
+  responses: {  }
+  parameters: {  }
+  examples: {  }
+  requestBodies: {  }
+  headers: {  }
+  securitySchemes: {  }
+security: []
+tags:
+  -
+    name: DailyReport
+  -
+    name: Journal
+  -
+    name: Merchant
+  -
+    name: 'Point of Sale'
+  -
+    name: Pem
+  -
+    name: Receipt
+  -
+    name: Supplier
+webhooks: {  }

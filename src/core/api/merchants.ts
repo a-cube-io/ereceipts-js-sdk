@@ -2,7 +2,9 @@ import { HttpClient } from './http-client';
 import { 
   MerchantOutput, 
   MerchantCreateInput, 
-  MerchantUpdateInput 
+  MerchantUpdateInput, 
+  MerchantsParams,
+  PointOfSaleOutputMf2
 } from './types';
 
 /**
@@ -14,7 +16,7 @@ export class MerchantsAPI {
   /**
    * Retrieve the collection of Merchant resources
    */
-  async list(params: { page?: number } = {}): Promise<MerchantOutput[]> {
+  async list(params: MerchantsParams): Promise<MerchantOutput[]> {
     const searchParams = new URLSearchParams();
     
     if (params.page) {
@@ -46,5 +48,23 @@ export class MerchantsAPI {
    */
   async update(uuid: string, merchantData: MerchantUpdateInput): Promise<MerchantOutput> {
     return this.httpClient.put<MerchantOutput>(`/mf2/merchants/${uuid}`, merchantData);
+  }
+
+  /**
+   * Retrieve Point of Sale resources for a specific merchant
+   */
+  async listPointOfSales(merchantUuid: string, params?: { page?: number }): Promise<PointOfSaleOutputMf2[]> {
+    const searchParams = new URLSearchParams();
+    
+    if (params?.page) {
+      searchParams.append('page', params.page.toString());
+    }
+
+    const query = searchParams.toString();
+    const url = query 
+      ? `/mf2/merchants/${merchantUuid}/point-of-sales?${query}` 
+      : `/mf2/merchants/${merchantUuid}/point-of-sales`;
+    
+    return this.httpClient.get<PointOfSaleOutputMf2[]>(url);
   }
 }

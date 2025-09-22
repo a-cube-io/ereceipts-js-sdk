@@ -2,7 +2,17 @@
  * Core SDK types
  */
 
+import type { UserRoles } from './roles';
+
 export type Environment = 'production' | 'development' | 'sandbox';
+
+/**
+ * Certificate management configuration
+ */
+export interface CertificateConfig {
+  storagePrefix?: string;
+  metadataKey?: string;
+}
 
 /**
  * SDK Configuration
@@ -15,6 +25,7 @@ export interface SDKConfig {
   retryAttempts?: number;
   debug?: boolean;
   customHeaders?: Record<string, string>;
+  certificateConfig?: CertificateConfig;
 }
 
 /**
@@ -60,9 +71,17 @@ export interface User {
   id: string;
   email: string;
   username: string;
-  roles: Record<string, string[]>;
+  roles: UserRoles;
   fid: string;
   pid: string | null;
+}
+
+/**
+ * User provider interface for accessing current user information
+ */
+export interface IUserProvider {
+  getCurrentUser(): Promise<User | null>;
+  isAuthenticated(): Promise<boolean>;
 }
 
 /**
@@ -85,7 +104,11 @@ export type SDKError =
   | 'VALIDATION_ERROR'
   | 'NOT_FOUND_ERROR'
   | 'FORBIDDEN_ERROR'
-  | 'UNKNOWN_ERROR';
+  | 'UNKNOWN_ERROR'
+  | 'STORAGE_CERTIFICATE_ERROR'
+  | 'CERTIFICATE_MANAGER_NOT_INITIALIZED'
+  | 'SDK_INITIALIZATION_ERROR'
+  | 'API_CLIENT_NOT_INITIALIZED';
 
 /**
  * SDK Exception class

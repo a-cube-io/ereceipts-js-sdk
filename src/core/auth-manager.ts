@@ -1,14 +1,16 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { ISecureStorage } from '../adapters';
 import { ConfigManager } from './config';
-import { 
-  AuthCredentials, 
-  TokenResponse, 
-  StoredTokenData, 
+import {
+  AuthCredentials,
+  TokenResponse,
+  StoredTokenData,
   User,
   ACubeSDKError,
-  JWTPayload 
+  JWTPayload,
+  IUserProvider
 } from './types';
+import { parseLegacyRoles } from './roles';
 
 /**
  * Authentication events
@@ -21,7 +23,7 @@ export interface AuthEvents {
 /**
  * JWT Authentication Manager
  */
-export class AuthManager {
+export class AuthManager implements IUserProvider {
   private static readonly TOKEN_KEY = 'acube_tokens';
   private static readonly USER_KEY = 'acube_user';
   
@@ -106,7 +108,7 @@ export class AuthManager {
         id: jwtPayload.uid.toString(),
         email: jwtPayload.username,
         username: jwtPayload.username,
-        roles: jwtPayload.roles,
+        roles: parseLegacyRoles(jwtPayload.roles),
         fid: jwtPayload.fid,
         pid: jwtPayload.pid,
       };
@@ -192,7 +194,7 @@ export class AuthManager {
         id: jwtPayload.uid.toString(),
         email: jwtPayload.username,
         username: jwtPayload.username,
-        roles: jwtPayload.roles,
+        roles: parseLegacyRoles(jwtPayload.roles),
         fid: jwtPayload.fid,
         pid: jwtPayload.pid,
       };

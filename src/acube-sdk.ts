@@ -4,12 +4,14 @@ import {
   AuthManager, 
   APIClient,
   loadPlatformAdapters,
+  createACubeMTLSConfig,
   AuthCredentials,
   User,
   ACubeSDKError 
 } from './core';
 import { PlatformAdapters } from './adapters';
 import { OfflineManager, QueueEvents } from './offline';
+import { CertificateManager } from './core/certificates/certificate-manager';
 
 /**
  * SDK Events interface
@@ -30,6 +32,7 @@ export class ACubeSDK {
   private adapters?: PlatformAdapters;
   private authManager?: AuthManager;
   private offlineManager?: OfflineManager;
+  private certificateManager?: CertificateManager;
   private isInitialized = false;
 
   // Public API clients
@@ -56,15 +59,31 @@ export class ACubeSDK {
     }
 
     try {
-      // Load platform adapters if not provided
+      // Load platform adapters if not provided with automatic mTLS configuration
       if (!this.adapters) {
-        this.adapters = await loadPlatformAdapters();
+        const mtlsConfig = createACubeMTLSConfig(
+          this.config.getApiUrl(),
+          this.config.getTimeout(),
+          true // autoInitialize
+        );
+
+        this.adapters = loadPlatformAdapters({
+          debugEnabled: this.config.isDebugEnabled(),
+          mtlsConfig
+        });
       }
 
-      // Initialize API client
-      this.api = new APIClient(this.config);
+      // Initialize a certificate manager with optional configuration
+      const certificateConfig = this.config.getConfig().certificateConfig;
+      this.certificateManager = new CertificateManager(
+        this.adapters.secureStorage,
+        {
+          storageKey: certificateConfig?.storagePrefix || 'acube_certificate'
+        },
+        this.config.isDebugEnabled()
+      );
 
-      // Initialize auth manager
+      // Initialize auth manager first (needed for API client)
       this.authManager = new AuthManager(
         this.config,
         this.adapters.secureStorage,
@@ -72,6 +91,17 @@ export class ACubeSDK {
           onUserChanged: this.events.onUserChanged,
           onAuthError: this.events.onAuthError,
         }
+      );
+
+      // Initialize the API client with all adapters (mTLS is pre-configured)
+      // Pass authManager as userProvider for role-based auth decisions
+      this.api = new APIClient(
+        this.config,
+        this.certificateManager,
+        this.adapters.cache,
+        this.adapters.networkMonitor,
+        this.adapters.mtls,
+        this.authManager // AuthManager implements IUserProvider
       );
 
       // Initialize offline manager
@@ -107,7 +137,7 @@ export class ACubeSDK {
         }
       });
 
-      // Check if user is already authenticated
+      // Check if the user is already authenticated
       if (await this.authManager.isAuthenticated()) {
         const token = await this.authManager.getAccessToken();
         if (token) {
@@ -118,7 +148,7 @@ export class ACubeSDK {
       this.isInitialized = true;
     } catch (error) {
       throw new ACubeSDKError(
-        'UNKNOWN_ERROR',
+        'SDK_INITIALIZATION_ERROR',
         `Failed to initialize SDK: ${error instanceof Error ? error.message : 'Unknown error'}`,
         error
       );
@@ -166,7 +196,7 @@ export class ACubeSDK {
   }
 
   /**
-   * Check if user is authenticated
+   * Check if the user is authenticated
    */
   async isAuthenticated(): Promise<boolean> {
     this.ensureInitialized();
@@ -210,6 +240,169 @@ export class ACubeSDK {
     return this.adapters;
   }
 
+
+  /**
+   * Store mTLS certificate (replaces any existing certificate)
+   */
+  async storeCertificate(
+    certificate: string,
+    privateKey: string,
+    options: {
+      name?: string;
+      format?: 'pem' | 'p12' | 'pkcs12';
+      password?: string;
+    } = {}
+  ): Promise<void> {
+    this.ensureInitialized();
+    
+    if (!this.api) {
+      throw new ACubeSDKError(
+        'API_CLIENT_NOT_INITIALIZED',
+        'API client not initialized'
+      );
+    }
+
+    const httpClient = this.api.getHttpClient();
+    if (!httpClient) {
+      throw new ACubeSDKError(
+        'API_CLIENT_NOT_INITIALIZED',
+        'HTTP client not available'
+      );
+    }
+
+    // Use coordinated storage to ensure proper clearing of old certificates
+    await httpClient.storeCertificate(
+      certificate,
+      privateKey,
+      { format: options.format }
+    );
+
+    if (this.config.isDebugEnabled()) {
+      console.log('[ACUBE-SDK] mTLS certificate stored successfully');
+    }
+  }
+
+  /**
+   * Get mTLS status and configuration info
+   */
+  async getMTLSStatus() {
+    this.ensureInitialized();
+    
+    if (!this.api) {
+      throw new ACubeSDKError(
+        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
+        'API client not initialized'
+      );
+    }
+
+    const httpClient = this.api.getHttpClient();
+    return await httpClient.getMTLSStatus();
+  }
+
+  /**
+   * Test mTLS connection
+   */
+  async testMTLSConnection(): Promise<boolean> {
+    this.ensureInitialized();
+    
+    if (!this.api) {
+      throw new ACubeSDKError(
+        'UNKNOWN_ERROR',
+        'API client not initialized'
+      );
+    }
+
+    const httpClient = this.api.getHttpClient();
+    return await httpClient.testMTLSConnection();
+  }
+
+  /**
+   * Clear the stored certificate
+   */
+  async clearCertificate(): Promise<void> {
+    this.ensureInitialized();
+    
+    if (!this.api) {
+      throw new ACubeSDKError(
+        'SDK_INITIALIZATION_ERROR',
+        'API client not initialized'
+      );
+    }
+
+    const httpClient = this.api.getHttpClient();
+    if (!httpClient) {
+      throw new ACubeSDKError(
+        'API_CLIENT_NOT_INITIALIZED',
+        'HTTP client not available'
+      );
+    }
+
+    // Use coordinated clearing to ensure certificate is removed from both storages
+    await httpClient.clearCertificate();
+
+    if (this.config.isDebugEnabled()) {
+      console.log('[ACUBE-SDK] mTLS certificate cleared');
+    }
+  }
+
+
+  /**
+   * Get certificate manager for advanced certificate operations
+   */
+  getCertificateManager() {
+    this.ensureInitialized();
+    return this.certificateManager;
+  }
+
+  /**
+   * Get the stored certificate
+   */
+  async getCertificate() {
+    this.ensureInitialized();
+    
+    if (!this.certificateManager) {
+      throw new ACubeSDKError(
+        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
+        'Certificate manager not initialized'
+      );
+    }
+
+    return await this.certificateManager.getCertificate();
+  }
+
+  /**
+   * Get certificate information (without private key)
+   */
+  async getCertificateInfo() {
+    this.ensureInitialized();
+    
+    if (!this.certificateManager) {
+      throw new ACubeSDKError(
+        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
+        'Certificate manager not initialized'
+      );
+    }
+
+    return await this.certificateManager.getCertificateInfo();
+  }
+
+  /**
+   * Check if certificate is stored
+   */
+  async hasCertificate() {
+    this.ensureInitialized();
+    
+    if (!this.certificateManager) {
+      throw new ACubeSDKError(
+        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
+        'Certificate manager not initialized'
+      );
+    }
+
+    return await this.certificateManager.hasCertificate();
+  }
+
+
   /**
    * Destroy SDK and cleanup resources
    */
@@ -224,7 +417,7 @@ export class ACubeSDK {
   private ensureInitialized(): void {
     if (!this.isInitialized) {
       throw new ACubeSDKError(
-        'UNKNOWN_ERROR',
+        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
         'SDK not initialized. Call initialize() first.'
       );
     }
