@@ -7,6 +7,14 @@ import type { UserRoles } from './roles';
 export type Environment = 'production' | 'development' | 'sandbox';
 
 /**
+ * Certificate management configuration
+ */
+export interface CertificateConfig {
+  storagePrefix?: string;
+  metadataKey?: string;
+}
+
+/**
  * SDK Configuration
  */
 export interface SDKConfig {
@@ -17,6 +25,7 @@ export interface SDKConfig {
   retryAttempts?: number;
   debug?: boolean;
   customHeaders?: Record<string, string>;
+  certificateConfig?: CertificateConfig;
 }
 
 /**
@@ -68,6 +77,14 @@ export interface User {
 }
 
 /**
+ * User provider interface for accessing current user information
+ */
+export interface IUserProvider {
+  getCurrentUser(): Promise<User | null>;
+  isAuthenticated(): Promise<boolean>;
+}
+
+/**
  * API Error response
  */
 export interface APIError {
@@ -87,7 +104,11 @@ export type SDKError =
   | 'VALIDATION_ERROR'
   | 'NOT_FOUND_ERROR'
   | 'FORBIDDEN_ERROR'
-  | 'UNKNOWN_ERROR';
+  | 'UNKNOWN_ERROR'
+  | 'STORAGE_CERTIFICATE_ERROR'
+  | 'CERTIFICATE_MANAGER_NOT_INITIALIZED'
+  | 'SDK_INITIALIZATION_ERROR'
+  | 'API_CLIENT_NOT_INITIALIZED';
 
 /**
  * SDK Exception class

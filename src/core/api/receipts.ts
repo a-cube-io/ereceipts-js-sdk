@@ -70,7 +70,6 @@ export class ReceiptsAPI {
   private createMTLSConfig(config?: Partial<CacheRequestConfig>): CacheRequestConfig {
     return {
       authMode: 'mtls',
-      port: 444, // A-Cube mTLS port
       noFallback: true, // Allow fallback for resilience
       ...config
     };
