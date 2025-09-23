@@ -74,6 +74,7 @@ export interface User {
   roles: UserRoles;
   fid: string;
   pid: string | null;
+  expiresAt: number;
 }
 
 /**

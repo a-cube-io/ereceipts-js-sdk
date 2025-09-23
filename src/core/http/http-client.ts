@@ -207,25 +207,36 @@ export class HttpClient {
   async post<T>(url: string, data?: any, config?: HttpRequestConfig): Promise<T> {
     const authMode = await this.mtlsHandler.determineAuthMode(url, config?.authMode);
     const cleanedData = data ? clearObject(data) : data;
-    
+
     if (this._isDebugEnabled && data !== cleanedData) {
       console.log('[HTTP-CLIENT] POST data cleaned:', { original: data, cleaned: cleanedData });
     }
 
+    let result: T;
+
     // Try mTLS first for relevant modes (no pre-flight check - let makeRequestMTLS handle retry)
     if (authMode === 'mtls' || authMode === 'auto') {
       try {
-        return await this.mtlsHandler.makeRequestMTLS<T>(
+        result = await this.mtlsHandler.makeRequestMTLS<T>(
           url,
           { ...config, method: 'POST', data: cleanedData },
           undefined,
           this.client.defaults.headers.common['Authorization'] as string
         );
+
+        // Auto-invalidate cache after successful POST
+        await this.cacheHandler.invalidateAfterMutation(url, 'POST').catch((error) => {
+          if (this._isDebugEnabled) {
+            console.warn('[HTTP-CLIENT] Cache invalidation failed after POST:', error);
+          }
+        });
+
+        return result;
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS POST failed:', error);
         }
-        
+
         if (authMode === 'mtls' && config?.noFallback) {
           throw error;
         }
@@ -236,10 +247,19 @@ export class HttpClient {
     if (this._isDebugEnabled) {
       console.log('[HTTP-CLIENT] Using JWT fallback for POST:', url);
     }
-    
+
     try {
       const response: AxiosResponse<T> = await this.client.post(url, cleanedData, config);
-      return response.data;
+      result = response.data;
+
+      // Auto-invalidate cache after successful POST
+      await this.cacheHandler.invalidateAfterMutation(url, 'POST').catch((error) => {
+        if (this._isDebugEnabled) {
+          console.warn('[HTTP-CLIENT] Cache invalidation failed after POST:', error);
+        }
+      });
+
+      return result;
     } catch (error) {
       throw transformError(error);
     }
@@ -251,25 +271,36 @@ export class HttpClient {
   async put<T>(url: string, data?: any, config?: HttpRequestConfig): Promise<T> {
     const authMode = await this.mtlsHandler.determineAuthMode(url, config?.authMode);
     const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
-    
+
     if (this._isDebugEnabled && data !== cleanedData) {
       console.log('[HTTP-CLIENT] PUT data cleaned:', { original: data, cleaned: cleanedData });
     }
 
+    let result: T;
+
     // Try mTLS first for relevant modes (no pre-flight check - let makeRequestMTLS handle retry)
     if (authMode === 'mtls' || authMode === 'auto') {
       try {
-        return await this.mtlsHandler.makeRequestMTLS<T>(
+        result = await this.mtlsHandler.makeRequestMTLS<T>(
           url,
           { ...config, method: 'PUT', data: cleanedData },
           undefined,
           this.client.defaults.headers.common['Authorization'] as string
         );
+
+        // Auto-invalidate cache after successful PUT
+        await this.cacheHandler.invalidateAfterMutation(url, 'PUT').catch((error) => {
+          if (this._isDebugEnabled) {
+            console.warn('[HTTP-CLIENT] Cache invalidation failed after PUT:', error);
+          }
+        });
+
+        return result;
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS PUT failed:', error);
         }
-        
+
         if (authMode === 'mtls' && config?.noFallback) {
           throw error;
         }
@@ -280,10 +311,19 @@ export class HttpClient {
     if (this._isDebugEnabled) {
       console.log('[HTTP-CLIENT] Using JWT fallback for PUT:', url);
     }
-    
+
     try {
       const response: AxiosResponse<T> = await this.client.put(url, cleanedData, config);
-      return response.data;
+      result = response.data;
+
+      // Auto-invalidate cache after successful PUT
+      await this.cacheHandler.invalidateAfterMutation(url, 'PUT').catch((error) => {
+        if (this._isDebugEnabled) {
+          console.warn('[HTTP-CLIENT] Cache invalidation failed after PUT:', error);
+        }
+      });
+
+      return result;
     } catch (error) {
       throw transformError(error);
     }
@@ -295,20 +335,31 @@ export class HttpClient {
   async delete<T>(url: string, config?: HttpRequestConfig): Promise<T> {
     const authMode = await this.mtlsHandler.determineAuthMode(url, config?.authMode);
 
+    let result: T;
+
     // Try mTLS first for relevant modes (no pre-flight check - let makeRequestMTLS handle retry)
     if (authMode === 'mtls' || authMode === 'auto') {
       try {
-        return await this.mtlsHandler.makeRequestMTLS<T>(
+        result = await this.mtlsHandler.makeRequestMTLS<T>(
           url,
           { ...config, method: 'DELETE' },
           undefined,
           this.client.defaults.headers.common['Authorization'] as string
         );
+
+        // Auto-invalidate cache after successful DELETE
+        await this.cacheHandler.invalidateAfterMutation(url, 'DELETE').catch((error) => {
+          if (this._isDebugEnabled) {
+            console.warn('[HTTP-CLIENT] Cache invalidation failed after DELETE:', error);
+          }
+        });
+
+        return result;
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS DELETE failed:', error);
         }
-        
+
         if (authMode === 'mtls' && config?.noFallback) {
           throw error;
         }
@@ -319,10 +370,19 @@ export class HttpClient {
     if (this._isDebugEnabled) {
       console.log('[HTTP-CLIENT] Using JWT fallback for DELETE:', url);
     }
-    
+
     try {
       const response: AxiosResponse<T> = await this.client.delete(url, config);
-      return response.data;
+      result = response.data;
+
+      // Auto-invalidate cache after successful DELETE
+      await this.cacheHandler.invalidateAfterMutation(url, 'DELETE').catch((error) => {
+        if (this._isDebugEnabled) {
+          console.warn('[HTTP-CLIENT] Cache invalidation failed after DELETE:', error);
+        }
+      });
+
+      return result;
     } catch (error) {
       throw transformError(error);
     }
@@ -334,13 +394,22 @@ export class HttpClient {
   async patch<T>(url: string, data?: any, config?: HttpRequestConfig): Promise<T> {
     try {
       const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
-      
+
       if (this._isDebugEnabled && data !== cleanedData) {
         console.log('[HTTP-CLIENT] PATCH data cleaned:', { original: data, cleaned: cleanedData });
       }
-      
+
       const response: AxiosResponse<T> = await this.client.patch(url, cleanedData, config);
-      return response.data;
+      const result = response.data;
+
+      // Auto-invalidate cache after successful PATCH
+      await this.cacheHandler.invalidateAfterMutation(url, 'PATCH').catch((error) => {
+        if (this._isDebugEnabled) {
+          console.warn('[HTTP-CLIENT] Cache invalidation failed after PATCH:', error);
+        }
+      });
+
+      return result;
     } catch (error) {
       throw transformError(error);
     }

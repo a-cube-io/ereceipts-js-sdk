@@ -25,6 +25,12 @@ export interface ICacheAdapter {
   setItem<T>(key: string, item: CachedItem<T>): Promise<void>;
 
   /**
+   * Set multiple values in a single batch operation
+   * @param items Array of [key, item] pairs to set
+   */
+  setBatch<T>(items: Array<[string, CachedItem<T>]>): Promise<void>;
+
+  /**
    * Invalidate cache entries matching a pattern
    * @param pattern Pattern to match (supports wildcards like 'receipts/*')
    */
@@ -56,7 +62,7 @@ export interface ICacheAdapter {
 }
 
 /**
- * Cached item with metadata
+ * Cached item with simplified metadata
  */
 export interface CachedItem<T> {
   /** The actual cached data */
@@ -65,14 +71,10 @@ export interface CachedItem<T> {
   timestamp: number;
   /** Time to live in milliseconds (optional, 0 = no expiration) */
   ttl?: number;
-  /** Cache tags for group invalidation */
-  tags?: string[];
-  /** ETag from server for validation */
+  /** ETag from server for conditional requests */
   etag?: string;
-  /** Source of the data */
-  source?: 'server' | 'optimistic' | 'offline';
-  /** Sync status for optimistic updates */
-  syncStatus?: 'synced' | 'pending' | 'failed';
+  /** Whether the data is compressed */
+  compressed?: boolean;
 }
 
 /**
@@ -103,20 +105,16 @@ export interface CacheOptions {
   compression?: boolean;
   /** Compression threshold in bytes */
   compressionThreshold?: number;
+  /** Enable debug logging */
+  debugEnabled?: boolean;
 }
 
 /**
- * Cache query filter for advanced operations
+ * Cache query filter for basic operations
  */
 export interface CacheQuery {
   /** Pattern to match keys */
   pattern?: string;
-  /** Tags to match */
-  tags?: string[];
-  /** Source filter */
-  source?: 'server' | 'optimistic' | 'offline';
-  /** Sync status filter */
-  syncStatus?: 'synced' | 'pending' | 'failed';
   /** Minimum timestamp */
   minTimestamp?: number;
   /** Maximum timestamp */

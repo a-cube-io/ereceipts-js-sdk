@@ -1,16 +1,18 @@
 import { ICacheAdapter, CachedItem, CacheSize, CacheOptions } from '../../adapters';
+import { compressData, decompressData } from '../../adapters/compression';
 
 /**
  * Web cache adapter using IndexedDB
  */
 export class WebCacheAdapter implements ICacheAdapter {
   private static readonly DB_NAME = 'acube_cache';
-  private static readonly DB_VERSION = 1;
+  private static readonly DB_VERSION = 2;
   private static readonly STORE_NAME = 'cache_entries';
   
   private db: IDBDatabase | null = null;
   private initPromise: Promise<void> | null = null;
   private options: CacheOptions;
+  private debugEnabled = false;
 
   constructor(options: CacheOptions = {}) {
     this.options = {
@@ -22,12 +24,25 @@ export class WebCacheAdapter implements ICacheAdapter {
       compressionThreshold: 1024,
       ...options,
     };
+    this.debugEnabled = options.debugEnabled || false;
     this.initPromise = this.initialize();
     this.startCleanupInterval();
   }
 
+  private debug(message: string, data?: any): void {
+    if (this.debugEnabled) {
+      if (data) {
+        console.log(`[CACHE-WEB] ${message}`, data);
+      } else {
+        console.log(`[CACHE-WEB] ${message}`);
+      }
+    }
+  }
+
   private async initialize(): Promise<void> {
     if (this.db) return;
+
+    this.debug('Initializing IndexedDB cache', { dbName: WebCacheAdapter.DB_NAME, version: WebCacheAdapter.DB_VERSION });
 
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(WebCacheAdapter.DB_NAME, WebCacheAdapter.DB_VERSION);
@@ -41,14 +56,34 @@ export class WebCacheAdapter implements ICacheAdapter {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        
-        // Create cache store if it doesn't exist
+        const transaction = (event.target as IDBOpenDBRequest).transaction!;
+        const oldVersion = event.oldVersion;
+
+        // Create cache store if it doesn't exist (initial setup)
         if (!db.objectStoreNames.contains(WebCacheAdapter.STORE_NAME)) {
           const store = db.createObjectStore(WebCacheAdapter.STORE_NAME, { keyPath: 'key' });
           store.createIndex('timestamp', 'timestamp');
-          store.createIndex('tags', 'tags', { multiEntry: true });
-          store.createIndex('source', 'source');
-          store.createIndex('syncStatus', 'syncStatus');
+        } else {
+          // Handle migration from version 1 to 2
+          if (oldVersion < 2) {
+            const store = transaction.objectStore(WebCacheAdapter.STORE_NAME);
+
+            // Remove unused indexes from simplified cache structure
+            try {
+              if (store.indexNames.contains('tags')) {
+                store.deleteIndex('tags');
+              }
+              if (store.indexNames.contains('source')) {
+                store.deleteIndex('source');
+              }
+              if (store.indexNames.contains('syncStatus')) {
+                store.deleteIndex('syncStatus');
+              }
+            } catch (error) {
+              // Ignore errors if indexes don't exist
+              console.warn('[CACHE-WEB] Index cleanup warning:', error);
+            }
+          }
         }
       };
     });
@@ -56,7 +91,9 @@ export class WebCacheAdapter implements ICacheAdapter {
 
   async get<T>(key: string): Promise<CachedItem<T> | null> {
     await this.ensureInitialized();
-    
+
+    this.debug('Getting cache item', { key });
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([WebCacheAdapter.STORE_NAME], 'readonly');
       const store = transaction.objectStore(WebCacheAdapter.STORE_NAME);
@@ -80,14 +117,23 @@ export class WebCacheAdapter implements ICacheAdapter {
           return;
         }
 
+        // Handle decompression if needed
+        const isCompressed = !!item.compressed;
+        let finalData: any;
+
+        if (isCompressed) {
+          const decompressed = decompressData(item.data as string, true);
+          finalData = JSON.parse(decompressed.data);
+        } else {
+          finalData = item.data;
+        }
+
         resolve({
-          data: item.data,
+          data: finalData,
           timestamp: item.timestamp,
           ttl: item.ttl,
-          tags: item.tags,
           etag: item.etag,
-          source: item.source,
-          syncStatus: item.syncStatus,
+          compressed: isCompressed,
         });
       };
     });
@@ -106,15 +152,37 @@ export class WebCacheAdapter implements ICacheAdapter {
   async setItem<T>(key: string, item: CachedItem<T>): Promise<void> {
     await this.ensureInitialized();
 
-    const storedItem: StoredCacheItem<T> = {
+    // Handle compression if enabled
+    let finalData: any = item.data;
+    let isCompressed = false;
+
+    if (this.options.compression && this.options.compressionThreshold) {
+      const serializedData = JSON.stringify(item.data);
+      const compressionResult = compressData(serializedData, this.options.compressionThreshold);
+
+      if (compressionResult.compressed) {
+        finalData = compressionResult.data;
+        isCompressed = true;
+
+        this.debug('Compression result', {
+          key,
+          originalSize: compressionResult.originalSize,
+          compressedSize: compressionResult.compressedSize,
+          compressed: isCompressed,
+          savings: compressionResult.originalSize - compressionResult.compressedSize
+        });
+      }
+    }
+
+    this.debug('Setting cache item', { key, timestamp: item.timestamp, hasTtl: !!item.ttl, compressed: isCompressed });
+
+    const storedItem: StoredCacheItem<any> = {
       key,
-      data: item.data,
+      data: finalData,
       timestamp: item.timestamp,
       ttl: item.ttl || this.options.defaultTtl,
-      tags: item.tags || [],
       etag: item.etag,
-      source: item.source || 'server',
-      syncStatus: item.syncStatus || 'synced',
+      compressed: isCompressed,
     };
 
     return new Promise((resolve, reject) => {
@@ -125,6 +193,86 @@ export class WebCacheAdapter implements ICacheAdapter {
       request.onerror = () => reject(new Error(`Failed to set cache item: ${request.error?.message}`));
       request.onsuccess = () => resolve();
     });
+  }
+
+  async setBatch<T>(items: Array<[string, CachedItem<T>]>): Promise<void> {
+    if (items.length === 0) return;
+
+    await this.ensureInitialized();
+
+    this.debug('Batch setting items', { count: items.length });
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([WebCacheAdapter.STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(WebCacheAdapter.STORE_NAME);
+
+      let completed = 0;
+      let hasError = false;
+
+      transaction.onerror = () => {
+        if (!hasError) {
+          hasError = true;
+          reject(new Error(`Failed to complete batch operation: ${transaction.error?.message}`));
+        }
+      };
+
+      transaction.oncomplete = () => {
+        if (!hasError) {
+          this.debug('Batch operation completed', { count: items.length });
+          resolve();
+        }
+      };
+
+      // Process all items in the transaction
+      for (const [key, item] of items) {
+        try {
+          const storedItem = this.prepareBatchItem(key, item);
+          const request = store.put(storedItem);
+
+          request.onerror = () => {
+            if (!hasError) {
+              hasError = true;
+              reject(new Error(`Failed to set batch item ${key}: ${request.error?.message}`));
+            }
+          };
+
+          request.onsuccess = () => {
+            completed++;
+          };
+        } catch (error) {
+          if (!hasError) {
+            hasError = true;
+            reject(error);
+          }
+          break;
+        }
+      }
+    });
+  }
+
+  private prepareBatchItem<T>(key: string, item: CachedItem<T>): StoredCacheItem<any> {
+    // Handle compression if enabled (same logic as setItem)
+    let finalData: any = item.data;
+    let isCompressed = false;
+
+    if (this.options.compression && this.options.compressionThreshold) {
+      const serializedData = JSON.stringify(item.data);
+      const compressionResult = compressData(serializedData, this.options.compressionThreshold);
+
+      if (compressionResult.compressed) {
+        finalData = compressionResult.data;
+        isCompressed = true;
+      }
+    }
+
+    return {
+      key,
+      data: finalData,
+      timestamp: item.timestamp,
+      ttl: item.ttl || this.options.defaultTtl,
+      etag: item.etag,
+      compressed: isCompressed,
+    };
   }
 
   async invalidate(pattern: string): Promise<void> {
@@ -279,8 +427,6 @@ interface StoredCacheItem<T> {
   data: T;
   timestamp: number;
   ttl?: number;
-  tags?: string[];
   etag?: string;
-  source?: 'server' | 'optimistic' | 'offline';
-  syncStatus?: 'synced' | 'pending' | 'failed';
+  compressed?: boolean;
 }

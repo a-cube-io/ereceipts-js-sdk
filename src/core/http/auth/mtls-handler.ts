@@ -19,6 +19,7 @@ export type AuthMode = 'jwt' | 'mtls' | 'auto';
  */
 export class MTLSHandler {
   private isDebugEnabled: boolean = false;
+  private pendingRequests = new Map<string, Promise<any>>();
 
   constructor(
     private mtlsAdapter: IMTLSAdapter | null,
@@ -165,11 +166,73 @@ export class MTLSHandler {
   }
 
   /**
+   * Generate a unique key for request deduplication
+   */
+  private generateRequestKey(
+    url: string,
+    config: { method?: string; data?: any; headers?: any; timeout?: number } = {},
+    jwtToken?: string
+  ): string {
+    const method = config.method || 'GET';
+    const dataHash = config.data ? JSON.stringify(config.data) : '';
+    const authHash = jwtToken ? jwtToken.substring(0, 10) : 'no-auth';
+    return `${method}:${url}:${dataHash}:${authHash}`;
+  }
+
+  /**
    * Make a request with mTLS authentication using retry-on-failure pattern
+   * Includes request deduplication to prevent multiple concurrent requests to the same endpoint
    *
    * New approach: Try request → If fails → Reconfigure once → Retry → If fails → Error
    */
   async makeRequestMTLS<T>(
+    url: string,
+    config: { method?: string; data?: any; headers?: any; timeout?: number } = {},
+    certificateOverride?: CertificateData,
+    jwtToken?: string,
+    isRetryAttempt: boolean = false
+  ): Promise<T> {
+    // Generate request key for deduplication (only for non-retry attempts)
+    const requestKey = !isRetryAttempt ? this.generateRequestKey(url, config, jwtToken) : null;
+
+    // Check if there's already a pending request for this exact same request
+    if (requestKey && this.pendingRequests.has(requestKey)) {
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] 🔄 Deduplicating concurrent request:', {
+          method: config.method || 'GET',
+          url,
+          requestKey: requestKey.substring(0, 50) + '...'
+        });
+      }
+
+      // Return the existing promise to prevent duplicate requests
+      return this.pendingRequests.get(requestKey)!;
+    }
+
+    // Create the actual request promise
+    const requestPromise = this.executeRequestMTLS<T>(url, config, certificateOverride, jwtToken, isRetryAttempt);
+
+    // Store the promise for deduplication (only for non-retry attempts)
+    if (requestKey) {
+      this.pendingRequests.set(requestKey, requestPromise);
+
+      // Clean up the pending request when it completes (success or failure)
+      requestPromise
+        .then(() => {
+          this.pendingRequests.delete(requestKey);
+        })
+        .catch(() => {
+          this.pendingRequests.delete(requestKey);
+        });
+    }
+
+    return requestPromise;
+  }
+
+  /**
+   * Execute the actual mTLS request (internal method)
+   */
+  private async executeRequestMTLS<T>(
     url: string,
     config: { method?: string; data?: any; headers?: any; timeout?: number } = {},
     certificateOverride?: CertificateData,
@@ -273,7 +336,7 @@ export class MTLSHandler {
         }
 
         // Retry the request (with flag to prevent infinite recursion)
-        return await this.makeRequestMTLS<T>(url, config, certificateOverride, jwtToken, true);
+        return await this.executeRequestMTLS<T>(url, config, certificateOverride, jwtToken, true);
       } catch (reconfigError) {
         if (this.isDebugEnabled) {
           console.error('[MTLS-HANDLER] ❌ Certificate reconfiguration failed:', reconfigError);
@@ -436,6 +499,16 @@ export class MTLSHandler {
   }
 
   /**
+   * Clear all pending requests (useful for testing or cleanup)
+   */
+  clearPendingRequests(): void {
+    if (this.isDebugEnabled) {
+      console.log('[MTLS-HANDLER] Clearing pending requests:', this.pendingRequests.size);
+    }
+    this.pendingRequests.clear();
+  }
+
+  /**
    * Get mTLS status information
    */
   async getStatus() {
@@ -447,7 +520,8 @@ export class MTLSHandler {
       certificateInfo: null as any,
       platformInfo: this.mtlsAdapter?.getPlatformInfo() || null,
       diagnosticTest: false, // Renamed to clarify this is diagnostic only
-      diagnosticTestNote: 'Test endpoint may fail even when mTLS works - for diagnostic purposes only'
+      diagnosticTestNote: 'Test endpoint may fail even when mTLS works - for diagnostic purposes only',
+      pendingRequestsCount: this.pendingRequests.size
     };
 
     if (this.certificateManager) {
