@@ -160,22 +160,15 @@ export class HttpClient {
     const authMode = await this.mtlsHandler.determineAuthMode(url, config?.authMode);
     const requiresMTLS = this.mtlsHandler.requiresMTLS(url);
 
-    // Try mTLS first for relevant modes
+    // Try mTLS first for relevant modes (no pre-flight check - let makeRequestMTLS handle retry)
     if (authMode === 'mtls' || authMode === 'auto') {
       try {
-        if (await this.mtlsHandler.isMTLSReady()) {
-          return await this.mtlsHandler.makeRequestMTLS<T>(
-            url, 
-            { ...config, method: 'GET' },
-            undefined,
-            this.client.defaults.headers.common['Authorization'] as string
-          );
-        } else if (requiresMTLS) {
-          throw new CertificateError(
-            CertificateErrorType.MTLS_REQUIRED,
-            `Endpoint ${url} requires mTLS authentication but no certificate is configured`
-          );
-        }
+        return await this.mtlsHandler.makeRequestMTLS<T>(
+          url,
+          { ...config, method: 'GET' },
+          undefined,
+          this.client.defaults.headers.common['Authorization'] as string
+        );
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS GET failed:', error);
@@ -219,17 +212,15 @@ export class HttpClient {
       console.log('[HTTP-CLIENT] POST data cleaned:', { original: data, cleaned: cleanedData });
     }
 
-    // Try mTLS first for relevant modes
+    // Try mTLS first for relevant modes (no pre-flight check - let makeRequestMTLS handle retry)
     if (authMode === 'mtls' || authMode === 'auto') {
       try {
-        if (await this.mtlsHandler.isMTLSReady()) {
-          return await this.mtlsHandler.makeRequestMTLS<T>(
-            url,
-            { ...config, method: 'POST', data: cleanedData },
-            undefined,
-            this.client.defaults.headers.common['Authorization'] as string
-          );
-        }
+        return await this.mtlsHandler.makeRequestMTLS<T>(
+          url,
+          { ...config, method: 'POST', data: cleanedData },
+          undefined,
+          this.client.defaults.headers.common['Authorization'] as string
+        );
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS POST failed:', error);
@@ -265,17 +256,15 @@ export class HttpClient {
       console.log('[HTTP-CLIENT] PUT data cleaned:', { original: data, cleaned: cleanedData });
     }
 
-    // Try mTLS first for relevant modes
+    // Try mTLS first for relevant modes (no pre-flight check - let makeRequestMTLS handle retry)
     if (authMode === 'mtls' || authMode === 'auto') {
       try {
-        if (await this.mtlsHandler.isMTLSReady()) {
-          return await this.mtlsHandler.makeRequestMTLS<T>(
-            url, 
-            { ...config, method: 'PUT', data: cleanedData },
-            undefined,
-            this.client.defaults.headers.common['Authorization'] as string
-          );
-        }
+        return await this.mtlsHandler.makeRequestMTLS<T>(
+          url,
+          { ...config, method: 'PUT', data: cleanedData },
+          undefined,
+          this.client.defaults.headers.common['Authorization'] as string
+        );
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS PUT failed:', error);
@@ -306,17 +295,15 @@ export class HttpClient {
   async delete<T>(url: string, config?: HttpRequestConfig): Promise<T> {
     const authMode = await this.mtlsHandler.determineAuthMode(url, config?.authMode);
 
-    // Try mTLS first for relevant modes
+    // Try mTLS first for relevant modes (no pre-flight check - let makeRequestMTLS handle retry)
     if (authMode === 'mtls' || authMode === 'auto') {
       try {
-        if (await this.mtlsHandler.isMTLSReady()) {
-          return await this.mtlsHandler.makeRequestMTLS<T>(
-            url, 
-            { ...config, method: 'DELETE' },
-            undefined,
-            this.client.defaults.headers.common['Authorization'] as string
-          );
-        }
+        return await this.mtlsHandler.makeRequestMTLS<T>(
+          url,
+          { ...config, method: 'DELETE' },
+          undefined,
+          this.client.defaults.headers.common['Authorization'] as string
+        );
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS DELETE failed:', error);

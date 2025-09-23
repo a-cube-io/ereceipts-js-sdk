@@ -60,126 +60,31 @@ export class MTLSHandler {
   }
 
   /**
-   * Check if mTLS is ready for requests (self-healing after app restart)
+   * Check if mTLS is ready for requests (simplified approach)
    *
-   * Enhanced logic to handle expo-mutual-tls state management:
-   * - Certificate data persists in iOS keychain (survives app restart)
-   * - Service configuration is in-memory only (lost on app restart)
-   * - hasCertificate() only checks data, not configuration
-   * - Must test actual configuration to detect app restart scenario
+   * New approach: Only check if certificate exists in storage.
+   * No pre-flight validation or test connection.
+   * Let makeRequestMTLS() handle configuration and retry on failure.
    */
   async isMTLSReady(): Promise<boolean> {
-    if (!this.mtlsAdapter || !this.certificateManager) return false;
+    if (!this.mtlsAdapter || !this.certificateManager) {
+      return false;
+    }
 
     try {
-      // Check if certificate exists in Certificate Manager (SDK storage)
-      const hasCertificateInStorage = await this.certificateManager.hasCertificate();
+      const hasCertificate = await this.certificateManager.hasCertificate();
 
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] 📋 Certificate storage check:', { hasCertificateInStorage });
+        console.log('[MTLS-HANDLER] ✅ mTLS readiness check:', {
+          hasCertificate,
+          approach: 'certificate-existence-only'
+        });
       }
 
-      if (!hasCertificateInStorage) {
-        if (this.isDebugEnabled) {
-          console.log('[MTLS-HANDLER] ❌ No certificate in storage - mTLS not ready');
-        }
-        return false;
-      }
-
-      // Test if mTLS configuration actually works (not just if data exists)
-      // This is critical because expo-mutual-tls has two types of state:
-      // 1. Certificate data (persists in keychain)
-      // 2. Service configuration (lost on app restart)
-      if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] 🔍 Testing mTLS configuration...');
-      }
-
-      let configurationWorks = false;
-      try {
-        configurationWorks = await this.mtlsAdapter.testConnection();
-        if (this.isDebugEnabled) {
-          console.log('[MTLS-HANDLER] 🧪 Configuration test result:', { configurationWorks });
-        }
-      } catch (testError) {
-        if (this.isDebugEnabled) {
-          console.warn('[MTLS-HANDLER] ⚠️ Configuration test failed:', testError);
-        }
-        configurationWorks = false;
-      }
-
-      // If certificate exists in storage but configuration doesn't work (app restart scenario)
-      if (!configurationWorks) {
-        if (this.isDebugEnabled) {
-          console.log('[MTLS-HANDLER] 🔄 Auto-configuration needed: certificate data exists but service configuration lost');
-        }
-
-        try {
-          // Get certificate from storage and reconfigure the adapter
-          if (this.isDebugEnabled) {
-            console.log('[MTLS-HANDLER] 📄 Retrieving certificate from storage...');
-          }
-
-          const certificate = await this.certificateManager.getCertificate();
-          if (certificate) {
-            if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] 📄 Certificate retrieved, converting to adapter format...');
-            }
-
-            const certificateData = this.certificateToData(certificate);
-
-            if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] ⚙️ Reconfiguring certificate in mTLS adapter...', {
-                format: certificateData.format,
-                certificateLength: certificateData.certificate.length,
-                privateKeyLength: certificateData.privateKey.length
-              });
-            }
-
-            // This will do both service configuration AND data storage
-            await this.mtlsAdapter.configureCertificate(certificateData);
-
-            if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] ✅ Successfully auto-configured certificate after app restart');
-            }
-
-            // Verify the configuration now works
-            /* try {
-              const retestResult = await this.mtlsAdapter.testConnection();
-              if (this.isDebugEnabled) {
-                console.log('[MTLS-HANDLER] 🧪 Post-configuration test result:', { retestResult });
-              }
-              return retestResult;
-            } catch (retestError) {
-              if (this.isDebugEnabled) {
-                console.error('[MTLS-HANDLER] ❌ Post-configuration test failed:', retestError);
-              }
-              return false;
-            } */
-           // TODO: Temporarily skip retest to avoid double testConnection calls
-           return true; // Assume success if no error thrown
-          } else {
-            if (this.isDebugEnabled) {
-              console.error('[MTLS-HANDLER] ❌ Certificate retrieved but is null/empty');
-            }
-            return false;
-          }
-        } catch (configError) {
-          if (this.isDebugEnabled) {
-            console.error('[MTLS-HANDLER] ❌ Failed to auto-configure certificate:', configError);
-          }
-          return false;
-        }
-      }
-
-      // Configuration works, mTLS is ready
-      if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] ✅ mTLS is ready and properly configured');
-      }
-
-      return true;
+      return hasCertificate;
     } catch (error) {
       if (this.isDebugEnabled) {
-        console.error('[MTLS-HANDLER] ❌ mTLS ready check failed:', error);
+        console.error('[MTLS-HANDLER] ❌ mTLS readiness check failed:', error);
       }
       return false;
     }
@@ -260,13 +165,16 @@ export class MTLSHandler {
   }
 
   /**
-   * Make a request with mTLS authentication
+   * Make a request with mTLS authentication using retry-on-failure pattern
+   *
+   * New approach: Try request → If fails → Reconfigure once → Retry → If fails → Error
    */
   async makeRequestMTLS<T>(
     url: string,
     config: { method?: string; data?: any; headers?: any; timeout?: number } = {},
     certificateOverride?: CertificateData,
-    jwtToken?: string
+    jwtToken?: string,
+    isRetryAttempt: boolean = false
   ): Promise<T> {
     if (!this.mtlsAdapter) {
       throw new MTLSError(
@@ -278,7 +186,7 @@ export class MTLSHandler {
     // Get the single certificate
     const selectedCert = await this.getCertificate();
     const certificateData = certificateOverride || (selectedCert ? this.certificateToData(selectedCert) : null);
-    
+
     if (!certificateData) {
       throw new MTLSError(
         MTLSErrorType.CERTIFICATE_NOT_FOUND,
@@ -286,13 +194,13 @@ export class MTLSHandler {
       );
     }
 
-    // Certificate configuration is now handled by isMTLSReady() method
-
     if (this.isDebugEnabled) {
       console.log('[MTLS-HANDLER] Making mTLS request:', {
         method: config.method || 'GET',
         url,
         hasData: !!config.data,
+        isRetryAttempt,
+        approach: 'retry-on-failure'
       });
     }
 
@@ -306,7 +214,7 @@ export class MTLSHandler {
       // Include JWT Authorization header if available
       if (jwtToken) {
         headers['Authorization'] = jwtToken;
-        
+
         if (this.isDebugEnabled) {
           console.log('[MTLS-HANDLER] Including JWT Authorization header in mTLS request');
         }
@@ -330,15 +238,49 @@ export class MTLSHandler {
         console.log('[MTLS-HANDLER] mTLS request successful:', {
           status: response.status,
           hasData: !!response.data,
+          isRetryAttempt
         });
       }
 
       return response.data;
     } catch (error) {
       if (this.isDebugEnabled) {
-        console.error('[MTLS-HANDLER] mTLS request failed:', error);
+        console.error('[MTLS-HANDLER] mTLS request failed:', {
+          error: error instanceof Error ? error.message : error,
+          isRetryAttempt
+        });
       }
-      throw error;
+
+      // If this is already a retry attempt, don't retry again to prevent infinite loops
+      if (isRetryAttempt) {
+        if (this.isDebugEnabled) {
+          console.error('[MTLS-HANDLER] ❌ Retry attempt also failed - certificate may be invalid');
+        }
+        throw error;
+      }
+
+      // First attempt failed - try to reconfigure certificate and retry
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] 🔄 First attempt failed, reconfiguring certificate and retrying...');
+      }
+
+      try {
+        // Reconfigure the certificate in the mTLS adapter
+        await this.mtlsAdapter.configureCertificate(certificateData);
+
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] ✅ Certificate reconfigured, retrying request...');
+        }
+
+        // Retry the request (with flag to prevent infinite recursion)
+        return await this.makeRequestMTLS<T>(url, config, certificateOverride, jwtToken, true);
+      } catch (reconfigError) {
+        if (this.isDebugEnabled) {
+          console.error('[MTLS-HANDLER] ❌ Certificate reconfiguration failed:', reconfigError);
+        }
+        // If reconfiguration fails, throw the original error
+        throw error;
+      }
     }
   }
 
@@ -504,7 +446,8 @@ export class MTLSHandler {
       hasCertificate: false,
       certificateInfo: null as any,
       platformInfo: this.mtlsAdapter?.getPlatformInfo() || null,
-      connectionTest: false
+      diagnosticTest: false, // Renamed to clarify this is diagnostic only
+      diagnosticTestNote: 'Test endpoint may fail even when mTLS works - for diagnostic purposes only'
     };
 
     if (this.certificateManager) {
@@ -523,7 +466,19 @@ export class MTLSHandler {
     if (this.mtlsAdapter && this.certificateManager) {
       try {
         status.isReady = await this.isMTLSReady();
-        status.connectionTest = await this.testConnection();
+
+        // Run diagnostic test but don't let it affect overall status
+        try {
+          status.diagnosticTest = await this.testConnection();
+          if (this.isDebugEnabled) {
+            console.log('[MTLS-HANDLER] 🔍 Diagnostic test completed (result does not affect isReady status)');
+          }
+        } catch (diagnosticError) {
+          if (this.isDebugEnabled) {
+            console.warn('[MTLS-HANDLER] 🔍 Diagnostic test failed (this is expected and normal):', diagnosticError);
+          }
+          status.diagnosticTest = false;
+        }
       } catch (error) {
         if (this.isDebugEnabled) {
           console.error('[MTLS-HANDLER] Status check failed:', error);
@@ -532,7 +487,10 @@ export class MTLSHandler {
     }
 
     if (this.isDebugEnabled) {
-      console.log('[MTLS-HANDLER] mTLS Status:', status);
+      console.log('[MTLS-HANDLER] mTLS Status:', {
+        ...status,
+        approach: 'retry-on-failure'
+      });
     }
 
     return status;

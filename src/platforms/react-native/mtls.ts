@@ -428,8 +428,18 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
     }
   }
 
+  /**
+   * Test mTLS connection (DIAGNOSTIC ONLY - not used for validation)
+   *
+   * WARNING: This method calls a test endpoint that may return 500 errors
+   * even when actual mTLS requests work perfectly. It should only be used
+   * for diagnostic purposes, not for determining if mTLS is ready.
+   */
   async testConnection(): Promise<boolean> {
     if (!this.expoMTLS || !this.config) {
+      if (this.debugEnabled) {
+        console.log('[RN-MTLS-ADAPTER] 🔍 Diagnostic test: No mTLS module or config available');
+      }
       return false;
     }
 
@@ -437,28 +447,32 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
       const hasCert = await this.hasCertificate();
       if (!hasCert) {
         if (this.debugEnabled) {
-          console.log('[RN-MTLS-ADAPTER] Connection test: No certificate configured');
+          console.log('[RN-MTLS-ADAPTER] 🔍 Diagnostic test: No certificate configured');
         }
         return false;
       }
 
-      // Use correct API signature: testConnection(url) - url parameter is required
-      const result = await this.expoMTLS.testConnection(this.config.baseUrl);
-      
       if (this.debugEnabled) {
-        console.log('[RN-MTLS-ADAPTER] Connection test result:', {
+        console.log('[RN-MTLS-ADAPTER] 🔍 Running diagnostic test (may fail even if mTLS works):', this.config.baseUrl);
+      }
+
+      const result = await this.expoMTLS.testConnection(this.config.baseUrl);
+
+      if (this.debugEnabled) {
+        console.log('[RN-MTLS-ADAPTER] 🔍 Diagnostic test result (NOT validation):', {
           success: result.success,
           statusCode: result.statusCode,
           statusMessage: result.statusMessage,
           tlsVersion: result.tlsVersion,
-          cipherSuite: result.cipherSuite
+          cipherSuite: result.cipherSuite,
+          note: 'Test endpoint may return 500 while actual requests work'
         });
       }
-      
+
       return result.success;
     } catch (error) {
       if (this.debugEnabled) {
-        console.error('[RN-MTLS-ADAPTER] Connection test failed:', error);
+        console.warn('[RN-MTLS-ADAPTER] 🔍 Diagnostic test failed (this is expected):', error);
       }
       return false;
     }
