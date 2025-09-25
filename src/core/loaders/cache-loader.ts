@@ -26,7 +26,7 @@ export function loadCacheAdapter(platform: string): ICacheAdapter | undefined {
 }
 
 /**
- * Load web cache adapter (IndexedDB-based)
+ * Load web cache adapter (IndexedDB-based with automatic error recovery)
  */
 function loadWebCacheAdapter(): ICacheAdapter {
   return new WebCacheAdapter({
@@ -35,6 +35,7 @@ function loadWebCacheAdapter(): ICacheAdapter {
     maxEntries: 10000,
     cleanupInterval: 60000, // 1 minute
     compression: false,
+    debugEnabled: process.env.NODE_ENV === 'development',
   });
 }
 

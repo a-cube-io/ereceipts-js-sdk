@@ -13,6 +13,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
   private options: CacheOptions;
   private isExpo = false;
   private debugEnabled = false;
+  private hasCompressedColumn = false;
 
   constructor(options: CacheOptions = {}) {
     this.options = {
@@ -91,20 +92,64 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
   }
 
   private async createTables(): Promise<void> {
+    // First, create table with basic schema (backwards compatible)
     const createTableSQL = `
       CREATE TABLE IF NOT EXISTS ${ReactNativeCacheAdapter.TABLE_NAME} (
         cache_key TEXT PRIMARY KEY,
         data TEXT NOT NULL,
         timestamp INTEGER NOT NULL,
         ttl INTEGER,
-        etag TEXT,
-        compressed INTEGER DEFAULT 0
+        etag TEXT
       );
 
       CREATE INDEX IF NOT EXISTS idx_timestamp ON ${ReactNativeCacheAdapter.TABLE_NAME}(timestamp);
     `;
 
     await this.executeSql(createTableSQL);
+
+    // Then, run migrations to add new columns if they don't exist
+    await this.runMigrations();
+  }
+
+  private async runMigrations(): Promise<void> {
+    this.debug('Running database migrations...');
+
+    try {
+      // Check if compressed column exists
+      this.hasCompressedColumn = await this.checkColumnExists('compressed');
+
+      if (!this.hasCompressedColumn) {
+        this.debug('Adding compressed column to cache table');
+        const addColumnSQL = `ALTER TABLE ${ReactNativeCacheAdapter.TABLE_NAME} ADD COLUMN compressed INTEGER DEFAULT 0`;
+        await this.executeSql(addColumnSQL);
+        this.hasCompressedColumn = true;
+        this.debug('Successfully added compressed column');
+      } else {
+        this.debug('Compressed column already exists');
+      }
+
+      this.debug('Database migrations completed', { hasCompressedColumn: this.hasCompressedColumn });
+    } catch (error) {
+      this.debug('Migration failed, disabling compression features', error);
+      this.hasCompressedColumn = false;
+      // Don't throw - allow the app to continue even if migration fails
+      // The compressed feature will just be disabled
+    }
+  }
+
+  private async checkColumnExists(columnName: string): Promise<boolean> {
+    try {
+      const pragmaSQL = `PRAGMA table_info(${ReactNativeCacheAdapter.TABLE_NAME})`;
+      const results = await this.executeSql(pragmaSQL);
+      const columns = this.normalizeResults(results);
+
+      this.debug('Table columns found', { columns: columns.map(c => c.name) });
+
+      return columns.some(column => column.name === columnName);
+    } catch (error) {
+      this.debug('Error checking column existence', error);
+      return false; // Assume column doesn't exist if we can't check
+    }
   }
 
   async get<T>(key: string): Promise<CachedItem<T> | null> {
@@ -131,8 +176,8 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
       return null;
     }
 
-    // Handle decompression if needed
-    const isCompressed = !!row.compressed;
+    // Handle decompression if needed (fallback if column doesn't exist)
+    const isCompressed = this.hasCompressedColumn ? !!row.compressed : false;
     const rawData = isCompressed ? decompressData(row.data, true).data : row.data;
 
     return {
@@ -159,18 +204,12 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
   async setItem<T>(key: string, item: CachedItem<T>): Promise<void> {
     await this.ensureInitialized();
 
-    const sql = `
-      INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
-      (cache_key, data, timestamp, ttl, etag, compressed)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `;
-
-    // Handle compression if enabled
+    // Handle compression if enabled and compressed column is available
     const serializedData = JSON.stringify(item.data);
     let finalData = serializedData;
     let isCompressed = false;
 
-    if (this.options.compression && this.options.compressionThreshold) {
+    if (this.options.compression && this.options.compressionThreshold && this.hasCompressedColumn) {
       const compressionResult = compressData(serializedData, this.options.compressionThreshold);
       finalData = compressionResult.data;
       isCompressed = compressionResult.compressed;
@@ -184,16 +223,47 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
       });
     }
 
-    this.debug('Setting item with metadata', { key, timestamp: item.timestamp, hasTtl: !!item.ttl, compressed: isCompressed });
-
-    const params = [
+    this.debug('Setting item with metadata', {
       key,
-      finalData,
-      item.timestamp,
-      item.ttl || this.options.defaultTtl,
-      item.etag || null,
-      isCompressed ? 1 : 0,
-    ];
+      timestamp: item.timestamp,
+      hasTtl: !!item.ttl,
+      compressed: isCompressed,
+      hasCompressedColumn: this.hasCompressedColumn
+    });
+
+    // Build SQL and parameters based on available columns
+    let sql: string;
+    let params: any[];
+
+    if (this.hasCompressedColumn) {
+      sql = `
+        INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
+        (cache_key, data, timestamp, ttl, etag, compressed)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      params = [
+        key,
+        finalData,
+        item.timestamp,
+        item.ttl || this.options.defaultTtl,
+        item.etag || null,
+        isCompressed ? 1 : 0,
+      ];
+    } else {
+      // Fallback for databases without compressed column
+      sql = `
+        INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
+        (cache_key, data, timestamp, ttl, etag)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      params = [
+        key,
+        finalData,
+        item.timestamp,
+        item.ttl || this.options.defaultTtl,
+        item.etag || null,
+      ];
+    }
 
     this.debug('Executing setItem SQL', { key, paramsCount: params.length });
 
@@ -237,61 +307,97 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
   }
 
   private async setBatchItem<T>(key: string, item: CachedItem<T>): Promise<void> {
-    // Handle compression if enabled (same logic as setItem)
+    // Handle compression if enabled and compressed column is available
     const serializedData = JSON.stringify(item.data);
     let finalData = serializedData;
     let isCompressed = false;
 
-    if (this.options.compression && this.options.compressionThreshold) {
+    if (this.options.compression && this.options.compressionThreshold && this.hasCompressedColumn) {
       const compressionResult = compressData(serializedData, this.options.compressionThreshold);
       finalData = compressionResult.data;
       isCompressed = compressionResult.compressed;
     }
 
-    const sql = `
-      INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
-      (cache_key, data, timestamp, ttl, etag, compressed)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `;
+    // Build SQL and parameters based on available columns
+    let sql: string;
+    let params: any[];
 
-    const params = [
-      key,
-      finalData,
-      item.timestamp,
-      item.ttl || this.options.defaultTtl,
-      item.etag || null,
-      isCompressed ? 1 : 0,
-    ];
+    if (this.hasCompressedColumn) {
+      sql = `
+        INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
+        (cache_key, data, timestamp, ttl, etag, compressed)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      params = [
+        key,
+        finalData,
+        item.timestamp,
+        item.ttl || this.options.defaultTtl,
+        item.etag || null,
+        isCompressed ? 1 : 0,
+      ];
+    } else {
+      sql = `
+        INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
+        (cache_key, data, timestamp, ttl, etag)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      params = [
+        key,
+        finalData,
+        item.timestamp,
+        item.ttl || this.options.defaultTtl,
+        item.etag || null,
+      ];
+    }
 
     await this.db.runAsync(sql, params);
   }
 
   private async setBatchItemRN(tx: any, key: string, item: CachedItem<any>): Promise<void> {
-    // Handle compression if enabled (same logic as setItem)
+    // Handle compression if enabled and compressed column is available
     const serializedData = JSON.stringify(item.data);
     let finalData = serializedData;
     let isCompressed = false;
 
-    if (this.options.compression && this.options.compressionThreshold) {
+    if (this.options.compression && this.options.compressionThreshold && this.hasCompressedColumn) {
       const compressionResult = compressData(serializedData, this.options.compressionThreshold);
       finalData = compressionResult.data;
       isCompressed = compressionResult.compressed;
     }
 
-    const sql = `
-      INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
-      (cache_key, data, timestamp, ttl, etag, compressed)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `;
+    // Build SQL and parameters based on available columns
+    let sql: string;
+    let params: any[];
 
-    const params = [
-      key,
-      finalData,
-      item.timestamp,
-      item.ttl || this.options.defaultTtl,
-      item.etag || null,
-      isCompressed ? 1 : 0,
-    ];
+    if (this.hasCompressedColumn) {
+      sql = `
+        INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
+        (cache_key, data, timestamp, ttl, etag, compressed)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      params = [
+        key,
+        finalData,
+        item.timestamp,
+        item.ttl || this.options.defaultTtl,
+        item.etag || null,
+        isCompressed ? 1 : 0,
+      ];
+    } else {
+      sql = `
+        INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
+        (cache_key, data, timestamp, ttl, etag)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      params = [
+        key,
+        finalData,
+        item.timestamp,
+        item.ttl || this.options.defaultTtl,
+        item.etag || null,
+      ];
+    }
 
     return new Promise<void>((resolve, reject) => {
       tx.executeSql(
