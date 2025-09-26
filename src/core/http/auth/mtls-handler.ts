@@ -15,6 +15,14 @@ import { hasRole } from '../../roles';
 export type AuthMode = 'jwt' | 'mtls' | 'auto';
 
 /**
+ * Authentication configuration with port 444 support for browser certificates
+ */
+export interface AuthConfig {
+  mode: AuthMode;
+  usePort444: boolean; // For web platform browser certificate usage
+}
+
+/**
  * mTLS Handler for certificate selection and mTLS requests
  */
 export class MTLSHandler {
@@ -92,78 +100,196 @@ export class MTLSHandler {
   }
 
   /**
-   * Determine authentication mode for a request
+   * Determine authentication configuration for a request
    *
-   * Enhanced with role-based authentication:
-   * - Supplier users (ROLE_SUPPLIER) are restricted to JWT-only authentication
-   * - Other users follow URL-based logic for mTLS on receipt endpoints
+   * Authentication Matrix:
+   * - SUPPLIER: JWT only (all platforms, all resources)
+   * - MERCHANT: JWT for non-receipts, GET receipts; mTLS for POST/PUT/PATCH receipts on mobile; JWT+:444 for POST/PUT/PATCH receipts on web
+   * - CASHIER: mTLS on mobile, JWT+:444 on web (receipts only)
+   * - Web Platform: Always JWT, but uses :444 port for browser certificates when needed
    */
-  async determineAuthMode(url: string, explicitMode?: AuthMode): Promise<AuthMode> {
-    // Check if current user is a Supplier (ROLE_SUPPLIER users must use JWT only)
+  async determineAuthConfig(url: string, explicitMode?: AuthMode, method?: string): Promise<AuthConfig> {
+    // Step 1: Detect platform (web always uses JWT)
+    let platform: 'web' | 'mobile' | 'unknown' = 'unknown';
+    if (this.mtlsAdapter) {
+      try {
+        const platformInfo = this.mtlsAdapter.getPlatformInfo();
+        platform = platformInfo.platform === 'web' ? 'web' : 'mobile';
+      } catch (error) {
+        if (this.isDebugEnabled) {
+          console.warn('[MTLS-HANDLER] ⚠️ Platform detection failed, defaulting to web:', error);
+        }
+        platform = 'web'; // Default to web (JWT) for safety
+      }
+    } else {
+      platform = 'web'; // No adapter means web platform
+    }
+
+    // Step 2: Get user role
+    let userRole: string | null = null;
     if (this.userProvider) {
       try {
         const currentUser = await this.userProvider.getCurrentUser();
-        if (currentUser) {
-          const isSupplier = hasRole(currentUser.roles, 'ROLE_SUPPLIER');
-
-          if (isSupplier) {
-            if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] 🚫 Supplier user detected - enforcing JWT-only authentication');
-            }
-            return 'jwt';
-          }
-
-          if (this.isDebugEnabled) {
-            console.log('[MTLS-HANDLER] 👤 User role check:', {
-              userId: currentUser.id,
-              username: currentUser.username,
-              isSupplier,
-              roles: currentUser.roles
-            });
+        if (currentUser && currentUser.roles) {
+          // Identify primary role
+          if (hasRole(currentUser.roles, 'ROLE_SUPPLIER')) {
+            userRole = 'SUPPLIER';
+          } else if (hasRole(currentUser.roles, 'ROLE_MERCHANT')) {
+            userRole = 'MERCHANT';
+          } else if (hasRole(currentUser.roles, 'ROLE_CACHIER')) {
+            userRole = 'CASHIER';
           }
         }
       } catch (error) {
         if (this.isDebugEnabled) {
-          console.warn('[MTLS-HANDLER] ⚠️ Failed to get current user for role-based auth decision:', error);
+          console.warn('[MTLS-HANDLER] ⚠️ Failed to get user role:', error);
         }
-        // Continue with URL-based logic if user check fails
       }
     }
 
-    // Explicit mode specified (overrides URL-based logic but not role restrictions)
+    // Step 3: Determine if this is a receipt endpoint
+    const isReceiptEndpoint = url.includes('/receipts') || url.includes('/mf1/receipts');
+
+    if (this.isDebugEnabled) {
+      console.log('[MTLS-HANDLER] 🔍 Auth decision factors:', {
+        platform,
+        userRole,
+        isReceiptEndpoint,
+        method: method || 'unknown',
+        url
+      });
+    }
+
+    // Step 4: Apply authentication matrix
+
+    // SUPPLIER: Always JWT, no port 444 needed
+    if (userRole === 'SUPPLIER') {
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] 👤 SUPPLIER role - JWT only');
+      }
+      return { mode: 'jwt', usePort444: false };
+    }
+
+    // CASHIER: Can only access receipts
+    if (userRole === 'CASHIER') {
+      if (!isReceiptEndpoint) {
+        if (this.isDebugEnabled) {
+          console.warn('[MTLS-HANDLER] ❌ CASHIER trying to access non-receipt endpoint');
+        }
+        // Cashiers can only access receipts - force JWT to let server reject
+        return { mode: 'jwt', usePort444: false };
+      }
+      // Mobile cashier uses mTLS for receipts
+      if (platform === 'mobile') {
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] 🏧 CASHIER on mobile - mTLS for receipts');
+        }
+        return { mode: 'mtls', usePort444: false };
+      }
+      // Web cashier uses JWT with :444 port for browser certificates
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] 🏧 CASHIER on web - JWT with :444 for browser certificates');
+      }
+      return { mode: 'jwt', usePort444: true };
+    }
+
+    // MERCHANT: Complex rules
+    if (userRole === 'MERCHANT') {
+      // Non-receipt resources: Always JWT, no port 444
+      if (!isReceiptEndpoint) {
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] 🏪 MERCHANT accessing non-receipt - JWT');
+        }
+        return { mode: 'jwt', usePort444: false };
+      }
+
+      // Receipt GET: Always JWT, no port 444
+      if (method === 'GET') {
+        // if is detailed receipt GET (with ID) /details use mTLS on mobile, JWT+:444 on web
+        if (url.match(/\/receipts\/[a-f0-9\-]+\/details$/) || url.match(/\/mf1\/receipts\/[a-f0-9\-]+\/details$/)) {
+          if (platform === 'mobile') {
+            if (this.isDebugEnabled) {
+              console.log('[MTLS-HANDLER] 🏪 MERCHANT GET detailed receipt on mobile - mTLS');
+            }
+            return { mode: 'mtls', usePort444: false };
+          } else {
+            // Web platform: JWT with :444 for browser certificates
+            if (this.isDebugEnabled) {
+              console.log('[MTLS-HANDLER] 🏪 MERCHANT GET detailed receipt on web - JWT with :444 for browser certificates');
+            }
+            return { mode: 'jwt', usePort444: true };
+          }
+        }
+        
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] 🏪 MERCHANT GET receipt - JWT');
+        }
+        return { mode: 'jwt', usePort444: false };
+      }
+
+      // Receipt POST/PUT/PATCH
+      if (['POST', 'PUT', 'PATCH'].includes(method || '')) {
+        if (platform === 'mobile') {
+          if (this.isDebugEnabled) {
+            console.log('[MTLS-HANDLER] 🏪 MERCHANT modify receipt on mobile - mTLS');
+          }
+          return { mode: 'mtls', usePort444: false };
+        } else {
+          // Web platform: JWT with :444 for browser certificates
+          if (this.isDebugEnabled) {
+            console.log('[MTLS-HANDLER] 🏪 MERCHANT modify receipt on web - JWT with :444 for browser certificates');
+          }
+          return { mode: 'jwt', usePort444: true };
+        }
+      }
+
+      // All other MERCHANT cases: JWT
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] 🏪 MERCHANT default - JWT');
+      }
+      return { mode: 'jwt', usePort444: false };
+    }
+
+    // Step 5: Handle explicit mode override (if allowed)
     if (explicitMode) {
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] Using explicit auth mode:', explicitMode);
+        console.log('[MTLS-HANDLER] ⚠️ Explicit auth mode requested:', explicitMode);
       }
-      return explicitMode;
+      // Security: Don't allow overriding SUPPLIER to mTLS
+      if (userRole === 'SUPPLIER' && explicitMode === 'mtls') {
+        if (this.isDebugEnabled) {
+          console.warn('[MTLS-HANDLER] ❌ Blocking mTLS override for SUPPLIER');
+        }
+        return { mode: 'jwt', usePort444: false };
+      }
+      return { mode: explicitMode, usePort444: false };
     }
 
-    // Receipt endpoints should use mTLS (A-Cube requirement)
-    if (url.includes('/receipts') || url.includes('/mf1/receipts')) {
+    // Step 6: Default behavior for unknown roles
+    // For receipts on mobile without a known role, prefer mTLS
+    if (isReceiptEndpoint && platform === 'mobile') {
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] Receipt endpoint detected, using mTLS mode');
+        console.log('[MTLS-HANDLER] 📝 Unknown role, receipt endpoint on mobile - defaulting to mTLS');
       }
-      return 'mtls';
+      return { mode: 'mtls', usePort444: false };
     }
 
-    // Default to auto mode
+    // Default to JWT for all other cases
     if (this.isDebugEnabled) {
-      console.log('[MTLS-HANDLER] Using auto auth mode');
+      console.log('[MTLS-HANDLER] 📝 Default case - JWT');
     }
-    return 'auto';
+    return { mode: 'jwt', usePort444: false };
   }
 
   /**
-   * Check if a route requires mTLS authentication
+   * Legacy method for backward compatibility
+   * @deprecated Use determineAuthConfig instead
    */
-  requiresMTLS(url: string): boolean {
-    const mtlsRequiredRoutes = [
-      '/receipts',
-      '/mf1/receipts'
-    ];
-
-    return mtlsRequiredRoutes.some(route => url.includes(route));
+  async determineAuthMode(url: string, explicitMode?: AuthMode, method?: string): Promise<AuthMode> {
+    const config = await this.determineAuthConfig(url, explicitMode, method);
+    return config.mode;
   }
+
 
   /**
    * Generate a unique key for request deduplication

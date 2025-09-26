@@ -81,16 +81,20 @@ export function loadPlatformAdapters(
 
 /**
  * Create mTLS configuration for A-Cube endpoints
+ * Note: Port modification is now handled dynamically by HttpClient based on authentication matrix
  */
 export function createACubeMTLSConfig(
   baseUrl: string,
   timeout?: number,
-  autoInitialize = true
+  autoInitialize = true,
+  forcePort444 = true
 ): MTLSAdapterConfig {
-  // Convert JWT base URL to mTLS URL (443 -> 444)
-  const mtlsBaseUrl = baseUrl.includes(':443') 
-    ? baseUrl.replace(':443', ':444')
-    : baseUrl.replace(/:\d+$/, '') + ':444';
+  
+  const mtlsBaseUrl = forcePort444 && !baseUrl.includes(':444')
+    ? (baseUrl.includes(':444')
+        ? baseUrl.replace(':444', ':444')
+        : baseUrl.replace(/:\d+$/, '') + ':444')
+    : baseUrl;
 
   return {
     baseUrl: mtlsBaseUrl,

@@ -83,6 +83,7 @@ export interface User {
 export interface IUserProvider {
   getCurrentUser(): Promise<User | null>;
   isAuthenticated(): Promise<boolean>;
+  getAccessToken(): Promise<string | null>;
 }
 
 /**
