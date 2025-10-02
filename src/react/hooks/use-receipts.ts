@@ -10,6 +10,13 @@ import {
 } from '../../';
 
 /**
+ * Receipts hook parameters
+ */
+export interface UseReceiptsParams {
+  serialNumber: string;
+}
+
+/**
  * Receipts hook return type
  */
 export interface UseReceiptsReturn {
@@ -21,14 +28,14 @@ export interface UseReceiptsReturn {
   returnReceipt: (returnData: ReceiptReturnOrVoidViaPEMInput) => Promise<ReceiptOutput | null>;
   getReceipt: (receiptUuid: string) => Promise<ReceiptOutput | null>;
   getReceiptDetails: (receiptUuid: string, format?: 'json' | 'pdf') => Promise<ReceiptDetailsOutput | Blob | null>;
-  refreshReceipts: () => Promise<void>;
+  refreshReceipts: (forceRefresh?: boolean) => Promise<void>;
   clearError: () => void;
 }
 
 /**
  * Hook for receipt operations
  */
-export function useReceipts(): UseReceiptsReturn {
+export function useReceipts({ serialNumber }: UseReceiptsParams): UseReceiptsReturn {
   const { sdk, isOnline } = useACube();
   const [receipts, setReceipts] = useState<ReceiptOutput[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -204,38 +211,50 @@ export function useReceipts(): UseReceiptsReturn {
     }
   }, [sdk, isOnline]);
 
-  const refreshReceipts = useCallback(async (): Promise<void> => {
-    if (!sdk || !isOnline) {
+  const refreshReceipts = useCallback(async (forceRefresh: boolean = false): Promise<void> => {
+    if (!sdk || !isOnline || !serialNumber) {
       return;
     }
 
     try {
       setIsLoading(true);
       setError(null);
-      
-      const page: Page<ReceiptOutput> = await sdk.api!.receipts.list({ page: 1, size: 50 });
+
+      // Invalidate cache when serial_number changes or force refresh
+      if (forceRefresh && sdk.api) {
+        const httpClient = sdk.api.getHttpClient();
+        const cachePattern = `/mf1/point-of-sales/${serialNumber}/receipts*`;
+        await httpClient.invalidateCache(cachePattern);
+      }
+
+      const page: Page<ReceiptOutput> = await sdk.api!.receipts.list({
+        page: 1,
+        size: 50,
+        serial_number: serialNumber
+      });
       setReceipts(page.members || []);
     } catch (err) {
-      const receiptError = err instanceof ACubeSDKError 
-        ? err 
+      const receiptError = err instanceof ACubeSDKError
+        ? err
         : new ACubeSDKError('UNKNOWN_ERROR', 'Failed to refresh receipts', err);
       setError(receiptError);
     } finally {
       setIsLoading(false);
     }
-  }, [sdk, isOnline]);
+  }, [sdk, isOnline, serialNumber]);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
 
-  // Load receipts on mount if online
+  // Load receipts on mount if online and when serialNumber changes
   useEffect(() => {
-    if (sdk && isOnline) {
-      refreshReceipts();
+    if (sdk && isOnline && serialNumber) {
+      // Force refresh when serialNumber changes to bypass stale cache
+      refreshReceipts(true);
     }
-  }, [sdk, isOnline, refreshReceipts]);
+  }, [sdk, isOnline, serialNumber, refreshReceipts]);
 
   return {
     receipts,

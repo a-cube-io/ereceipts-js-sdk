@@ -11,6 +11,19 @@ export interface Page<T> {
   pages?: number;
 }
 
+export interface LdJsonPage<T> {
+  member: T[];
+  totalItems?: number;
+  view?: {
+    '@id': string;
+    type?: string;
+    first?: string;
+    last?: string;
+    previous?: string;
+    next?: string;
+  };
+}
+
 // Cashier types (MF1)
 export interface CashierCreateInput {
   email: string;
@@ -165,7 +178,18 @@ export interface ReceiptReturnOrVoidViaPEMInput {
 export type ReceiptProofType = 'POS' | 'VR' | 'ND';
 
 
-export interface ReceiptListParams { page?: number; size?: number }
+export type ReceiptStatus = 'ready' | 'sent';
+export type ReceiptSortOrder = 'descending' | 'ascending';
+
+export interface ReceiptListParams {
+  serial_number: string; // Path parameter for endpoint /mf1/point-of-sales/{serial_number}/receipts
+  page?: number;
+  size?: number;
+  status?: ReceiptStatus;
+  sort?: ReceiptSortOrder;
+  'document_datetime[before]'?: string;
+  'document_datetime[after]'?: string | null;
+}
 export interface ReceiptReturnOrVoidWithProofInput {
   items: ReceiptItem[];
   proof: ReceiptProofType;
@@ -195,7 +219,7 @@ export interface CashRegisterDetailedOutput {
 export interface CashRegisterListParams { 
   page?: number; 
   size?: number; 
-  pem_id?: string; 
+  serial_number: string;
 }
 
 // Merchant types (MF2)

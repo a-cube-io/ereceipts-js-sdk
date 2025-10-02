@@ -4,7 +4,8 @@ import {
   MerchantCreateInput, 
   MerchantUpdateInput, 
   MerchantsParams,
-  PointOfSaleOutputMf2
+  PointOfSaleOutputMf2,
+  LdJsonPage
 } from './types';
 
 /**
@@ -53,7 +54,7 @@ export class MerchantsAPI {
   /**
    * Retrieve Point of Sale resources for a specific merchant
    */
-  async listPointOfSales(merchantUuid: string, params?: { page?: number }): Promise<PointOfSaleOutputMf2[]> {
+  async listPointOfSales(merchantUuid: string, params?: { page?: number }): Promise<LdJsonPage<PointOfSaleOutputMf2>> {
     const searchParams = new URLSearchParams();
     
     if (params?.page) {
@@ -64,7 +65,7 @@ export class MerchantsAPI {
     const url = query 
       ? `/mf2/merchants/${merchantUuid}/point-of-sales?${query}` 
       : `/mf2/merchants/${merchantUuid}/point-of-sales`;
-    
-    return this.httpClient.get<PointOfSaleOutputMf2[]>(url);
+
+    return this.httpClient.get<LdJsonPage<PointOfSaleOutputMf2>>(url);
   }
 }

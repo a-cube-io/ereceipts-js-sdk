@@ -266,17 +266,26 @@ export class MTLSHandler {
     }
 
     // Step 6: Default behavior for unknown roles
-    // For receipts on mobile without a known role, prefer mTLS
+    // Web platform: Always use JWT for safety (never mTLS without explicit role)
+    if (platform === 'web') {
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] 🌐 Web platform with unknown role - defaulting to JWT (safe)');
+      }
+      // Use port 444 only for receipt endpoints that might need browser certificates
+      return { mode: 'jwt', usePort444: isReceiptEndpoint };
+    }
+
+    // Mobile platform: For receipts without a known role, prefer mTLS
     if (isReceiptEndpoint && platform === 'mobile') {
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] 📝 Unknown role, receipt endpoint on mobile - defaulting to mTLS');
+        console.log('[MTLS-HANDLER] 📱 Mobile with unknown role, receipt endpoint - defaulting to mTLS');
       }
       return { mode: 'mtls', usePort444: false };
     }
 
-    // Default to JWT for all other cases
+    // Default to JWT for all other cases (unknown platform or non-receipt endpoints)
     if (this.isDebugEnabled) {
-      console.log('[MTLS-HANDLER] 📝 Default case - JWT');
+      console.log('[MTLS-HANDLER] 📝 Default case - JWT (platform:', platform, ')');
     }
     return { mode: 'jwt', usePort444: false };
   }

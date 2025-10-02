@@ -26,7 +26,7 @@ export class ReceiptsAPI {
   private userContext: UserContext | null = null;
 
   constructor(private httpClient: HttpClient) {
-    this.debugEnabled = (httpClient as any).isDebugEnabled || false;
+    this.debugEnabled = httpClient.isDebugEnabled || false;
 
     if (this.debugEnabled) {
       console.log('[RECEIPTS-API] Receipts API initialized with mTLS support');
@@ -77,21 +77,33 @@ export class ReceiptsAPI {
    * Get a list of electronic receipts
    * Authentication mode determined by MTLSHandler (typically JWT for GET operations)
    */
-  async list(params: ReceiptListParams = {}): Promise<Page<ReceiptOutput>> {
+  async list(params: ReceiptListParams): Promise<Page<ReceiptOutput>> {
     const searchParams = new URLSearchParams();
 
-    if (params.page) {
+    if (params.page !== undefined) {
       searchParams.append('page', params.page.toString());
     }
-    if (params.size) {
+    if (params.size !== undefined) {
       searchParams.append('size', params.size.toString());
+    }
+    if (params.status !== undefined) {
+      searchParams.append('status', params.status);
+    }
+    if (params.sort !== undefined) {
+      searchParams.append('sort', params.sort);
+    }
+    if (params['document_datetime[before]'] !== undefined) {
+      searchParams.append('document_datetime[before]', params['document_datetime[before]']);
+    }
+    if (params['document_datetime[after]'] !== undefined && params['document_datetime[after]'] !== null) {
+      searchParams.append('document_datetime[after]', params['document_datetime[after]']);
     }
 
     const query = searchParams.toString();
-    const url = query ? `/mf1/receipts?${query}` : '/mf1/receipts';
+    const url = `/mf1/point-of-sales/${params.serial_number}/receipts${query ? `?${query}` : ''}`;
 
     if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Listing receipts');
+      console.log('[RECEIPTS-API] Listing receipts for POS:', params.serial_number);
     }
 
     const config = this.createRequestConfig();
@@ -207,50 +219,6 @@ export class ReceiptsAPI {
 
     const config = this.createRequestConfig();
     return this.httpClient.post<ReceiptOutput>('/mf1/receipts/return-with-proof', returnData, config);
-  }
-
-  /**
-   * Test mTLS connectivity for receipt operations
-   */
-  async testMTLSConnectivity(): Promise<{
-    isConnected: boolean;
-    latency?: number;
-    error?: string;
-  }> {
-    if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Testing mTLS connectivity for receipt operations');
-    }
-
-    const startTime = Date.now();
-
-    try {
-      // Test with a lightweight endpoint
-      await this.list({ size: 1 });
-      
-      const latency = Date.now() - startTime;
-      
-      const result = {
-        isConnected: true,
-        latency
-      };
-
-      if (this.debugEnabled) {
-        console.log('[RECEIPTS-API] mTLS connectivity test passed:', result);
-      }
-
-      return result;
-    } catch (error) {
-      const result = {
-        isConnected: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-
-      if (this.debugEnabled) {
-        console.error('[RECEIPTS-API] mTLS connectivity test failed:', result);
-      }
-
-      return result;
-    }
   }
 
   /**
