@@ -66,6 +66,8 @@ export class MerchantsAPI {
       ? `/mf2/merchants/${merchantUuid}/point-of-sales?${query}` 
       : `/mf2/merchants/${merchantUuid}/point-of-sales`;
 
-    return this.httpClient.get<LdJsonPage<PointOfSaleOutputMf2>>(url);
+    return this.httpClient.get<LdJsonPage<PointOfSaleOutputMf2>>(url, {
+      headers: { 'Accept': 'application/ld+json' }
+    });
   }
 }
