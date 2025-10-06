@@ -1,12 +1,13 @@
 import { HttpClient, CacheRequestConfig } from './http-client';
-import { 
-  ReceiptInput, 
-  ReceiptOutput, 
+import {
+  ReceiptInput,
+  ReceiptOutput,
   ReceiptDetailsOutput,
   ReceiptReturnOrVoidViaPEMInput,
   ReceiptReturnOrVoidWithProofInput,
-  Page, 
-  ReceiptListParams
+  Page,
+  ReceiptListParams,
+  RECEIPT_READY
 } from './types';
 
 /**
@@ -80,18 +81,14 @@ export class ReceiptsAPI {
   async list(params: ReceiptListParams): Promise<Page<ReceiptOutput>> {
     const searchParams = new URLSearchParams();
 
-    if (params.page !== undefined) {
-      searchParams.append('page', params.page.toString());
-    }
-    if (params.size !== undefined) {
-      searchParams.append('size', params.size.toString());
-    }
-    if (params.status !== undefined) {
-      searchParams.append('status', params.status);
-    }
-    if (params.sort !== undefined) {
+    searchParams.append('page', params.page?.toString() || '1');
+    searchParams.append('size', params.size?.toString() || '30');
+    searchParams.append('status', params.status?.toString() || RECEIPT_READY);
+
+    if (params.sort !== undefined && params.sort !== null) {
       searchParams.append('sort', params.sort);
     }
+
     if (params['document_datetime[before]'] !== undefined) {
       searchParams.append('document_datetime[before]', params['document_datetime[before]']);
     }

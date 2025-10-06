@@ -30,10 +30,8 @@ export function loadCacheAdapter(platform: string): ICacheAdapter | undefined {
  */
 function loadWebCacheAdapter(): ICacheAdapter {
   return new WebCacheAdapter({
-    defaultTtl: 300000, // 5 minutes
     maxSize: 50 * 1024 * 1024, // 50MB
     maxEntries: 10000,
-    cleanupInterval: 60000, // 1 minute
     compression: false,
     debugEnabled: process.env.NODE_ENV === 'development',
   });
@@ -45,10 +43,8 @@ function loadWebCacheAdapter(): ICacheAdapter {
 function loadReactNativeCacheAdapter(): ICacheAdapter {
   try {
     return new ReactNativeCacheAdapter({
-      defaultTtl: 300000, // 5 minutes
       maxSize: 100 * 1024 * 1024, // 100MB
       maxEntries: 15000,
-      cleanupInterval: 300000, // 5 minutes
     });
   } catch (error) {
     console.warn('SQLite cache not available, falling back to memory cache');
@@ -68,40 +64,30 @@ function loadNodeCacheAdapter(): ICacheAdapter {
  */
 function loadMemoryCacheAdapter(): ICacheAdapter {
   return new MemoryCacheAdapter({
-    defaultTtl: 300000, // 5 minutes
     maxSize: 10 * 1024 * 1024, // 10MB for memory cache
     maxEntries: 5000,
-    cleanupInterval: 120000, // 2 minutes
   });
 }
 
 /**
- * Cache adapter configuration by platform
+ * Cache adapter configuration by platform (simplified - no TTL/expiration)
  */
 export const CACHE_CONFIG_BY_PLATFORM = {
   web: {
-    defaultTtl: 300000, // 5 minutes
     maxSize: 50 * 1024 * 1024, // 50MB
     maxEntries: 10000,
-    cleanupInterval: 60000, // 1 minute
     compression: false,
   },
   'react-native': {
-    defaultTtl: 300000, // 5 minutes
     maxSize: 100 * 1024 * 1024, // 100MB
     maxEntries: 15000,
-    cleanupInterval: 300000, // 5 minutes
   },
   node: {
-    defaultTtl: 300000, // 5 minutes
     maxSize: 10 * 1024 * 1024, // 10MB
     maxEntries: 5000,
-    cleanupInterval: 120000, // 2 minutes
   },
   memory: {
-    defaultTtl: 300000, // 5 minutes
     maxSize: 10 * 1024 * 1024, // 10MB
     maxEntries: 5000,
-    cleanupInterval: 120000, // 2 minutes
   },
 } as const;

@@ -260,13 +260,6 @@ export class HttpClient {
           this.client.defaults.headers.common['Authorization'] as string
         );
 
-        // Auto-invalidate cache after successful POST
-        await this.cacheHandler.invalidateAfterMutation(url, 'POST').catch((error) => {
-          if (this._isDebugEnabled) {
-            console.warn('[HTTP-CLIENT] Cache invalidation failed after POST:', error);
-          }
-        });
-
         return result;
       } catch (error) {
         if (this._isDebugEnabled) {
@@ -290,13 +283,6 @@ export class HttpClient {
     try {
       const response: AxiosResponse<T> = await client.post(url, cleanedData, config);
       result = response.data;
-
-      // Auto-invalidate cache after successful POST
-      await this.cacheHandler.invalidateAfterMutation(url, 'POST').catch((error) => {
-        if (this._isDebugEnabled) {
-          console.warn('[HTTP-CLIENT] Cache invalidation failed after POST:', error);
-        }
-      });
 
       return result;
     } catch (error) {
@@ -328,13 +314,6 @@ export class HttpClient {
           this.client.defaults.headers.common['Authorization'] as string
         );
 
-        // Auto-invalidate cache after successful PUT
-        await this.cacheHandler.invalidateAfterMutation(url, 'PUT').catch((error) => {
-          if (this._isDebugEnabled) {
-            console.warn('[HTTP-CLIENT] Cache invalidation failed after PUT:', error);
-          }
-        });
-
         return result;
       } catch (error) {
         if (this._isDebugEnabled) {
@@ -358,13 +337,6 @@ export class HttpClient {
     try {
       const response: AxiosResponse<T> = await client.put(url, cleanedData, config);
       result = response.data;
-
-      // Auto-invalidate cache after successful PUT
-      await this.cacheHandler.invalidateAfterMutation(url, 'PUT').catch((error) => {
-        if (this._isDebugEnabled) {
-          console.warn('[HTTP-CLIENT] Cache invalidation failed after PUT:', error);
-        }
-      });
 
       return result;
     } catch (error) {
@@ -391,13 +363,6 @@ export class HttpClient {
           this.client.defaults.headers.common['Authorization'] as string
         );
 
-        // Auto-invalidate cache after successful DELETE
-        await this.cacheHandler.invalidateAfterMutation(url, 'DELETE').catch((error) => {
-          if (this._isDebugEnabled) {
-            console.warn('[HTTP-CLIENT] Cache invalidation failed after DELETE:', error);
-          }
-        });
-
         return result;
       } catch (error) {
         if (this._isDebugEnabled) {
@@ -421,13 +386,6 @@ export class HttpClient {
     try {
       const response: AxiosResponse<T> = await client.delete(url, config);
       result = response.data;
-
-      // Auto-invalidate cache after successful DELETE
-      await this.cacheHandler.invalidateAfterMutation(url, 'DELETE').catch((error) => {
-        if (this._isDebugEnabled) {
-          console.warn('[HTTP-CLIENT] Cache invalidation failed after DELETE:', error);
-        }
-      });
 
       return result;
     } catch (error) {
@@ -479,13 +437,6 @@ export class HttpClient {
 
       const response: AxiosResponse<T> = await client.patch(url, cleanedData, config);
       const result = response.data;
-
-      // Auto-invalidate cache after successful PATCH
-      await this.cacheHandler.invalidateAfterMutation(url, 'PATCH').catch((error) => {
-        if (this._isDebugEnabled) {
-          console.warn('[HTTP-CLIENT] Cache invalidation failed after PATCH:', error);
-        }
-      });
 
       return result;
     } catch (error) {

@@ -177,9 +177,13 @@ export interface ReceiptReturnOrVoidViaPEMInput {
 
 export type ReceiptProofType = 'POS' | 'VR' | 'ND';
 
+export const RECEIPT_READY='ready';
+export const RECEIPT_SENT='sent';
+export type ReceiptStatus = typeof RECEIPT_READY | typeof RECEIPT_SENT;
 
-export type ReceiptStatus = 'ready' | 'sent';
-export type ReceiptSortOrder = 'descending' | 'ascending';
+export const RECEIPT_SORT_DESCENDING='descending';
+export const RECEIPT_SORT_ASCENDING='ascending';
+export type ReceiptSortOrder = typeof RECEIPT_SORT_DESCENDING | typeof RECEIPT_SORT_ASCENDING;
 
 export interface ReceiptListParams {
   serial_number: string; // Path parameter for endpoint /mf1/point-of-sales/{serial_number}/receipts

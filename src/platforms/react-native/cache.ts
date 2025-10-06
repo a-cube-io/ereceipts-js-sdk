@@ -3,11 +3,12 @@ import { compressData, decompressData } from '../../adapters/compression';
 
 /**
  * React Native cache adapter using SQLite (Expo or react-native-sqlite-storage)
+ * Cache never expires - data persists until explicitly invalidated
  */
 export class ReactNativeCacheAdapter implements ICacheAdapter {
   private static readonly DB_NAME = 'acube_cache.db';
   private static readonly TABLE_NAME = 'cache_entries';
-  
+
   private db: any = null;
   private initPromise: Promise<void> | null = null;
   private options: CacheOptions;
@@ -17,17 +18,14 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
 
   constructor(options: CacheOptions = {}) {
     this.options = {
-      defaultTtl: 300000, // 5 minutes
       maxSize: 50 * 1024 * 1024, // 50MB
       maxEntries: 10000,
-      cleanupInterval: 60000, // 1 minute
       compression: false,
       compressionThreshold: 1024,
       ...options,
     };
     this.debugEnabled = options.debugEnabled || false;
     this.initPromise = this.initialize();
-    this.startCleanupInterval();
   }
 
   private debug(message: string, data?: any): void {
@@ -92,14 +90,12 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
   }
 
   private async createTables(): Promise<void> {
-    // First, create table with basic schema (backwards compatible)
+    // Create table with simplified schema (no TTL)
     const createTableSQL = `
       CREATE TABLE IF NOT EXISTS ${ReactNativeCacheAdapter.TABLE_NAME} (
         cache_key TEXT PRIMARY KEY,
         data TEXT NOT NULL,
-        timestamp INTEGER NOT NULL,
-        ttl INTEGER,
-        etag TEXT
+        timestamp INTEGER NOT NULL
       );
 
       CREATE INDEX IF NOT EXISTS idx_timestamp ON ${ReactNativeCacheAdapter.TABLE_NAME}(timestamp);
@@ -159,7 +155,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     this.debug('Executing get query', { sql, key });
     const results = await this.executeSql(sql, [key]);
     this.debug('Get query results', { key, hasResults: !!results });
-    
+
     // Normalize results from different SQLite implementations
     const rows = this.normalizeResults(results);
 
@@ -168,13 +164,6 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     }
 
     const row = rows[0];
-    
-    // Check if expired
-    if (this.isExpired(row)) {
-      // Remove expired item asynchronously
-      this.delete(key).catch(console.error);
-      return null;
-    }
 
     // Handle decompression if needed (fallback if column doesn't exist)
     const isCompressed = this.hasCompressedColumn ? !!row.compressed : false;
@@ -183,21 +172,18 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     return {
       data: JSON.parse(rawData),
       timestamp: row.timestamp,
-      ttl: row.ttl,
-      etag: row.etag,
       compressed: isCompressed,
     };
   }
 
-  async set<T>(key: string, data: T, ttl?: number): Promise<void> {
+  async set<T>(key: string, data: T): Promise<void> {
     const item: CachedItem<T> = {
       data,
       timestamp: Date.now(),
-      ttl: ttl || this.options.defaultTtl,
     };
 
-    this.debug('Setting cache item', { key, ttl: item.ttl });
-    
+    this.debug('Setting cache item', { key });
+
     return this.setItem(key, item);
   }
 
@@ -226,7 +212,6 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     this.debug('Setting item with metadata', {
       key,
       timestamp: item.timestamp,
-      hasTtl: !!item.ttl,
       compressed: isCompressed,
       hasCompressedColumn: this.hasCompressedColumn
     });
@@ -238,30 +223,26 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     if (this.hasCompressedColumn) {
       sql = `
         INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
-        (cache_key, data, timestamp, ttl, etag, compressed)
-        VALUES (?, ?, ?, ?, ?, ?)
+        (cache_key, data, timestamp, compressed)
+        VALUES (?, ?, ?, ?)
       `;
       params = [
         key,
         finalData,
         item.timestamp,
-        item.ttl || this.options.defaultTtl,
-        item.etag || null,
         isCompressed ? 1 : 0,
       ];
     } else {
       // Fallback for databases without compressed column
       sql = `
         INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
-        (cache_key, data, timestamp, ttl, etag)
-        VALUES (?, ?, ?, ?, ?)
+        (cache_key, data, timestamp)
+        VALUES (?, ?, ?)
       `;
       params = [
         key,
         finalData,
         item.timestamp,
-        item.ttl || this.options.defaultTtl,
-        item.etag || null,
       ];
     }
 
@@ -325,29 +306,25 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     if (this.hasCompressedColumn) {
       sql = `
         INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
-        (cache_key, data, timestamp, ttl, etag, compressed)
-        VALUES (?, ?, ?, ?, ?, ?)
+        (cache_key, data, timestamp, compressed)
+        VALUES (?, ?, ?, ?)
       `;
       params = [
         key,
         finalData,
         item.timestamp,
-        item.ttl || this.options.defaultTtl,
-        item.etag || null,
         isCompressed ? 1 : 0,
       ];
     } else {
       sql = `
         INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
-        (cache_key, data, timestamp, ttl, etag)
-        VALUES (?, ?, ?, ?, ?)
+        (cache_key, data, timestamp)
+        VALUES (?, ?, ?)
       `;
       params = [
         key,
         finalData,
         item.timestamp,
-        item.ttl || this.options.defaultTtl,
-        item.etag || null,
       ];
     }
 
@@ -373,29 +350,25 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     if (this.hasCompressedColumn) {
       sql = `
         INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
-        (cache_key, data, timestamp, ttl, etag, compressed)
-        VALUES (?, ?, ?, ?, ?, ?)
+        (cache_key, data, timestamp, compressed)
+        VALUES (?, ?, ?, ?)
       `;
       params = [
         key,
         finalData,
         item.timestamp,
-        item.ttl || this.options.defaultTtl,
-        item.etag || null,
         isCompressed ? 1 : 0,
       ];
     } else {
       sql = `
         INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
-        (cache_key, data, timestamp, ttl, etag)
-        VALUES (?, ?, ?, ?, ?)
+        (cache_key, data, timestamp)
+        VALUES (?, ?, ?)
       `;
       params = [
         key,
         finalData,
         item.timestamp,
-        item.ttl || this.options.defaultTtl,
-        item.etag || null,
       ];
     }
 
@@ -450,17 +423,8 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
   }
 
   async cleanup(): Promise<number> {
-    await this.ensureInitialized();
-
-    // Remove expired items
-    const currentTime = Date.now();
-    const sql = `
-      DELETE FROM ${ReactNativeCacheAdapter.TABLE_NAME} 
-      WHERE ttl IS NOT NULL AND ttl > 0 AND (timestamp + ttl) < ?
-    `;
-    
-    const results = await this.executeSql(sql, [currentTime]);
-    return this.isExpo ? results.changes || 0 : results.rowsAffected || 0;
+    // No cleanup needed - cache never expires
+    return 0;
   }
 
   async getKeys(pattern?: string): Promise<string[]> {
@@ -487,14 +451,6 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     return keys;
   }
 
-  private async delete(key: string): Promise<boolean> {
-    await this.ensureInitialized();
-
-    const sql = `DELETE FROM ${ReactNativeCacheAdapter.TABLE_NAME} WHERE cache_key = ?`;
-    const results = await this.executeSql(sql, [key]);
-    
-    return this.isExpo ? (results.changes || 0) > 0 : (results.rowsAffected || 0) > 0;
-  }
 
   private async executeSql(sql: string, params: any[] = []): Promise<any> {
     if (this.isExpo) {
@@ -528,22 +484,11 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     await this.initPromise;
   }
 
-  private isExpired(row: any): boolean {
-    if (!row.ttl || row.ttl === 0) return false;
-    return Date.now() - row.timestamp > row.ttl;
-  }
-
-  private startCleanupInterval(): void {
-    if (this.options.cleanupInterval && this.options.cleanupInterval > 0) {
-      setInterval(() => {
-        this.cleanup().catch(console.error);
-      }, this.options.cleanupInterval);
-    }
-  }
 }
 
 /**
  * Memory-based fallback cache adapter for environments without SQLite
+ * Cache never expires - data persists until explicitly invalidated
  */
 export class MemoryCacheAdapter implements ICacheAdapter {
   private cache = new Map<string, CachedItem<any>>();
@@ -553,7 +498,6 @@ export class MemoryCacheAdapter implements ICacheAdapter {
 
   constructor(options: CacheOptions = {}) {
     this.options = {
-      defaultTtl: 300000, // 5 minutes
       maxEntries: 1000,
       ...options,
     };
@@ -585,14 +529,6 @@ export class MemoryCacheAdapter implements ICacheAdapter {
       return null;
     }
 
-    if (this.isExpired(item)) {
-      this.debug('Cache item expired, removing', { key });
-      const itemSize = this.calculateItemSize(key, item);
-      this.cache.delete(key);
-      this.totalBytes -= itemSize;
-      return null;
-    }
-
     // Handle decompression if needed
     const isCompressed = !!item.compressed;
     let finalData = item.data;
@@ -611,8 +547,8 @@ export class MemoryCacheAdapter implements ICacheAdapter {
     };
   }
 
-  async set<T>(key: string, data: T, ttl?: number): Promise<void> {
-    this.debug('Setting cache item', { key, ttl: ttl || this.options.defaultTtl });
+  async set<T>(key: string, data: T): Promise<void> {
+    this.debug('Setting cache item', { key });
 
     // Handle compression if enabled
     let finalData: any = data;
@@ -638,7 +574,6 @@ export class MemoryCacheAdapter implements ICacheAdapter {
     const item: CachedItem<any> = {
       data: finalData,
       timestamp: Date.now(),
-      ttl: ttl || this.options.defaultTtl,
       compressed: isCompressed,
     };
 
@@ -783,29 +718,8 @@ export class MemoryCacheAdapter implements ICacheAdapter {
   }
 
   async cleanup(): Promise<number> {
-    let removed = 0;
-    let bytesFreed = 0;
-
-    for (const [key, item] of this.cache.entries()) {
-      if (this.isExpired(item)) {
-        const itemSize = this.calculateItemSize(key, item);
-        this.cache.delete(key);
-        this.totalBytes -= itemSize;
-        bytesFreed += itemSize;
-        removed++;
-      }
-    }
-
-    if (removed > 0) {
-      this.debug('Cleanup completed', {
-        entriesRemoved: removed,
-        bytesFreed,
-        remainingEntries: this.cache.size,
-        remainingBytes: this.totalBytes
-      });
-    }
-
-    return removed;
+    // No cleanup needed - cache never expires
+    return 0;
   }
 
   async getKeys(pattern?: string): Promise<string[]> {
@@ -814,11 +728,6 @@ export class MemoryCacheAdapter implements ICacheAdapter {
 
     const regex = this.patternToRegex(pattern);
     return keys.filter(key => regex.test(key));
-  }
-
-  private isExpired(item: CachedItem<any>): boolean {
-    if (!item.ttl || item.ttl === 0) return false;
-    return Date.now() - item.timestamp > item.ttl;
   }
 
   private patternToRegex(pattern: string): RegExp {

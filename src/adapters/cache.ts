@@ -1,21 +1,21 @@
 /**
  * Cache adapter interface for cross-platform caching operations
+ * Cache never expires - data persists until explicitly invalidated
  */
 export interface ICacheAdapter {
   /**
    * Get a cached item
    * @param key The cache key
-   * @returns The cached item with metadata or null if not found/expired
+   * @returns The cached item with metadata or null if not found
    */
   get<T>(key: string): Promise<CachedItem<T> | null>;
 
   /**
-   * Set a value in cache with optional TTL
+   * Set a value in cache (no TTL - cache never expires)
    * @param key The cache key
    * @param data The data to cache
-   * @param ttl Time to live in milliseconds (optional)
    */
-  set<T>(key: string, data: T, ttl?: number): Promise<void>;
+  set<T>(key: string, data: T): Promise<void>;
 
   /**
    * Set a value with explicit metadata
@@ -62,17 +62,13 @@ export interface ICacheAdapter {
 }
 
 /**
- * Cached item with simplified metadata
+ * Cached item with simplified metadata (no expiration)
  */
 export interface CachedItem<T> {
   /** The actual cached data */
   data: T;
   /** Timestamp when item was cached */
   timestamp: number;
-  /** Time to live in milliseconds (optional, 0 = no expiration) */
-  ttl?: number;
-  /** ETag from server for conditional requests */
-  etag?: string;
   /** Whether the data is compressed */
   compressed?: boolean;
 }
@@ -90,17 +86,13 @@ export interface CacheSize {
 }
 
 /**
- * Cache configuration options
+ * Cache configuration options (no TTL/expiration)
  */
 export interface CacheOptions {
-  /** Default TTL in milliseconds */
-  defaultTtl?: number;
   /** Maximum cache size in bytes */
   maxSize?: number;
   /** Maximum number of entries */
   maxEntries?: number;
-  /** Cleanup interval in milliseconds */
-  cleanupInterval?: number;
   /** Enable compression for large items */
   compression?: boolean;
   /** Compression threshold in bytes */
@@ -109,14 +101,3 @@ export interface CacheOptions {
   debugEnabled?: boolean;
 }
 
-/**
- * Cache query filter for basic operations
- */
-export interface CacheQuery {
-  /** Pattern to match keys */
-  pattern?: string;
-  /** Minimum timestamp */
-  minTimestamp?: number;
-  /** Maximum timestamp */
-  maxTimestamp?: number;
-}

@@ -4,7 +4,7 @@ import { openDB, IDBPDatabase, deleteDB } from 'idb';
 
 /**
  * Web cache adapter using IndexedDB with automatic error recovery
- * Automatically handles version conflicts and other IndexedDB errors
+ * Cache never expires - data persists until explicitly invalidated
  */
 export class WebCacheAdapter implements ICacheAdapter {
   private static readonly DB_NAME = 'acube_cache';
@@ -20,17 +20,14 @@ export class WebCacheAdapter implements ICacheAdapter {
 
   constructor(options: CacheOptions = {}) {
     this.options = {
-      defaultTtl: 300000, // 5 minutes
       maxSize: 50 * 1024 * 1024, // 50MB
       maxEntries: 10000,
-      cleanupInterval: 60000, // 1 minute
       compression: false,
       compressionThreshold: 1024,
       ...options,
     };
     this.debugEnabled = options.debugEnabled || process.env.NODE_ENV === 'development';
     this.initPromise = this.initialize();
-    this.startCleanupInterval();
   }
 
   private debug(message: string, data?: any): void {
@@ -195,13 +192,7 @@ export class WebCacheAdapter implements ICacheAdapter {
         return null;
       }
 
-      // Check if item has expired
       const item = result as StoredCacheItem<T>;
-      if (this.isExpired(item)) {
-        // Remove expired item asynchronously
-        this.delete(key).catch(console.error);
-        return null;
-      }
 
       // Handle decompression if needed
       const isCompressed = !!item.compressed;
@@ -217,8 +208,6 @@ export class WebCacheAdapter implements ICacheAdapter {
       return {
         data: finalData,
         timestamp: item.timestamp,
-        ttl: item.ttl,
-        etag: item.etag,
         compressed: isCompressed,
       };
     } catch (error) {
@@ -227,11 +216,10 @@ export class WebCacheAdapter implements ICacheAdapter {
     }
   }
 
-  async set<T>(key: string, data: T, ttl?: number): Promise<void> {
+  async set<T>(key: string, data: T): Promise<void> {
     const item: CachedItem<T> = {
       data,
       timestamp: Date.now(),
-      ttl: ttl || this.options.defaultTtl,
     };
 
     return this.setItem(key, item);
@@ -262,14 +250,12 @@ export class WebCacheAdapter implements ICacheAdapter {
       }
     }
 
-    this.debug('Setting cache item', { key, timestamp: item.timestamp, hasTtl: !!item.ttl, compressed: isCompressed });
+    this.debug('Setting cache item', { key, timestamp: item.timestamp, compressed: isCompressed });
 
     const storedItem: StoredCacheItem<any> = {
       key,
       data: finalData,
       timestamp: item.timestamp,
-      ttl: item.ttl || this.options.defaultTtl,
-      etag: item.etag,
       compressed: isCompressed,
     };
 
@@ -327,8 +313,6 @@ export class WebCacheAdapter implements ICacheAdapter {
       key,
       data: finalData,
       timestamp: item.timestamp,
-      ttl: item.ttl || this.options.defaultTtl,
-      etag: item.etag,
       compressed: isCompressed,
     };
   }
@@ -391,31 +375,8 @@ export class WebCacheAdapter implements ICacheAdapter {
   }
 
   async cleanup(): Promise<number> {
-    await this.ensureInitialized();
-
-    let removedCount = 0;
-
-    try {
-      const transaction = this.db!.transaction([WebCacheAdapter.STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(WebCacheAdapter.STORE_NAME);
-
-      let cursor = await store.openCursor();
-
-      while (cursor) {
-        const item = cursor.value as StoredCacheItem<any>;
-        if (this.isExpired(item)) {
-          await cursor.delete();
-          removedCount++;
-        }
-        cursor = await cursor.continue();
-      }
-
-      this.debug('Cache cleanup completed', { removedCount });
-      return removedCount;
-    } catch (error) {
-      this.debug('Error during cleanup', error);
-      return 0;
-    }
+    // No cleanup needed - cache never expires
+    return 0;
   }
 
   async getKeys(pattern?: string): Promise<string[]> {
@@ -469,35 +430,20 @@ export class WebCacheAdapter implements ICacheAdapter {
     }
   }
 
-  private isExpired(item: StoredCacheItem<any>): boolean {
-    if (!item.ttl || item.ttl === 0) return false;
-    return Date.now() - item.timestamp > item.ttl;
-  }
-
   private patternToRegex(pattern: string): RegExp {
     // Convert simple glob patterns to regex
     const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
     const regexPattern = escaped.replace(/\\\*/g, '.*').replace(/\\\?/g, '.');
     return new RegExp(`^${regexPattern}$`);
   }
-
-  private startCleanupInterval(): void {
-    if (this.options.cleanupInterval && this.options.cleanupInterval > 0) {
-      setInterval(() => {
-        this.cleanup().catch(console.error);
-      }, this.options.cleanupInterval);
-    }
-  }
 }
 
 /**
- * Internal storage format for IndexedDB
+ * Internal storage format for IndexedDB (no expiration)
  */
 interface StoredCacheItem<T> {
   key: string;
   data: T;
   timestamp: number;
-  ttl?: number;
-  etag?: string;
   compressed?: boolean;
 }
