@@ -27,7 +27,7 @@ export class ReceiptsAPI {
   private userContext: UserContext | null = null;
 
   constructor(private httpClient: HttpClient) {
-    this.debugEnabled = httpClient.isDebugEnabled || false;
+    this.debugEnabled = httpClient.isDebugEnabled || true;
 
     if (this.debugEnabled) {
       console.log('[RECEIPTS-API] Receipts API initialized with mTLS support');
@@ -123,38 +123,44 @@ export class ReceiptsAPI {
   /**
    * Get receipt details (JSON or PDF)
    * Authentication mode determined by MTLSHandler
+   * ✅ PDF downloads now use mTLS with binary response support (expo-mutual-tls v1.0.3+)
    */
   async getDetails(
-    receiptUuid: string, 
+    receiptUuid: string,
     format: 'json' | 'pdf' = 'json'
-  ): Promise<ReceiptDetailsOutput | Blob> {
+  ): Promise<ReceiptDetailsOutput | string> {
     if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Getting receipt details with mTLS:', {
+      console.log('[RECEIPTS-API] Getting receipt details:', {
         receiptUuid,
         format
       });
     }
 
     const headers: Record<string, string> = {};
-    const config = this.createRequestConfig({ headers });
-    
+
     if (format === 'pdf') {
       headers['Accept'] = 'application/pdf';
-      config.headers = headers;
-      
-      // For PDF downloads, use the download method if available
-      if (typeof (this.httpClient as any).download === 'function') {
-        return (this.httpClient as any).download(`/mf1/receipts/${receiptUuid}/details`, config);
-      } else {
-        // Fallback to regular GET for PDF
-        return this.httpClient.get<Blob>(`/mf1/receipts/${receiptUuid}/details`, config);
+      const config = this.createRequestConfig({
+        headers,
+        authMode: 'mtls', // Force mTLS for PDF downloads
+        responseType: 'blob'
+      });
+
+      if (this.debugEnabled) {
+        console.log('[RECEIPTS-API] Downloading PDF receipt (mTLS on mobile, JWT+:444 on web)', config);
       }
+
+      return this.httpClient.get<string>(`/mf1/receipts/${receiptUuid}/details`, config);
     } else {
       headers['Accept'] = 'application/json';
-      config.headers = headers;
-      
+      const config = this.createRequestConfig({ 
+        headers,
+        responseType: 'json',
+        authMode: 'mtls' // Force mTLS for JSON responses
+      });
+
       return this.httpClient.get<ReceiptDetailsOutput>(
-        `/mf1/receipts/${receiptUuid}/details`, 
+        `/mf1/receipts/${receiptUuid}/details`,
         config
       );
     }

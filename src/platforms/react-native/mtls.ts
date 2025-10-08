@@ -42,6 +42,7 @@ interface ExpoMutualTLSClass {
     method?: string;
     headers?: Record<string, string>;
     body?: string;
+    responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
   }): Promise<{
     success: boolean;
     statusCode: number;
@@ -355,34 +356,21 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
     }
 
     if (this.debugEnabled) {
-      console.log('[RN-MTLS-ADAPTER] Making mTLS request:', {
-        method: requestConfig.method,
-        url: requestConfig.url,
-        hasData: !!requestConfig.data,
-        dataInput: requestConfig.data,
-        headerCount: Object.keys(requestConfig.headers || {}).length,
-        headers: requestConfig.headers
-      });
+      console.log('[RN-MTLS-ADAPTER] Making mTLS request:', requestConfig);
     }
 
     try {
-      // Use correct API signature: request(url, options)
+      // ✅ FIXED: expo-mutual-tls v1.0.3+ supports binary responses
+      // Binary data is returned as base64-encoded string when responseType is 'blob' or 'arraybuffer'
       const response = await this.expoMTLS.request(requestConfig.url, {
         method: requestConfig.method || 'GET',
         headers: requestConfig.headers,
-        body: requestConfig.data ? JSON.stringify(requestConfig.data) : undefined
+        body: requestConfig.data ? JSON.stringify(requestConfig.data) : undefined,
+        responseType: requestConfig.responseType
       });
 
       if (this.debugEnabled) {
-        console.log('[RN-MTLS-ADAPTER] mTLS request successful:', {
-          success: response.success,
-          statusCode: response.statusCode,
-          statusMessage: response.statusMessage,
-          hasBody: !!response.body,
-          body: response.body,
-          tlsVersion: response.tlsVersion,
-          cipherSuite: response.cipherSuite
-        });
+        console.log('[RN-MTLS-ADAPTER] mTLS request successful:', response);
       }
 
       if (!response.success) {
@@ -394,13 +382,17 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
 
       // Parse response body if JSON
       let data: any = response.body;
-      try {
-        if (response.body) {
+      // only parse if responseType is 'json' or if Content-Type header indicates JSON
+      const contentType = response.headers['Content-Type'] || response.headers['content-type'] || '';
+      if (requestConfig.responseType === 'json' || contentType.includes('application/json')) {
+        try {
           data = JSON.parse(response.body);
+        } catch (parseError) {
+          if (this.debugEnabled) {
+            console.warn('[RN-MTLS-ADAPTER] Failed to parse JSON response:', parseError);
+          }
+          // If parsing fails, keep raw body
         }
-      } catch {
-        // Keep the original body if not JSON
-        data = response.body;
       }
 
       // Convert headers from string[] to string format

@@ -184,7 +184,7 @@ export class MTLSHandler {
         if (this.isDebugEnabled) {
           console.log('[MTLS-HANDLER] 🏧 CASHIER on mobile - mTLS for receipts');
         }
-        return { mode: 'mtls', usePort444: false };
+        return { mode: 'mtls', usePort444: true };
       }
       // Web cashier uses JWT with :444 port for browser certificates
       if (this.isDebugEnabled) {
@@ -203,15 +203,16 @@ export class MTLSHandler {
         return { mode: 'jwt', usePort444: false };
       }
 
-      // Receipt GET: Always JWT, no port 444
+      // Receipt GET: Always JWT, except for detailed receipt with mTLS
       if (method === 'GET') {
-        // if is detailed receipt GET (with ID) /details use mTLS on mobile, JWT+:444 on web
+        // Detailed receipt GET (with ID) /details uses mTLS on mobile, JWT+:444 on web
+        // ✅ FIXED: expo-mutual-tls v1.0.3+ supports binary responses via base64 encoding
         if (url.match(/\/receipts\/[a-f0-9\-]+\/details$/) || url.match(/\/mf1\/receipts\/[a-f0-9\-]+\/details$/)) {
           if (platform === 'mobile') {
             if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] 🏪 MERCHANT GET detailed receipt on mobile - mTLS');
+              console.log('[MTLS-HANDLER] 🏪 MERCHANT GET detailed receipt on mobile - mTLS (binary response support)');
             }
-            return { mode: 'mtls', usePort444: false };
+            return { mode: 'mtls', usePort444: true };
           } else {
             // Web platform: JWT with :444 for browser certificates
             if (this.isDebugEnabled) {
@@ -220,7 +221,7 @@ export class MTLSHandler {
             return { mode: 'jwt', usePort444: true };
           }
         }
-        
+
         if (this.isDebugEnabled) {
           console.log('[MTLS-HANDLER] 🏪 MERCHANT GET receipt - JWT');
         }
@@ -233,7 +234,7 @@ export class MTLSHandler {
           if (this.isDebugEnabled) {
             console.log('[MTLS-HANDLER] 🏪 MERCHANT modify receipt on mobile - mTLS');
           }
-          return { mode: 'mtls', usePort444: false };
+          return { mode: 'mtls', usePort444: true };
         } else {
           // Web platform: JWT with :444 for browser certificates
           if (this.isDebugEnabled) {
@@ -262,7 +263,36 @@ export class MTLSHandler {
         }
         return { mode: 'jwt', usePort444: false };
       }
-      return { mode: explicitMode, usePort444: false };
+
+      // Determine usePort444 based on explicit mode and context
+      let usePort444 = false;
+
+      if (explicitMode === 'mtls') {
+        // mTLS always needs port 444
+        usePort444 = true;
+      } else if (explicitMode === 'jwt') {
+        // JWT: check if the requesting role and resource needs browser certificates
+        if (platform === 'web' && isReceiptEndpoint) {
+          if (userRole === 'CASHIER') {
+            // CASHIER needs :444 for all receipt operations on web
+            usePort444 = true;
+          } else if (userRole === 'MERCHANT') {
+            // MERCHANT needs :444 for:
+            // 1. Detailed receipt GET (/receipts/{id}/details)
+            // 2. POST/PUT/PATCH receipt operations
+            const isDetailedReceiptGet = (method === 'GET') &&
+              !!(url.match(/\/receipts\/[a-f0-9\-]+\/details$/) || url.match(/\/mf1\/receipts\/[a-f0-9\-]+\/details$/));
+            const isReceiptMutation = ['POST', 'PUT', 'PATCH'].includes(method || '');
+
+            usePort444 = isDetailedReceiptGet || isReceiptMutation;
+          }
+        }
+      }
+
+      return {
+        mode: explicitMode,
+        usePort444
+      };
     }
 
     // Step 6: Default behavior for unknown roles
@@ -280,7 +310,7 @@ export class MTLSHandler {
       if (this.isDebugEnabled) {
         console.log('[MTLS-HANDLER] 📱 Mobile with unknown role, receipt endpoint - defaulting to mTLS');
       }
-      return { mode: 'mtls', usePort444: false };
+      return { mode: 'mtls', usePort444: true };
     }
 
     // Default to JWT for all other cases (unknown platform or non-receipt endpoints)
@@ -322,11 +352,17 @@ export class MTLSHandler {
    */
   async makeRequestMTLS<T>(
     url: string,
-    config: { method?: string; data?: any; headers?: any; timeout?: number } = {},
+    config: { method?: string; data?: any; headers?: any; timeout?: number; responseType?: 'json' | 'blob' | 'arraybuffer' | 'text' } = {},
     certificateOverride?: CertificateData,
     jwtToken?: string,
     isRetryAttempt: boolean = false
   ): Promise<T> {
+    if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] Making mTLS request:', {
+          config,
+          url
+        });
+      }
     // Generate request key for deduplication (only for non-retry attempts)
     const requestKey = !isRetryAttempt ? this.generateRequestKey(url, config, jwtToken) : null;
 
@@ -369,7 +405,7 @@ export class MTLSHandler {
    */
   private async executeRequestMTLS<T>(
     url: string,
-    config: { method?: string; data?: any; headers?: any; timeout?: number } = {},
+    config: { method?: string; data?: any; headers?: any; timeout?: number; responseType?: 'json' | 'blob' | 'arraybuffer' | 'text' } = {},
     certificateOverride?: CertificateData,
     jwtToken?: string,
     isRetryAttempt: boolean = false
@@ -398,15 +434,16 @@ export class MTLSHandler {
         url,
         hasData: !!config.data,
         isRetryAttempt,
-        approach: 'retry-on-failure'
+        approach: 'retry-on-failure',
+        responseType: config.responseType
       });
     }
 
     try {
       // Prepare headers including JWT Authorization if available
       const headers: Record<string, string> = {
+        ...(config.method !== 'GET' && config.data ? { 'Content-Type': 'application/json' } : {}),
         ...(config.headers || {}),
-        ...(config.method !== 'GET' && config.data ? { 'Content-Type': 'application/json' } : {})
       };
 
       // Include JWT Authorization header if available
@@ -423,11 +460,12 @@ export class MTLSHandler {
         method: (config.method || 'GET') as any,
         headers,
         data: config.data,
-        timeout: config.timeout
+        timeout: config.timeout,
+        responseType: config.responseType
       };
 
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] mTLS request config:', JSON.stringify(mtlsConfig, undefined, 2));
+        console.log('[MTLS-HANDLER] mTLS request config:', mtlsConfig);
       }
 
       const response = await this.mtlsAdapter.request<T>(mtlsConfig);
@@ -436,6 +474,7 @@ export class MTLSHandler {
         console.log('[MTLS-HANDLER] mTLS request successful:', {
           status: response.status,
           hasData: !!response.data,
+          response: response,
           isRetryAttempt
         });
       }

@@ -27,7 +27,7 @@ export interface UseReceiptsReturn {
   voidReceipt: (voidData: ReceiptReturnOrVoidViaPEMInput) => Promise<boolean>;
   returnReceipt: (returnData: ReceiptReturnOrVoidViaPEMInput) => Promise<ReceiptOutput | null>;
   getReceipt: (receiptUuid: string) => Promise<ReceiptOutput | null>;
-  getReceiptDetails: (receiptUuid: string, format?: 'json' | 'pdf') => Promise<ReceiptDetailsOutput | Blob | null>;
+  getReceiptDetails: (receiptUuid: string, format?: 'json' | 'pdf') => Promise<ReceiptDetailsOutput | string | null>;
   refreshReceipts: (forceRefresh?: boolean) => Promise<void>;
   clearError: () => void;
 }
@@ -194,7 +194,7 @@ export function useReceipts({ serialNumber }: UseReceiptsParams): UseReceiptsRet
   const getReceiptDetails = useCallback(async (
     receiptUuid: string, 
     format: 'json' | 'pdf' = 'json'
-  ): Promise<ReceiptDetailsOutput | Blob | null> => {
+  ): Promise<ReceiptDetailsOutput | string | null> => {
     if (!sdk || !isOnline) {
       return null;
     }

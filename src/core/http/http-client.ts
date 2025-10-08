@@ -178,6 +178,41 @@ export class HttpClient {
   }
 
   /**
+   * Extract mTLS-compatible config from HttpRequestConfig
+   */
+  private extractMTLSConfig(config?: HttpRequestConfig): {
+    method?: string;
+    data?: any;
+    headers?: any;
+    timeout?: number;
+    responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
+  } {
+    if (!config) return {};
+
+    const mtlsConfig: {
+      method?: string;
+      data?: any;
+      headers?: any;
+      timeout?: number;
+      responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
+    } = {};
+
+    if (config.method) mtlsConfig.method = config.method;
+    if (config.data) mtlsConfig.data = config.data;
+    if (config.headers) mtlsConfig.headers = config.headers;
+    if (config.timeout) mtlsConfig.timeout = config.timeout;
+
+    // Only pass supported responseType values
+    if (config.responseType && ['json', 'blob', 'arraybuffer', 'text'].includes(config.responseType)) {
+      mtlsConfig.responseType = config.responseType as 'json' | 'blob' | 'arraybuffer' | 'text';
+    }
+
+    console.log('[HTTP-CLIENT] Extracted mTLS config:', mtlsConfig);
+
+    return mtlsConfig;
+  }
+
+  /**
    * Get current network status
    */
   getNetworkStatus(): { isOnline: boolean; hasMonitor: boolean } {
@@ -201,12 +236,13 @@ export class HttpClient {
     const authConfig = await this.mtlsHandler.determineAuthConfig(url, config?.authMode, 'GET');
     const client = await this.createClient(authConfig.usePort444, true);
 
-    // Try mTLS first if needed
-    if (authConfig.mode === 'mtls' || authConfig.mode === 'auto') {
+    // Only try mTLS if explicitly required
+    if (authConfig.mode === 'mtls') {
       try {
+        const mtlsConfig = this.extractMTLSConfig(config);
         return await this.mtlsHandler.makeRequestMTLS<T>(
           url,
-          { ...config, method: 'GET' },
+          { ...mtlsConfig, method: 'GET' },
           undefined,
           this.client.defaults.headers.common['Authorization'] as string
         );
@@ -215,7 +251,7 @@ export class HttpClient {
           console.warn('[HTTP-CLIENT] mTLS GET failed:', error);
         }
 
-        if (authConfig.mode === 'mtls' && config?.noFallback) {
+        if (config?.noFallback) {
           throw error;
         }
       }
@@ -225,7 +261,8 @@ export class HttpClient {
     if (this._isDebugEnabled) {
       console.log('[HTTP-CLIENT] Using JWT for GET:', {
         url,
-        usePort444: authConfig.usePort444
+        usePort444: authConfig.usePort444,
+        authMode: authConfig.mode
       });
     }
 
@@ -250,12 +287,13 @@ export class HttpClient {
 
     let result: T;
 
-    // Try mTLS first if needed
-    if (authConfig.mode === 'mtls' || authConfig.mode === 'auto') {
+    // Only try mTLS if explicitly required
+    if (authConfig.mode === 'mtls') {
       try {
+        const mtlsConfig = this.extractMTLSConfig(config);
         result = await this.mtlsHandler.makeRequestMTLS<T>(
           url,
-          { ...config, method: 'POST', data: cleanedData },
+          { ...mtlsConfig, method: 'POST', data: cleanedData },
           undefined,
           this.client.defaults.headers.common['Authorization'] as string
         );
@@ -266,7 +304,7 @@ export class HttpClient {
           console.warn('[HTTP-CLIENT] mTLS POST failed:', error);
         }
 
-        if (authConfig.mode === 'mtls' && config?.noFallback) {
+        if (config?.noFallback) {
           throw error;
         }
       }
@@ -276,7 +314,8 @@ export class HttpClient {
     if (this._isDebugEnabled) {
       console.log('[HTTP-CLIENT] Using JWT for POST:', {
         url,
-        usePort444: authConfig.usePort444
+        usePort444: authConfig.usePort444,
+        authMode: authConfig.mode
       });
     }
 
@@ -304,12 +343,13 @@ export class HttpClient {
 
     let result: T;
 
-    // Try mTLS first if needed
-    if (authConfig.mode === 'mtls' || authConfig.mode === 'auto') {
+    // Only try mTLS if explicitly required
+    if (authConfig.mode === 'mtls') {
       try {
+        const mtlsConfig = this.extractMTLSConfig(config);
         result = await this.mtlsHandler.makeRequestMTLS<T>(
           url,
-          { ...config, method: 'PUT', data: cleanedData },
+          { ...mtlsConfig, method: 'PUT', data: cleanedData },
           undefined,
           this.client.defaults.headers.common['Authorization'] as string
         );
@@ -320,7 +360,7 @@ export class HttpClient {
           console.warn('[HTTP-CLIENT] mTLS PUT failed:', error);
         }
 
-        if (authConfig.mode === 'mtls' && config?.noFallback) {
+        if (config?.noFallback) {
           throw error;
         }
       }
@@ -330,7 +370,8 @@ export class HttpClient {
     if (this._isDebugEnabled) {
       console.log('[HTTP-CLIENT] Using JWT for PUT:', {
         url,
-        usePort444: authConfig.usePort444
+        usePort444: authConfig.usePort444,
+        authMode: authConfig.mode
       });
     }
 
@@ -353,12 +394,13 @@ export class HttpClient {
 
     let result: T;
 
-    // Try mTLS first if needed
-    if (authConfig.mode === 'mtls' || authConfig.mode === 'auto') {
+    // Only try mTLS if explicitly required
+    if (authConfig.mode === 'mtls') {
       try {
+        const mtlsConfig = this.extractMTLSConfig(config);
         result = await this.mtlsHandler.makeRequestMTLS<T>(
           url,
-          { ...config, method: 'DELETE' },
+          { ...mtlsConfig, method: 'DELETE' },
           undefined,
           this.client.defaults.headers.common['Authorization'] as string
         );
@@ -369,7 +411,7 @@ export class HttpClient {
           console.warn('[HTTP-CLIENT] mTLS DELETE failed:', error);
         }
 
-        if (authConfig.mode === 'mtls' && config?.noFallback) {
+        if (config?.noFallback) {
           throw error;
         }
       }
@@ -379,7 +421,8 @@ export class HttpClient {
     if (this._isDebugEnabled) {
       console.log('[HTTP-CLIENT] Using JWT for DELETE:', {
         url,
-        usePort444: authConfig.usePort444
+        usePort444: authConfig.usePort444,
+        authMode: authConfig.mode
       });
     }
 
@@ -400,12 +443,13 @@ export class HttpClient {
     const authConfig = await this.mtlsHandler.determineAuthConfig(url, config?.authMode, 'PATCH');
     const client = await this.createClient(authConfig.usePort444, true);
 
-    // Try mTLS first if needed
-    if (authConfig.mode === 'mtls' || authConfig.mode === 'auto') {
+    // Only try mTLS if explicitly required
+    if (authConfig.mode === 'mtls') {
       try {
+        const mtlsConfig = this.extractMTLSConfig(config);
         return await this.mtlsHandler.makeRequestMTLS<T>(
           url,
-          { ...config, method: 'PATCH', data },
+          { ...mtlsConfig, method: 'PATCH', data },
           undefined,
           this.client.defaults.headers.common['Authorization'] as string
         );
@@ -414,7 +458,7 @@ export class HttpClient {
           console.warn('[HTTP-CLIENT] mTLS PATCH failed:', error);
         }
 
-        if (authConfig.mode === 'mtls' && config?.noFallback) {
+        if (config?.noFallback) {
           throw error;
         }
       }
@@ -424,7 +468,8 @@ export class HttpClient {
     if (this._isDebugEnabled) {
       console.log('[HTTP-CLIENT] Using JWT for PATCH:', {
         url,
-        usePort444: authConfig.usePort444
+        usePort444: authConfig.usePort444,
+        authMode: authConfig.mode
       });
     }
 
