@@ -20,7 +20,7 @@ The ACube E-Receipt SDK includes a comprehensive role management system that pro
 
 ### Core Concepts
 
-- **Roles**: Defined permissions that users can have (ROLE_SUPPLIER, ROLE_CACHIER, ROLE_MERCHANT)
+- **Roles**: Defined permissions that users can have (ROLE_SUPPLIER, ROLE_CASHIER, ROLE_MERCHANT)
 - **Contexts**: Different environments or systems where roles apply (e.g., 'ereceipts-it.acubeapi.com')
 - **Inheritance**: Higher-level roles automatically inherit permissions from lower-level roles
 - **Type Safety**: Full TypeScript support for compile-time role validation
@@ -29,7 +29,7 @@ The ACube E-Receipt SDK includes a comprehensive role management system that pro
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   ROLE_SUPPLIER │    │   ROLE_CACHIER  │    │  ROLE_MERCHANT  │
+│   ROLE_SUPPLIER │    │   ROLE_CASHIER  │    │  ROLE_MERCHANT  │
 │   (Level 1)     │    │   (Level 2)     │    │   (Level 3)     │
 │                 │    │                 │    │        │        │
 │   - Basic ops   │    │   - Cash ops    │    │   - Management  │
@@ -39,7 +39,7 @@ The ACube E-Receipt SDK includes a comprehensive role management system that pro
                                                      │
                                            ┌─────────▼───────────┐
                                            │    Inherits from    │
-                                           │   ROLE_CACHIER      │
+                                           │   ROLE_CASHIER      │
                                            └─────────────────────┘
 ```
 
@@ -52,7 +52,7 @@ Defines the available roles in the system:
 ```typescript
 export type BaseRole = 
   | 'ROLE_SUPPLIER'
-  | 'ROLE_CACHIER'
+  | 'ROLE_CASHIER'
   | 'ROLE_MERCHANT';
 ```
 
@@ -87,7 +87,7 @@ Enumeration defining permission levels:
 ```typescript
 export enum RoleLevel {
   SUPPLIER = 1,
-  CACHIER = 2,
+  CASHIER = 2,
   MERCHANT = 3,
 }
 ```
@@ -101,8 +101,8 @@ The role system follows a hierarchical structure where higher roles inherit perm
 ```typescript
 export const ROLE_HIERARCHY: RoleHierarchy = {
   ROLE_SUPPLIER: [],                    // No inheritance
-  ROLE_CACHIER: [],                     // No inheritance
-  ROLE_MERCHANT: ['ROLE_CACHIER'],      // Inherits ROLE_CACHIER
+  ROLE_CASHIER: [],                     // No inheritance
+  ROLE_MERCHANT: ['ROLE_CASHIER'],      // Inherits ROLE_CASHIER
 };
 ```
 
@@ -111,8 +111,8 @@ export const ROLE_HIERARCHY: RoleHierarchy = {
 | Role | Level | Permissions | Inherits From |
 |------|-------|-------------|---------------|
 | ROLE_SUPPLIER | 1 | Basic operations, view data | None |
-| ROLE_CACHIER | 2 | Cash operations, receipt management | None |
-| ROLE_MERCHANT | 3 | Store management, all cash operations | ROLE_CACHIER |
+| ROLE_CASHIER | 2 | Cash operations, receipt management | None |
+| ROLE_MERCHANT | 3 | Store management, all cash operations | ROLE_CASHIER |
 
 ## Current Implementation Scope
 
@@ -179,7 +179,7 @@ const userRoles: UserRoles = {
 };
 
 hasRole(userRoles, 'ROLE_MERCHANT'); // true
-hasRole(userRoles, 'ROLE_CACHIER');  // true (inherited)
+hasRole(userRoles, 'ROLE_CASHIER');  // true (inherited)
 hasRole(userRoles, 'ROLE_SUPPLIER'); // false
 ```
 
@@ -220,7 +220,7 @@ const multiRoleUser: UserRoles = {
 };
 
 hasAllRoles(multiRoleUser, ['ROLE_MERCHANT', 'ROLE_SUPPLIER']); // true
-hasAllRoles(multiRoleUser, ['ROLE_MERCHANT', 'ROLE_CACHIER']);  // true (inherited)
+hasAllRoles(multiRoleUser, ['ROLE_MERCHANT', 'ROLE_CASHIER']);  // true (inherited)
 ```
 
 #### hasContext(userRoles, context)
@@ -258,7 +258,7 @@ function hasMinimumRoleLevel(
 
 **Example:**
 ```typescript
-hasMinimumRoleLevel(userRoles, RoleLevel.CACHIER); // true (merchant >= cashier)
+hasMinimumRoleLevel(userRoles, RoleLevel.CASHIER); // true (merchant >= cashier)
 hasMinimumRoleLevel(userRoles, RoleLevel.SUPPLIER); // true
 ```
 
@@ -332,7 +332,7 @@ export const ERoleChecker = createContextRoleChecker(DEFAULT_CONTEXT);
 
 // Usage
 ERoleChecker.hasRole(userRoles, 'ROLE_MERCHANT'); // true
-ERoleChecker.hasAnyRole(userRoles, ['ROLE_CACHIER', 'ROLE_MERCHANT']); // true
+ERoleChecker.hasAnyRole(userRoles, ['ROLE_CASHIER', 'ROLE_MERCHANT']); // true
 ```
 
 ### Role Groups
@@ -341,7 +341,7 @@ Pre-defined role combinations for common use cases:
 
 ```typescript
 export const RoleGroups = {
-  CASHIER_ROLES: ['ROLE_CACHIER', 'ROLE_MERCHANT'] as BaseRole[],
+  CASHIER_ROLES: ['ROLE_CASHIER', 'ROLE_MERCHANT'] as BaseRole[],
   ALL_ROLES: Object.keys(ROLE_HIERARCHY) as BaseRole[],
 } as const;
 ```
@@ -382,7 +382,7 @@ function requiresRole(roles: BaseRole[], context?: RoleContext): MethodDecorator
 **Example:**
 ```typescript
 class ReceiptService {
-  @requiresRole(['ROLE_CACHIER'])
+  @requiresRole(['ROLE_CASHIER'])
   createReceipt(user: User, data: any) {
     // Method implementation
   }
@@ -411,12 +411,12 @@ if (hasRole(userRoles, 'ROLE_MERCHANT')) {
 }
 
 // Check inherited role
-if (hasRole(userRoles, 'ROLE_CACHIER')) {
+if (hasRole(userRoles, 'ROLE_CASHIER')) {
   console.log('User can operate cash register');
 }
 
 // Check multiple roles
-if (hasAnyRole(userRoles, ['ROLE_CACHIER', 'ROLE_MERCHANT'])) {
+if (hasAnyRole(userRoles, ['ROLE_CASHIER', 'ROLE_MERCHANT'])) {
   console.log('User can handle receipts');
 }
 ```
@@ -493,8 +493,8 @@ function authorizeAPIEndpoint(
 ): boolean {
   const endpointPermissions: Record<string, Record<string, BaseRole[]>> = {
     '/api/receipts': {
-      'GET': ['ROLE_CACHIER'],
-      'POST': ['ROLE_CACHIER'],
+      'GET': ['ROLE_CASHIER'],
+      'POST': ['ROLE_CASHIER'],
       'PUT': ['ROLE_MERCHANT'],
       'DELETE': ['ROLE_MERCHANT'],
     },
@@ -571,7 +571,7 @@ function useUserPermissions() {
     canVoidReceipts: hasRole(user.roles, 'ROLE_MERCHANT'),
     canManageStore: hasRole(user.roles, 'ROLE_MERCHANT'),
     isSupplier: hasRole(user.roles, 'ROLE_SUPPLIER'),
-    isCashier: hasRole(user.roles, 'ROLE_CACHIER'),
+    isCashier: hasRole(user.roles, 'ROLE_CASHIER'),
     isMerchant: hasRole(user.roles, 'ROLE_MERCHANT'),
   };
 }
@@ -609,7 +609,7 @@ function requireRole(roles: BaseRole | BaseRole[], requireAll = false) {
 }
 
 // Usage
-app.post('/api/receipts', requireRole('ROLE_CACHIER'), createReceipt);
+app.post('/api/receipts', requireRole('ROLE_CASHIER'), createReceipt);
 app.delete('/api/receipts/:id', requireRole('ROLE_MERCHANT'), voidReceipt);
 app.get('/api/reports', requireRole(['ROLE_MERCHANT']), generateReport);
 ```
@@ -660,11 +660,11 @@ Take advantage of role inheritance instead of checking multiple roles:
 ```typescript
 // ✅ Good - Use inheritance
 if (hasRole(user.roles, 'ROLE_MERCHANT')) {
-  // This automatically includes ROLE_CACHIER permissions
+  // This automatically includes ROLE_CASHIER permissions
 }
 
 // ❌ Less optimal - Manual checking
-if (hasRole(user.roles, 'ROLE_MERCHANT') || hasRole(user.roles, 'ROLE_CACHIER')) {
+if (hasRole(user.roles, 'ROLE_MERCHANT') || hasRole(user.roles, 'ROLE_CASHIER')) {
   // Redundant check
 }
 ```
@@ -676,7 +676,7 @@ if (hasRole(user.roles, 'ROLE_MERCHANT') || hasRole(user.roles, 'ROLE_CACHIER'))
 hasAnyRole(user.roles, RoleGroups.CASHIER_ROLES);
 
 // ❌ Less maintainable - Manual arrays
-hasAnyRole(user.roles, ['ROLE_CACHIER', 'ROLE_MERCHANT']);
+hasAnyRole(user.roles, ['ROLE_CASHIER', 'ROLE_MERCHANT']);
 ```
 
 ### 4. Context-Specific Checkers
@@ -812,7 +812,7 @@ When building APIs, use consistent error responses:
     "message": "Merchant role required to void receipts",
     "details": {
       "required_roles": ["ROLE_MERCHANT"],
-      "user_roles": ["ROLE_CACHIER"],
+      "user_roles": ["ROLE_CASHIER"],
       "context": "ereceipts-it.acubeapi.com"
     }
   }
@@ -830,7 +830,7 @@ Always validate roles on the server side, even if client-side checks are in plac
 app.post('/api/receipts', (req, res) => {
   const user = getAuthenticatedUser(req);
   
-  if (!hasRole(user.roles, 'ROLE_CACHIER')) {
+  if (!hasRole(user.roles, 'ROLE_CASHIER')) {
     return res.status(403).json({ error: 'Insufficient permissions' });
   }
   

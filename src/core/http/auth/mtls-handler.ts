@@ -136,7 +136,7 @@ export class MTLSHandler {
             userRole = 'SUPPLIER';
           } else if (hasRole(currentUser.roles, 'ROLE_MERCHANT')) {
             userRole = 'MERCHANT';
-          } else if (hasRole(currentUser.roles, 'ROLE_CACHIER')) {
+          } else if (hasRole(currentUser.roles, 'ROLE_CASHIER')) {
             userRole = 'CASHIER';
           }
         }

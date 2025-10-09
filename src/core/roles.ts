@@ -8,7 +8,7 @@
 // Base role definitions
 export type BaseRole = 
   | 'ROLE_SUPPLIER'
-  | 'ROLE_CACHIER'
+  | 'ROLE_CASHIER'
   | 'ROLE_MERCHANT' 
 
 // Context definitions
@@ -26,8 +26,8 @@ export type UserRoles = Partial<Record<RoleContext, BaseRole[]>>;
  */
 export const ROLE_HIERARCHY: RoleHierarchy = {
   ROLE_SUPPLIER: [],
-  ROLE_CACHIER: [],
-  ROLE_MERCHANT: ['ROLE_CACHIER'],
+  ROLE_CASHIER: [],
+  ROLE_MERCHANT: ['ROLE_CASHIER'],
 };
 
 /**
@@ -40,7 +40,7 @@ export const DEFAULT_CONTEXT: RoleContext = 'ereceipts-it.acubeapi.com';
  */
 export enum RoleLevel {
   SUPPLIER = 1,
-  CACHIER = 2,
+  CASHIER = 2,
   MERCHANT = 3,
 }
 
@@ -49,7 +49,7 @@ export enum RoleLevel {
  */
 export const ROLE_LEVELS: Record<BaseRole, RoleLevel> = {
   ROLE_SUPPLIER: RoleLevel.SUPPLIER,
-  ROLE_CACHIER: RoleLevel.CACHIER,
+  ROLE_CASHIER: RoleLevel.CASHIER,
   ROLE_MERCHANT: RoleLevel.MERCHANT,
 };
 
@@ -335,6 +335,6 @@ export const ERoleChecker = createContextRoleChecker(DEFAULT_CONTEXT);
  * Common role combinations for quick checking
  */
 export const RoleGroups = {
-  CASHIER_ROLES: ['ROLE_CACHIER', 'ROLE_MERCHANT'] as BaseRole[],
+  CASHIER_ROLES: ['ROLE_CASHIER', 'ROLE_MERCHANT'] as BaseRole[],
   ALL_ROLES: Object.keys(ROLE_HIERARCHY) as BaseRole[],
 } as const;
