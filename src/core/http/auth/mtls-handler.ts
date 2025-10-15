@@ -15,10 +15,19 @@ import { hasRole } from '../../roles';
 export type AuthMode = 'jwt' | 'mtls' | 'auto';
 
 /**
+ * Authentication configuration with port 444 support for browser certificates
+ */
+export interface AuthConfig {
+  mode: AuthMode;
+  usePort444: boolean; // For web platform browser certificate usage
+}
+
+/**
  * mTLS Handler for certificate selection and mTLS requests
  */
 export class MTLSHandler {
   private isDebugEnabled: boolean = false;
+  private pendingRequests = new Map<string, Promise<any>>();
 
   constructor(
     private mtlsAdapter: IMTLSAdapter | null,
@@ -60,213 +69,346 @@ export class MTLSHandler {
   }
 
   /**
-   * Check if mTLS is ready for requests (self-healing after app restart)
+   * Check if mTLS is ready for requests (simplified approach)
    *
-   * Enhanced logic to handle expo-mutual-tls state management:
-   * - Certificate data persists in iOS keychain (survives app restart)
-   * - Service configuration is in-memory only (lost on app restart)
-   * - hasCertificate() only checks data, not configuration
-   * - Must test actual configuration to detect app restart scenario
+   * New approach: Only check if certificate exists in storage.
+   * No pre-flight validation or test connection.
+   * Let makeRequestMTLS() handle configuration and retry on failure.
    */
   async isMTLSReady(): Promise<boolean> {
-    if (!this.mtlsAdapter || !this.certificateManager) return false;
+    if (!this.mtlsAdapter || !this.certificateManager) {
+      return false;
+    }
 
     try {
-      // Check if certificate exists in Certificate Manager (SDK storage)
-      const hasCertificateInStorage = await this.certificateManager.hasCertificate();
+      const hasCertificate = await this.certificateManager.hasCertificate();
 
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] 📋 Certificate storage check:', { hasCertificateInStorage });
+        console.log('[MTLS-HANDLER] ✅ mTLS readiness check:', {
+          hasCertificate,
+          approach: 'certificate-existence-only'
+        });
       }
 
-      if (!hasCertificateInStorage) {
-        if (this.isDebugEnabled) {
-          console.log('[MTLS-HANDLER] ❌ No certificate in storage - mTLS not ready');
-        }
-        return false;
-      }
-
-      // Test if mTLS configuration actually works (not just if data exists)
-      // This is critical because expo-mutual-tls has two types of state:
-      // 1. Certificate data (persists in keychain)
-      // 2. Service configuration (lost on app restart)
-      if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] 🔍 Testing mTLS configuration...');
-      }
-
-      let configurationWorks = false;
-      try {
-        configurationWorks = await this.mtlsAdapter.testConnection();
-        if (this.isDebugEnabled) {
-          console.log('[MTLS-HANDLER] 🧪 Configuration test result:', { configurationWorks });
-        }
-      } catch (testError) {
-        if (this.isDebugEnabled) {
-          console.warn('[MTLS-HANDLER] ⚠️ Configuration test failed:', testError);
-        }
-        configurationWorks = false;
-      }
-
-      // If certificate exists in storage but configuration doesn't work (app restart scenario)
-      if (!configurationWorks) {
-        if (this.isDebugEnabled) {
-          console.log('[MTLS-HANDLER] 🔄 Auto-configuration needed: certificate data exists but service configuration lost');
-        }
-
-        try {
-          // Get certificate from storage and reconfigure the adapter
-          if (this.isDebugEnabled) {
-            console.log('[MTLS-HANDLER] 📄 Retrieving certificate from storage...');
-          }
-
-          const certificate = await this.certificateManager.getCertificate();
-          if (certificate) {
-            if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] 📄 Certificate retrieved, converting to adapter format...');
-            }
-
-            const certificateData = this.certificateToData(certificate);
-
-            if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] ⚙️ Reconfiguring certificate in mTLS adapter...', {
-                format: certificateData.format,
-                certificateLength: certificateData.certificate.length,
-                privateKeyLength: certificateData.privateKey.length
-              });
-            }
-
-            // This will do both service configuration AND data storage
-            await this.mtlsAdapter.configureCertificate(certificateData);
-
-            if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] ✅ Successfully auto-configured certificate after app restart');
-            }
-
-            // Verify the configuration now works
-            /* try {
-              const retestResult = await this.mtlsAdapter.testConnection();
-              if (this.isDebugEnabled) {
-                console.log('[MTLS-HANDLER] 🧪 Post-configuration test result:', { retestResult });
-              }
-              return retestResult;
-            } catch (retestError) {
-              if (this.isDebugEnabled) {
-                console.error('[MTLS-HANDLER] ❌ Post-configuration test failed:', retestError);
-              }
-              return false;
-            } */
-           // TODO: Temporarily skip retest to avoid double testConnection calls
-           return true; // Assume success if no error thrown
-          } else {
-            if (this.isDebugEnabled) {
-              console.error('[MTLS-HANDLER] ❌ Certificate retrieved but is null/empty');
-            }
-            return false;
-          }
-        } catch (configError) {
-          if (this.isDebugEnabled) {
-            console.error('[MTLS-HANDLER] ❌ Failed to auto-configure certificate:', configError);
-          }
-          return false;
-        }
-      }
-
-      // Configuration works, mTLS is ready
-      if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] ✅ mTLS is ready and properly configured');
-      }
-
-      return true;
+      return hasCertificate;
     } catch (error) {
       if (this.isDebugEnabled) {
-        console.error('[MTLS-HANDLER] ❌ mTLS ready check failed:', error);
+        console.error('[MTLS-HANDLER] ❌ mTLS readiness check failed:', error);
       }
       return false;
     }
   }
 
   /**
-   * Determine authentication mode for a request
+   * Determine authentication configuration for a request
    *
-   * Enhanced with role-based authentication:
-   * - Supplier users (ROLE_SUPPLIER) are restricted to JWT-only authentication
-   * - Other users follow URL-based logic for mTLS on receipt endpoints
+   * Authentication Matrix:
+   * - SUPPLIER: JWT only (all platforms, all resources)
+   * - MERCHANT: JWT for non-receipts, GET receipts; mTLS for POST/PUT/PATCH receipts on mobile; JWT+:444 for POST/PUT/PATCH receipts on web
+   * - CASHIER: mTLS on mobile, JWT+:444 on web (receipts only)
+   * - Web Platform: Always JWT, but uses :444 port for browser certificates when needed
    */
-  async determineAuthMode(url: string, explicitMode?: AuthMode): Promise<AuthMode> {
-    // Check if current user is a Supplier (ROLE_SUPPLIER users must use JWT only)
+  async determineAuthConfig(url: string, explicitMode?: AuthMode, method?: string): Promise<AuthConfig> {
+    // Step 1: Detect platform (web always uses JWT)
+    let platform: 'web' | 'mobile' | 'unknown' = 'unknown';
+    if (this.mtlsAdapter) {
+      try {
+        const platformInfo = this.mtlsAdapter.getPlatformInfo();
+        platform = platformInfo.platform === 'web' ? 'web' : 'mobile';
+      } catch (error) {
+        if (this.isDebugEnabled) {
+          console.warn('[MTLS-HANDLER] ⚠️ Platform detection failed, defaulting to web:', error);
+        }
+        platform = 'web'; // Default to web (JWT) for safety
+      }
+    } else {
+      platform = 'web'; // No adapter means web platform
+    }
+
+    // Step 2: Get user role
+    let userRole: string | null = null;
     if (this.userProvider) {
       try {
         const currentUser = await this.userProvider.getCurrentUser();
-        if (currentUser) {
-          const isSupplier = hasRole(currentUser.roles, 'ROLE_SUPPLIER');
-
-          if (isSupplier) {
-            if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] 🚫 Supplier user detected - enforcing JWT-only authentication');
-            }
-            return 'jwt';
-          }
-
-          if (this.isDebugEnabled) {
-            console.log('[MTLS-HANDLER] 👤 User role check:', {
-              userId: currentUser.id,
-              username: currentUser.username,
-              isSupplier,
-              roles: currentUser.roles
-            });
+        if (currentUser && currentUser.roles) {
+          // Identify primary role
+          if (hasRole(currentUser.roles, 'ROLE_SUPPLIER')) {
+            userRole = 'SUPPLIER';
+          } else if (hasRole(currentUser.roles, 'ROLE_MERCHANT')) {
+            userRole = 'MERCHANT';
+          } else if (hasRole(currentUser.roles, 'ROLE_CASHIER')) {
+            userRole = 'CASHIER';
           }
         }
       } catch (error) {
         if (this.isDebugEnabled) {
-          console.warn('[MTLS-HANDLER] ⚠️ Failed to get current user for role-based auth decision:', error);
+          console.warn('[MTLS-HANDLER] ⚠️ Failed to get user role:', error);
         }
-        // Continue with URL-based logic if user check fails
       }
     }
 
-    // Explicit mode specified (overrides URL-based logic but not role restrictions)
+    // Step 3: Determine if this is a receipt endpoint
+    const isReceiptEndpoint = url.includes('/receipts') || url.includes('/mf1/receipts');
+
+    if (this.isDebugEnabled) {
+      console.log('[MTLS-HANDLER] 🔍 Auth decision factors:', {
+        platform,
+        userRole,
+        isReceiptEndpoint,
+        method: method || 'unknown',
+        url
+      });
+    }
+
+    // Step 4: Apply authentication matrix
+
+    // SUPPLIER: Always JWT, no port 444 needed
+    if (userRole === 'SUPPLIER') {
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] 👤 SUPPLIER role - JWT only');
+      }
+      return { mode: 'jwt', usePort444: false };
+    }
+
+    // CASHIER: Can only access receipts
+    if (userRole === 'CASHIER') {
+      if (!isReceiptEndpoint) {
+        if (this.isDebugEnabled) {
+          console.warn('[MTLS-HANDLER] ❌ CASHIER trying to access non-receipt endpoint');
+        }
+        // Cashiers can only access receipts - force JWT to let server reject
+        return { mode: 'jwt', usePort444: false };
+      }
+      // Mobile cashier uses mTLS for receipts
+      if (platform === 'mobile') {
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] 🏧 CASHIER on mobile - mTLS for receipts');
+        }
+        return { mode: 'mtls', usePort444: true };
+      }
+      // Web cashier uses JWT with :444 port for browser certificates
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] 🏧 CASHIER on web - JWT with :444 for browser certificates');
+      }
+      return { mode: 'jwt', usePort444: true };
+    }
+
+    // MERCHANT: Complex rules
+    if (userRole === 'MERCHANT') {
+      // Non-receipt resources: Always JWT, no port 444
+      if (!isReceiptEndpoint) {
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] 🏪 MERCHANT accessing non-receipt - JWT');
+        }
+        return { mode: 'jwt', usePort444: false };
+      }
+
+      // Receipt GET: Always JWT, except for detailed receipt with mTLS
+      if (method === 'GET') {
+        // Detailed receipt GET (with ID) /details uses mTLS on mobile, JWT+:444 on web
+        // ✅ FIXED: expo-mutual-tls v1.0.3+ supports binary responses via base64 encoding
+        if (url.match(/\/receipts\/[a-f0-9\-]+\/details$/) || url.match(/\/mf1\/receipts\/[a-f0-9\-]+\/details$/)) {
+          if (platform === 'mobile') {
+            if (this.isDebugEnabled) {
+              console.log('[MTLS-HANDLER] 🏪 MERCHANT GET detailed receipt on mobile - mTLS (binary response support)');
+            }
+            return { mode: 'mtls', usePort444: true };
+          } else {
+            // Web platform: JWT with :444 for browser certificates
+            if (this.isDebugEnabled) {
+              console.log('[MTLS-HANDLER] 🏪 MERCHANT GET detailed receipt on web - JWT with :444 for browser certificates');
+            }
+            return { mode: 'jwt', usePort444: true };
+          }
+        }
+
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] 🏪 MERCHANT GET receipt - JWT');
+        }
+        return { mode: 'jwt', usePort444: false };
+      }
+
+      // Receipt POST/PUT/PATCH
+      if (['POST', 'PUT', 'PATCH'].includes(method || '')) {
+        if (platform === 'mobile') {
+          if (this.isDebugEnabled) {
+            console.log('[MTLS-HANDLER] 🏪 MERCHANT modify receipt on mobile - mTLS');
+          }
+          return { mode: 'mtls', usePort444: true };
+        } else {
+          // Web platform: JWT with :444 for browser certificates
+          if (this.isDebugEnabled) {
+            console.log('[MTLS-HANDLER] 🏪 MERCHANT modify receipt on web - JWT with :444 for browser certificates');
+          }
+          return { mode: 'jwt', usePort444: true };
+        }
+      }
+
+      // All other MERCHANT cases: JWT
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] 🏪 MERCHANT default - JWT');
+      }
+      return { mode: 'jwt', usePort444: false };
+    }
+
+    // Step 5: Handle explicit mode override (if allowed)
     if (explicitMode) {
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] Using explicit auth mode:', explicitMode);
+        console.log('[MTLS-HANDLER] ⚠️ Explicit auth mode requested:', explicitMode);
       }
-      return explicitMode;
+      // Security: Don't allow overriding SUPPLIER to mTLS
+      if (userRole === 'SUPPLIER' && explicitMode === 'mtls') {
+        if (this.isDebugEnabled) {
+          console.warn('[MTLS-HANDLER] ❌ Blocking mTLS override for SUPPLIER');
+        }
+        return { mode: 'jwt', usePort444: false };
+      }
+
+      // Determine usePort444 based on explicit mode and context
+      let usePort444 = false;
+
+      if (explicitMode === 'mtls') {
+        // mTLS always needs port 444
+        usePort444 = true;
+      } else if (explicitMode === 'jwt') {
+        // JWT: check if the requesting role and resource needs browser certificates
+        if (platform === 'web' && isReceiptEndpoint) {
+          if (userRole === 'CASHIER') {
+            // CASHIER needs :444 for all receipt operations on web
+            usePort444 = true;
+          } else if (userRole === 'MERCHANT') {
+            // MERCHANT needs :444 for:
+            // 1. Detailed receipt GET (/receipts/{id}/details)
+            // 2. POST/PUT/PATCH receipt operations
+            const isDetailedReceiptGet = (method === 'GET') &&
+              !!(url.match(/\/receipts\/[a-f0-9\-]+\/details$/) || url.match(/\/mf1\/receipts\/[a-f0-9\-]+\/details$/));
+            const isReceiptMutation = ['POST', 'PUT', 'PATCH'].includes(method || '');
+
+            usePort444 = isDetailedReceiptGet || isReceiptMutation;
+          }
+        }
+      }
+
+      return {
+        mode: explicitMode,
+        usePort444
+      };
     }
 
-    // Receipt endpoints should use mTLS (A-Cube requirement)
-    if (url.includes('/receipts') || url.includes('/mf1/receipts')) {
+    // Step 6: Default behavior for unknown roles
+    // Web platform: Always use JWT for safety (never mTLS without explicit role)
+    if (platform === 'web') {
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] Receipt endpoint detected, using mTLS mode');
+        console.log('[MTLS-HANDLER] 🌐 Web platform with unknown role - defaulting to JWT (safe)');
       }
-      return 'mtls';
+      // Use port 444 only for receipt endpoints that might need browser certificates
+      return { mode: 'jwt', usePort444: isReceiptEndpoint };
     }
 
-    // Default to auto mode
+    // Mobile platform: For receipts without a known role, prefer mTLS
+    if (isReceiptEndpoint && platform === 'mobile') {
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] 📱 Mobile with unknown role, receipt endpoint - defaulting to mTLS');
+      }
+      return { mode: 'mtls', usePort444: true };
+    }
+
+    // Default to JWT for all other cases (unknown platform or non-receipt endpoints)
     if (this.isDebugEnabled) {
-      console.log('[MTLS-HANDLER] Using auto auth mode');
+      console.log('[MTLS-HANDLER] 📝 Default case - JWT (platform:', platform, ')');
     }
-    return 'auto';
+    return { mode: 'jwt', usePort444: false };
   }
 
   /**
-   * Check if a route requires mTLS authentication
+   * Legacy method for backward compatibility
+   * @deprecated Use determineAuthConfig instead
    */
-  requiresMTLS(url: string): boolean {
-    const mtlsRequiredRoutes = [
-      '/receipts',
-      '/mf1/receipts'
-    ];
+  async determineAuthMode(url: string, explicitMode?: AuthMode, method?: string): Promise<AuthMode> {
+    const config = await this.determineAuthConfig(url, explicitMode, method);
+    return config.mode;
+  }
 
-    return mtlsRequiredRoutes.some(route => url.includes(route));
+
+  /**
+   * Generate a unique key for request deduplication
+   */
+  private generateRequestKey(
+    url: string,
+    config: { method?: string; data?: any; headers?: any; timeout?: number } = {},
+    jwtToken?: string
+  ): string {
+    const method = config.method || 'GET';
+    const dataHash = config.data ? JSON.stringify(config.data) : '';
+    const authHash = jwtToken ? jwtToken.substring(0, 10) : 'no-auth';
+    return `${method}:${url}:${dataHash}:${authHash}`;
   }
 
   /**
-   * Make a request with mTLS authentication
+   * Make a request with mTLS authentication using retry-on-failure pattern
+   * Includes request deduplication to prevent multiple concurrent requests to the same endpoint
+   *
+   * New approach: Try request → If fails → Reconfigure once → Retry → If fails → Error
    */
   async makeRequestMTLS<T>(
     url: string,
-    config: { method?: string; data?: any; headers?: any; timeout?: number } = {},
+    config: { method?: string; data?: any; headers?: any; timeout?: number; responseType?: 'json' | 'blob' | 'arraybuffer' | 'text' } = {},
     certificateOverride?: CertificateData,
-    jwtToken?: string
+    jwtToken?: string,
+    isRetryAttempt: boolean = false
+  ): Promise<T> {
+    if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] Making mTLS request:', {
+          config,
+          url
+        });
+      }
+    // Generate request key for deduplication (only for non-retry attempts)
+    const requestKey = !isRetryAttempt ? this.generateRequestKey(url, config, jwtToken) : null;
+
+    // Check if there's already a pending request for this exact same request
+    if (requestKey && this.pendingRequests.has(requestKey)) {
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] 🔄 Deduplicating concurrent request:', {
+          method: config.method || 'GET',
+          url,
+          requestKey: requestKey.substring(0, 50) + '...'
+        });
+      }
+
+      // Return the existing promise to prevent duplicate requests
+      return this.pendingRequests.get(requestKey)!;
+    }
+
+    // Create the actual request promise
+    const requestPromise = this.executeRequestMTLS<T>(url, config, certificateOverride, jwtToken, isRetryAttempt);
+
+    // Store the promise for deduplication (only for non-retry attempts)
+    if (requestKey) {
+      this.pendingRequests.set(requestKey, requestPromise);
+
+      // Clean up the pending request when it completes (success or failure)
+      requestPromise
+        .then(() => {
+          this.pendingRequests.delete(requestKey);
+        })
+        .catch(() => {
+          this.pendingRequests.delete(requestKey);
+        });
+    }
+
+    return requestPromise;
+  }
+
+  /**
+   * Execute the actual mTLS request (internal method)
+   */
+  private async executeRequestMTLS<T>(
+    url: string,
+    config: { method?: string; data?: any; headers?: any; timeout?: number; responseType?: 'json' | 'blob' | 'arraybuffer' | 'text' } = {},
+    certificateOverride?: CertificateData,
+    jwtToken?: string,
+    isRetryAttempt: boolean = false
   ): Promise<T> {
     if (!this.mtlsAdapter) {
       throw new MTLSError(
@@ -278,7 +420,7 @@ export class MTLSHandler {
     // Get the single certificate
     const selectedCert = await this.getCertificate();
     const certificateData = certificateOverride || (selectedCert ? this.certificateToData(selectedCert) : null);
-    
+
     if (!certificateData) {
       throw new MTLSError(
         MTLSErrorType.CERTIFICATE_NOT_FOUND,
@@ -286,27 +428,28 @@ export class MTLSHandler {
       );
     }
 
-    // Certificate configuration is now handled by isMTLSReady() method
-
     if (this.isDebugEnabled) {
       console.log('[MTLS-HANDLER] Making mTLS request:', {
         method: config.method || 'GET',
         url,
         hasData: !!config.data,
+        isRetryAttempt,
+        approach: 'retry-on-failure',
+        responseType: config.responseType
       });
     }
 
     try {
       // Prepare headers including JWT Authorization if available
       const headers: Record<string, string> = {
+        ...(config.method !== 'GET' && config.data ? { 'Content-Type': 'application/json' } : {}),
         ...(config.headers || {}),
-        ...(config.method !== 'GET' && config.data ? { 'Content-Type': 'application/json' } : {})
       };
 
       // Include JWT Authorization header if available
       if (jwtToken) {
         headers['Authorization'] = jwtToken;
-        
+
         if (this.isDebugEnabled) {
           console.log('[MTLS-HANDLER] Including JWT Authorization header in mTLS request');
         }
@@ -317,11 +460,12 @@ export class MTLSHandler {
         method: (config.method || 'GET') as any,
         headers,
         data: config.data,
-        timeout: config.timeout
+        timeout: config.timeout,
+        responseType: config.responseType
       };
 
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] mTLS request config:', JSON.stringify(mtlsConfig, undefined, 2));
+        console.log('[MTLS-HANDLER] mTLS request config:', mtlsConfig);
       }
 
       const response = await this.mtlsAdapter.request<T>(mtlsConfig);
@@ -330,15 +474,50 @@ export class MTLSHandler {
         console.log('[MTLS-HANDLER] mTLS request successful:', {
           status: response.status,
           hasData: !!response.data,
+          response: response,
+          isRetryAttempt
         });
       }
 
       return response.data;
     } catch (error) {
       if (this.isDebugEnabled) {
-        console.error('[MTLS-HANDLER] mTLS request failed:', error);
+        console.error('[MTLS-HANDLER] mTLS request failed:', {
+          error: error instanceof Error ? error.message : error,
+          isRetryAttempt
+        });
       }
-      throw error;
+
+      // If this is already a retry attempt, don't retry again to prevent infinite loops
+      if (isRetryAttempt) {
+        if (this.isDebugEnabled) {
+          console.error('[MTLS-HANDLER] ❌ Retry attempt also failed - certificate may be invalid');
+        }
+        throw error;
+      }
+
+      // First attempt failed - try to reconfigure certificate and retry
+      if (this.isDebugEnabled) {
+        console.log('[MTLS-HANDLER] 🔄 First attempt failed, reconfiguring certificate and retrying...');
+      }
+
+      try {
+        // Reconfigure the certificate in the mTLS adapter
+        await this.mtlsAdapter.configureCertificate(certificateData);
+
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] ✅ Certificate reconfigured, retrying request...');
+        }
+
+        // Retry the request (with flag to prevent infinite recursion)
+        return await this.executeRequestMTLS<T>(url, config, certificateOverride, jwtToken, true);
+      } catch (reconfigError) {
+        if (this.isDebugEnabled) {
+          console.error('[MTLS-HANDLER] ❌ Certificate reconfiguration failed:', reconfigError);
+        }
+        // If reconfiguration fails, throw the original error
+        throw error;
+      }
     }
   }
 
@@ -494,6 +673,16 @@ export class MTLSHandler {
   }
 
   /**
+   * Clear all pending requests (useful for testing or cleanup)
+   */
+  clearPendingRequests(): void {
+    if (this.isDebugEnabled) {
+      console.log('[MTLS-HANDLER] Clearing pending requests:', this.pendingRequests.size);
+    }
+    this.pendingRequests.clear();
+  }
+
+  /**
    * Get mTLS status information
    */
   async getStatus() {
@@ -504,7 +693,9 @@ export class MTLSHandler {
       hasCertificate: false,
       certificateInfo: null as any,
       platformInfo: this.mtlsAdapter?.getPlatformInfo() || null,
-      connectionTest: false
+      diagnosticTest: false, // Renamed to clarify this is diagnostic only
+      diagnosticTestNote: 'Test endpoint may fail even when mTLS works - for diagnostic purposes only',
+      pendingRequestsCount: this.pendingRequests.size
     };
 
     if (this.certificateManager) {
@@ -523,7 +714,19 @@ export class MTLSHandler {
     if (this.mtlsAdapter && this.certificateManager) {
       try {
         status.isReady = await this.isMTLSReady();
-        status.connectionTest = await this.testConnection();
+
+        // Run diagnostic test but don't let it affect overall status
+        try {
+          status.diagnosticTest = await this.testConnection();
+          if (this.isDebugEnabled) {
+            console.log('[MTLS-HANDLER] 🔍 Diagnostic test completed (result does not affect isReady status)');
+          }
+        } catch (diagnosticError) {
+          if (this.isDebugEnabled) {
+            console.warn('[MTLS-HANDLER] 🔍 Diagnostic test failed (this is expected and normal):', diagnosticError);
+          }
+          status.diagnosticTest = false;
+        }
       } catch (error) {
         if (this.isDebugEnabled) {
           console.error('[MTLS-HANDLER] Status check failed:', error);
@@ -532,7 +735,10 @@ export class MTLSHandler {
     }
 
     if (this.isDebugEnabled) {
-      console.log('[MTLS-HANDLER] mTLS Status:', status);
+      console.log('[MTLS-HANDLER] mTLS Status:', {
+        ...status,
+        approach: 'retry-on-failure'
+      });
     }
 
     return status;

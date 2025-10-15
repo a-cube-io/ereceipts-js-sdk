@@ -74,6 +74,7 @@ export interface User {
   roles: UserRoles;
   fid: string;
   pid: string | null;
+  expiresAt: number;
 }
 
 /**
@@ -82,6 +83,7 @@ export interface User {
 export interface IUserProvider {
   getCurrentUser(): Promise<User | null>;
   isAuthenticated(): Promise<boolean>;
+  getAccessToken(): Promise<string | null>;
 }
 
 /**

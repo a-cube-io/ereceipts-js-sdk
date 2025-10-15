@@ -1,5 +1,4 @@
 import { CacheManager, CleanupStrategy } from '../cache-manager';
-import { PerformanceMonitor } from '../performance-monitor';
 import { ICacheAdapter, CachedItem, CacheSize } from '../../adapters';
 
 // Mock cache adapter for testing
@@ -107,12 +106,10 @@ class MockCacheAdapter implements ICacheAdapter {
 
 describe('CacheManager', () => {
   let cacheAdapter: MockCacheAdapter;
-  let performanceMonitor: PerformanceMonitor;
   let cacheManager: CacheManager;
 
   beforeEach(() => {
     cacheAdapter = new MockCacheAdapter();
-    performanceMonitor = new PerformanceMonitor();
     cacheManager = new CacheManager(
       cacheAdapter,
       {
@@ -121,10 +118,8 @@ describe('CacheManager', () => {
         cleanupInterval: 0, // Disable automatic cleanup for tests
         memoryPressureThreshold: 0.8,
         memoryPressureCleanupPercentage: 50, // More aggressive for small test cache
-        enablePerformanceMonitoring: true,
         minAgeForRemoval: 0, // Allow immediate removal for tests
-      },
-      performanceMonitor
+      }
     );
 
     // Mock performance.now for consistent testing
@@ -157,7 +152,7 @@ describe('CacheManager', () => {
 
       const stats = await cacheManager.getMemoryStats();
       expect(stats.isMemoryPressure).toBe(true);
-      expect(stats.recommendedStrategy).toBe('size-based');
+      expect(stats.recommendedStrategy).toBe('age-based');
     });
   });
 
@@ -213,28 +208,7 @@ describe('CacheManager', () => {
       expect(remainingKeys).toContain('new-small'); // More recently accessed
     });
 
-    it('should perform FIFO cleanup', async () => {
-      const result = await cacheManager.performCleanup('fifo', 'manual');
-
-      expect(result.entriesRemoved).toBeGreaterThan(0);
-      expect(result.strategy).toBe('fifo');
-
-      // Should remove oldest items first
-      const remainingKeys = await cacheAdapter.getKeys();
-      expect(remainingKeys).not.toContain('old-large'); // Oldest item
-    });
-
-    it('should perform size-based cleanup', async () => {
-      const result = await cacheManager.performCleanup('size-based', 'manual');
-
-      expect(result.entriesRemoved).toBeGreaterThan(0);
-      expect(result.strategy).toBe('size-based');
-
-      // Should remove largest items first
-      const remainingKeys = await cacheAdapter.getKeys();
-      expect(remainingKeys).not.toContain('old-large'); // Largest item
-      expect(remainingKeys).toContain('new-small'); // Smallest item
-    });
+    // Note: FIFO and size-based strategies were removed in the simplification
 
     it('should perform age-based cleanup', async () => {
       const result = await cacheManager.performCleanup('age-based', 'manual');
@@ -247,18 +221,7 @@ describe('CacheManager', () => {
       expect(remainingKeys).toContain('new-small'); // Newest item
     });
 
-    it('should perform priority-based cleanup', async () => {
-      const result = await cacheManager.performCleanup('priority', 'manual');
-
-      expect(result.entriesRemoved).toBeGreaterThan(0);
-      expect(result.strategy).toBe('priority');
-
-      // Should remove low priority items first (optimistic < offline < server)
-      // and failed sync items first within same priority
-      const remainingKeys = await cacheAdapter.getKeys();
-      expect(remainingKeys).not.toContain('optimistic-data'); // Lowest priority
-      expect(remainingKeys).not.toContain('failed-sync'); // Failed sync
-    });
+    // Note: Priority-based cleanup strategy was removed in the simplification
   });
 
   describe('memory pressure handling', () => {
@@ -299,7 +262,7 @@ describe('CacheManager', () => {
 
       expect(recommendations.shouldCleanup).toBe(true);
       expect(recommendations.urgency).toBe('high');
-      expect(recommendations.recommendedStrategy).toBe('size-based');
+      expect(recommendations.recommendedStrategy).toBe('age-based');
       expect(recommendations.reason).toContain('Memory pressure');
     });
 
@@ -314,11 +277,11 @@ describe('CacheManager', () => {
       expect(recommendations.shouldCleanup).toBe(true);
       if (recommendations.urgency === 'high') {
         // If memory pressure is detected, check that
-        expect(recommendations.recommendedStrategy).toBe('size-based');
+        expect(recommendations.recommendedStrategy).toBe('age-based');
         expect(recommendations.reason).toContain('Memory pressure');
       } else {
         expect(recommendations.urgency).toBe('medium');
-        expect(recommendations.recommendedStrategy).toBe('fifo');
+        expect(recommendations.recommendedStrategy).toBe('lru');
         expect(recommendations.reason).toContain('Entry count approaching');
       }
     });
@@ -346,23 +309,7 @@ describe('CacheManager', () => {
     });
   });
 
-  describe('performance monitoring integration', () => {
-    it('should update performance metrics during cleanup', async () => {
-      await cacheAdapter.set('key1', { data: 'test1' });
-      await cacheAdapter.set('key2', { data: 'test2' });
-
-      const initialMetrics = performanceMonitor.getMetrics();
-      
-      await cacheManager.performCleanup('lru');
-
-      const finalMetrics = performanceMonitor.getMetrics();
-      
-      // Cleanup operations should have increased
-      expect(finalMetrics.cacheOperations.cleanups).toBeGreaterThanOrEqual(
-        initialMetrics.cacheOperations.cleanups
-      );
-    });
-  });
+  // Note: Performance monitoring integration was removed in the simplification
 
   describe('access tracking', () => {
     it('should track cache access times', () => {
@@ -404,7 +351,7 @@ describe('CacheManager', () => {
         getKeys: jest.fn(),
       } as any;
 
-      const errorManager = new CacheManager(errorAdapter, {}, performanceMonitor);
+      const errorManager = new CacheManager(errorAdapter, {});
 
       await expect(errorManager.performCleanup('lru')).rejects.toThrow('Cache error');
 

@@ -1,21 +1,21 @@
 /**
  * Cache adapter interface for cross-platform caching operations
+ * Cache never expires - data persists until explicitly invalidated
  */
 export interface ICacheAdapter {
   /**
    * Get a cached item
    * @param key The cache key
-   * @returns The cached item with metadata or null if not found/expired
+   * @returns The cached item with metadata or null if not found
    */
   get<T>(key: string): Promise<CachedItem<T> | null>;
 
   /**
-   * Set a value in cache with optional TTL
+   * Set a value in cache (no TTL - cache never expires)
    * @param key The cache key
    * @param data The data to cache
-   * @param ttl Time to live in milliseconds (optional)
    */
-  set<T>(key: string, data: T, ttl?: number): Promise<void>;
+  set<T>(key: string, data: T): Promise<void>;
 
   /**
    * Set a value with explicit metadata
@@ -23,6 +23,12 @@ export interface ICacheAdapter {
    * @param item The cached item with metadata
    */
   setItem<T>(key: string, item: CachedItem<T>): Promise<void>;
+
+  /**
+   * Set multiple values in a single batch operation
+   * @param items Array of [key, item] pairs to set
+   */
+  setBatch<T>(items: Array<[string, CachedItem<T>]>): Promise<void>;
 
   /**
    * Invalidate cache entries matching a pattern
@@ -56,23 +62,15 @@ export interface ICacheAdapter {
 }
 
 /**
- * Cached item with metadata
+ * Cached item with simplified metadata (no expiration)
  */
 export interface CachedItem<T> {
   /** The actual cached data */
   data: T;
   /** Timestamp when item was cached */
   timestamp: number;
-  /** Time to live in milliseconds (optional, 0 = no expiration) */
-  ttl?: number;
-  /** Cache tags for group invalidation */
-  tags?: string[];
-  /** ETag from server for validation */
-  etag?: string;
-  /** Source of the data */
-  source?: 'server' | 'optimistic' | 'offline';
-  /** Sync status for optimistic updates */
-  syncStatus?: 'synced' | 'pending' | 'failed';
+  /** Whether the data is compressed */
+  compressed?: boolean;
 }
 
 /**
@@ -88,37 +86,18 @@ export interface CacheSize {
 }
 
 /**
- * Cache configuration options
+ * Cache configuration options (no TTL/expiration)
  */
 export interface CacheOptions {
-  /** Default TTL in milliseconds */
-  defaultTtl?: number;
   /** Maximum cache size in bytes */
   maxSize?: number;
   /** Maximum number of entries */
   maxEntries?: number;
-  /** Cleanup interval in milliseconds */
-  cleanupInterval?: number;
   /** Enable compression for large items */
   compression?: boolean;
   /** Compression threshold in bytes */
   compressionThreshold?: number;
+  /** Enable debug logging */
+  debugEnabled?: boolean;
 }
 
-/**
- * Cache query filter for advanced operations
- */
-export interface CacheQuery {
-  /** Pattern to match keys */
-  pattern?: string;
-  /** Tags to match */
-  tags?: string[];
-  /** Source filter */
-  source?: 'server' | 'optimistic' | 'offline';
-  /** Sync status filter */
-  syncStatus?: 'synced' | 'pending' | 'failed';
-  /** Minimum timestamp */
-  minTimestamp?: number;
-  /** Maximum timestamp */
-  maxTimestamp?: number;
-}

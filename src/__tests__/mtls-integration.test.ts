@@ -52,8 +52,8 @@ describe('mTLS Integration Tests', () => {
 
     it('should initialize with configuration', async () => {
       const config = {
-        baseUrl: 'https://api.test.com:443',
-        port: 443,
+        baseUrl: 'https://api.test.com:444',
+        port: 444,
         timeout: 30000
       };
 
@@ -65,7 +65,7 @@ describe('mTLS Integration Tests', () => {
   describe('Certificate Management', () => {
     beforeEach(async () => {
       await adapter.initialize({
-        baseUrl: 'https://api.test.com:443'
+        baseUrl: 'https://api.test.com:444'
       });
     });
 
@@ -110,7 +110,7 @@ describe('mTLS Integration Tests', () => {
   describe('Network Requests', () => {
     beforeEach(async () => {
       await adapter.initialize({
-        baseUrl: 'https://api.test.com:443'
+        baseUrl: 'https://api.test.com:444'
       });
     });
 
@@ -175,7 +175,7 @@ describe('mTLS Integration Tests', () => {
       const ExpoMTLS = require('@a-cube-io/expo-mutual-tls');
       ExpoMTLS.configurePEM.mockRejectedValueOnce(new Error('Configuration failed'));
 
-      await adapter.initialize({ baseUrl: 'https://api.test.com:443' });
+      await adapter.initialize({ baseUrl: 'https://api.test.com:444' });
 
       const certificateData = {
         certificate: 'invalid-cert',

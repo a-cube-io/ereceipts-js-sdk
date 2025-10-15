@@ -28,7 +28,7 @@ import { EnhancedCashRegistersAPI } from './src/core/api/enhanced-cash-registers
 
 // Initialize configuration
 const config = new ConfigManager({
-  apiUrl: 'https://api.acube.com:443', // Will auto-switch to 444 for mTLS
+  apiUrl: 'https://api.acube.com:444', // Port 444 used dynamically for web browser certificates
   timeout: 30000,
   debug: true // Enable debug logging
 });
@@ -126,7 +126,7 @@ async function createReceipt(receiptData) {
   try {
     console.log('🔄 Creating receipt with mTLS...');
     
-    // Automatically uses mTLS (port 444)
+    // Authentication determined by role/platform/method
     const receipt = await receiptsAPI.create(receiptData);
     
     console.log('✅ Receipt created with mTLS:', receipt.uuid);

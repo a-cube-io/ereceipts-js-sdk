@@ -23,6 +23,7 @@ export interface MTLSRequestConfig {
   headers?: Record<string, string>;
   data?: any;
   timeout?: number;
+  responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
 }
 
 export interface MTLSResponse<T = any> {

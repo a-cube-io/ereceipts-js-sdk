@@ -111,6 +111,7 @@ export class AuthManager implements IUserProvider {
         roles: parseLegacyRoles(jwtPayload.roles),
         fid: jwtPayload.fid,
         pid: jwtPayload.pid,
+        expiresAt: jwtPayload.exp * 1000, // Convert to milliseconds
       };
       
       this.currentUser = user;
@@ -197,6 +198,7 @@ export class AuthManager implements IUserProvider {
         roles: parseLegacyRoles(jwtPayload.roles),
         fid: jwtPayload.fid,
         pid: jwtPayload.pid,
+        expiresAt: jwtPayload.exp * 1000, // Convert to milliseconds
       };
       
       this.currentUser = user;

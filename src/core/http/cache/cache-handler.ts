@@ -3,18 +3,17 @@ import { ICacheAdapter, INetworkMonitor } from '../../../adapters';
 
 /**
  * Simplified cache request configuration
+ * Cache behavior: Online = always fetch fresh data, Offline = always use cache
  */
 export interface CacheConfig {
   /** Whether to use cache for this request (default: true if cache available) */
   useCache?: boolean;
-  /** Custom cache TTL in milliseconds */
-  cacheTtl?: number;
-  /** Force refresh from the server */
-  forceRefresh?: boolean;
 }
 
 /**
- * Cache Handler for HTTP request caching with network-aware strategies
+ * Simplified Cache Handler with binary online/offline strategy
+ * - Online: Always fetch fresh data from network and update cache
+ * - Offline: Always use cached data (no TTL/expiration check)
  */
 export class CacheHandler {
   private isDebugEnabled: boolean = false;
@@ -41,20 +40,20 @@ export class CacheHandler {
         }
       }
     }
-    
+
     // Priority 2: Fallback to navigator.onLine for web environments
     if (typeof navigator !== 'undefined' && 'onLine' in navigator) {
       return navigator.onLine;
     }
-    
+
     // Priority 3: Conservative default - assume offline if cannot determine
     return false;
   }
 
   /**
-   * Handle cached GET request with network-first strategy
-   * - When ONLINE: Always fetch from network and update cache
-   * - When OFFLINE: Use cache if available
+   * Handle cached GET request with simplified binary strategy
+   * - Online: Fetch from network and update cache
+   * - Offline: Return from cache (no expiration check)
    */
   async handleCachedRequest<T>(
     url: string,
@@ -68,119 +67,89 @@ export class CacheHandler {
     }
 
     const cacheKey = this.generateCacheKey(url);
-    const isOnline = this.isOnline();
+    const online = this.isOnline();
 
     if (this.isDebugEnabled) {
-      console.log('[CACHE-HANDLER] Cache request:', {
+      console.log('[CACHE-HANDLER] Request details:', {
         url,
-        isOnline,
         cacheKey,
-        strategy: isOnline ? 'network-first' : 'cache-only',
-        forceRefresh: config?.forceRefresh
+        online,
+        cacheAvailable: !!this.cache
       });
     }
 
-    try {
-      // ONLINE: Network-first strategy - always fetch fresh data and update cache
-      if (isOnline && !config?.forceRefresh) {
-        if (this.isDebugEnabled) {
-          console.log('[CACHE-HANDLER] Online: Fetching fresh data from network');
+    if (online) {
+      // ONLINE: Always fetch from network and update cache
+      try {
+        const response = await requestFn();
+
+        // Cache the result (no TTL - cache never expires)
+        // Note: Cache failures should NEVER block the main operation
+        if (this.cache) {
+          await this.cache.set(cacheKey, response.data).catch(error => {
+            // Always log cache failures (not just in debug mode)
+            console.error('[CACHE-HANDLER] Failed to cache response (non-blocking):', {
+              url,
+              error: error instanceof Error ? error.message : error
+            });
+            if (this.isDebugEnabled) {
+              console.error('[CACHE-HANDLER] Full error details:', error);
+            }
+          });
+
+          if (this.isDebugEnabled) {
+            console.log('[CACHE-HANDLER] Data fetched and cached:', { cacheKey });
+          }
         }
-        return await this.fetchAndCache<T>(requestFn, cacheKey, config?.cacheTtl);
-      }
 
-      // OFFLINE or force refresh: Check cache first
-      if (this.isDebugEnabled) {
-        console.log('[CACHE-HANDLER] Checking cache for data');
+        return response.data;
+      } catch (error) {
+        // Network failed while online - try cache as fallback
+        const cached = await this.cache.get<T>(cacheKey).catch(cacheError => {
+          console.error('[CACHE-HANDLER] Failed to read cache during fallback (non-blocking):', {
+            url,
+            error: cacheError instanceof Error ? cacheError.message : cacheError
+          });
+          return null;
+        });
+        if (cached) {
+          if (this.isDebugEnabled) {
+            console.log('[CACHE-HANDLER] Network failed, using cached data as fallback');
+          }
+          return cached.data;
+        }
+        throw error;
       }
-
-      const cached = await this.cache.get<T>(cacheKey);
-      
+    } else {
+      // OFFLINE: Always use cache (no expiration check)
+      const cached = await this.cache.get<T>(cacheKey).catch(cacheError => {
+        console.error('[CACHE-HANDLER] Failed to read cache while offline (non-blocking):', {
+          url,
+          error: cacheError instanceof Error ? cacheError.message : cacheError
+        });
+        return null;
+      });
       if (cached) {
         if (this.isDebugEnabled) {
-          console.log('[CACHE-HANDLER] Cache hit:', { 
-            cacheKey, 
-            source: cached.source,
-            age: Date.now() - cached.timestamp + 'ms'
-          });
+          console.log('[CACHE-HANDLER] Offline mode, returning cached data');
         }
         return cached.data;
       }
 
-      // No cache available and offline - try network anyway (might work)
-      if (!isOnline) {
-        if (this.isDebugEnabled) {
-          console.warn('[CACHE-HANDLER] Offline with no cache - attempting network request');
-        }
-      }
-
-      // Fallback to network request
-      return await this.fetchAndCache<T>(requestFn, cacheKey, config?.cacheTtl);
-
-    } catch (error) {
-      if (this.isDebugEnabled) {
-        console.error('[CACHE-HANDLER] Cache request failed:', error);
-      }
-      throw error;
+      throw new Error('Offline: No cached data available for this request');
     }
   }
 
   /**
-   * Fetch data from the network and cache the result
+   * Generate a cache key from URL
    */
-  private async fetchAndCache<T>(
-    requestFn: () => Promise<AxiosResponse<T>>,
-    cacheKey: string,
-    cacheTtl?: number
-  ): Promise<T> {
-    try {
-      const response = await requestFn();
-      
-      // Cache the result if cache is available
-      if (this.cache) {
-        await this.cache.set(cacheKey, response.data, cacheTtl).catch(error => {
-          if (this.isDebugEnabled) {
-            console.warn('[CACHE-HANDLER] Failed to cache response:', error);
-          }
-        });
-
-        if (this.isDebugEnabled) {
-          console.log('[CACHE-HANDLER] Data cached:', { cacheKey, ttl: cacheTtl });
-        }
-      }
-
-      return response.data;
-    } catch (error) {
-      // If we have cached data and network fails, try to return cached data
-      if (this.cache) {
-        const cached = await this.cache.get<T>(cacheKey).catch(() => null);
-        if (cached) {
-          if (this.isDebugEnabled) {
-            console.log('[CACHE-HANDLER] Network failed, using stale cache:', cacheKey);
-          }
-          return cached.data;
-        }
-      }
-      throw error;
-    }
+  private generateCacheKey(url: string): string {
+    return url;
   }
 
   /**
-   * Generate a cache key from URL and optional parameters
-   */
-  private generateCacheKey(url: string, params?: Record<string, any>): string {
-    let baseKey = url;
-    
-    if (params) {
-      const paramString = new URLSearchParams(params).toString();
-      baseKey = `${url}?${paramString}`;
-    }
-    
-    return baseKey;
-  }
-
-  /**
-   * Invalidate cache entries (simplified version)
+   * Invalidate cache entries matching a pattern (kept for manual cache clearing if needed)
+   * Note: Invalidation failures are non-blocking and only logged
    */
   async invalidateCache(pattern: string): Promise<void> {
     if (!this.cache) return;
@@ -191,8 +160,13 @@ export class CacheHandler {
         console.log('[CACHE-HANDLER] Cache invalidated:', pattern);
       }
     } catch (error) {
+      // Always log invalidation failures
+      console.error('[CACHE-HANDLER] Cache invalidation failed (non-blocking):', {
+        pattern,
+        error: error instanceof Error ? error.message : error
+      });
       if (this.isDebugEnabled) {
-        console.error('[CACHE-HANDLER] Cache invalidation failed:', error);
+        console.error('[CACHE-HANDLER] Full error details:', error);
       }
     }
   }

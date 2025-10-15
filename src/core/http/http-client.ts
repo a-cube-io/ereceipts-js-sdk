@@ -9,10 +9,6 @@ import { MTLSHandler } from './auth/mtls-handler';
 import { CacheHandler } from './cache/cache-handler';
 import { HttpRequestConfig } from './types';
 import { transformError } from './utils/error-transformer';
-import { 
-  CertificateError, 
-  CertificateErrorType
-} from '../certificates/certificate-errors';
 
 /**
  * Simplified HTTP client with mTLS and caching support
@@ -23,6 +19,7 @@ export class HttpClient {
   private cacheHandler: CacheHandler;
   private certificateManager: CertificateManager | null;
   private mtlsAdapter: IMTLSAdapter | null;
+  private userProvider: IUserProvider | null;
   private _isDebugEnabled: boolean = false;
 
   constructor(
@@ -33,9 +30,14 @@ export class HttpClient {
     mtlsAdapter?: IMTLSAdapter,
     userProvider?: IUserProvider
   ) {
-    this.client = this.createClient();
+    this.client = axios.create({
+      baseURL: this.config.getApiUrl(),
+      timeout: this.config.getTimeout(),
+      headers: { 'Content-Type': 'application/json' },
+    });
     this.certificateManager = certificateManager || null;
     this.mtlsAdapter = mtlsAdapter || null;
+    this.userProvider = userProvider || null;
     this._isDebugEnabled = config.isDebugEnabled();
     
     // Initialize handlers
@@ -64,20 +66,58 @@ export class HttpClient {
     }
   }
 
-  private createClient(): AxiosInstance {
+  private async createClient(usePort444: boolean = false, withAuth: boolean = false): Promise<AxiosInstance> {
+    let baseURL = this.config.getApiUrl();
+
+    // Modify URL for :444 port if needed
+    if (usePort444) {
+      try {
+        const urlObj = new URL(baseURL);
+        if (urlObj.port !== '444') {
+          urlObj.port = '444';
+          baseURL = urlObj.toString();
+        }
+      } catch (error) {
+        if (this._isDebugEnabled) {
+          console.warn('[HTTP-CLIENT] Failed to modify URL for :444, using default:', error);
+        }
+      }
+    }
+
     if (this._isDebugEnabled) {
       console.log('[HTTP-CLIENT] Creating axios client:', {
-        baseURL: this.config.getApiUrl(),
-        timeout: this.config.getTimeout()
+        baseURL,
+        timeout: this.config.getTimeout(),
+        usePort444
       });
     }
 
+    // Prepare headers
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add Authorization header if requested
+    if (withAuth && this.userProvider) {
+      try {
+        const token = await this.userProvider.getAccessToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+          if (this._isDebugEnabled) {
+            console.log('[HTTP-CLIENT] JWT token added to client headers');
+          }
+        }
+      } catch (error) {
+        if (this._isDebugEnabled) {
+          console.error('[HTTP-CLIENT] Failed to get JWT token for client:', error);
+        }
+      }
+    }
+
     const client = axios.create({
-      baseURL: this.config.getApiUrl(),
+      baseURL,
       timeout: this.config.getTimeout(),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     });
 
     // Add request/response interceptors for debugging
@@ -122,6 +162,7 @@ export class HttpClient {
     return client;
   }
 
+
   /**
    * Set authorization header
    */
@@ -134,6 +175,41 @@ export class HttpClient {
    */
   removeAuthorizationHeader(): void {
     delete this.client.defaults.headers.common['Authorization'];
+  }
+
+  /**
+   * Extract mTLS-compatible config from HttpRequestConfig
+   */
+  private extractMTLSConfig(config?: HttpRequestConfig): {
+    method?: string;
+    data?: any;
+    headers?: any;
+    timeout?: number;
+    responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
+  } {
+    if (!config) return {};
+
+    const mtlsConfig: {
+      method?: string;
+      data?: any;
+      headers?: any;
+      timeout?: number;
+      responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
+    } = {};
+
+    if (config.method) mtlsConfig.method = config.method;
+    if (config.data) mtlsConfig.data = config.data;
+    if (config.headers) mtlsConfig.headers = config.headers;
+    if (config.timeout) mtlsConfig.timeout = config.timeout;
+
+    // Only pass supported responseType values
+    if (config.responseType && ['json', 'blob', 'arraybuffer', 'text'].includes(config.responseType)) {
+      mtlsConfig.responseType = config.responseType as 'json' | 'blob' | 'arraybuffer' | 'text';
+    }
+
+    console.log('[HTTP-CLIENT] Extracted mTLS config:', mtlsConfig);
+
+    return mtlsConfig;
   }
 
   /**
@@ -154,206 +230,260 @@ export class HttpClient {
   }
 
   /**
-   * GET request with mTLS support and caching
+   * GET request with authentication and caching support
    */
   async get<T>(url: string, config?: HttpRequestConfig): Promise<T> {
-    const authMode = await this.mtlsHandler.determineAuthMode(url, config?.authMode);
-    const requiresMTLS = this.mtlsHandler.requiresMTLS(url);
+    const authConfig = await this.mtlsHandler.determineAuthConfig(url, config?.authMode, 'GET');
+    const client = await this.createClient(authConfig.usePort444, true);
 
-    // Try mTLS first for relevant modes
-    if (authMode === 'mtls' || authMode === 'auto') {
+    // Only try mTLS if explicitly required
+    if (authConfig.mode === 'mtls') {
       try {
-        if (await this.mtlsHandler.isMTLSReady()) {
-          return await this.mtlsHandler.makeRequestMTLS<T>(
-            url, 
-            { ...config, method: 'GET' },
-            undefined,
-            this.client.defaults.headers.common['Authorization'] as string
-          );
-        } else if (requiresMTLS) {
-          throw new CertificateError(
-            CertificateErrorType.MTLS_REQUIRED,
-            `Endpoint ${url} requires mTLS authentication but no certificate is configured`
-          );
-        }
+        const mtlsConfig = this.extractMTLSConfig(config);
+        return await this.mtlsHandler.makeRequestMTLS<T>(
+          url,
+          { ...mtlsConfig, method: 'GET' },
+          undefined,
+          this.client.defaults.headers.common['Authorization'] as string
+        );
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS GET failed:', error);
         }
-        
-        if (error instanceof CertificateError && requiresMTLS) {
-          throw error;
-        }
-        
-        if (authMode === 'mtls' && config?.noFallback) {
+
+        if (config?.noFallback) {
           throw error;
         }
       }
-    } else if (requiresMTLS && authMode === 'jwt') {
-      throw new CertificateError(
-        CertificateErrorType.MTLS_REQUIRED,
-        `Endpoint ${url} requires mTLS authentication but JWT mode was specified`
-      );
     }
 
-    // Fallback to JWT with caching support
+    // Use JWT with appropriate client (possibly :444)
     if (this._isDebugEnabled) {
-      console.log('[HTTP-CLIENT] Using JWT fallback for GET:', url);
+      console.log('[HTTP-CLIENT] Using JWT for GET:', {
+        url,
+        usePort444: authConfig.usePort444,
+        authMode: authConfig.mode
+      });
     }
-    
+
     return this.cacheHandler.handleCachedRequest<T>(
       url,
-      () => this.client.get(url, config),
+      () => client.get(url, config),
       config
     );
   }
 
   /**
-   * POST request with mTLS support
+   * POST request with authentication support
    */
   async post<T>(url: string, data?: any, config?: HttpRequestConfig): Promise<T> {
-    const authMode = await this.mtlsHandler.determineAuthMode(url, config?.authMode);
+    const authConfig = await this.mtlsHandler.determineAuthConfig(url, config?.authMode, 'POST');
     const cleanedData = data ? clearObject(data) : data;
-    
+    const client = await this.createClient(authConfig.usePort444, true);
+
     if (this._isDebugEnabled && data !== cleanedData) {
       console.log('[HTTP-CLIENT] POST data cleaned:', { original: data, cleaned: cleanedData });
     }
 
-    // Try mTLS first for relevant modes
-    if (authMode === 'mtls' || authMode === 'auto') {
+    let result: T;
+
+    // Only try mTLS if explicitly required
+    if (authConfig.mode === 'mtls') {
       try {
-        if (await this.mtlsHandler.isMTLSReady()) {
-          return await this.mtlsHandler.makeRequestMTLS<T>(
-            url,
-            { ...config, method: 'POST', data: cleanedData },
-            undefined,
-            this.client.defaults.headers.common['Authorization'] as string
-          );
-        }
+        const mtlsConfig = this.extractMTLSConfig(config);
+        result = await this.mtlsHandler.makeRequestMTLS<T>(
+          url,
+          { ...mtlsConfig, method: 'POST', data: cleanedData },
+          undefined,
+          this.client.defaults.headers.common['Authorization'] as string
+        );
+
+        return result;
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS POST failed:', error);
         }
-        
-        if (authMode === 'mtls' && config?.noFallback) {
+
+        if (config?.noFallback) {
           throw error;
         }
       }
     }
 
-    // Fallback to JWT
+    // Use JWT with appropriate client (possibly :444)
     if (this._isDebugEnabled) {
-      console.log('[HTTP-CLIENT] Using JWT fallback for POST:', url);
+      console.log('[HTTP-CLIENT] Using JWT for POST:', {
+        url,
+        usePort444: authConfig.usePort444,
+        authMode: authConfig.mode
+      });
     }
-    
+
     try {
-      const response: AxiosResponse<T> = await this.client.post(url, cleanedData, config);
-      return response.data;
+      const response: AxiosResponse<T> = await client.post(url, cleanedData, config);
+      result = response.data;
+
+      return result;
     } catch (error) {
       throw transformError(error);
     }
   }
 
   /**
-   * PUT request with mTLS support
+   * PUT request with authentication support
    */
   async put<T>(url: string, data?: any, config?: HttpRequestConfig): Promise<T> {
-    const authMode = await this.mtlsHandler.determineAuthMode(url, config?.authMode);
+    const authConfig = await this.mtlsHandler.determineAuthConfig(url, config?.authMode, 'PUT');
     const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
-    
+    const client = await this.createClient(authConfig.usePort444, true);
+
     if (this._isDebugEnabled && data !== cleanedData) {
       console.log('[HTTP-CLIENT] PUT data cleaned:', { original: data, cleaned: cleanedData });
     }
 
-    // Try mTLS first for relevant modes
-    if (authMode === 'mtls' || authMode === 'auto') {
+    let result: T;
+
+    // Only try mTLS if explicitly required
+    if (authConfig.mode === 'mtls') {
       try {
-        if (await this.mtlsHandler.isMTLSReady()) {
-          return await this.mtlsHandler.makeRequestMTLS<T>(
-            url, 
-            { ...config, method: 'PUT', data: cleanedData },
-            undefined,
-            this.client.defaults.headers.common['Authorization'] as string
-          );
-        }
+        const mtlsConfig = this.extractMTLSConfig(config);
+        result = await this.mtlsHandler.makeRequestMTLS<T>(
+          url,
+          { ...mtlsConfig, method: 'PUT', data: cleanedData },
+          undefined,
+          this.client.defaults.headers.common['Authorization'] as string
+        );
+
+        return result;
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS PUT failed:', error);
         }
-        
-        if (authMode === 'mtls' && config?.noFallback) {
+
+        if (config?.noFallback) {
           throw error;
         }
       }
     }
 
-    // Fallback to JWT
+    // Use JWT with appropriate client (possibly :444)
     if (this._isDebugEnabled) {
-      console.log('[HTTP-CLIENT] Using JWT fallback for PUT:', url);
+      console.log('[HTTP-CLIENT] Using JWT for PUT:', {
+        url,
+        usePort444: authConfig.usePort444,
+        authMode: authConfig.mode
+      });
     }
-    
+
     try {
-      const response: AxiosResponse<T> = await this.client.put(url, cleanedData, config);
-      return response.data;
+      const response: AxiosResponse<T> = await client.put(url, cleanedData, config);
+      result = response.data;
+
+      return result;
     } catch (error) {
       throw transformError(error);
     }
   }
 
   /**
-   * DELETE request with mTLS support
+   * DELETE request with authentication support
    */
   async delete<T>(url: string, config?: HttpRequestConfig): Promise<T> {
-    const authMode = await this.mtlsHandler.determineAuthMode(url, config?.authMode);
+    const authConfig = await this.mtlsHandler.determineAuthConfig(url, config?.authMode, 'DELETE');
+    const client = await this.createClient(authConfig.usePort444, true);
 
-    // Try mTLS first for relevant modes
-    if (authMode === 'mtls' || authMode === 'auto') {
+    let result: T;
+
+    // Only try mTLS if explicitly required
+    if (authConfig.mode === 'mtls') {
       try {
-        if (await this.mtlsHandler.isMTLSReady()) {
-          return await this.mtlsHandler.makeRequestMTLS<T>(
-            url, 
-            { ...config, method: 'DELETE' },
-            undefined,
-            this.client.defaults.headers.common['Authorization'] as string
-          );
-        }
+        const mtlsConfig = this.extractMTLSConfig(config);
+        result = await this.mtlsHandler.makeRequestMTLS<T>(
+          url,
+          { ...mtlsConfig, method: 'DELETE' },
+          undefined,
+          this.client.defaults.headers.common['Authorization'] as string
+        );
+
+        return result;
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS DELETE failed:', error);
         }
-        
-        if (authMode === 'mtls' && config?.noFallback) {
+
+        if (config?.noFallback) {
           throw error;
         }
       }
     }
 
-    // Fallback to JWT
+    // Use JWT with appropriate client (possibly :444)
     if (this._isDebugEnabled) {
-      console.log('[HTTP-CLIENT] Using JWT fallback for DELETE:', url);
+      console.log('[HTTP-CLIENT] Using JWT for DELETE:', {
+        url,
+        usePort444: authConfig.usePort444,
+        authMode: authConfig.mode
+      });
     }
-    
+
     try {
-      const response: AxiosResponse<T> = await this.client.delete(url, config);
-      return response.data;
+      const response: AxiosResponse<T> = await client.delete(url, config);
+      result = response.data;
+
+      return result;
     } catch (error) {
       throw transformError(error);
     }
   }
 
   /**
-   * PATCH request
+   * PATCH request with authentication support
    */
   async patch<T>(url: string, data?: any, config?: HttpRequestConfig): Promise<T> {
+    const authConfig = await this.mtlsHandler.determineAuthConfig(url, config?.authMode, 'PATCH');
+    const client = await this.createClient(authConfig.usePort444, true);
+
+    // Only try mTLS if explicitly required
+    if (authConfig.mode === 'mtls') {
+      try {
+        const mtlsConfig = this.extractMTLSConfig(config);
+        return await this.mtlsHandler.makeRequestMTLS<T>(
+          url,
+          { ...mtlsConfig, method: 'PATCH', data },
+          undefined,
+          this.client.defaults.headers.common['Authorization'] as string
+        );
+      } catch (error) {
+        if (this._isDebugEnabled) {
+          console.warn('[HTTP-CLIENT] mTLS PATCH failed:', error);
+        }
+
+        if (config?.noFallback) {
+          throw error;
+        }
+      }
+    }
+
+    // Use JWT with appropriate client (possibly :444)
+    if (this._isDebugEnabled) {
+      console.log('[HTTP-CLIENT] Using JWT for PATCH:', {
+        url,
+        usePort444: authConfig.usePort444,
+        authMode: authConfig.mode
+      });
+    }
+
     try {
       const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
-      
+
       if (this._isDebugEnabled && data !== cleanedData) {
         console.log('[HTTP-CLIENT] PATCH data cleaned:', { original: data, cleaned: cleanedData });
       }
-      
-      const response: AxiosResponse<T> = await this.client.patch(url, cleanedData, config);
-      return response.data;
+
+      const response: AxiosResponse<T> = await client.patch(url, cleanedData, config);
+      const result = response.data;
+
+      return result;
     } catch (error) {
       throw transformError(error);
     }
