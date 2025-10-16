@@ -15,7 +15,10 @@ const external = [
     'react-native-keychain',
     'react-native-sqlite-storage',
     'zod',
-    '@a-cube-io/expo-mutual-tls'
+    '@a-cube-io/expo-mutual-tls',
+    'expo-task-manager',
+    'expo-background-task',
+    'react-native-background-task'
 ];
 
 // Node.js specific externals (only for Node.js/web builds, not React Native)

@@ -109,7 +109,7 @@ export class OperationQueue {
   }
 
   /**
-   * Remove operation from queue
+   * Remove operation from the queue
    */
   async removeOperation(id: string): Promise<boolean> {
     const index = this.queue.findIndex(op => op.id === id);
@@ -212,14 +212,14 @@ export class OperationQueue {
   }
 
   /**
-   * Check if queue is empty (no pending operations)
+   * Check if the queue is empty (no pending operations)
    */
   isEmpty(): boolean {
     return this.getPendingOperations().length === 0;
   }
 
   /**
-   * Start auto-sync timer
+   * Start the auto-sync timer
    */
   startAutoSync(): void {
     if (this.syncIntervalId) {
@@ -235,7 +235,7 @@ export class OperationQueue {
   }
 
   /**
-   * Stop auto-sync timer
+   * Stop the auto-sync timer
    */
   stopAutoSync(): void {
     if (this.syncIntervalId) {
@@ -245,7 +245,7 @@ export class OperationQueue {
   }
 
   /**
-   * Set processing state
+   * Set the processing state
    */
   setProcessing(processing: boolean): void {
     this.isProcessing = processing;
@@ -267,7 +267,7 @@ export class OperationQueue {
       if (queueData) {
         this.queue = JSON.parse(queueData);
         
-        // Reset processing status on load (in case app crashed while processing)
+        // Reset processing status on a load (in case the app crashed while processing)
         this.queue.forEach(op => {
           if (op.status === 'processing') {
             op.status = 'pending';

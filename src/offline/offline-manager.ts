@@ -1,5 +1,5 @@
 import { IStorage, INetworkMonitor, ICacheAdapter } from '../adapters';
-import { HttpClient } from '../core/api';
+import { HttpClient } from '../core';
 import { OperationQueue } from './queue';
 import { SyncManager } from './sync-manager';
 import { 
@@ -200,7 +200,7 @@ export class OfflineManager {
   }
 
   /**
-   * Remove specific operation
+   * Remove a specific operation
    */
   async removeOperation(id: string): Promise<boolean> {
     return await this.queue.removeOperation(id);
@@ -240,12 +240,12 @@ export class OfflineManager {
     _cacheKey: string,
     _priority: number = 2
   ): Promise<string | null> {
-    // Optimistic updates disabled in simplified cache system
+    // Optimistic updates disabled in a simplified cache system
     return null;
   }
 
   /**
-   * Enhanced queue receipt creation with optimistic update
+   * Enhanced queue receipt creation with an optimistic update
    */
   async queueReceiptCreationWithOptimistic<T>(
     receiptData: any, 
@@ -266,7 +266,7 @@ export class OfflineManager {
   }
 
   /**
-   * Enhanced queue receipt void with optimistic update
+   * Enhanced queue receipt void with an optimistic update
    */
   async queueReceiptVoidWithOptimistic<T>(
     voidData: any,
@@ -287,7 +287,7 @@ export class OfflineManager {
   }
 
   /**
-   * Enhanced queue receipt return with optimistic update
+   * Enhanced queue receipt return with an optimistic update
    */
   async queueReceiptReturnWithOptimistic<T>(
     returnData: any,
@@ -308,53 +308,53 @@ export class OfflineManager {
   }
 
   /**
-   * Get optimistic operations (disabled in simplified cache system)
+   * Get optimistic operations (disabled in a simplified cache system)
    */
   getOptimisticOperations() {
     return [];
   }
 
   /**
-   * Get pending optimistic operations count (disabled in simplified cache system)
+   * Get pending optimistic operations count (disabled in a simplified cache system)
    */
   getOptimisticPendingCount(): number {
     return 0;
   }
 
   /**
-   * Check if optimistic updates are enabled (disabled in simplified cache system)
+   * Check if optimistic updates are enabled (disabled in a simplified cache system)
    */
   isOptimisticEnabled(): boolean {
     return false;
   }
 
   /**
-   * Check if resource has pending optimistic updates (disabled in simplified cache system)
+   * Check if a resource has pending optimistic updates (disabled in a simplified cache system)
    */
   hasPendingOptimisticUpdates(_resource: ResourceType, _resourceId?: string): boolean {
     return false;
   }
 
   /**
-   * Get the optimistic manager (disabled in simplified cache system)
+   * Get the optimistic manager (disabled in a simplified cache system)
    */
   getOptimisticManager() {
     return null;
   }
 
   /**
-   * Manually rollback a specific optimistic operation (disabled in simplified cache system)
+   * Manually roll back a specific optimistic operation (disabled in a simplified cache system)
    */
   async rollbackOptimisticOperation(_operationId: string, _reason?: string): Promise<void> {
-    // Optimistic updates disabled in simplified cache system
+    // Optimistic updates disabled in a simplified cache system
     return;
   }
 
   /**
-   * Manually rollback all pending optimistic operations for a resource (disabled in simplified cache system)
+   * Manually roll back all pending optimistic operations for a resource (disabled in a simplified cache system)
    */
   async rollbackOptimisticOperationsByResource(_resource: ResourceType, _resourceId?: string): Promise<void> {
-    // Optimistic updates disabled in simplified cache system
+    // Optimistic updates disabled in a simplified cache system
     return;
   }
 

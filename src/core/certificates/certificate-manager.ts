@@ -14,7 +14,7 @@ export interface StoredCertificate {
 }
 
 /**
- * Certificate storage options - Only format is configurable
+ * Certificate storage options - Only a format is configurable
  */
 export interface CertificateOptions {
   format?: 'pem' | 'p12' | 'pkcs12';

@@ -36,7 +36,7 @@ declare module 'react-native' {
     select: <T>(specifics: { [platform: string]: T; default?: T }) => T;
   };
 
-  // Legacy AsyncStorage (deprecated, but needed for fallback)
+  // Legacy AsyncStorage (deprecated but needed for fallback)
   export const AsyncStorage: {
     getItem(key: string): Promise<string | null>;
     setItem(key: string, value: string): Promise<void>;
@@ -74,4 +74,54 @@ declare module 'react-native-keychain' {
   ): Promise<UserCredentials | false>;
 
   export function resetInternetCredentials(server: string): Promise<void>;
+}
+
+// Expo Task Manager
+declare module 'expo-task-manager' {
+  export function defineTask(taskName: string, taskExecutor: () => void | Promise<any>): void;
+  export function getRegisteredTasksAsync(): Promise<Array<{ taskName: string; taskType: string; options: any }>>;
+  export function getTaskOptionsAsync(taskName: string): Promise<any>;
+  export function isAvailableAsync(): Promise<boolean>;
+  export function isTaskDefined(taskName: string): boolean;
+  export function isTaskRegisteredAsync(taskName: string): Promise<boolean>;
+  export function unregisterAllTasksAsync(): Promise<void>;
+  export function unregisterTaskAsync(taskName: string): Promise<void>;
+}
+
+// Expo Background Task
+declare module 'expo-background-task' {
+  export enum BackgroundTaskStatus {
+    Available = 1,
+    Denied = 2,
+    Restricted = 3,
+  }
+
+  export enum BackgroundTaskResult {
+    Success = 1,
+    Failed = 2,
+  }
+
+  export interface BackgroundTaskOptions {
+    minimumInterval?: number;
+  }
+
+  export function getStatusAsync(): Promise<BackgroundTaskStatus>;
+  export function registerTaskAsync(taskName: string, options?: BackgroundTaskOptions): Promise<void>;
+  export function unregisterTaskAsync(taskName: string): Promise<void>;
+  export function triggerTaskWorkerForTestingAsync(): Promise<boolean>;
+}
+
+// React Native Background Task
+declare module 'react-native-background-task' {
+  interface BackgroundTaskStatic {
+    define(taskName: string, task: () => void): void;
+    schedule(options?: { period?: number; timeout?: number }): void;
+    finish(): void;
+    cancel(): void;
+    statusAsync(): Promise<{ available: boolean; unavailableReason?: string }>;
+    UNAVAILABLE_DENIED: string;
+    UNAVAILABLE_RESTRICTED: string;
+  }
+  const BackgroundTask: BackgroundTaskStatic;
+  export default BackgroundTask;
 }

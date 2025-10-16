@@ -6,6 +6,7 @@ import {
   loadNetworkMonitor,
   loadMTLSAdapter
 } from './loaders';
+import {loadBackgroundTask} from "./loaders/background-task-loader";
 
 /**
  * Configuration for mTLS adapter initialization
@@ -48,6 +49,7 @@ export function loadPlatformAdapters(
   const storageAdapters = loadStorageAdapters(platform);
   const networkMonitor = loadNetworkMonitor(platform);
   const cache = loadCacheAdapter(platform);
+  const backgroundTask = loadBackgroundTask(platform)
   
   // Load mTLS adapter with optional configuration
   const mtls = loadMTLSAdapter(platform, debugEnabled, mtlsConfig ? {
@@ -64,6 +66,7 @@ export function loadPlatformAdapters(
       hasStorage: !!storageAdapters.storage,
       hasSecureStorage: !!storageAdapters.secureStorage,
       hasNetworkMonitor: !!networkMonitor,
+      hasBackgroundTask: !!backgroundTask,
       hasCache: !!cache,
       hasMTLS: !!mtls,
       mtlsAutoInitialize: mtlsConfig?.autoInitialize || false,
@@ -76,6 +79,7 @@ export function loadPlatformAdapters(
     networkMonitor,
     cache,
     mtls: mtls || undefined,
+    backgroundTask
   };
 }
 

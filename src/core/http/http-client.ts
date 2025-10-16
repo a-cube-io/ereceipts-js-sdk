@@ -257,7 +257,7 @@ export class HttpClient {
       }
     }
 
-    // Use JWT with appropriate client (possibly :444)
+    // Use JWT with the appropriate client (possibly :444)
     if (this._isDebugEnabled) {
       console.log('[HTTP-CLIENT] Using JWT for GET:', {
         url,

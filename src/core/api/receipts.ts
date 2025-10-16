@@ -1,14 +1,15 @@
-import { HttpClient, CacheRequestConfig } from './http-client';
+import {CacheRequestConfig, HttpClient} from './http-client';
 import {
-  ReceiptInput,
-  ReceiptOutput,
-  ReceiptDetailsOutput,
-  ReceiptReturnOrVoidViaPEMInput,
-  ReceiptReturnOrVoidWithProofInput,
-  Page,
-  ReceiptListParams,
-  RECEIPT_READY
+    Page,
+    RECEIPT_READY,
+    ReceiptDetailsOutput,
+    ReceiptInput,
+    ReceiptListParams,
+    ReceiptOutput,
+    ReceiptReturnOrVoidViaPEMInput,
+    ReceiptReturnOrVoidWithProofInput
 } from './types';
+import {OfflineMaster} from "../../offline";
 
 /**
  * User role information for authentication routing
@@ -26,7 +27,10 @@ export class ReceiptsAPI {
   private debugEnabled: boolean = false;
   private userContext: UserContext | null = null;
 
-  constructor(private httpClient: HttpClient) {
+  constructor(
+      private httpClient: HttpClient,
+      private offlineMaster: OfflineMaster,
+  ) {
     this.debugEnabled = httpClient.isDebugEnabled || true;
 
     if (this.debugEnabled) {
@@ -35,28 +39,12 @@ export class ReceiptsAPI {
   }
 
   /**
-   * Set user context for role-based authentication
-   */
-  setUserContext(context: UserContext): void {
-    this.userContext = context;
-    
-    if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] User context set:', {
-        roles: context.roles,
-        userId: context.userId,
-        merchantId: context.merchantId
-      });
-    }
-  }
-
-
-  /**
    * Create request configuration
    * Let MTLSHandler determine the best authentication mode based on role/platform/method
    */
   private createRequestConfig(config?: Partial<CacheRequestConfig>): CacheRequestConfig {
     return {
-      authMode: 'auto', // Let MTLSHandler decide based on authentication matrix
+      authMode: 'auto', // Let MTLSHandler decide based on the authentication matrix
       ...config
     };
   }
@@ -68,10 +56,29 @@ export class ReceiptsAPI {
   async create(receiptData: ReceiptInput): Promise<ReceiptOutput> {
     if (this.debugEnabled) {
       console.log('[RECEIPTS-API] Creating receipt');
+      console.log('[RECEIPTS-API] [OFFLINE MASTER]', this.offlineMaster);
     }
 
-    const config = this.createRequestConfig();
-    return this.httpClient.post<ReceiptOutput>('/mf1/receipts', receiptData, config);
+    try {
+        const config = this.createRequestConfig();
+        return this.httpClient.post<ReceiptOutput>('/mf1/receipts', receiptData, config)
+            .then((result) => {
+                this.offlineMaster.successSendReceipt()
+                return result;
+            })
+            .catch(async (error) => {
+                throw error
+            });
+
+    }catch (error){
+        if (this.debugEnabled) {
+            console.log('[RECEIPTS-API] Error creating receipt:', error);
+            console.log('[RECEIPTS-API] [OFFLINE MASTER]', this.offlineMaster);
+        }
+        this.offlineMaster.beginOfflineOrEmergencyModeProcess();
+        await this.offlineMaster.saveData(receiptData);
+        throw error;
+    }
   }
 
   /**
@@ -123,7 +130,7 @@ export class ReceiptsAPI {
   /**
    * Get receipt details (JSON or PDF)
    * Authentication mode determined by MTLSHandler
-   * ✅ PDF downloads now use mTLS with binary response support (expo-mutual-tls v1.0.3+)
+   * PDF downloads now use mTLS with binary response support (expo-mutual-tls v1.0.3+)
    */
   async getDetails(
     receiptUuid: string,
@@ -247,5 +254,9 @@ export class ReceiptsAPI {
     }
 
     return status;
+  }
+
+  getOfflineReceipts(): ReceiptInput[] {
+      return this.offlineMaster.getOfflineData();
   }
 }
