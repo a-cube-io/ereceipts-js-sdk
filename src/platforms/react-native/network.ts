@@ -1,141 +1,162 @@
-import { INetworkMonitor, NetworkInfo } from '../../adapters';
+import type {NetInfoState} from '@react-native-community/netinfo';
+import NetInfoLib from '@react-native-community/netinfo';
+import {INetworkMonitor, NetworkInfo} from '../../adapters';
 
 /**
- * React Native network monitor using @react-native-community/netinfo
+ * Network monitor basato su @react-native-community/netinfo
  */
 export class ReactNativeNetworkMonitor implements INetworkMonitor {
-  private NetInfo: any;
-  private listeners: Array<(online: boolean) => void> = [];
-  private unsubscribe: (() => void) | null = null;
-  private currentState: boolean = true;
+    private NetInfo: typeof NetInfoLib | null = null;
+    private listeners: Array<(online: boolean) => void> = [];
+    private unsubscribe: (() => void) | null = null;
+    private currentState: boolean = true;
 
-  constructor() {
-    void this.initializeNetInfo();
-  }
+    private initializing: boolean = false;
+    private readyPromise: Promise<void> | null = null;
 
-  private async initializeNetInfo() {
-    try {
-      // Try to require NetInfo - avoid dynamic import for Metro compatibility
-      const NetInfoModule = require('@react-native-community/netinfo');
-      this.NetInfo = NetInfoModule.default || NetInfoModule;
-      console.log('[NETWORK-MONITOR] NetInfo module loaded successfully');
-      console.log('[NETWORK-MONITOR] NetInfo version:', this.NetInfo);
-      // Subscribe to network state changes
-      this.subscribeToNetworkState();
-    } catch (error) {
-      console.warn('NetInfo not available. Network monitoring will be limited:', error);
-    }
-  }
-
-  private subscribeToNetworkState() {
-    if (!this.NetInfo) return;
-
-    this.unsubscribe = this.NetInfo.addEventListener((state: any) => {
-      // Handle null/undefined state objects
-      if (!state) {
-        return;
-      }
-      
-      const isOnline = state.isConnected && state.isInternetReachable !== false;
-      
-      if (isOnline !== this.currentState) {
-        this.currentState = isOnline;
-        this.notifyListeners(isOnline);
-      }
-    });
-  }
-
-  isOnline(): boolean {
-    return this.currentState;
-  }
-
-  onStatusChange(callback: (online: boolean) => void): () => void {
-    this.listeners.push(callback);
-    
-    // Initialize NetInfo if not already done
-    if (!this.NetInfo) {
-      this.initializeNetInfo();
-    }
-    
-    // Return cleanup function
-    return () => {
-      const index = this.listeners.indexOf(callback);
-      if (index > -1) {
-        this.listeners.splice(index, 1);
-      }
-    };
-  }
-
-  async getNetworkInfo(): Promise<NetworkInfo | null> {
-    if (!this.NetInfo) {
-      await this.initializeNetInfo();
+    constructor() {
+        this.initializeNetInfo().catch(err => {
+            console.warn('[NETWORK-MONITOR] initialization failed:', err);
+        });
     }
 
-    if (!this.NetInfo) {
-      return null;
+    public async ready(): Promise<void> {
+        if (this.NetInfo) return;
+        if (!this.readyPromise) {
+            this.readyPromise = this.initializeNetInfo();
+        }
+        await this.readyPromise;
     }
 
-    try {
-      const state = await this.NetInfo.fetch();
-      
-      return {
-        type: this.mapConnectionType(state.type),
-        effectiveType: this.mapEffectiveType(state.details?.cellularGeneration),
-      };
-    } catch (error) {
-      console.error('Failed to get network info:', error);
-      return null;
-    }
-  }
+    private async initializeNetInfo(): Promise<void> {
+        if (this.NetInfo || this.initializing) {
+            return;
+        }
+        this.initializing = true;
+        try {
+            // import dinamico compatibile con Metro
+            const mod = require('@react-native-community/netinfo');
+            this.NetInfo = mod.default ?? mod;
+            console.log('[NETWORK-MONITOR] NetInfo loaded');
 
-  private notifyListeners(online: boolean): void {
-    this.listeners.forEach(callback => {
-      try {
-        callback(online);
-      } catch (error) {
-        console.error('Error in network status callback:', error);
-      }
-    });
-  }
+            // Inizializza stato corrente con fetch
+            const state = await this.NetInfo!.fetch();
+            this.currentState = this.isStateOnline(state);
 
-  private mapConnectionType(type: string): 'wifi' | 'cellular' | 'ethernet' | 'unknown' {
-    switch (type) {
-      case 'wifi':
-        return 'wifi';
-      case 'cellular':
-        return 'cellular';
-      case 'ethernet':
-        return 'ethernet';
-      case 'none':
-      case 'unknown':
-      default:
-        return 'unknown';
+            this.subscribeToNetworkState();
+        } catch (error) {
+            console.warn('[NETWORK-MONITOR] NetInfo not available:', error);
+        } finally {
+            this.initializing = false;
+        }
     }
-  }
 
-  private mapEffectiveType(generation: string): '2g' | '3g' | '4g' | '5g' | undefined {
-    switch (generation) {
-      case '2g':
-        return '2g';
-      case '3g':
-        return '3g';
-      case '4g':
-        return '4g';
-      case '5g':
-        return '5g';
-      default:
-        return undefined;
+    private subscribeToNetworkState(): void {
+        if (!this.NetInfo) return;
+        if (this.unsubscribe) {
+            // già sottoscritto → non duplicare
+            return;
+        }
+        this.unsubscribe = this.NetInfo.addEventListener((state: NetInfoState) => {
+            const isOnline = this.isStateOnline(state);
+            if (isOnline !== this.currentState) {
+                this.currentState = isOnline;
+                this.notifyListeners(isOnline);
+            }
+        });
     }
-  }
 
-  /**
-   * Cleanup method to remove listeners and unsubscribe
-   */
-  destroy(): void {
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
+    public isOnline(): boolean {
+        return this.currentState;
     }
-    this.listeners = [];
-  }
+
+    public onStatusChange(callback: (online: boolean) => void): () => void {
+        this.listeners.push(callback);
+
+        if (!this.NetInfo) {
+            void this.initializeNetInfo();
+        } else {
+            this.subscribeToNetworkState();
+        }
+
+        return () => {
+            this.listeners = this.listeners.filter(cb => cb !== callback);
+            if (this.listeners.length === 0) {
+                this.cleanupNative();
+            }
+        };
+    }
+
+    public async getNetworkInfo(): Promise<NetworkInfo | null> {
+        await this.ready();
+        if (!this.NetInfo) return null;
+
+        try {
+            const state = await this.NetInfo.fetch();
+            return {
+                type: this.mapConnectionType(state.type),
+                effectiveType: this.mapEffectiveType(state.details?.cellularGeneration),
+            };
+        } catch (error) {
+            console.error('[NETWORK-MONITOR] fetch error:', error);
+            return null;
+        }
+    }
+
+    private notifyListeners(online: boolean): void {
+        for (const cb of this.listeners) {
+            try {
+                cb(online);
+            } catch (err) {
+                console.error('Error in network status callback:', err);
+            }
+        }
+    }
+
+    private cleanupNative(): void {
+        if (this.unsubscribe) {
+            this.unsubscribe();
+            this.unsubscribe = null;
+        }
+    }
+
+    private isStateOnline(state: NetInfoState): boolean {
+        // `isInternetReachable` può essere null, quindi fallback se necessario
+        return !!state.isConnected && (state.isInternetReachable ?? true);
+    }
+
+    private mapConnectionType(type: string): 'wifi' | 'cellular' | 'ethernet' | 'unknown' {
+        switch (type) {
+            case 'wifi':
+                return 'wifi';
+            case 'cellular':
+                return 'cellular';
+            case 'ethernet':
+                return 'ethernet';
+            case 'none':
+            case 'unknown':
+            default:
+                return 'unknown';
+        }
+    }
+
+    private mapEffectiveType(generation: string | undefined): '2g' | '3g' | '4g' | '5g' | undefined {
+        switch (generation) {
+            case '2g':
+                return '2g';
+            case '3g':
+                return '3g';
+            case '4g':
+                return '4g';
+            case '5g':
+                return '5g';
+            default:
+                return undefined;
+        }
+    }
+
+    public destroy(): void {
+        this.cleanupNative();
+        this.listeners = [];
+    }
 }

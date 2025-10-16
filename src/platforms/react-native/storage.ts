@@ -7,7 +7,11 @@ export class ReactNativeStorageAdapter implements IStorage {
   private AsyncStorage: any;
 
   constructor() {
-    void this.initializeAsyncStorage();
+    this.initializeAsyncStorage().then(() => {
+      console.log('[STORAGE] AsyncStorage initialized');
+    }).catch(err => {
+      console.warn('[STORAGE] AsyncStorage initialization failed:', err);
+    });
   }
 
   private async initializeAsyncStorage() {
@@ -27,7 +31,9 @@ export class ReactNativeStorageAdapter implements IStorage {
   }
 
   async get(key: string): Promise<string | null> {
-    if (!this.AsyncStorage) await this.initializeAsyncStorage();
+    if (!this.AsyncStorage) {
+      await this.initializeAsyncStorage();
+    }
     
     try {
       return await this.AsyncStorage.getItem(key);
@@ -38,7 +44,9 @@ export class ReactNativeStorageAdapter implements IStorage {
   }
 
   async set(key: string, value: string): Promise<void> {
-    if (!this.AsyncStorage) await this.initializeAsyncStorage();
+    if (!this.AsyncStorage) {
+      await this.initializeAsyncStorage();
+    }
     
     try {
       await this.AsyncStorage.setItem(key, value);
@@ -48,7 +56,9 @@ export class ReactNativeStorageAdapter implements IStorage {
   }
 
   async remove(key: string): Promise<void> {
-    if (!this.AsyncStorage) await this.initializeAsyncStorage();
+    if (!this.AsyncStorage) {
+      await this.initializeAsyncStorage();
+    }
     
     try {
       await this.AsyncStorage.removeItem(key);
@@ -58,7 +68,9 @@ export class ReactNativeStorageAdapter implements IStorage {
   }
 
   async clear(): Promise<void> {
-    if (!this.AsyncStorage) await this.initializeAsyncStorage();
+    if (!this.AsyncStorage) {
+      await this.initializeAsyncStorage();
+    }
     
     try {
       await this.AsyncStorage.clear();
@@ -68,7 +80,9 @@ export class ReactNativeStorageAdapter implements IStorage {
   }
 
   async getAllKeys(): Promise<string[]> {
-    if (!this.AsyncStorage) await this.initializeAsyncStorage();
+    if (!this.AsyncStorage) {
+      await this.initializeAsyncStorage();
+    }
     
     try {
       return await this.AsyncStorage.getAllKeys();
@@ -79,7 +93,9 @@ export class ReactNativeStorageAdapter implements IStorage {
   }
 
   async multiGet(keys: string[]): Promise<Record<string, string | null>> {
-    if (!this.AsyncStorage) await this.initializeAsyncStorage();
+    if (!this.AsyncStorage) {
+      await this.initializeAsyncStorage();
+    }
     
     try {
       const pairs = await this.AsyncStorage.multiGet(keys);
@@ -99,7 +115,9 @@ export class ReactNativeStorageAdapter implements IStorage {
   }
 
   async multiSet(items: Record<string, string>): Promise<void> {
-    if (!this.AsyncStorage) await this.initializeAsyncStorage();
+    if (!this.AsyncStorage) {
+      await this.initializeAsyncStorage();
+    }
     
     try {
       const pairs = Object.entries(items);
@@ -110,7 +128,9 @@ export class ReactNativeStorageAdapter implements IStorage {
   }
 
   async multiRemove(keys: string[]): Promise<void> {
-    if (!this.AsyncStorage) await this.initializeAsyncStorage();
+    if (!this.AsyncStorage) {
+      await this.initializeAsyncStorage();
+    }
     
     try {
       await this.AsyncStorage.multiRemove(keys);

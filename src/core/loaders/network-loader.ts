@@ -6,7 +6,7 @@ import { ReactNativeNetworkMonitor } from '../../platforms/react-native/network'
 import { NodeNetworkMonitor } from '../../platforms/node/network';
 
 /**
- * Load platform-specific network monitor
+ * Load-platform-specific network monitor
  */
 export function loadNetworkMonitor(platform: string): INetworkMonitor {
   switch (platform) {
