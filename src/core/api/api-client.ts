@@ -1,7 +1,7 @@
 import { ConfigManager } from '../config';
-import { HttpClient } from './http-client';
-import { ICacheAdapter, INetworkMonitor, IMTLSAdapter } from '../../adapters';
-import { CertificateManager } from '../certificates/certificate-manager';
+import { HttpClient } from '../http';
+import { PlatformAdapters } from '../../adapters';
+import { CertificateManager } from '../certificates';
 import { IUserProvider } from '../types';
 import { ReceiptsAPI } from './receipts';
 import { CashiersAPI } from './cashiers';
@@ -12,15 +12,14 @@ import { PemsAPI } from './pems';
 import { SuppliersAPI } from './suppliers';
 import { DailyReportsAPI } from './daily-reports';
 import { JournalsAPI } from './journals';
+import {OfflineMaster} from "../../offline";
+import {ReceiptInput} from "./types";
 
 /**
  * Main API client that combines all resource managers
  */
 export class APIClient {
-  private httpClient: HttpClient;
-  private cache?: ICacheAdapter;
-  private networkMonitor?: INetworkMonitor;
-
+  private readonly httpClient: HttpClient;
   // Resource managers
   public readonly receipts: ReceiptsAPI;
   public readonly cashiers: CashiersAPI;
@@ -34,18 +33,29 @@ export class APIClient {
 
   constructor(
     config: ConfigManager,
+    adapters: PlatformAdapters,
     certificateManager?: CertificateManager,
-    cache?: ICacheAdapter,
-    networkMonitor?: INetworkMonitor,
-    mtlsAdapter?: IMTLSAdapter,
-    userProvider?: IUserProvider
+    userProvider?: IUserProvider,
   ) {
-    this.cache = cache;
-    this.networkMonitor = networkMonitor;
-    this.httpClient = new HttpClient(config, certificateManager, cache, networkMonitor, mtlsAdapter, userProvider);
+
+   this.httpClient = new HttpClient(
+        config,
+        certificateManager,
+        adapters.cache,
+        adapters.networkMonitor,
+        adapters.mtls,
+        userProvider
+    );
 
     // Initialize resource managers
-    this.receipts = new ReceiptsAPI(this.httpClient);
+    this.receipts = new ReceiptsAPI(
+        this.httpClient,
+        new OfflineMaster(
+            adapters,
+            (data: ReceiptInput) => this.receipts.create(data)
+        )
+    );
+
     this.cashiers = new CashiersAPI(this.httpClient);
     this.pointOfSales = new PointOfSalesAPI(this.httpClient);
     this.cashRegisters = new CashRegistersAPI(this.httpClient);
@@ -75,61 +85,5 @@ export class APIClient {
    */
   getHttpClient(): HttpClient {
     return this.httpClient;
-  }
-
-  /**
-   * Get the cache adapter if available
-   */
-  getCache(): ICacheAdapter | undefined {
-    return this.cache;
-  }
-
-  /**
-   * Check if the cache is available and enabled
-   */
-  isCacheEnabled(): boolean {
-    return !!this.cache;
-  }
-
-  /**
-   * Get the network monitor if available
-   */
-  getNetworkMonitor(): INetworkMonitor | undefined {
-    return this.networkMonitor;
-  }
-
-  /**
-   * Check if network monitoring is enabled
-   */
-  isNetworkMonitorEnabled(): boolean {
-    return !!this.networkMonitor;
-  }
-
-  /**
-   * Get current network status
-   */
-  getNetworkStatus(): { isOnline: boolean; hasMonitor: boolean } {
-    return this.httpClient.getNetworkStatus();
-  }
-
-  /**
-   * Check if currently online
-   */
-  isOnline(): boolean {
-    return this.getNetworkStatus().isOnline;
-  }
-
-  /**
-   * Get mTLS adapter if available through HttpClient
-   */
-  getMTLSAdapter(): IMTLSAdapter | null {
-    return this.httpClient.getMTLSAdapter();
-  }
-
-  /**
-   * Check if mTLS is ready
-   */
-  async isMTLSReady(): Promise<boolean> {
-    return this.httpClient.isMTLSReady();
   }
 }

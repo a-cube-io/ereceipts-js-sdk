@@ -2,7 +2,7 @@ import { IStorage } from './storage';
 
 /**
  * Secure storage adapter interface for sensitive data like tokens
- * Extends IStorage with the same interface but different implementations
+ * Extends IStorage with the same interface, but different implementations
  * should use platform-specific secure storage mechanisms
  */
 export interface ISecureStorage extends IStorage {

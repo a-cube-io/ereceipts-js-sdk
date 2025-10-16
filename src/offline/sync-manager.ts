@@ -1,5 +1,5 @@
 import { INetworkMonitor } from '../adapters';
-import { HttpClient } from '../core/api';
+import { HttpClient } from '../core';
 import { OperationQueue } from './queue';
 import { 
   QueuedOperation, 

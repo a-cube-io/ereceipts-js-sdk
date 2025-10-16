@@ -11,7 +11,7 @@ import {
 } from './core';
 import { PlatformAdapters } from './adapters';
 import { OfflineManager, QueueEvents } from './offline';
-import { CertificateManager } from './core/certificates/certificate-manager';
+import { CertificateManager } from './core';
 
 /**
  * SDK Events interface
@@ -31,8 +31,11 @@ export class ACubeSDK {
   private config: ConfigManager;
   private adapters?: PlatformAdapters;
   private authManager?: AuthManager;
+
+  // TODO: Remove offlineManager
   private offlineManager?: OfflineManager;
   private certificateManager?: CertificateManager;
+
   private isInitialized = false;
 
   // Public API clients
@@ -83,7 +86,7 @@ export class ACubeSDK {
         this.config.isDebugEnabled()
       );
 
-      // Initialize auth manager first (needed for API client)
+      // Initialize auth manager first (needed for an API client)
       this.authManager = new AuthManager(
         this.config,
         this.adapters.secureStorage,
@@ -97,14 +100,12 @@ export class ACubeSDK {
       // Pass authManager as userProvider for role-based auth decisions
       this.api = new APIClient(
         this.config,
+        this.adapters,
         this.certificateManager,
-        this.adapters.cache,
-        this.adapters.networkMonitor,
-        this.adapters.mtls,
         this.authManager // AuthManager implements IUserProvider
       );
 
-      // Initialize offline manager
+      //TODO: REMOVE THIS Initialize offline manager
       const queueEvents: QueueEvents = {
         onOperationAdded: (operation) => {
           this.events.onOfflineOperationAdded?.(operation.id);
@@ -347,7 +348,7 @@ export class ACubeSDK {
 
 
   /**
-   * Get certificate manager for advanced certificate operations
+   * Get a certificate manager for advanced certificate operations
    */
   getCertificateManager() {
     this.ensureInitialized();
@@ -371,7 +372,7 @@ export class ACubeSDK {
   }
 
   /**
-   * Get certificate information (without private key)
+   * Get certificate information (without a private key)
    */
   async getCertificateInfo() {
     this.ensureInitialized();

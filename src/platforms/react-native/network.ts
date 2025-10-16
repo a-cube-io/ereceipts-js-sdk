@@ -10,7 +10,7 @@ export class ReactNativeNetworkMonitor implements INetworkMonitor {
   private currentState: boolean = true;
 
   constructor() {
-    this.initializeNetInfo();
+    void this.initializeNetInfo();
   }
 
   private async initializeNetInfo() {
@@ -18,7 +18,8 @@ export class ReactNativeNetworkMonitor implements INetworkMonitor {
       // Try to require NetInfo - avoid dynamic import for Metro compatibility
       const NetInfoModule = require('@react-native-community/netinfo');
       this.NetInfo = NetInfoModule.default || NetInfoModule;
-      console.log('NetInfo loaded successfully');
+      console.log('[NETWORK-MONITOR] NetInfo module loaded successfully');
+      console.log('[NETWORK-MONITOR] NetInfo version:', this.NetInfo);
       // Subscribe to network state changes
       this.subscribeToNetworkState();
     } catch (error) {

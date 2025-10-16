@@ -7,7 +7,7 @@ export class ReactNativeStorageAdapter implements IStorage {
   private AsyncStorage: any;
 
   constructor() {
-    this.initializeAsyncStorage();
+    void this.initializeAsyncStorage();
   }
 
   private async initializeAsyncStorage() {
