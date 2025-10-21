@@ -123,6 +123,11 @@ export interface ReceiptItem {
   complimentary?: boolean;
 }
 
+export interface ReceiptReturnItem {
+ id: string;
+ quantity: string;
+}
+
 export interface ReceiptInput {
   items: ReceiptItem[];
   customer_tax_code?: string;
@@ -165,6 +170,14 @@ export interface ReceiptDetailsOutput {
   total_gross_discount: string;
   discount: string;
   items?: ReceiptItem[];
+}
+
+export interface VoidReceiptInput {
+  document_number: string;
+}
+export interface ReceiptReturnInput {
+  items: ReceiptReturnItem[];
+  document_number: string;
 }
 
 export interface ReceiptReturnOrVoidViaPEMInput {

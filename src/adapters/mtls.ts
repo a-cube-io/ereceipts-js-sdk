@@ -40,6 +40,8 @@ export interface CertificateInfo {
   validTo: Date;
   serialNumber: string;
   fingerprint: string;
+  pemId: string;
+  cashRegisterUUID: string;
 }
 
 /**

@@ -391,7 +391,7 @@ export class ACubeSDK {
    */
   async hasCertificate() {
     this.ensureInitialized();
-    
+
     if (!this.certificateManager) {
       throw new ACubeSDKError(
         'CERTIFICATE_MANAGER_NOT_INITIALIZED',
@@ -400,6 +400,60 @@ export class ACubeSDK {
     }
 
     return await this.certificateManager.hasCertificate();
+  }
+
+  /**
+   * Get detailed certificate information from stored certificates
+   * This method retrieves certificate metadata including subject, issuer,
+   * validity dates, fingerprints, key usage, and more from the mTLS adapter.
+   *
+   * @returns Promise with detailed certificate information or null if not available
+   */
+  async getCertificatesInfo() {
+    this.ensureInitialized();
+
+    if (!this.adapters?.mtls) {
+      throw new ACubeSDKError(
+        'MTLS_ADAPTER_NOT_AVAILABLE',
+        'mTLS adapter not available'
+      );
+    }
+
+    try {
+      // Check if certificate exists first
+      const hasCert = await this.adapters.mtls.hasCertificate();
+      if (!hasCert) {
+        if (this.config.isDebugEnabled()) {
+          console.log('[ACUBE-SDK] No certificate stored, cannot retrieve certificate info');
+        }
+        return null;
+      }
+
+      // Call the adapter's getCertificateInfo which uses getCertificatesInfo internally
+      const certInfo = await this.adapters.mtls.getCertificateInfo();
+
+      if (this.config.isDebugEnabled()) {
+        console.log('[ACUBE-SDK] Certificate info retrieved:', certInfo ? {
+          subject: certInfo.subject,
+          issuer: certInfo.issuer,
+          validFrom: certInfo.validFrom,
+          validTo: certInfo.validTo,
+          serialNumber: certInfo.serialNumber
+        } : 'null');
+      }
+
+      return certInfo;
+    } catch (error) {
+      if (this.config.isDebugEnabled()) {
+        console.error('[ACUBE-SDK] Failed to get certificates info:', error);
+      }
+
+      throw new ACubeSDKError(
+        'CERTIFICATE_INFO_ERROR',
+        `Failed to retrieve certificate information: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error
+      );
+    }
   }
 
 

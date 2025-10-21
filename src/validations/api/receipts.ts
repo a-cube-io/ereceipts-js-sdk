@@ -72,6 +72,23 @@ export const ReceiptReturnOrVoidWithProofInputSchema = z.object({
   document_datetime: z.string().min(1, { error: 'fieldIsRequired' }),
 });
 
+// Void Receipt Schema
+export const VoidReceiptInputSchema = z.object({
+  document_number: z.string().min(1, { error: 'fieldIsRequired' }),
+});
+
+export const ReceiptReturnItemSchema = z.array(z.object({
+  id: z.string().min(1, { error: 'fieldIsRequired' }),
+  quantity: z.string().min(1, { error: 'fieldIsRequired' }),
+})).min(1, { error: 'arrayMin1' });
+
+
+// Receipt Return Schema
+export const ReceiptReturnInputSchema = z.object({
+  items: z.array(ReceiptReturnItemSchema).min(1, { error: 'arrayMin1' }),
+  document_number: z.string().min(1, { error: 'fieldIsRequired' }),
+});
+
 // Type exports
 export type ReceiptItemType = z.infer<typeof ReceiptItemSchema>;
 export type ReceiptInputType = z.infer<typeof ReceiptInputSchema>;
@@ -80,3 +97,6 @@ export type ReceiptReturnOrVoidWithProofInputType = z.infer<typeof ReceiptReturn
 export type VatRateCodeType = z.infer<typeof VatRateCodeSchema>;
 export type GoodOrServiceType = z.infer<typeof GoodOrServiceSchema>;
 export type ReceiptProofTypeType = z.infer<typeof ReceiptProofTypeSchema>;
+export type ReceiptReturnType = z.infer<typeof ReceiptReturnInputSchema>;
+export type ReceiptReturnItemType = z.infer<typeof ReceiptReturnItemSchema>;
+export type VoidReceiptInputType = z.infer<typeof VoidReceiptInputSchema>;

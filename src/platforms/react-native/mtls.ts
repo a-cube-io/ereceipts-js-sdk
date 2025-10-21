@@ -16,6 +16,54 @@ import {
 } from '../../adapters';
 
 // Import actual types from expo-mutual-tls
+interface CertificateSubject {
+  commonName?: string;
+  organization?: string;
+  organizationalUnit?: string;
+  country?: string;
+  state?: string;
+  locality?: string;
+  emailAddress?: string;
+}
+
+interface CertificateFingerprints {
+  sha1: string;
+  sha256: string;
+}
+
+interface CertificateInfoDetailed {
+  subject: CertificateSubject;
+  issuer: CertificateSubject;
+  serialNumber: string;
+  version: number;
+  validFrom: number;
+  validTo: number;
+  fingerprints: CertificateFingerprints;
+  publicKeyAlgorithm: string;
+  publicKeySize?: number;
+  signatureAlgorithm: string;
+  keyUsage?: string[];
+  extendedKeyUsage?: string[];
+  subjectAlternativeNames?: string[];
+}
+
+interface ParseCertificateResult {
+  certificates: CertificateInfoDetailed[];
+}
+
+type P12CertificateData = {
+  p12Data: string;
+  password: string;
+};
+
+type PemCertificateData = {
+  certificate: string;
+  privateKey: string;
+  passphrase?: string;
+};
+
+type CertificateDataUnion = P12CertificateData | PemCertificateData;
+
 interface ExpoMutualTLSClass {
   // Configuration methods (static)
   configurePEM(certService?: string, keyService?: string, enableLogging?: boolean): Promise<{
@@ -23,20 +71,27 @@ interface ExpoMutualTLSClass {
     state: string;
     hasCertificate: boolean;
   }>;
+
   configureP12(keychainService?: string, enableLogging?: boolean): Promise<{
     success: boolean;
     state: string;
     hasCertificate: boolean;
   }>;
-  
+
   // Certificate storage methods (static)
   storePEM(certificate: string, privateKey: string, passphrase?: string): Promise<boolean>;
   storeP12(p12Base64: string, password: string): Promise<boolean>;
-  
+
   // Certificate management (static)
   hasCertificate(): Promise<boolean>;
   removeCertificate(): Promise<void>;
-  
+
+  // Certificate parsing methods (static)
+  parseCertificate(certificateData: CertificateDataUnion): Promise<ParseCertificateResult>;
+  parseCertificateP12(p12Base64: string, password: string): Promise<ParseCertificateResult>;
+  parseCertificatePEM(certificate: string): Promise<ParseCertificateResult>;
+  getCertificatesInfo(): Promise<ParseCertificateResult>;
+
   // Network operations (static)
   request(url: string, options?: {
     method?: string;
@@ -52,7 +107,7 @@ interface ExpoMutualTLSClass {
     tlsVersion: string;
     cipherSuite: string;
   }>;
-  
+
   testConnection(url: string): Promise<{
     success: boolean;
     statusCode: number;
@@ -62,15 +117,16 @@ interface ExpoMutualTLSClass {
     tlsVersion: string;
     cipherSuite: string;
   }>;
-  
+
   // Properties (static getters)
   isConfigured: boolean;
   currentState: string;
-  
+
   // Event handlers (static)
   onDebugLog(callback: (event: { type: string; message?: string; method?: string; url?: string; statusCode?: number; duration?: number; }) => void): any;
   onError(callback: (event: { message: string; code?: string; }) => void): any;
   onCertificateExpiry(callback: (event: { alias?: string; subject: string; expiry: number; warning?: boolean; }) => void): any;
+  removeAllListeners(): void;
 }
 
 /**
@@ -330,13 +386,134 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
   }
 
   async getCertificateInfo(): Promise<CertificateInfo | null> {
-    // Note: @a-cube-io/expo-mutual-tls might not expose certificate info directly
-    // This is a placeholder implementation
-    if (this.debugEnabled) {
-      console.log('[RN-MTLS-ADAPTER] Certificate info requested (not implemented in module)');
+    if (!this.expoMTLS) {
+      if (this.debugEnabled) {
+        console.log('[RN-MTLS-ADAPTER] Certificate info requested but module not available');
+      }
+      return null;
     }
-    
-    return null; // Would need to be implemented in the native module
+
+    try {
+      const hasCert = await this.hasCertificate();
+      if (!hasCert) {
+        if (this.debugEnabled) {
+          console.log('[RN-MTLS-ADAPTER] No certificate stored');
+        }
+        return null;
+      }
+
+      // Use getCertificatesInfo to retrieve information about stored certificates
+      const result = await this.expoMTLS.getCertificatesInfo();
+
+      if (!result || !result.certificates || result.certificates.length === 0) {
+        if (this.debugEnabled) {
+          console.log('[RN-MTLS-ADAPTER] No certificate information available');
+        }
+        return null;
+      }
+
+      // Get the first certificate (primary client certificate)
+      const cert = result.certificates[0];
+
+      if (!cert) {
+        if (this.debugEnabled) {
+          console.log('[RN-MTLS-ADAPTER] Certificate data is empty');
+        }
+        return null;
+      }
+
+      if (this.debugEnabled) {
+        console.log('[RN-MTLS-ADAPTER] Retrieved certificate info:', {
+          subject: cert.subject.commonName,
+          issuer: cert.issuer.commonName,
+          validFrom: new Date(cert.validFrom),
+          validTo: new Date(cert.validTo)
+        });
+      }
+
+      // Map to our CertificateInfo format
+      return {
+        subject: cert.subject.commonName || 'Unknown',
+        issuer: cert.issuer.commonName || 'Unknown',
+        validFrom: new Date(cert.validFrom),
+        validTo: new Date(cert.validTo),
+        serialNumber: cert.serialNumber,
+        fingerprint: cert.fingerprints.sha256,
+        pemId: cert.subject.commonName?.split(':')[1] || '', // PEM ID is part[1] (divide by : ) of commonName if available
+        cashRegisterUUID: cert.subject.commonName?.split(':')[0] || '' // Cash Register UUID is part[0] (divide by : ) of commonName if available
+      };
+    } catch (error) {
+      if (this.debugEnabled) {
+        console.error('[RN-MTLS-ADAPTER] Failed to get certificate info:', error);
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Parse certificate and extract detailed information
+   * @param certificateData Certificate data in P12 or PEM format
+   * @returns Detailed certificate information including subject, issuer, validity, etc.
+   */
+  async parseCertificateData(
+    certificateData: CertificateData
+  ): Promise<ParseCertificateResult | null> {
+    if (!this.expoMTLS) {
+      if (this.debugEnabled) {
+        console.log('[RN-MTLS-ADAPTER] Parse certificate: Module not available');
+      }
+      return null;
+    }
+
+    try {
+      let result: ParseCertificateResult;
+
+      if (certificateData.format === 'P12') {
+        if (!certificateData.password) {
+          throw new MTLSError(
+            MTLSErrorType.CONFIGURATION_ERROR,
+            'P12 certificate requires password for parsing'
+          );
+        }
+
+        result = await this.expoMTLS.parseCertificateP12(
+          certificateData.certificate,
+          certificateData.password
+        );
+      } else if (certificateData.format === 'PEM') {
+        result = await this.expoMTLS.parseCertificatePEM(
+          certificateData.certificate
+        );
+      } else {
+        throw new MTLSError(
+          MTLSErrorType.CERTIFICATE_INVALID,
+          `Unsupported certificate format: ${certificateData.format}`
+        );
+      }
+
+      if (this.debugEnabled) {
+        console.log('[RN-MTLS-ADAPTER] Certificate parsed successfully:', {
+          certificateCount: result.certificates.length,
+          subjects: result.certificates.map(cert => cert.subject.commonName)
+        });
+      }
+
+      return result;
+    } catch (error) {
+      if (this.debugEnabled) {
+        console.error('[RN-MTLS-ADAPTER] Failed to parse certificate:', error);
+      }
+
+      if (error instanceof MTLSError) {
+        throw error;
+      }
+
+      throw new MTLSError(
+        MTLSErrorType.CERTIFICATE_INVALID,
+        'Failed to parse certificate data',
+        error as Error
+      );
+    }
   }
 
   async request<T>(requestConfig: MTLSRequestConfig): Promise<MTLSResponse<T>> {
@@ -509,10 +686,27 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
     if (this.eventListeners.length > 0 && this.debugEnabled) {
       console.log(`[RN-MTLS-ADAPTER] Cleaning up ${this.eventListeners.length} event listeners`);
     }
-    
-    // Note: The actual cleanup would depend on the return type of onDebugLog/onError/onCertificateExpiry
-    // which might provide unsubscribe functions. For now, we clear the array.
+
+    // Remove individual listeners if they have remove methods
+    this.eventListeners.forEach(listener => {
+      if (listener && typeof listener.remove === 'function') {
+        listener.remove();
+      }
+    });
+
+    // Also call removeAllListeners on the module
+    if (this.expoMTLS) {
+      this.expoMTLS.removeAllListeners();
+    }
+
     this.eventListeners.length = 0;
+  }
+
+  /**
+   * Manually remove all event listeners
+   */
+  removeAllListeners(): void {
+    this.cleanupEventListeners();
   }
 
   /**

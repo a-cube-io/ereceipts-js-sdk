@@ -226,7 +226,7 @@ export class CertificateManager {
       }
 
       return {
-        format: cert.format
+        format: cert.format,
       };
 
     } catch (error) {
