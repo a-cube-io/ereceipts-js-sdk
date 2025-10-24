@@ -162,7 +162,8 @@ export class MTLSError extends Error {
   constructor(
     public type: MTLSErrorType,
     message: string,
-    public originalError?: Error
+    public originalError?: Error,
+    public statusCode?: number
   ) {
     super(message);
     this.name = 'MTLSError';

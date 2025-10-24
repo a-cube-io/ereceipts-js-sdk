@@ -8,6 +8,11 @@ import {
 import { CertificateManager, StoredCertificate } from '../../certificates';
 import { IUserProvider } from '../../types';
 import { hasRole } from '../../roles';
+import {
+  classifyError,
+  shouldRetryRequest,
+  shouldReconfigureCertificate
+} from '../utils/error-classifier';
 
 /**
  * Simplified authentication modes
@@ -201,6 +206,16 @@ export class MTLSHandler {
           console.log('[MTLS-HANDLER] 🏪 MERCHANT accessing non-receipt - JWT');
         }
         return { mode: 'jwt', usePort444: false };
+      }
+
+      // Returnable items endpoint: Always mTLS
+      const isReturnableItemsEndpoint = url.match(/\/receipts\/[a-f0-9\-]+\/returnable-items$/) ||
+                                        url.match(/\/mf1\/receipts\/[a-f0-9\-]+\/returnable-items$/);
+      if (isReturnableItemsEndpoint) {
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] 🏪 MERCHANT GET returnable items - mTLS');
+        }
+        return { mode: 'mtls', usePort444: true };
       }
 
       // Receipt GET: Always JWT, except for detailed receipt with mTLS
@@ -481,9 +496,15 @@ export class MTLSHandler {
 
       return response.data;
     } catch (error) {
+      // Classify the error to determine appropriate handling
+      const errorClassification = classifyError(error);
+
       if (this.isDebugEnabled) {
         console.error('[MTLS-HANDLER] mTLS request failed:', {
           error: error instanceof Error ? error.message : error,
+          category: errorClassification.category,
+          statusCode: errorClassification.statusCode,
+          shouldRetry: errorClassification.shouldRetry,
           isRetryAttempt
         });
       }
@@ -491,14 +512,32 @@ export class MTLSHandler {
       // If this is already a retry attempt, don't retry again to prevent infinite loops
       if (isRetryAttempt) {
         if (this.isDebugEnabled) {
-          console.error('[MTLS-HANDLER] ❌ Retry attempt also failed - certificate may be invalid');
+          console.error('[MTLS-HANDLER] ❌ Retry attempt failed:', errorClassification.userMessage);
         }
         throw error;
       }
 
-      // First attempt failed - try to reconfigure certificate and retry
+      // Check if we should retry based on error classification
+      if (!shouldRetryRequest(error, isRetryAttempt)) {
+        if (this.isDebugEnabled) {
+          console.error('[MTLS-HANDLER] ❌ Error not retryable:', errorClassification.userMessage);
+        }
+        throw error;
+      }
+
+      // Only reconfigure certificate for certificate-specific errors
+      if (!shouldReconfigureCertificate(error)) {
+        if (this.isDebugEnabled) {
+          console.log('[MTLS-HANDLER] 🔄 Retrying request without reconfiguring certificate...');
+        }
+
+        // Retry the request without reconfiguring
+        return await this.executeRequestMTLS<T>(url, config, certificateOverride, jwtToken, true);
+      }
+
+      // Certificate error - try to reconfigure and retry
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] 🔄 First attempt failed, reconfiguring certificate and retrying...');
+        console.log('[MTLS-HANDLER] 🔄 Certificate error detected, reconfiguring and retrying...');
       }
 
       try {

@@ -553,7 +553,9 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
       if (!response.success) {
         throw new MTLSError(
           MTLSErrorType.CONNECTION_FAILED,
-          `mTLS request failed: ${response.statusMessage} (${response.statusCode})`
+          `mTLS request failed: ${response.statusMessage} (${response.statusCode})`,
+          undefined,
+          response.statusCode
         );
       }
 

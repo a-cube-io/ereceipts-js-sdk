@@ -9,7 +9,8 @@ import {
   ReceiptListParams,
   RECEIPT_READY,
   ReceiptReturnInput,
-  VoidReceiptInput
+  VoidReceiptInput,
+  ReturnableReceiptItem
 } from './types';
 
 /**
@@ -176,11 +177,9 @@ export class ReceiptsAPI {
       console.log('[RECEIPTS-API] Voiding receipt via same pos');
     }
 
-    const config = this.createRequestConfig({
-      data: voidData
-    });
+    const config = this.createRequestConfig();
 
-    await this.httpClient.delete('/mf1/receipts', config);
+    await this.httpClient.delete('/mf1/receipts', voidData, config);
   }
 
   /**
@@ -191,11 +190,9 @@ export class ReceiptsAPI {
       console.log('[RECEIPTS-API] Voiding receipt via different pos');
     }
 
-    const config = this.createRequestConfig({
-      data: voidData
-    });
-
-    await this.httpClient.delete('/mf1/receipts/void-via-different-pos', config);
+    const config = this.createRequestConfig();
+1
+    await this.httpClient.delete('/mf1/receipts/void-via-different-pos', voidData, config);
   }
 
   /**
@@ -206,11 +203,9 @@ export class ReceiptsAPI {
       console.log('[RECEIPTS-API] Voiding receipt with proof');
     }
 
-    const config = this.createRequestConfig({
-      data: voidData
-    });
+    const config = this.createRequestConfig();
 
-    await this.httpClient.delete('/mf1/receipts/void-with-proof', config);
+    await this.httpClient.delete('/mf1/receipts/void-with-proof', voidData, config);
   }
 
   /**
@@ -223,6 +218,18 @@ export class ReceiptsAPI {
 
     const config = this.createRequestConfig();
     return this.httpClient.post<ReceiptOutput>('/mf1/receipts/return', returnData, config);
+  }
+
+  /**
+   * get returnable items for a receipt
+   */
+  async getReturnableItems(receiptUuid: string): Promise<ReturnableReceiptItem[]> {
+    if (this.debugEnabled) {
+      console.log('[RECEIPTS-API] Getting returnable items for receipt UUID:', receiptUuid);
+    }
+
+    const config = this.createRequestConfig();
+    return this.httpClient.get<ReturnableReceiptItem[]>(`/mf1/receipts/${receiptUuid}/returnable-items`, config);
   }
 
   /**

@@ -6,7 +6,7 @@ export const VAT_RATE_CODE_OPTIONS = [
   '8.3', '8.5', '8.8', '9.5', '12.3', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6'
 ] as const;
 
-export const GOOD_OR_SERVICE_OPTIONS = ['B', 'S'] as const;
+export const GOOD_OR_SERVICE_OPTIONS = ['goods', 'service'] as const;
 
 export const RECEIPT_PROOF_TYPE_OPTIONS = ['POS', 'VR', 'ND'] as const;
 
@@ -19,7 +19,7 @@ export const ReceiptProofTypeSchema = z.enum(RECEIPT_PROOF_TYPE_OPTIONS);
 
 // Receipt Item Schema
 export const ReceiptItemSchema = z.object({
-  good_or_service: GoodOrServiceSchema.optional(),
+  type: GoodOrServiceSchema.optional(),
   quantity: z.string().min(1, { error: 'fieldIsRequired' }),
   description: z.string().min(1, { error: 'fieldIsRequired' }),
   unit_price: z.string().min(1, { error: 'fieldIsRequired' }),
@@ -58,10 +58,10 @@ export const ReceiptInputSchema = z.object({
 
 // Receipt Return or Void via PEM Schema
 export const ReceiptReturnOrVoidViaPEMInputSchema = z.object({
-  pem_id: z.string().optional(),
+  pos_id: z.string().optional(),
   items: z.array(ReceiptItemSchema).min(1, { error: 'arrayMin1' }),
   document_number: z.string().min(1, { error: 'fieldIsRequired' }),
-  document_date: z.string().optional(),
+  document_datetime: z.string().optional(),
   lottery_code: z.string().optional(),
 });
 
@@ -78,7 +78,7 @@ export const VoidReceiptInputSchema = z.object({
 });
 
 export const ReceiptReturnItemSchema = z.array(z.object({
-  id: z.string().min(1, { error: 'fieldIsRequired' }),
+  id: z.number(),
   quantity: z.string().min(1, { error: 'fieldIsRequired' }),
 })).min(1, { error: 'arrayMin1' });
 
