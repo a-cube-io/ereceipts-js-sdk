@@ -27,6 +27,9 @@ export {
   ReceiptInputSchema,
   ReceiptReturnOrVoidViaPEMInputSchema,
   ReceiptReturnOrVoidWithProofInputSchema,
+  ReceiptReturnInputSchema,
+  VoidReceiptInputSchema,
+  ReceiptReturnItemSchema,
   VatRateCodeSchema,
   GoodOrServiceSchema,
   ReceiptProofTypeSchema,
@@ -40,6 +43,9 @@ export {
   type VatRateCodeType,
   type GoodOrServiceType,
   type ReceiptProofTypeType,
+  type ReceiptReturnType,
+  type ReceiptReturnItemType,
+  type VoidReceiptInputType,
 } from './receipts';
 
 // Cashier schemas and types

@@ -427,7 +427,9 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
         validFrom: new Date(),           // Would parse from PEM
         validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Would parse from PEM
         serialNumber: 'unknown',         // Would parse from PEM
-        fingerprint: 'unknown'           // Would calculate from PEM
+        fingerprint: 'unknown',          // Would calculate from PEM
+        pemId: '',                       // Would parse from certificate subject
+        cashRegisterUUID: ''             // Would parse from certificate subject
       };
     } catch (error) {
       // Return default values if parsing fails
@@ -437,7 +439,9 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
         validFrom: new Date(),
         validTo: new Date(),
         serialNumber: 'unknown',
-        fingerprint: 'unknown'
+        fingerprint: 'unknown',
+        pemId: '',
+        cashRegisterUUID: ''
       };
     }
   }

@@ -4,7 +4,8 @@ import {
   MerchantCreateInput, 
   MerchantUpdateInput, 
   MerchantsParams,
-  PointOfSaleOutputMf2
+  PointOfSaleOutputMf2,
+  LdJsonPage
 } from './types';
 
 /**
@@ -51,9 +52,11 @@ export class MerchantsAPI {
   }
 
   /**
-   * Retrieve Point of Sale resources for a specific merchant
+   * Retrieve Point of Sale resources for a specific merchant by Supplier logged
    */
-  async listPointOfSales(merchantUuid: string, params?: { page?: number }): Promise<PointOfSaleOutputMf2[]> {
+  async listPointOfSalesBySuppliers(merchantUuid: string, params?: { 
+    page?: number,
+   }): Promise<LdJsonPage<PointOfSaleOutputMf2>> {
     const searchParams = new URLSearchParams();
     
     if (params?.page) {
@@ -64,7 +67,31 @@ export class MerchantsAPI {
     const url = query 
       ? `/mf2/merchants/${merchantUuid}/point-of-sales?${query}` 
       : `/mf2/merchants/${merchantUuid}/point-of-sales`;
+
+    return this.httpClient.get<LdJsonPage<PointOfSaleOutputMf2>>(url, {
+      headers: { 'Accept': 'application/ld+json' }
+    });
+  }
+
+  /**
+   *  Retrieve Point of Sale resources for a specific merchant by Merchant logged
+   */
+  async listPointOfSalesByMerchants(params?: {
+    page?: number,
+  }): Promise<LdJsonPage<PointOfSaleOutputMf2>> {
+    const searchParams = new URLSearchParams();
     
-    return this.httpClient.get<PointOfSaleOutputMf2[]>(url);
+    if (params?.page) {
+      searchParams.append('page', params.page.toString());
+    }
+
+    const query = searchParams.toString();
+    const url = query 
+      ? `/mf1/point-of-sales?${query}` 
+      : `/mf1/point-of-sales`;
+
+    return this.httpClient.get<LdJsonPage<PointOfSaleOutputMf2>>(url, {
+      headers: { 'Accept': 'application/ld+json' }
+    });
   }
 }

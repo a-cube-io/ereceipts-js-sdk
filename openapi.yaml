@@ -1,0 +1,3328 @@
+openapi: 3.1.0
+info:
+  title: E-Receipt IT API
+  description: E-Receipt IT API
+  version: 1.0.0
+tags:
+  - name: Cashier
+    x-displayName: Cashier
+  - name: Point of Sale
+    x-displayName: Point of Sale
+  - name: Receipt
+    x-displayName: Receipt
+  - name: Cash Register
+    x-displayName: Cash Register
+  - name: Merchant
+    description: Resource 'Merchant' operations.
+    x-displayName: Merchant
+paths:
+  /mf1/cashiers:
+    servers: []
+    get:
+      tags:
+        - Cashier
+      summary: Read Cashiers
+      operationId: read_cashiers_mf1_cashiers_get
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            description: Page number
+            default: 1
+            title: Page
+          description: Page number
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 30
+            title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/E-Receipt_IT_API_Page__T_Customized_CashierSimpleOutput_
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+    post:
+      tags:
+        - Cashier
+      summary: Create Cashier
+      operationId: create_cashier_mf1_cashiers_post
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/E-Receipt_IT_API_CashierCreateInput'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_CashierOutput'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf1/cashiers/me:
+    servers: []
+    get:
+      tags:
+        - Cashier
+      summary: Read Cashier Me
+      description: Read currently authenticated cashier's information
+      operationId: read_cashier_me_mf1_cashiers_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_CashierOutput'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+  /mf1/cashiers/{cashier_id}:
+    servers: []
+    get:
+      tags:
+        - Cashier
+      summary: Read Cashier By Id
+      description: Get a specific user by id.
+      operationId: read_cashier_by_id_mf1_cashiers__cashier_id__get
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: cashier_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            title: Cashier Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_CashierOutput'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+    delete:
+      tags:
+        - Cashier
+      summary: Delete Cashier
+      description: Delete a cashier and the associated user.
+      operationId: delete_cashier_mf1_cashiers__cashier_id__delete
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: cashier_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            title: Cashier Id
+      responses:
+        '204':
+          description: Successful Response
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf1/point-of-sales:
+    servers: []
+    get:
+      tags:
+        - Point of Sale
+      summary: Read Point Of Sales
+      description: Retrieve PEMs.
+      operationId: read_point_of_sales_mf1_point_of_sales_get
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - $ref: '#/components/schemas/E-Receipt_IT_API_PEMStatus'
+              - type: 'null'
+            title: Status
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            description: Page number
+            default: 1
+            title: Page
+          description: Page number
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 30
+            title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/E-Receipt_IT_API_Page__T_Customized_PointOfSaleOutput_
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf1/point-of-sales/{serial_number}:
+    servers: []
+    get:
+      tags:
+        - Point of Sale
+      summary: Read Point Of Sale
+      operationId: read_point_of_sale_mf1_point_of_sales__serial_number__get
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: serial_number
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The Point of Sale's serial number
+            title: Serial Number
+          description: The Point of Sale's serial number
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/E-Receipt_IT_API_PointOfSaleDetailedOutput
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf1/point-of-sales/{serial_number}/receipts:
+    servers: []
+    get:
+      tags:
+        - Point of Sale
+      summary: Get receipts collection
+      description: |-
+        Access rules:
+        - Merchants: require a valid JWT.
+        - Cashiers: require a valid JWT and a valid certificate.
+      operationId: get_receipts_mf1_point_of_sales__serial_number__receipts_get
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+        - E-Receipt_IT_API_0: ['jwt_auth']
+        - E-Receipt_IT_API_0: ['jwt_auth', 'cert_auth']
+      parameters:
+        - name: serial_number
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The Point of Sale's serial number
+            title: Serial Number
+          description: The Point of Sale's serial number
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            description: Page identifier
+            default: 1
+            title: Page
+          description: Page identifier
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            description: Page size
+            default: 30
+            title: Size
+          description: Page size
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptStatus'
+            description: >-
+              Retrieve either receipts not yet sent to MF2 or receipts already
+              sent to MF2. Default: sent receipts.
+            default: sent
+          description: >-
+            Retrieve either receipts not yet sent to MF2 or receipts already
+            sent to MF2. Default: sent receipts.
+        - name: sort
+          in: query
+          required: false
+          schema:
+            enum:
+              - descending
+              - ascending
+            type: string
+            description: >-
+              Order receipts in ascending or descending order with respect to
+              their document_number
+            default: descending
+            title: Sort
+          description: >-
+            Order receipts in ascending or descending order with respect to
+            their document_number
+        - name: document_datetime[before]
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+            description: >-
+              Filter by receipts issued before specified datetime (value
+              included)
+            default: '2025-09-29T10:25:22.256158'
+            title: Document Datetime[Before]
+          description: Filter by receipts issued before specified datetime (value included)
+        - name: document_datetime[after]
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date-time
+              - type: 'null'
+            description: >-
+              Filter by receipts issued after specified datetime (value
+              included)
+            title: Document Datetime[After]
+          description: Filter by receipts issued after specified datetime (value included)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/E-Receipt_IT_API_PaginatedResponse_ReceiptOutput_
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf1/point-of-sales/{serial_number}/cash-registers:
+    servers: []
+    get:
+      tags:
+        - Point of Sale
+      summary: Get Cash Registers
+      operationId: get_cash_registers_mf1_point_of_sales__serial_number__cash_registers_get
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: serial_number
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The Point of Sale's serial number
+            title: Serial Number
+          description: The Point of Sale's serial number
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            description: Page number
+            default: 1
+            title: Page
+          description: Page number
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 30
+            title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/E-Receipt_IT_API_Page__T_Customized_CashRegisterBasicOutput_
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf1/point-of-sales/{serial_number}/close:
+    servers: []
+    post:
+      tags:
+        - Point of Sale
+      summary: Close Journal
+      operationId: close_journal_mf1_point_of_sales__serial_number__close_post
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: serial_number
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The Point of Sale's serial number
+            title: Serial Number
+          description: The Point of Sale's serial number
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf1/point-of-sales/{serial_number}/activation:
+    servers: []
+    post:
+      tags:
+        - Point of Sale
+      summary: Post Activation
+      description: >-
+        Trigger the activation process of a Point of Sale by requesting a
+        certificate to the Italian Tax Agency
+      operationId: post_activation_mf1_point_of_sales__serial_number__activation_post
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: serial_number
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The Point of Sale's serial number
+            title: Serial Number
+          description: The Point of Sale's serial number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/E-Receipt_IT_API_PointOfSaleActivationInput'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                title: >-
+                  Response Post Activation Mf1 Point Of Sales  Serial Number 
+                  Activation Post
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf1/point-of-sales/{serial_number}/inactivity:
+    servers: []
+    post:
+      tags:
+        - Point of Sale
+      summary: Create Inactivity Period
+      description: Create a new inactivity period
+      operationId: >-
+        create_inactivity_period_mf1_point_of_sales__serial_number__inactivity_post
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: serial_number
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The Point of Sale serial number
+            title: Serial Number
+          description: The Point of Sale serial number
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                title: >-
+                  Response Create Inactivity Period Mf1 Point Of Sales  Serial
+                  Number  Inactivity Post
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel400BadRequest'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/E-Receipt_IT_API_ErrorModel401Unauthorized
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf1/point-of-sales/{serial_number}/communicate-offline:
+    servers: []
+    post:
+      tags:
+        - Point of Sale
+      summary: Post Offline
+      description: >-
+        Communicate to MF2 a period in which the Point of Sale was offline and
+        the reason
+      operationId: post_offline_mf1_point_of_sales__serial_number__communicate_offline_post
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: serial_number
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The Point of Sale serial number
+            title: Serial Number
+          description: The Point of Sale serial number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/E-Receipt_IT_API_PEMStatusOfflineRequest'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                title: >-
+                  Response Post Offline Mf1 Point Of Sales  Serial Number 
+                  Communicate Offline Post
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf1/receipts:
+    servers: []
+    post:
+      tags:
+        - Receipt
+      summary: Create a new sale receipt
+      operationId: create_sale_receipt_mf1_receipts_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptInput'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptOutput'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+    delete:
+      tags:
+        - Receipt
+      summary: Void an electronic receipt
+      operationId: void_receipt_mf1_receipts_delete
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptVoidViaPEMInput'
+        required: true
+      responses:
+        '204':
+          description: Successful Response
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+  /mf1/receipts/{receipt_uuid}:
+    servers: []
+    get:
+      tags:
+        - Receipt
+      summary: Get an electronic receipt
+      operationId: get_receipt_mf1_receipts__receipt_uuid__get
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: receipt_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            title: Receipt Uuid
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptOutput'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf1/receipts/void-with-proof:
+    servers: []
+    delete:
+      tags:
+        - Receipt
+      summary: Void an electronic receipt identified by a proof of purchase
+      operationId: void_receipt_via_proof_mf1_receipts_void_with_proof_delete
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptVoidWithProofInput'
+        required: true
+      responses:
+        '204':
+          description: Successful Response
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+  /mf1/receipts/{receipt_uuid}/details:
+    servers: []
+    get:
+      tags:
+        - Receipt
+      summary: Get the details or the PDF of an electronic receipt
+      description: >-
+        Retrieve receipt details in JSON format or download as PDF based on the
+        Accept header. Use 'Accept: application/json' for JSON response
+        (default) or 'Accept: application/pdf' for PDF download.
+      operationId: get_receipt_details_mf1_receipts__receipt_uuid__details_get
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: receipt_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            title: Receipt Uuid
+        - name: accept
+          in: header
+          required: false
+          schema:
+            anyOf:
+              - type: string
+              - type: 'null'
+            description: >-
+              Content type preference. Use 'application/json' for JSON response
+              or 'application/pdf' for PDF download. Defaults to
+              'application/json' if not specified.
+            title: Accept
+          description: >-
+            Content type preference. Use 'application/json' for JSON response or
+            'application/pdf' for PDF download. Defaults to 'application/json'
+            if not specified.
+      responses:
+        '200':
+          description: Receipt details in JSON format or PDF file based on Accept header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptDetailsOutput'
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - User not authorized to access this receipt
+        '404':
+          description: Receipt not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf1/receipts/return:
+    servers: []
+    post:
+      tags:
+        - Receipt
+      summary: Return items from an electronic receipt (same PEM or other PEM)
+      operationId: return_receipt_items_mf1_receipts_return_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptReturnViaPEMInput'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptOutput'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+  /mf1/receipts/return-with-proof:
+    servers: []
+    post:
+      tags:
+        - Receipt
+      summary: >-
+        Return items from an electronic receipt identified by a proof of
+        purchase
+      operationId: return_receipt_items_via_proof_mf1_receipts_return_with_proof_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: >-
+                #/components/schemas/E-Receipt_IT_API_ReceiptReturnWithProofInput
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptOutput'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+  /mf1/cash-registers:
+    servers: []
+    post:
+      tags:
+        - Cash Register
+      summary: Create Cash Register
+      description: Create a new cash register.
+      operationId: create_cash_register_mf1_cash_registers_post
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/E-Receipt_IT_API_CashRegisterCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/E-Receipt_IT_API_CashRegisterDetailedOutput
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+    get:
+      tags:
+        - Cash Register
+      summary: Get Cash Registers
+      description: Get all point of sales for the current merchant.
+      operationId: get_cash_registers_mf1_cash_registers_get
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: pem_id
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+              - type: 'null'
+            title: Pem Id
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            description: Page number
+            default: 1
+            title: Page
+          description: Page number
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 30
+            title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/E-Receipt_IT_API_Page__T_Customized_CashRegisterBasicOutput_
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf1/cash-registers/{id}:
+    servers: []
+    get:
+      tags:
+        - Cash Register
+      summary: Get Cash Register
+      description: Get a point of sale by ID.
+      operationId: get_cash_register_mf1_cash_registers__id__get
+      security:
+        - E-Receipt_IT_API_OAuth2PasswordBearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: ID of the cash register
+            title: Id
+          description: ID of the cash register
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_CashRegisterBasicOutput'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel403Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_ErrorModel404NotFound'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E-Receipt_IT_API_HTTPValidationError'
+  /mf2/merchants:
+    servers:
+      - url: /
+        description: ''
+    get:
+      operationId: api_merchants_get_collection
+      tags:
+        - Merchant
+      responses:
+        '200':
+          description: Merchant collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: >-
+                    #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput
+            application/ld+json:
+              schema:
+                type: object
+                description: Merchant.MerchantOutput.jsonld collection.
+                allOf:
+                  - $ref: >-
+                      #/components/schemas/A-Cube_GOV-IT_PEL_Platform_HydraCollectionBaseSchema
+                  - type: object
+                    properties:
+                      member:
+                        type: array
+                        items:
+                          $ref: >-
+                            #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld
+            application/xml: {}
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+      summary: Retrieves the collection of Merchant resources.
+      description: Retrieves the collection of Merchant resources.
+      parameters:
+        - name: page
+          in: query
+          description: The collection page number
+          required: false
+          deprecated: false
+          schema:
+            type: integer
+            default: 1
+          style: form
+          explode: false
+      x-apiplatform-tag:
+        - mf2
+      security: []
+    post:
+      operationId: api_merchants_post
+      tags:
+        - Merchant
+      responses:
+        '201':
+          description: Merchant resource created
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput
+            application/ld+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld
+            application/xml: {}
+          links: {}
+        '400':
+          description: Invalid input
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+        '422':
+          description: An error occurred
+          content:
+            application/ld+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_ConstraintViolation.jsonld
+            application/problem+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_ConstraintViolation
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_ConstraintViolation
+          links: {}
+      summary: Creates a Merchant resource.
+      description: Creates a Merchant resource.
+      parameters: []
+      requestBody:
+        description: The new Merchant resource
+        content:
+          application/json:
+            schema:
+              $ref: >-
+                #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantCreateInput
+          application/ld+json:
+            schema:
+              $ref: >-
+                #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantCreateInput.jsonld
+          application/xml: {}
+        required: true
+      x-apiplatform-tag:
+        - mf2
+      security: []
+  /mf2/merchants/{uuid}:
+    servers:
+      - url: /
+        description: ''
+    get:
+      operationId: api_merchants_uuid_get
+      tags:
+        - Merchant
+      responses:
+        '200':
+          description: Merchant resource
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput
+            application/ld+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld
+            application/xml: {}
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+        '404':
+          description: Not found
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+      summary: Retrieves a Merchant resource.
+      description: Retrieves a Merchant resource.
+      parameters:
+        - name: uuid
+          in: path
+          description: The uuid of the Merchant
+          required: true
+          deprecated: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+      x-apiplatform-tag:
+        - mf2
+      security: []
+    put:
+      operationId: api_merchants_uuid_put
+      tags:
+        - Merchant
+      responses:
+        '200':
+          description: Merchant resource updated
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput
+            application/ld+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld
+            application/xml: {}
+          links: {}
+        '400':
+          description: Invalid input
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+        '404':
+          description: Not found
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+        '422':
+          description: An error occurred
+          content:
+            application/ld+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_ConstraintViolation.jsonld
+            application/problem+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_ConstraintViolation
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_ConstraintViolation
+          links: {}
+      summary: Replaces the Merchant resource.
+      description: Replaces the Merchant resource.
+      parameters:
+        - name: uuid
+          in: path
+          description: The uuid of the Merchant
+          required: true
+          deprecated: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+      requestBody:
+        description: The updated Merchant resource
+        content:
+          application/json:
+            schema:
+              $ref: >-
+                #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantUpdateInput
+          application/ld+json:
+            schema:
+              $ref: >-
+                #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantUpdateInput.jsonld
+          application/xml: {}
+        required: true
+      x-apiplatform-tag:
+        - mf2
+      security: []
+  /mf2/merchants/{merchant_uuid}/point-of-sales:
+    servers:
+      - url: /
+        description: ''
+    get:
+      operationId: api_merchants_merchant_uuidpoint-of-sales_get_collection
+      tags:
+        - Point of Sale
+      responses:
+        '200':
+          description: Point of Sale resources
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+      summary: Retrieves a list of Point of Sale resources.
+      description: Retrieves the collection of Pem resources.
+      parameters:
+        - name: merchant_uuid
+          in: path
+          description: The uuid of the Merchant.
+          required: true
+          deprecated: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+        - name: page
+          in: query
+          description: The collection page number
+          required: false
+          deprecated: false
+          schema:
+            type: integer
+            default: 1
+          style: form
+          explode: false
+      x-apiplatform-tag:
+        - mf2
+      security: []
+  /mf2/point-of-sales:
+    servers:
+      - url: /
+        description: ''
+    post:
+      operationId: api_point-of-sales_post
+      tags:
+        - Point of Sale
+      responses:
+        '200':
+          description: Point of Sale resource
+        '201':
+          description: Pem resource created
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Pem.PointOfSaleCreateOutput
+            application/ld+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Pem.PointOfSaleCreateOutput.jsonld
+            application/xml: {}
+          links: {}
+        '400':
+          description: Invalid input
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+        '422':
+          description: An error occurred
+          content:
+            application/ld+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_ConstraintViolation.jsonld
+            application/problem+json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_ConstraintViolation
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/A-Cube_GOV-IT_PEL_Platform_ConstraintViolation
+          links: {}
+      summary: Creates a new Point of Sale.
+      description: Creates a Point of Sale resource
+      parameters: []
+      requestBody:
+        description: The new Point of Sale resource
+        content:
+          application/json:
+            schema:
+              $ref: >-
+                #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Pem.PointOfSaleCreateInput
+          application/ld+json:
+            schema:
+              $ref: >-
+                #/components/schemas/A-Cube_GOV-IT_PEL_Platform_Pem.PointOfSaleCreateInput.jsonld
+          application/xml: {}
+        required: true
+      x-apiplatform-tag:
+        - mf2
+      security: []
+  /mf2/point-of-sales/{serial_number}:
+    servers:
+      - url: /
+        description: ''
+    get:
+      operationId: api_point-of-sales_serial_number_get
+      tags:
+        - Point of Sale
+      responses:
+        '200':
+          description: Point of Sale resource
+        '403':
+          description: Forbidden
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+        '404':
+          description: Not found
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error.jsonld'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Error'
+          links: {}
+      summary: Retrieves a Point of Sale resource.
+      description: Retrieves a Pem resource.
+      parameters:
+        - name: serial_number
+          in: path
+          description: The serial number of the Point of Sale
+          required: true
+          deprecated: false
+          schema:
+            type: string
+          style: simple
+          explode: false
+      x-apiplatform-tag:
+        - mf2
+      security: []
+webhooks: {}
+components:
+  schemas:
+    E-Receipt_IT_API_Address:
+      properties:
+        street_address:
+          type: string
+          title: Street Address
+          description: The street address associated to the PEM
+        street_number:
+          type: string
+          title: Street Number
+          description: The street number associated to the PEM
+        zip_code:
+          type: string
+          maxLength: 5
+          minLength: 5
+          title: Zip Code
+          description: The zip code associated to the PEM
+        city:
+          type: string
+          title: City
+          description: The city associated to the PEM
+        province:
+          type: string
+          maxLength: 2
+          minLength: 2
+          title: Province
+          description: The province associated to the PEM
+      type: object
+      required:
+        - street_address
+        - street_number
+        - zip_code
+        - city
+        - province
+      title: Address
+    E-Receipt_IT_API_CashRegisterBasicOutput:
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          title: Uuid
+        pem_serial_number:
+          type: string
+          title: Pem Serial Number
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+        - uuid
+        - pem_serial_number
+        - name
+      title: CashRegisterBasicOutput
+    E-Receipt_IT_API_CashRegisterCreate:
+      properties:
+        pem_serial_number:
+          type: string
+          title: Pem Serial Number
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+        - pem_serial_number
+        - name
+      title: CashRegisterCreate
+    E-Receipt_IT_API_CashRegisterDetailedOutput:
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          title: Uuid
+        pem_serial_number:
+          type: string
+          title: Pem Serial Number
+        name:
+          type: string
+          title: Name
+        mtls_certificate:
+          type: string
+          title: Mtls Certificate
+        private_key:
+          type: string
+          title: Private Key
+      type: object
+      required:
+        - uuid
+        - pem_serial_number
+        - name
+        - mtls_certificate
+        - private_key
+      title: CashRegisterDetailedOutput
+    E-Receipt_IT_API_CashierCreateInput:
+      properties:
+        email:
+          type: string
+          maxLength: 255
+          title: Email
+        password:
+          type: string
+          maxLength: 40
+          minLength: 8
+          title: Password
+        first_name:
+          type: string
+          maxLength: 255
+          title: First Name
+        last_name:
+          type: string
+          maxLength: 255
+          title: Last Name
+      type: object
+      required:
+        - email
+        - password
+        - first_name
+        - last_name
+      title: CashierCreateInput
+    E-Receipt_IT_API_CashierOutput:
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          title: Uuid
+        merchant_uuid:
+          type: string
+          format: uuid
+          title: Merchant Uuid
+        email:
+          type: string
+          title: Email
+        first_name:
+          type: string
+          title: First Name
+        last_name:
+          type: string
+          title: Last Name
+      type: object
+      required:
+        - uuid
+        - merchant_uuid
+        - email
+        - first_name
+        - last_name
+      title: CashierOutput
+    E-Receipt_IT_API_CashierSimpleOutput:
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          title: Uuid
+        first_name:
+          type: string
+          title: First Name
+        last_name:
+          type: string
+          title: Last Name
+      type: object
+      required:
+        - uuid
+        - first_name
+        - last_name
+      title: CashierSimpleOutput
+    E-Receipt_IT_API_ErrorModel400BadRequest:
+      properties:
+        type:
+          type: string
+          title: Type
+          default: /errors/400
+        title:
+          type: string
+          title: Title
+          default: Bad Request
+        status:
+          type: integer
+          title: Status
+          default: 400
+        detail:
+          type: string
+          title: Detail
+          default: >-
+            A human-readable explanation specific to this occurrence of the
+            problem
+        instance:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Instance
+          default: >-
+            A URI reference that identifies the specific occurrence of the
+            problem
+      type: object
+      title: ErrorModel400BadRequest
+    E-Receipt_IT_API_ErrorModel401Unauthorized:
+      properties:
+        type:
+          type: string
+          title: Type
+          default: /errors/401
+        title:
+          type: string
+          title: Title
+          default: Could not validate credentials
+        status:
+          type: integer
+          title: Status
+          default: 401
+        detail:
+          type: string
+          title: Detail
+          default: >-
+            A human-readable explanation specific to this occurrence of the
+            problem
+        instance:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Instance
+          default: >-
+            A URI reference that identifies the specific occurrence of the
+            problem
+      type: object
+      title: ErrorModel401Unauthorized
+    E-Receipt_IT_API_ErrorModel403Forbidden:
+      properties:
+        type:
+          type: string
+          title: Type
+          default: /errors/403
+        title:
+          type: string
+          title: Title
+          default: Forbidden
+        status:
+          type: integer
+          title: Status
+          default: 403
+        detail:
+          type: string
+          title: Detail
+          default: >-
+            A human-readable explanation specific to this occurrence of the
+            problem
+        instance:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Instance
+          default: >-
+            A URI reference that identifies the specific occurrence of the
+            problem
+      type: object
+      title: ErrorModel403Forbidden
+    E-Receipt_IT_API_ErrorModel404NotFound:
+      properties:
+        type:
+          type: string
+          title: Type
+          default: /errors/404
+        title:
+          type: string
+          title: Title
+          default: Not Found
+        status:
+          type: integer
+          title: Status
+          default: 404
+        detail:
+          type: string
+          title: Detail
+          default: >-
+            A human-readable explanation specific to this occurrence of the
+            problem
+        instance:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Instance
+          default: >-
+            A URI reference that identifies the specific occurrence of the
+            problem
+      type: object
+      title: ErrorModel404NotFound
+    E-Receipt_IT_API_GoodOrService:
+      type: string
+      enum:
+        - B
+        - S
+      title: GoodOrService
+    E-Receipt_IT_API_HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/E-Receipt_IT_API_ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    E-Receipt_IT_API_NaturaType:
+      type: string
+      enum:
+        - N1
+        - N2
+        - N3
+        - N4
+        - N5
+        - N6
+      title: NaturaType
+      description: Natura codes with their corresponding descriptions.
+    E-Receipt_IT_API_PEMStatus:
+      type: string
+      enum:
+        - NEW
+        - REGISTERED
+        - ACTIVATED
+        - ONLINE
+        - OFFLINE
+        - DISCARDED
+        - ERROR
+      title: PEMStatus
+    E-Receipt_IT_API_PEMStatusOfflineRequest:
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          title: Timestamp
+        reason:
+          type: string
+          title: Reason
+      type: object
+      required:
+        - timestamp
+        - reason
+      title: PEMStatusOfflineRequest
+    E-Receipt_IT_API_Page__T_Customized_CashRegisterBasicOutput_:
+      properties:
+        members:
+          items:
+            $ref: '#/components/schemas/E-Receipt_IT_API_CashRegisterBasicOutput'
+          type: array
+          title: Members
+        total:
+          anyOf:
+            - type: integer
+              minimum: 0
+            - type: 'null'
+          title: Total
+        page:
+          anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          title: Page
+        size:
+          anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          title: Size
+        pages:
+          anyOf:
+            - type: integer
+              minimum: 0
+            - type: 'null'
+          title: Pages
+      type: object
+      required:
+        - members
+        - page
+        - size
+      title: Page[~T]Customized[CashRegisterBasicOutput]
+    E-Receipt_IT_API_Page__T_Customized_CashierSimpleOutput_:
+      properties:
+        members:
+          items:
+            $ref: '#/components/schemas/E-Receipt_IT_API_CashierSimpleOutput'
+          type: array
+          title: Members
+        total:
+          anyOf:
+            - type: integer
+              minimum: 0
+            - type: 'null'
+          title: Total
+        page:
+          anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          title: Page
+        size:
+          anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          title: Size
+        pages:
+          anyOf:
+            - type: integer
+              minimum: 0
+            - type: 'null'
+          title: Pages
+      type: object
+      required:
+        - members
+        - page
+        - size
+      title: Page[~T]Customized[CashierSimpleOutput]
+    E-Receipt_IT_API_Page__T_Customized_PointOfSaleOutput_:
+      properties:
+        members:
+          items:
+            $ref: '#/components/schemas/E-Receipt_IT_API_PointOfSaleOutput'
+          type: array
+          title: Members
+        total:
+          anyOf:
+            - type: integer
+              minimum: 0
+            - type: 'null'
+          title: Total
+        page:
+          anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          title: Page
+        size:
+          anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          title: Size
+        pages:
+          anyOf:
+            - type: integer
+              minimum: 0
+            - type: 'null'
+          title: Pages
+      type: object
+      required:
+        - members
+        - page
+        - size
+      title: Page[~T]Customized[PointOfSaleOutput]
+    E-Receipt_IT_API_PaginatedResponse_ReceiptOutput_:
+      properties:
+        members:
+          items:
+            $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptOutput'
+          type: array
+          title: Members
+        total:
+          type: integer
+          title: Total
+          description: Total number of elements across all pages
+        page:
+          type: integer
+          title: Page
+          description: Page identifier
+        size:
+          type: integer
+          title: Size
+          description: Page size
+      type: object
+      required:
+        - members
+        - total
+        - page
+        - size
+      title: PaginatedResponse[ReceiptOutput]
+    E-Receipt_IT_API_PointOfSaleActivationInput:
+      properties:
+        registration_key:
+          type: string
+          title: Registration Key
+      type: object
+      required:
+        - registration_key
+      title: PointOfSaleActivationInput
+    E-Receipt_IT_API_PointOfSaleDetailedOutput:
+      properties:
+        serial_number:
+          type: string
+          title: Serial Number
+        status:
+          $ref: '#/components/schemas/E-Receipt_IT_API_PEMStatus'
+        address:
+          $ref: '#/components/schemas/E-Receipt_IT_API_Address'
+        registration_key:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Registration Key
+          description: >-
+            The registration key is set only as long as the Point of Sale has
+            not been activated yet
+      type: object
+      required:
+        - serial_number
+        - status
+        - address
+        - registration_key
+      title: PointOfSaleDetailedOutput
+    E-Receipt_IT_API_PointOfSaleOutput:
+      properties:
+        serial_number:
+          type: string
+          title: Serial Number
+        status:
+          $ref: '#/components/schemas/E-Receipt_IT_API_PEMStatus'
+        address:
+          $ref: '#/components/schemas/E-Receipt_IT_API_Address'
+      type: object
+      required:
+        - serial_number
+        - status
+        - address
+      title: PointOfSaleOutput
+    E-Receipt_IT_API_ReceiptDetailsOutput:
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          title: Uuid
+        type:
+          $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptType'
+        total_amount:
+          type: string
+          title: Total Amount
+          description: >-
+            Total amount of the receipt as a string with up to 8 decimal digits.
+            In case of a voiding receipt, it is the amount of the voided
+            receipt. In case of a return receipt, it is the returned amount.
+        document_number:
+          type: string
+          maxLength: 9
+          minLength: 9
+          title: Document Number
+          description: >-
+            The document number assigned to the document by the Italian Tax
+            Authority. This is the official ID of the document valid for fiscal
+            purposes. 
+        document_datetime:
+          type: string
+          title: Document Datetime
+          description: >-
+            The date and time the document was issued in ISO 8601 date-time
+            format (YYYY-MM-DDTHH:mm:ss).
+          examples:
+            - '2025-10-08T16:20:42'
+        parent_receipt_uuid:
+          anyOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+          title: Parent Receipt Uuid
+          description: >-
+            The UUID of the parent receipt in case of a voiding or return
+            receipt. It is null for a sale receipt.
+        vat_number:
+          type: string
+          maxLength: 11
+          minLength: 11
+          title: Vat Number
+          description: The VAT number associated to the receipt issuer
+          examples:
+            - '12345678901'
+        total_taxable_amount:
+          type: string
+          title: Total Taxable Amount
+          description: >-
+            Total amount subject to VAT/tax before any discounts or exemptions
+            as a string with 2 to 8 decimal digits
+          examples:
+            - '7.23'
+        total_uncollected_amount:
+          type: string
+          title: Total Uncollected Amount
+          description: >-
+            Total amount that remains unpaid or uncollected from the customer as
+            a string with 2 to 8 decimal digits
+          examples:
+            - '7.23'
+        deductible_amount:
+          type: string
+          title: Deductible Amount
+          description: >-
+            Amount that can be deducted for tax purposes (business expenses) as
+            a string with 2 to 8 decimal digits
+          examples:
+            - '7.23'
+        total_vat_amount:
+          type: string
+          title: Total Vat Amount
+          description: >-
+            Total Value Added Tax amount calculated on taxable transactions as a
+            string with 2 to 8 decimal digits
+          examples:
+            - '7.23'
+        total_discount:
+          type: string
+          title: Total Discount
+          description: >-
+            Individual discount amount applied to the overall receipt ('Sconto a
+            pagare') as a string with 2 to 8 decimal digits
+          examples:
+            - '7.23'
+        items:
+          items:
+            $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptItem'
+          type: array
+          title: Items
+          description: List of individual products/services included in the receipt
+          default: []
+        customer_lottery_code:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Customer Lottery Code
+          description: Lottery code of the customer
+        cashier_uuid:
+          anyOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+          title: Cashier Uuid
+          description: >-
+            The UUID of the cashier that issued the receipt. If null, it has
+            been issued by the merchant.
+      type: object
+      required:
+        - uuid
+        - type
+        - total_amount
+        - document_number
+        - document_datetime
+        - vat_number
+        - total_taxable_amount
+        - total_uncollected_amount
+        - deductible_amount
+        - total_vat_amount
+        - total_discount
+        - cashier_uuid
+      title: ReceiptDetailsOutput
+    E-Receipt_IT_API_ReceiptInput:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptItem'
+          type: array
+          title: Items
+          description: >-
+            "Elementi contabili". Commercial document items. At least one item
+            is required.
+        customer_tax_code:
+          anyOf:
+            - type: string
+              pattern: ^[A-Z0-9]{11,16}$
+            - type: 'null'
+          title: Customer Tax Code
+          description: >-
+            Tax code of the customer. If set, customer_lottery_code can't be set
+            as well.
+        customer_lottery_code:
+          anyOf:
+            - type: string
+              maxLength: 16
+              minLength: 0
+            - type: 'null'
+          title: Customer Lottery Code
+          description: >-
+            Lottery code of the customer. If set, customer_tax_code can't be set
+            as well.
+        discount:
+          type: string
+          title: Discount
+          description: >-
+            "Sconto a Pagare". This discount, expressed in euros as a string
+            with 2 to 8 decimal places, does not affect the taxable amount
+            reported to the Agenzia delle Entrate. It represents an unpaid
+            portion of the total, typically a rounding adjustment, applied at
+            the time of payment.
+          default: '0.00'
+        invoice_issuing:
+          type: boolean
+          title: Invoice Issuing
+          description: >-
+            Set this field to true if the amount has not been collectedsince the
+            issued commercial document will be followed by an invoice. This use
+            case is generally called 'Credito - segue fattura'.
+          default: false
+        uncollected_dcn_to_ssn:
+          type: boolean
+          title: Uncollected Dcn To Ssn
+          description: >-
+            Set this flag to true when the payment is not collected because the
+            commercial document relates to the Distinta Contabile Riepilogativa
+            that will be transmitted to the Sistema Sanitario Nazionale.
+          default: false
+        services_uncollected_amount:
+          type: string
+          title: Services Uncollected Amount
+          description: >-
+            "Credito Non Riscosso - Prestazioni Servizi". Uncollected Amount in
+            EUR as a string with 2 to 8 decimal digits in case of services.
+          default: '0.00'
+        goods_uncollected_amount:
+          type: string
+          title: Goods Uncollected Amount
+          description: >-
+            "Credito Non Riscosso - Bene Consegnato". Uncollected Amount in EUR
+            as a string with 2 to 8 decimal digits in case of delivered goods.
+          default: '0.00'
+        cash_payment_amount:
+          type: string
+          title: Cash Payment Amount
+          description: >-
+            "Pagamento in contanti". Cash payment amount in EUR as a string with
+            2 to 8 decimal digits.
+          default: '0.00'
+        electronic_payment_amount:
+          type: string
+          title: Electronic Payment Amount
+          description: >-
+            "Pagamento elettronico". Electronic payment amount in EUR as a
+            string with 2 to 8 decimal digits.
+          default: '0.00'
+        ticket_restaurant_payment_amount:
+          type: string
+          title: Ticket Restaurant Payment Amount
+          description: >-
+            'Pagamento Ticket Restaurant'. Meal voucher payment amount in EUR as
+            a string with 2 to 8 decimal digits.
+          default: '0.00'
+        ticket_restaurant_quantity:
+          type: integer
+          title: Ticket Restaurant Quantity
+          description: '''Numero Ticket Restaurant''. Number of meal vouchers used.'
+          default: 0
+      type: object
+      required:
+        - items
+      title: ReceiptInput
+    E-Receipt_IT_API_ReceiptItem:
+      properties:
+        good_or_service:
+          $ref: '#/components/schemas/E-Receipt_IT_API_GoodOrService'
+          description: Type of the item. It can be a good or a service.
+          default: B
+        quantity:
+          type: string
+          title: Quantity
+          description: >-
+            Quantity expressed as a string with exactly 2 decimal digits. E.g.
+            '1.00', '1.50', '2.00'
+        description:
+          type: string
+          maxLength: 1000
+          minLength: 1
+          title: Description
+          description: Description of the item (max 1000 chars)
+        unit_price:
+          type: string
+          title: Unit Price
+          description: >-
+            Unit price expressed as a string with 2 to 8 decimal digits. It is a
+            gross price, i.e. it includes VAT amount
+        vat_rate_code:
+          anyOf:
+            - $ref: '#/components/schemas/E-Receipt_IT_API_VatRateEnum'
+            - $ref: '#/components/schemas/E-Receipt_IT_API_NaturaType'
+            - type: 'null'
+          title: Vat Rate Code
+          description: VAT rate code as a string
+        simplified_vat_allocation:
+          type: boolean
+          title: Simplified Vat Allocation
+          description: >-
+            Set to true if this item is subject to 'Ventilazione IVA'. If true,
+            'vat_rate_code' must not be set.
+          default: false
+        discount:
+          type: string
+          title: Discount
+          description: >-
+            Discount amount in EUR as a string with 2 to 8 decimal digits. It is
+            a gross price, i.e. it includes VAT amount
+          default: '0'
+        is_down_payment_or_voucher_redemption:
+          type: boolean
+          title: Is Down Payment Or Voucher Redemption
+          description: >-
+            Field to be filled in when issuing a commercial balance document to
+            indicate that the amount reported in field 3.8.5 <TotalAmount> has
+            already been collected as a down payment and the goods being sold
+            had not been delivered. Field to be filled in also for the sale of
+            goods and services by redeeming single-use vouchers.
+          default: false
+        complimentary:
+          type: boolean
+          title: Complimentary
+          description: >-
+            Set to true if it is a complimentary (free) item. It deducts the
+            gift amount from the amount of the document but does not deduct it
+            from the VAT and taxable amount
+          default: false
+      type: object
+      required:
+        - quantity
+        - description
+        - unit_price
+        - vat_rate_code
+      title: ReceiptItem
+      description: Model representing an item in a commercial document.
+    E-Receipt_IT_API_ReceiptOutput:
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          title: Uuid
+        type:
+          $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptType'
+        total_amount:
+          type: string
+          title: Total Amount
+          description: >-
+            Total amount of the receipt as a string with up to 8 decimal digits.
+            In case of a voiding receipt, it is the amount of the voided
+            receipt. In case of a return receipt, it is the returned amount.
+        document_number:
+          type: string
+          maxLength: 9
+          minLength: 9
+          title: Document Number
+          description: >-
+            The document number assigned to the document by the Italian Tax
+            Authority. This is the official ID of the document valid for fiscal
+            purposes. 
+        document_datetime:
+          type: string
+          title: Document Datetime
+          description: >-
+            The date and time the document was issued in ISO 8601 date-time
+            format (YYYY-MM-DDTHH:mm:ss).
+          examples:
+            - '2025-10-08T16:20:42'
+        parent_receipt_uuid:
+          anyOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+          title: Parent Receipt Uuid
+          description: >-
+            The UUID of the parent receipt in case of a voiding or return
+            receipt. It is null for a sale receipt.
+      type: object
+      required:
+        - uuid
+        - type
+        - total_amount
+        - document_number
+        - document_datetime
+      title: ReceiptOutput
+    E-Receipt_IT_API_ReceiptProofType:
+      type: string
+      enum:
+        - POS
+        - VR
+        - ND
+      title: ReceiptProofType
+    E-Receipt_IT_API_ReceiptReturnViaPEMInput:
+      properties:
+        pem_id:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Pem Id
+          description: >-
+            The PEM ID that issued the original receipt. If not provided, we
+            assume the sale receipt was issued by the current PEM.
+          examples:
+            - E001-000001
+        items:
+          items:
+            $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptItem'
+          type: array
+          title: Items
+        document_number:
+          type: string
+          title: Document Number
+          description: The document number of the original receipt
+          examples:
+            - 0001-0001
+        document_datetime:
+          anyOf:
+            - type: string
+              pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$
+            - type: 'null'
+          title: Document Datetime
+          description: >-
+            The date and time of the original receipt in ISO format. Mandatory
+            only if the sale receipt has been issued by a different PEM.
+          examples:
+            - '2024-03-20T10:00:00'
+        lottery_code:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Lottery Code
+          description: The lottery code of the original receipt
+          examples:
+            - '123456789'
+      type: object
+      required:
+        - items
+        - document_number
+      title: ReceiptReturnViaPEMInput
+    E-Receipt_IT_API_ReceiptReturnWithProofInput:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptItem'
+          type: array
+          title: Items
+        proof:
+          $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptProofType'
+          description: >-
+            The type of proof of purchase: "POS" for POS receipts, "VR" for
+            "Vuoti a rendere", "ND" for other residual cases. Used in place of
+            device serial number/unique PEM identifier.
+          examples:
+            - POS
+            - VR
+            - ND
+        document_datetime:
+          type: string
+          pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$
+          title: Document Datetime
+          description: The date and time of the proof of purchase in ISO format
+          examples:
+            - '2024-03-20T10:00:00'
+      type: object
+      required:
+        - items
+        - proof
+        - document_datetime
+      title: ReceiptReturnWithProofInput
+    E-Receipt_IT_API_ReceiptStatus:
+      type: string
+      enum:
+        - ready
+        - sent
+      title: ReceiptStatus
+    E-Receipt_IT_API_ReceiptType:
+      type: string
+      enum:
+        - sale
+        - return
+        - void
+      title: ReceiptType
+    E-Receipt_IT_API_ReceiptVoidViaPEMInput:
+      properties:
+        pem_id:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Pem Id
+          description: >-
+            The PEM ID that issued the original receipt. If not provided, we
+            assume the sale receipt was issued by the current PEM.
+          examples:
+            - E001-000001
+        document_number:
+          type: string
+          title: Document Number
+          description: The document number of the original receipt
+          examples:
+            - 0001-0001
+        document_datetime:
+          anyOf:
+            - type: string
+              pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$
+            - type: 'null'
+          title: Document Datetime
+          description: >-
+            The date and time of the original receipt in ISO format. Mandatory
+            only if the sale receipt has been issued by a different PEM.
+          examples:
+            - '2024-03-20T10:00:00'
+        lottery_code:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Lottery Code
+          description: The lottery code of the original receipt
+          examples:
+            - '123456789'
+      type: object
+      required:
+        - document_number
+      title: ReceiptVoidViaPEMInput
+    E-Receipt_IT_API_ReceiptVoidWithProofInput:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptItem'
+          type: array
+          title: Items
+        proof:
+          $ref: '#/components/schemas/E-Receipt_IT_API_ReceiptProofType'
+          description: >-
+            The type of proof of purchase: "POS" for POS receipts, "VR" for
+            "Vuoti a rendere", "ND" for other residual cases. Used in place of
+            device serial number/unique PEM identifier.
+          examples:
+            - POS
+            - VR
+            - ND
+        document_datetime:
+          type: string
+          pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$
+          title: Document Datetime
+          description: The date and time of the proof of purchase in ISO format
+          examples:
+            - '2024-03-20T10:00:00'
+      type: object
+      required:
+        - items
+        - proof
+        - document_datetime
+      title: ReceiptVoidWithProofInput
+    E-Receipt_IT_API_ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+              - type: string
+              - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+        - loc
+        - msg
+        - type
+      title: ValidationError
+    E-Receipt_IT_API_VatRateEnum:
+      type: string
+      enum:
+        - '4'
+        - '5'
+        - '10'
+        - '22'
+        - '2'
+        - '6.4'
+        - '7'
+        - '7.3'
+        - '7.5'
+        - '7.65'
+        - '7.95'
+        - '8.3'
+        - '8.5'
+        - '8.8'
+        - '9.5'
+        - '12.3'
+      title: VatRateEnum
+      description: VAT rate codes with their corresponding descriptions.
+    A-Cube_GOV-IT_PEL_Platform_Address:
+      type: object
+      required:
+        - street_address
+        - zip_code
+        - city
+        - province
+      properties:
+        street_address:
+          type: string
+        street_number:
+          default: ''
+          type: string
+        zip_code:
+          minLength: 5
+          maxLength: 5
+          pattern: ^(\d+)$
+          type: string
+        city:
+          type: string
+        province:
+          minLength: 2
+          maxLength: 2
+          type: string
+    A-Cube_GOV-IT_PEL_Platform_Address.jsonld:
+      type: object
+      required:
+        - street_address
+        - zip_code
+        - city
+        - province
+      properties:
+        street_address:
+          type: string
+        street_number:
+          default: ''
+          type: string
+        zip_code:
+          minLength: 5
+          maxLength: 5
+          pattern: ^(\d+)$
+          type: string
+        city:
+          type: string
+        province:
+          minLength: 2
+          maxLength: 2
+          type: string
+    A-Cube_GOV-IT_PEL_Platform_ConstraintViolation:
+      type: object
+      description: Unprocessable entity
+      properties:
+        status:
+          default: 422
+          type: integer
+        violations:
+          type: array
+          items:
+            type: object
+            properties:
+              propertyPath:
+                type: string
+                description: The property path of the violation
+              message:
+                type: string
+                description: The message associated with the violation
+        detail:
+          readOnly: true
+          type: string
+        type:
+          readOnly: true
+          type: string
+        title:
+          readOnly: true
+          type:
+            - string
+            - 'null'
+        instance:
+          readOnly: true
+          type:
+            - string
+            - 'null'
+    A-Cube_GOV-IT_PEL_Platform_ConstraintViolation.jsonld:
+      allOf:
+        - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_HydraItemBaseSchema'
+        - type: object
+          properties:
+            status:
+              default: 422
+              type: integer
+            violations:
+              type: array
+              items:
+                type: object
+                properties:
+                  propertyPath:
+                    type: string
+                    description: The property path of the violation
+                  message:
+                    type: string
+                    description: The message associated with the violation
+            detail:
+              readOnly: true
+              type: string
+            description:
+              readOnly: true
+              type: string
+            type:
+              readOnly: true
+              type: string
+            title:
+              readOnly: true
+              type:
+                - string
+                - 'null'
+            instance:
+              readOnly: true
+              type:
+                - string
+                - 'null'
+      description: Unprocessable entity
+    A-Cube_GOV-IT_PEL_Platform_Error:
+      type: object
+      description: A representation of common errors.
+      properties:
+        title:
+          readOnly: true
+          description: A short, human-readable summary of the problem.
+          type: string
+        detail:
+          readOnly: true
+          description: >-
+            A human-readable explanation specific to this occurrence of the
+            problem.
+          type: string
+        status:
+          type: number
+          examples:
+            - 404
+          default: 400
+        instance:
+          readOnly: true
+          description: >-
+            A URI reference that identifies the specific occurrence of the
+            problem. It may or may not yield further information if
+            dereferenced.
+          type:
+            - string
+            - 'null'
+        type:
+          readOnly: true
+          description: A URI reference that identifies the problem type
+          type: string
+    A-Cube_GOV-IT_PEL_Platform_Error.jsonld:
+      allOf:
+        - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_HydraItemBaseSchema'
+        - type: object
+          properties:
+            title:
+              readOnly: true
+              description: A short, human-readable summary of the problem.
+              type: string
+            detail:
+              readOnly: true
+              description: >-
+                A human-readable explanation specific to this occurrence of the
+                problem.
+              type: string
+            status:
+              type: number
+              examples:
+                - 404
+              default: 400
+            instance:
+              readOnly: true
+              description: >-
+                A URI reference that identifies the specific occurrence of the
+                problem. It may or may not yield further information if
+                dereferenced.
+              type:
+                - string
+                - 'null'
+            type:
+              readOnly: true
+              description: A URI reference that identifies the problem type
+              type: string
+            description:
+              readOnly: true
+              type:
+                - string
+                - 'null'
+      description: A representation of common errors.
+    A-Cube_GOV-IT_PEL_Platform_HydraCollectionBaseSchema:
+      type: object
+      required:
+        - member
+      properties:
+        member:
+          type: array
+        totalItems:
+          type: integer
+          minimum: 0
+        view:
+          type: object
+          properties:
+            '@id':
+              type: string
+              format: iri-reference
+            '@type':
+              type: string
+            first:
+              type: string
+              format: iri-reference
+            last:
+              type: string
+              format: iri-reference
+            previous:
+              type: string
+              format: iri-reference
+            next:
+              type: string
+              format: iri-reference
+          example:
+            '@id': string
+            type: string
+            first: string
+            last: string
+            previous: string
+            next: string
+        search:
+          type: object
+          properties:
+            '@type':
+              type: string
+            template:
+              type: string
+            variableRepresentation:
+              type: string
+            mapping:
+              type: array
+              items:
+                type: object
+                properties:
+                  '@type':
+                    type: string
+                  variable:
+                    type: string
+                  property:
+                    type:
+                      - string
+                      - 'null'
+                  required:
+                    type: boolean
+    A-Cube_GOV-IT_PEL_Platform_HydraItemBaseSchema:
+      required:
+        - '@id'
+        - '@type'
+      type: object
+      properties:
+        '@context':
+          oneOf:
+            - type: string
+            - type: object
+              properties:
+                '@vocab':
+                  type: string
+                hydra:
+                  type: string
+                  enum:
+                    - http://www.w3.org/ns/hydra/core#
+              required:
+                - '@vocab'
+                - hydra
+              additionalProperties: true
+        '@id':
+          type: string
+        '@type':
+          type: string
+    A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantCreateInput:
+      type: object
+      required:
+        - vat_number
+        - email
+        - password
+        - address
+      properties:
+        vat_number:
+          minLength: 11
+          maxLength: 11
+          pattern: ^(\d+)$
+          description: The VAT number of the merchant (Partita IVA).
+          type: string
+        fiscal_code:
+          minLength: 11
+          maxLength: 11
+          pattern: ^(\d+)$
+          description: The Fiscal Code of the merchant (Codice Fiscale).
+          type: string
+        business_name:
+          description: The business name of the merchant (Ragione sociale).
+          type:
+            - string
+            - 'null'
+        first_name:
+          description: The first name of the merchant, in case there is no business name.
+          type:
+            - string
+            - 'null'
+        last_name:
+          description: The last name of the merchant, in case there is no business name.
+          type:
+            - string
+            - 'null'
+        email:
+          format: email
+          description: The email address.
+          externalDocs:
+            url: https://schema.org/email
+          type: string
+        password:
+          pattern: ^((?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%\^&\*])(?=.{10,}).*)$
+          description: The password.
+          type: string
+        address:
+          $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Address'
+    A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantCreateInput.jsonld:
+      type: object
+      required:
+        - vat_number
+        - email
+        - password
+        - address
+      properties:
+        vat_number:
+          minLength: 11
+          maxLength: 11
+          pattern: ^(\d+)$
+          description: The VAT number of the merchant (Partita IVA).
+          type: string
+        fiscal_code:
+          minLength: 11
+          maxLength: 11
+          pattern: ^(\d+)$
+          description: The Fiscal Code of the merchant (Codice Fiscale).
+          type: string
+        business_name:
+          description: The business name of the merchant (Ragione sociale).
+          type:
+            - string
+            - 'null'
+        first_name:
+          description: The first name of the merchant, in case there is no business name.
+          type:
+            - string
+            - 'null'
+        last_name:
+          description: The last name of the merchant, in case there is no business name.
+          type:
+            - string
+            - 'null'
+        email:
+          format: email
+          description: The email address.
+          externalDocs:
+            url: https://schema.org/email
+          type: string
+        password:
+          pattern: ^((?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%\^&\*])(?=.{10,}).*)$
+          description: The password.
+          type: string
+        address:
+          $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Address.jsonld'
+    A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput:
+      type: object
+      properties:
+        uuid:
+          type: string
+        vat_number:
+          type: string
+        fiscal_code:
+          type:
+            - string
+            - 'null'
+        email:
+          type: string
+        business_name:
+          type:
+            - string
+            - 'null'
+        first_name:
+          type:
+            - string
+            - 'null'
+        last_name:
+          type:
+            - string
+            - 'null'
+        address:
+          $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Address'
+    A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantOutput.jsonld:
+      allOf:
+        - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_HydraItemBaseSchema'
+        - type: object
+          properties:
+            uuid:
+              type: string
+            vat_number:
+              type: string
+            fiscal_code:
+              type:
+                - string
+                - 'null'
+            email:
+              type: string
+            business_name:
+              type:
+                - string
+                - 'null'
+            first_name:
+              type:
+                - string
+                - 'null'
+            last_name:
+              type:
+                - string
+                - 'null'
+            address:
+              $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Address.jsonld'
+    A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantUpdateInput:
+      type: object
+      properties:
+        business_name:
+          description: The business name of the merchant (Ragione sociale).
+          type:
+            - string
+            - 'null'
+        first_name:
+          description: The first name of the merchant, in case there is no business name.
+          type:
+            - string
+            - 'null'
+        last_name:
+          description: The last name of the merchant, in case there is no business name.
+          type:
+            - string
+            - 'null'
+        address:
+          anyOf:
+            - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Address'
+            - type: 'null'
+    A-Cube_GOV-IT_PEL_Platform_Merchant.MerchantUpdateInput.jsonld:
+      type: object
+      properties:
+        business_name:
+          description: The business name of the merchant (Ragione sociale).
+          type:
+            - string
+            - 'null'
+        first_name:
+          description: The first name of the merchant, in case there is no business name.
+          type:
+            - string
+            - 'null'
+        last_name:
+          description: The last name of the merchant, in case there is no business name.
+          type:
+            - string
+            - 'null'
+        address:
+          anyOf:
+            - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Address.jsonld'
+            - type: 'null'
+    A-Cube_GOV-IT_PEL_Platform_Pem.PointOfSaleCreateInput:
+      type: object
+      required:
+        - merchant_uuid
+      properties:
+        merchant_uuid:
+          format: uuid
+          description: The merchant UUID.
+          externalDocs:
+            url: https://schema.org/identifier
+          type: string
+        receipt_header:
+          description: The receipt header. Leave empty to use the merchant name.
+          type:
+            - string
+            - 'null'
+        address:
+          anyOf:
+            - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Address'
+            - type: 'null'
+        external_pem_data:
+          anyOf:
+            - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_PemData'
+            - type: 'null'
+    A-Cube_GOV-IT_PEL_Platform_Pem.PointOfSaleCreateInput.jsonld:
+      type: object
+      required:
+        - merchant_uuid
+      properties:
+        merchant_uuid:
+          format: uuid
+          description: The merchant UUID.
+          externalDocs:
+            url: https://schema.org/identifier
+          type: string
+        receipt_header:
+          description: The receipt header. Leave empty to use the merchant name.
+          type:
+            - string
+            - 'null'
+        address:
+          anyOf:
+            - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Address.jsonld'
+            - type: 'null'
+        external_pem_data:
+          anyOf:
+            - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_PemData.jsonld'
+            - type: 'null'
+    A-Cube_GOV-IT_PEL_Platform_Pem.PointOfSaleCreateOutput:
+      type: object
+      properties:
+        serial_number:
+          type: string
+        registration_key:
+          type: string
+    A-Cube_GOV-IT_PEL_Platform_Pem.PointOfSaleCreateOutput.jsonld:
+      allOf:
+        - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_HydraItemBaseSchema'
+        - type: object
+          properties:
+            serial_number:
+              type: string
+            registration_key:
+              type: string
+    A-Cube_GOV-IT_PEL_Platform_Pem.PointOfSaleOutput:
+      type: object
+      properties:
+        serial_number:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        address:
+          $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Address'
+    A-Cube_GOV-IT_PEL_Platform_Pem.PointOfSaleOutput.jsonld:
+      allOf:
+        - $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_HydraItemBaseSchema'
+        - type: object
+          properties:
+            serial_number:
+              type: string
+            type:
+              type: string
+            status:
+              type: string
+            address:
+              $ref: '#/components/schemas/A-Cube_GOV-IT_PEL_Platform_Address.jsonld'
+    A-Cube_GOV-IT_PEL_Platform_PemData:
+      type: object
+      required:
+        - version
+        - type
+      properties:
+        version:
+          pattern: ^(\d+\.\d+\.\d+)$
+          type: string
+        type:
+          type: string
+          enum:
+            - AP
+            - SP
+            - TM
+            - PV
+    A-Cube_GOV-IT_PEL_Platform_PemData.jsonld:
+      type: object
+      required:
+        - version
+        - type
+      properties:
+        version:
+          pattern: ^(\d+\.\d+\.\d+)$
+          type: string
+        type:
+          type: string
+          enum:
+            - AP
+            - SP
+            - TM
+            - PV
+  securitySchemes:
+    E-Receipt_IT_API_OAuth2PasswordBearer:
+      type: oauth2
+      flows:
+        password:
+          scopes: {}
+          tokenUrl: /mf1/login
+  responses: {}
+  parameters: {}
+  examples: {}
+  requestBodies: {}
+  headers: {}

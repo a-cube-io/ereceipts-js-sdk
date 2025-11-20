@@ -1,8 +1,7 @@
 import { ICacheAdapter, CacheSize } from '../adapters';
-import { PerformanceMonitor } from './performance-monitor';
 
 /**
- * Cache management configuration
+ * Cache management configuration (simplified)
  */
 export interface CacheManagementConfig {
   /** Maximum cache size in bytes before triggering cleanup */
@@ -15,21 +14,16 @@ export interface CacheManagementConfig {
   memoryPressureThreshold?: number;
   /** Percentage of entries to remove during memory pressure cleanup */
   memoryPressureCleanupPercentage?: number;
-  /** Enable performance monitoring integration */
-  enablePerformanceMonitoring?: boolean;
   /** Minimum cache entry age before eligible for removal (ms) */
   minAgeForRemoval?: number;
 }
 
 /**
- * Cache cleanup strategy
+ * Cache cleanup strategy (simplified)
  */
-export type CleanupStrategy = 
+export type CleanupStrategy =
   | 'lru'        // Least Recently Used
-  | 'fifo'       // First In, First Out
-  | 'size-based' // Remove largest items first
-  | 'age-based'  // Remove oldest items first
-  | 'priority';  // Remove low-priority items first
+  | 'age-based'; // Remove oldest items first
 
 /**
  * Cache cleanup result
@@ -62,19 +56,17 @@ export interface MemoryStats {
 }
 
 /**
- * Advanced cache management with memory optimization
+ * Simplified cache management with memory optimization
  */
 export class CacheManager {
   private config: Required<CacheManagementConfig>;
-  private performanceMonitor?: PerformanceMonitor;
   private cleanupTimer?: NodeJS.Timeout;
   private lastCleanupTime = Date.now(); // Initialize to current time
   private accessTimes = new Map<string, number>();
 
   constructor(
     private cache: ICacheAdapter,
-    config: CacheManagementConfig = {},
-    performanceMonitor?: PerformanceMonitor
+    config: CacheManagementConfig = {}
   ) {
     this.config = {
       maxCacheSize: 100 * 1024 * 1024, // 100MB
@@ -82,12 +74,10 @@ export class CacheManager {
       cleanupInterval: 5 * 60 * 1000, // 5 minutes
       memoryPressureThreshold: 0.8, // 80%
       memoryPressureCleanupPercentage: 30, // Remove 30% of entries
-      enablePerformanceMonitoring: false,
       minAgeForRemoval: 60 * 1000, // 1 minute
       ...config,
     };
 
-    this.performanceMonitor = performanceMonitor;
     this.startAutomaticCleanup();
   }
 
@@ -102,9 +92,9 @@ export class CacheManager {
     // Recommend cleanup strategy based on current state
     let recommendedStrategy: CleanupStrategy = 'lru';
     if (isMemoryPressure) {
-      recommendedStrategy = 'size-based'; // Remove large items first under pressure
+      recommendedStrategy = 'age-based'; // Remove old items first under pressure
     } else if (current.entries > this.config.maxEntries * 0.9) {
-      recommendedStrategy = 'fifo'; // Remove oldest items when approaching entry limit
+      recommendedStrategy = 'age-based'; // Remove oldest items when approaching entry limit
     }
 
     return {
@@ -116,69 +106,46 @@ export class CacheManager {
   }
 
   /**
-   * Perform cache cleanup with specified strategy
+   * Perform cache cleanup with simplified strategy
    */
   async performCleanup(
     strategy: CleanupStrategy = 'lru',
     reason: CleanupResult['reason'] = 'manual'
   ): Promise<CleanupResult> {
     const startTime = performance.now();
-    const endTiming = this.performanceMonitor?.startCacheOperation('cleanup');
 
-    try {
-      const initialSize = await this.cache.getSize();
-      let entriesRemoved = 0;
+    const initialSize = await this.cache.getSize();
+    let entriesRemoved = 0;
 
-      switch (strategy) {
-        case 'lru':
-          entriesRemoved = await this.cleanupLRU();
-          break;
-        case 'fifo':
-          entriesRemoved = await this.cleanupFIFO();
-          break;
-        case 'size-based':
-          entriesRemoved = await this.cleanupBySize();
-          break;
-        case 'age-based':
-          entriesRemoved = await this.cleanupByAge();
-          break;
-        case 'priority':
-          entriesRemoved = await this.cleanupByPriority();
-          break;
-      }
-
-      // Also clean up expired entries
-      const expiredRemoved = await this.cache.cleanup();
-      entriesRemoved += expiredRemoved;
-
-      const finalSize = await this.cache.getSize();
-      const bytesFreed = initialSize.bytes - finalSize.bytes;
-      const cleanupTime = performance.now() - startTime;
-
-      this.lastCleanupTime = Date.now();
-
-      // Update performance metrics
-      if (this.performanceMonitor) {
-        this.performanceMonitor.updateMemoryUsage(
-          finalSize.entries,
-          finalSize.bytes
-        );
-      }
-
-      const result: CleanupResult = {
-        entriesRemoved,
-        bytesFreed,
-        cleanupTime,
-        strategy,
-        reason,
-      };
-
-      endTiming?.();
-      return result;
-    } catch (error) {
-      endTiming?.();
-      throw error;
+    // Simplified cleanup strategies
+    switch (strategy) {
+      case 'lru':
+        entriesRemoved = await this.cleanupLRU();
+        break;
+      case 'age-based':
+        entriesRemoved = await this.cleanupByAge();
+        break;
     }
+
+    // Also clean up expired entries
+    const expiredRemoved = await this.cache.cleanup();
+    entriesRemoved += expiredRemoved;
+
+    const finalSize = await this.cache.getSize();
+    const bytesFreed = initialSize.bytes - finalSize.bytes;
+    const cleanupTime = performance.now() - startTime;
+
+    this.lastCleanupTime = Date.now();
+
+    const result: CleanupResult = {
+      entriesRemoved,
+      bytesFreed,
+      cleanupTime,
+      strategy,
+      reason,
+    };
+
+    return result;
   }
 
   /**
@@ -228,67 +195,7 @@ export class CacheManager {
     return keysToRemove.length;
   }
 
-  /**
-   * Clean cache based on First In, First Out strategy
-   */
-  private async cleanupFIFO(): Promise<number> {
-    const keys = await this.cache.getKeys();
-    if (keys.length === 0) return 0;
 
-    // Get cache items with timestamps
-    const items = await Promise.all(
-      keys.map(async (key) => {
-        const item = await this.cache.get(key);
-        return {
-          key,
-          timestamp: item?.timestamp || 0,
-        };
-      })
-    );
-
-    // Sort by timestamp (oldest first)
-    const sortedItems = items
-      .filter(item => item.timestamp > 0)
-      .sort((a, b) => a.timestamp - b.timestamp);
-
-    // Remove oldest entries
-    const targetRemoval = Math.ceil(keys.length * (this.config.memoryPressureCleanupPercentage / 100));
-    const keysToRemove = sortedItems.slice(0, targetRemoval).map(item => item.key);
-
-    await this.removeKeys(keysToRemove);
-    return keysToRemove.length;
-  }
-
-  /**
-   * Clean cache based on entry size (remove largest first)
-   */
-  private async cleanupBySize(): Promise<number> {
-    const keys = await this.cache.getKeys();
-    if (keys.length === 0) return 0;
-
-    // Get cache items with estimated sizes
-    const items = await Promise.all(
-      keys.map(async (key) => {
-        const item = await this.cache.get(key);
-        return {
-          key,
-          size: this.estimateItemSize(item),
-        };
-      })
-    );
-
-    // Sort by size (largest first)
-    const sortedItems = items
-      .filter(item => item.size > 0)
-      .sort((a, b) => b.size - a.size);
-
-    // Remove largest entries
-    const targetRemoval = Math.ceil(keys.length * (this.config.memoryPressureCleanupPercentage / 100));
-    const keysToRemove = sortedItems.slice(0, targetRemoval).map(item => item.key);
-
-    await this.removeKeys(keysToRemove);
-    return keysToRemove.length;
-  }
 
   /**
    * Clean cache based on age (remove oldest first)
@@ -327,44 +234,6 @@ export class CacheManager {
     return keysToRemove.length;
   }
 
-  /**
-   * Clean cache based on priority (remove low priority first)
-   */
-  private async cleanupByPriority(): Promise<number> {
-    const keys = await this.cache.getKeys();
-    if (keys.length === 0) return 0;
-
-    // Priority order: optimistic < offline < server
-    const priorityOrder = { optimistic: 1, offline: 2, server: 3 };
-
-    const items = await Promise.all(
-      keys.map(async (key) => {
-        const item = await this.cache.get(key);
-        return {
-          key,
-          priority: priorityOrder[item?.source || 'server'] || 3,
-          syncStatus: item?.syncStatus,
-        };
-      })
-    );
-
-    // Sort by priority (lowest first), then by sync status (failed first)
-    const sortedItems = items.sort((a, b) => {
-      if (a.priority !== b.priority) {
-        return a.priority - b.priority;
-      }
-      // Within same priority, remove failed syncs first
-      if (a.syncStatus === 'failed' && b.syncStatus !== 'failed') return -1;
-      if (b.syncStatus === 'failed' && a.syncStatus !== 'failed') return 1;
-      return 0;
-    });
-
-    const targetRemoval = Math.ceil(keys.length * (this.config.memoryPressureCleanupPercentage / 100));
-    const keysToRemove = sortedItems.slice(0, targetRemoval).map(item => item.key);
-
-    await this.removeKeys(keysToRemove);
-    return keysToRemove.length;
-  }
 
   /**
    * Remove multiple keys efficiently
@@ -378,17 +247,6 @@ export class CacheManager {
     );
   }
 
-  /**
-   * Estimate size of cache item in bytes
-   */
-  private estimateItemSize(item: any): number {
-    if (!item) return 0;
-    try {
-      return JSON.stringify(item).length * 2; // UTF-16 encoding approximation
-    } catch {
-      return 1000; // Default size for non-serializable items
-    }
-  }
 
   /**
    * Track cache access for LRU implementation
@@ -450,7 +308,7 @@ export class CacheManager {
     if (stats.isMemoryPressure) {
       return {
         shouldCleanup: true,
-        recommendedStrategy: 'size-based',
+        recommendedStrategy: 'age-based',
         urgency: 'high',
         reason: 'Memory pressure detected - cache size exceeds threshold',
       };
@@ -459,7 +317,7 @@ export class CacheManager {
     if (stats.current.entries > this.config.maxEntries * 0.9) {
       return {
         shouldCleanup: true,
-        recommendedStrategy: 'fifo',
+        recommendedStrategy: 'age-based',
         urgency: 'medium',
         reason: 'Entry count approaching limit',
       };

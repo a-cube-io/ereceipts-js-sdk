@@ -1,47 +1,108 @@
+import { detectPlatform } from '../../core/platform-detector';
 import { INetworkMonitor, NetworkInfo } from '../../adapters';
 
-/**
- * React Native network monitor using @react-native-community/netinfo
- */
 export class ReactNativeNetworkMonitor implements INetworkMonitor {
-  private NetInfo: any;
+  private netInfoModule: any | null = null;
+  private unsubscribeFn: (() => void) | null = null;
   private listeners: Array<(online: boolean) => void> = [];
-  private unsubscribe: (() => void) | null = null;
   private currentState: boolean = true;
+  private readonly isExpo: boolean;
 
   constructor() {
-    this.initializeNetInfo();
+    this.isExpo = detectPlatform().isExpo;
+    this.init().catch(error => {
+      console.error('Network monitor initialization failed:', error);
+    });
   }
 
-  private async initializeNetInfo() {
+  private async init(): Promise<void> {
+    if (this.isExpo) {
+      await this.loadExpoModule();
+    } else {
+      await this.loadRNModule();
+    }
+
+    await this.fetchInitialState();
+    this.subscribeToStateChanges();
+  }
+
+  private async loadRNModule(): Promise<void> {
     try {
-      // Try to require NetInfo - avoid dynamic import for Metro compatibility
-      const NetInfoModule = require('@react-native-community/netinfo');
-      this.NetInfo = NetInfoModule.default || NetInfoModule;
-      console.log('NetInfo loaded successfully');
-      // Subscribe to network state changes
-      this.subscribeToNetworkState();
+      const module = require('@react-native-community/netinfo');
+      this.netInfoModule = module.default || module;
+      console.log('Loaded @react‑native‑community/netinfo module');
     } catch (error) {
-      console.warn('NetInfo not available. Network monitoring will be limited:', error);
+      console.error('Failed to load React Native NetInfo module:', error);
+      this.netInfoModule = null;
     }
   }
 
-  private subscribeToNetworkState() {
-    if (!this.NetInfo) return;
+  private async loadExpoModule(): Promise<void> {
+    try {
+      const module = require('expo-network');
+      this.netInfoModule = module.default || module;
+      console.log('Loaded expo‑network module');
+    } catch (error) {
+      console.error('Failed to load Expo Network module:', error);
+      this.netInfoModule = null;
+    }
+  }
 
-    this.unsubscribe = this.NetInfo.addEventListener((state: any) => {
-      // Handle null/undefined state objects
-      if (!state) {
-        return;
+  private async fetchInitialState(): Promise<void> {
+    if (!this.netInfoModule) return;
+
+    try {
+      let online = false;
+      if (this.isExpo) {
+        const state = await this.netInfoModule.getNetworkStateAsync();
+        online = !!(state.isConnected && state.isInternetReachable !== false);
+      } else {
+        const state = await this.netInfoModule.fetch();
+        online = !!(state.isConnected && state.isInternetReachable !== false);
       }
-      
-      const isOnline = state.isConnected && state.isInternetReachable !== false;
-      
-      if (isOnline !== this.currentState) {
-        this.currentState = isOnline;
-        this.notifyListeners(isOnline);
+      this.currentState = online;
+      console.log('Initial network state:', online ? 'online' : 'offline');
+    } catch (error) {
+      console.warn('Could not fetch initial network state:', error);
+    }
+  }
+
+  private subscribeToStateChanges(): void {
+    if (!this.netInfoModule) return;
+
+    console.debug('Subscribing to network state changes');
+    console.dir(this.netInfoModule, { depth: 1 });
+
+    if (this.isExpo) {
+      // expo‑network: addNetworkStateListener returns unsubscribe function
+      this.unsubscribeFn = this.netInfoModule.addNetworkStateListener((state: any) => {
+        this.handleStateChange(!!state.isConnected, state.isInternetReachable ?? false);
+      });
+    } else {
+      // @react‑native‑community/netinfo: addEventListener returns unsubscribe function
+      this.unsubscribeFn = this.netInfoModule.addEventListener((state: any) => {
+        this.handleStateChange(!!state.isConnected, state.isInternetReachable ?? false);
+      });
+    }
+  }
+
+  private handleStateChange(isConnected: boolean, isInternetReachable: boolean): void {
+    const online = isConnected && isInternetReachable !== false;
+    if (online !== this.currentState) {
+      this.currentState = online;
+      this.notifyListeners(online);
+    }
+  }
+
+  private notifyListeners(online: boolean): void {
+    // call listeners safely so one failing listener doesn't break others
+    for (const cb of this.listeners.slice()) {
+      try {
+        cb(online);
+      } catch (err) {
+        console.error('Network status listener threw an error:', err);
       }
-    });
+    }
   }
 
   isOnline(): boolean {
@@ -50,54 +111,63 @@ export class ReactNativeNetworkMonitor implements INetworkMonitor {
 
   onStatusChange(callback: (online: boolean) => void): () => void {
     this.listeners.push(callback);
-    
-    // Initialize NetInfo if not already done
-    if (!this.NetInfo) {
-      this.initializeNetInfo();
+
+    if (!this.netInfoModule) {
+      // late init if needed
+      this.init().catch(error => {
+        console.error('Late initialization of network monitor failed:', error);
+      });
     }
-    
-    // Return cleanup function
+
     return () => {
-      const index = this.listeners.indexOf(callback);
-      if (index > -1) {
-        this.listeners.splice(index, 1);
+      const idx = this.listeners.indexOf(callback);
+      if (idx >= 0) {
+        this.listeners.splice(idx, 1);
       }
     };
   }
 
   async getNetworkInfo(): Promise<NetworkInfo | null> {
-    if (!this.NetInfo) {
-      await this.initializeNetInfo();
-    }
-
-    if (!this.NetInfo) {
-      return null;
+    if (!this.netInfoModule) {
+      await this.init();
+      if (!this.netInfoModule) {
+        return null;
+      }
     }
 
     try {
-      const state = await this.NetInfo.fetch();
-      
-      return {
-        type: this.mapConnectionType(state.type),
-        effectiveType: this.mapEffectiveType(state.details?.cellularGeneration),
-      };
+      if (this.isExpo) {
+        const state = await this.netInfoModule.getNetworkStateAsync();
+        return {
+          type: this.mapConnectionType(state.type),
+          effectiveType: undefined, // expo‑network may not expose cellularGeneration
+          downlink: undefined,
+          rtt: undefined,
+        };
+      } else {
+        const state = await this.netInfoModule.fetch();
+        return {
+          type: this.mapConnectionType(state.type),
+          effectiveType: this.mapEffectiveType(state.details?.cellularGeneration),
+          downlink: state.details?.downlink,
+          rtt: state.details?.rtt,
+        };
+      }
     } catch (error) {
-      console.error('Failed to get network info:', error);
+      console.error('Failed to fetch detailed network info:', error);
       return null;
     }
   }
 
-  private notifyListeners(online: boolean): void {
-    this.listeners.forEach(callback => {
-      try {
-        callback(online);
-      } catch (error) {
-        console.error('Error in network status callback:', error);
-      }
-    });
+  destroy(): void {
+    if (this.unsubscribeFn) {
+      this.unsubscribeFn();
+      this.unsubscribeFn = null;
+    }
+    this.listeners = [];
   }
 
-  private mapConnectionType(type: string): 'wifi' | 'cellular' | 'ethernet' | 'unknown' {
+  private mapConnectionType(type: string | null | undefined): 'wifi' | 'cellular' | 'ethernet' | 'unknown' {
     switch (type) {
       case 'wifi':
         return 'wifi';
@@ -105,15 +175,13 @@ export class ReactNativeNetworkMonitor implements INetworkMonitor {
         return 'cellular';
       case 'ethernet':
         return 'ethernet';
-      case 'none':
-      case 'unknown':
       default:
         return 'unknown';
     }
   }
 
-  private mapEffectiveType(generation: string): '2g' | '3g' | '4g' | '5g' | undefined {
-    switch (generation) {
+  private mapEffectiveType(gen: string | null | undefined): '2g' | '3g' | '4g' | '5g' | undefined {
+    switch (gen) {
       case '2g':
         return '2g';
       case '3g':
@@ -125,16 +193,5 @@ export class ReactNativeNetworkMonitor implements INetworkMonitor {
       default:
         return undefined;
     }
-  }
-
-  /**
-   * Cleanup method to remove listeners and unsubscribe
-   */
-  destroy(): void {
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
-    }
-    this.listeners = [];
   }
 }

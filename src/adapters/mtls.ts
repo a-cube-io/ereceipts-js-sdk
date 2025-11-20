@@ -23,6 +23,7 @@ export interface MTLSRequestConfig {
   headers?: Record<string, string>;
   data?: any;
   timeout?: number;
+  responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
 }
 
 export interface MTLSResponse<T = any> {
@@ -39,6 +40,8 @@ export interface CertificateInfo {
   validTo: Date;
   serialNumber: string;
   fingerprint: string;
+  pemId: string;
+  cashRegisterUUID: string;
 }
 
 /**
@@ -159,7 +162,8 @@ export class MTLSError extends Error {
   constructor(
     public type: MTLSErrorType,
     message: string,
-    public originalError?: Error
+    public originalError?: Error,
+    public statusCode?: number
   ) {
     super(message);
     this.name = 'MTLSError';

@@ -9,7 +9,6 @@ import {
   QueueEvents, 
   BatchSyncResult 
 } from './types';
-import { OptimisticManager, OptimisticConfig, OptimisticEvents } from '../cache';
 
 /**
  * Enhanced offline manager with optimistic update support
@@ -17,7 +16,6 @@ import { OptimisticManager, OptimisticConfig, OptimisticEvents } from '../cache'
 export class OfflineManager {
   private queue: OperationQueue;
   private syncManager: SyncManager;
-  private optimisticManager?: OptimisticManager;
 
   constructor(
     storage: IStorage,
@@ -25,9 +23,7 @@ export class OfflineManager {
     networkMonitor: INetworkMonitor,
     config: Partial<QueueConfig> = {},
     events: QueueEvents = {},
-    cache?: ICacheAdapter,
-    optimisticConfig?: OptimisticConfig,
-    optimisticEvents?: OptimisticEvents
+    _cache?: ICacheAdapter
   ) {
     // Create default config
     const defaultConfig: QueueConfig = {
@@ -42,46 +38,9 @@ export class OfflineManager {
 
     const finalConfig = { ...defaultConfig, ...config };
 
-    // Initialize optimistic manager if cache is available (before sync manager for event integration)
-    if (cache) {
-      this.optimisticManager = new OptimisticManager(
-        cache,
-        this,
-        optimisticConfig,
-        optimisticEvents
-      );
-    }
-
-    // Enhance events with optimistic manager integration
+    // Use original events without optimistic manager integration
     const enhancedEvents: QueueEvents = {
-      ...events,
-      onOperationCompleted: (result) => {
-        // Call original event handler first
-        events.onOperationCompleted?.(result);
-        
-        // Notify optimistic manager of successful completion
-        if (this.optimisticManager && result.success) {
-          this.optimisticManager.handleSyncCompletion(
-            result.operation.id,
-            true,
-            result.response
-          ).catch(console.error);
-        }
-      },
-      onOperationFailed: (result) => {
-        // Call original event handler first
-        events.onOperationFailed?.(result);
-        
-        // Notify optimistic manager of failed completion
-        if (this.optimisticManager && !result.success) {
-          this.optimisticManager.handleSyncCompletion(
-            result.operation.id,
-            false,
-            undefined,
-            result.error
-          ).catch(console.error);
-        }
-      },
+      ...events
     };
 
     // Initialize queue and sync manager with enhanced events
@@ -272,29 +231,17 @@ export class OfflineManager {
    * Create optimistic update (requires cache)
    */
   async createOptimisticUpdate<T>(
-    resource: ResourceType,
-    operation: OperationType,
-    endpoint: string,
-    method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
-    data: any,
-    optimisticData: T,
-    cacheKey: string,
-    priority: number = 2
+    _resource: ResourceType,
+    _operation: OperationType,
+    _endpoint: string,
+    _method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    _data: any,
+    _optimisticData: T,
+    _cacheKey: string,
+    _priority: number = 2
   ): Promise<string | null> {
-    if (!this.optimisticManager) {
-      return null; // No optimistic updates without cache
-    }
-
-    return await this.optimisticManager.createOptimisticUpdate(
-      resource,
-      operation,
-      endpoint,
-      method,
-      data,
-      optimisticData,
-      cacheKey,
-      priority
-    );
+    // Optimistic updates disabled in simplified cache system
+    return null;
   }
 
   /**
@@ -361,72 +308,54 @@ export class OfflineManager {
   }
 
   /**
-   * Get optimistic operations (if available)
+   * Get optimistic operations (disabled in simplified cache system)
    */
   getOptimisticOperations() {
-    return this.optimisticManager?.getOptimisticOperations() || [];
+    return [];
   }
 
   /**
-   * Get pending optimistic operations count
+   * Get pending optimistic operations count (disabled in simplified cache system)
    */
   getOptimisticPendingCount(): number {
-    return this.optimisticManager?.getPendingCount() || 0;
+    return 0;
   }
 
   /**
-   * Check if optimistic updates are enabled
+   * Check if optimistic updates are enabled (disabled in simplified cache system)
    */
   isOptimisticEnabled(): boolean {
-    return !!this.optimisticManager;
+    return false;
   }
 
   /**
-   * Check if resource has pending optimistic updates
+   * Check if resource has pending optimistic updates (disabled in simplified cache system)
    */
-  hasPendingOptimisticUpdates(resource: ResourceType, resourceId?: string): boolean {
-    return this.optimisticManager?.hasPendingOptimisticUpdates(resource, resourceId) || false;
+  hasPendingOptimisticUpdates(_resource: ResourceType, _resourceId?: string): boolean {
+    return false;
   }
 
   /**
-   * Get the optimistic manager (for advanced use cases)
+   * Get the optimistic manager (disabled in simplified cache system)
    */
   getOptimisticManager() {
-    return this.optimisticManager;
+    return null;
   }
 
   /**
-   * Manually rollback a specific optimistic operation
+   * Manually rollback a specific optimistic operation (disabled in simplified cache system)
    */
-  async rollbackOptimisticOperation(operationId: string, reason?: string): Promise<void> {
-    if (!this.optimisticManager) {
-      return;
-    }
-    
-    await this.optimisticManager.rollbackOptimisticUpdate(operationId, reason);
+  async rollbackOptimisticOperation(_operationId: string, _reason?: string): Promise<void> {
+    // Optimistic updates disabled in simplified cache system
+    return;
   }
 
   /**
-   * Manually rollback all pending optimistic operations for a resource
+   * Manually rollback all pending optimistic operations for a resource (disabled in simplified cache system)
    */
-  async rollbackOptimisticOperationsByResource(resource: ResourceType, resourceId?: string): Promise<void> {
-    if (!this.optimisticManager) {
-      return;
-    }
-    
-    const operations = this.optimisticManager.getOptimisticOperations();
-    const targetOperations = operations.filter(op => 
-      op.resource === resource && 
-      op.status === 'pending' &&
-      (resourceId ? op.cacheKey.includes(resourceId) : true)
-    );
-    
-    for (const operation of targetOperations) {
-      await this.optimisticManager.rollbackOptimisticUpdate(
-        operation.id, 
-        `Manual rollback for ${resource}${resourceId ? ` ${resourceId}` : ''}`
-      );
-    }
+  async rollbackOptimisticOperationsByResource(_resource: ResourceType, _resourceId?: string): Promise<void> {
+    // Optimistic updates disabled in simplified cache system
+    return;
   }
 
   /**
@@ -435,6 +364,5 @@ export class OfflineManager {
   destroy(): void {
     this.queue.destroy();
     this.syncManager.destroy();
-    this.optimisticManager?.destroy();
   }
 }

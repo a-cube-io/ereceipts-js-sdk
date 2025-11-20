@@ -74,6 +74,7 @@ export interface User {
   roles: UserRoles;
   fid: string;
   pid: string | null;
+  expiresAt: number;
 }
 
 /**
@@ -82,6 +83,7 @@ export interface User {
 export interface IUserProvider {
   getCurrentUser(): Promise<User | null>;
   isAuthenticated(): Promise<boolean>;
+  getAccessToken(): Promise<string | null>;
 }
 
 /**
@@ -98,7 +100,7 @@ export interface APIError {
 /**
  * SDK Error types
  */
-export type SDKError = 
+export type SDKError =
   | 'NETWORK_ERROR'
   | 'AUTH_ERROR'
   | 'VALIDATION_ERROR'
@@ -108,7 +110,9 @@ export type SDKError =
   | 'STORAGE_CERTIFICATE_ERROR'
   | 'CERTIFICATE_MANAGER_NOT_INITIALIZED'
   | 'SDK_INITIALIZATION_ERROR'
-  | 'API_CLIENT_NOT_INITIALIZED';
+  | 'API_CLIENT_NOT_INITIALIZED'
+  | 'MTLS_ADAPTER_NOT_AVAILABLE'
+  | 'CERTIFICATE_INFO_ERROR';
 
 /**
  * SDK Exception class

@@ -54,10 +54,10 @@ export class PointOfSalesAPI {
   }
 
   /**
-   * Close journal
+   * Close a journal
    */
-  async closeJournal(): Promise<void> {
-    return this.httpClient.post('/mf1/point-of-sales/close');
+  async close(serial_number: string){
+    this.httpClient.post(`/mf1/point-of-sales/${serial_number}/close`);
   }
 
   /**

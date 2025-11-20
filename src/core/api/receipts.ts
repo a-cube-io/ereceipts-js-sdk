@@ -1,12 +1,16 @@
 import { HttpClient, CacheRequestConfig } from './http-client';
-import { 
-  ReceiptInput, 
-  ReceiptOutput, 
+import {
+  ReceiptInput,
+  ReceiptOutput,
   ReceiptDetailsOutput,
   ReceiptReturnOrVoidViaPEMInput,
   ReceiptReturnOrVoidWithProofInput,
-  Page, 
-  ReceiptListParams
+  Page,
+  ReceiptListParams,
+  RECEIPT_READY,
+  ReceiptReturnInput,
+  VoidReceiptInput,
+  ReturnableReceiptItem
 } from './types';
 
 /**
@@ -26,7 +30,7 @@ export class ReceiptsAPI {
   private userContext: UserContext | null = null;
 
   constructor(private httpClient: HttpClient) {
-    this.debugEnabled = (httpClient as any).isDebugEnabled || false;
+    this.debugEnabled = httpClient.isDebugEnabled || true;
 
     if (this.debugEnabled) {
       console.log('[RECEIPTS-API] Receipts API initialized with mTLS support');
@@ -48,233 +52,209 @@ export class ReceiptsAPI {
     }
   }
 
-  /**
-   * Check if a user has a merchant role
-   */
-  private hasMerchantRole(): boolean {
-    const isMerchant = this.userContext?.roles.includes('ROLE_MERCHANT') || false;
-    
-    if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Merchant role check:', {
-        roles: this.userContext?.roles,
-        isMerchant
-      });
-    }
-    
-    return isMerchant;
-  }
 
   /**
-   * Create mTLS request configuration
+   * Create request configuration
+   * Let MTLSHandler determine the best authentication mode based on role/platform/method
    */
-  private createMTLSConfig(config?: Partial<CacheRequestConfig>): CacheRequestConfig {
+  private createRequestConfig(config?: Partial<CacheRequestConfig>): CacheRequestConfig {
     return {
-      authMode: 'mtls',
-      noFallback: true, // Allow fallback for resilience
+      authMode: 'auto', // Let MTLSHandler decide based on authentication matrix
       ...config
     };
   }
 
   /**
-   * Create a new electronic receipt (mTLS required)
+   * Create a new electronic receipt
+   * Authentication mode determined by MTLSHandler based on role/platform
    */
   async create(receiptData: ReceiptInput): Promise<ReceiptOutput> {
     if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Creating receipt with mTLS authentication');
+      console.log('[RECEIPTS-API] Creating receipt');
     }
 
-    const config = this.createMTLSConfig();
+    const config = this.createRequestConfig();
     return this.httpClient.post<ReceiptOutput>('/mf1/receipts', receiptData, config);
   }
 
   /**
    * Get a list of electronic receipts
-   * ROLE_MERCHANT can use JWT, others must use mTLS
+   * Authentication mode determined by MTLSHandler (typically JWT for GET operations)
    */
-  async list(params: ReceiptListParams = {}): Promise<Page<ReceiptOutput>> {
+  async list(params: ReceiptListParams): Promise<Page<ReceiptOutput>> {
     const searchParams = new URLSearchParams();
-    
-    if (params.page) {
-      searchParams.append('page', params.page.toString());
+
+    searchParams.append('page', params.page?.toString() || '1');
+    searchParams.append('size', params.size?.toString() || '30');
+    searchParams.append('status', params.status?.toString() || RECEIPT_READY);
+
+    if (params.sort !== undefined && params.sort !== null) {
+      searchParams.append('sort', params.sort);
     }
-    if (params.size) {
-      searchParams.append('size', params.size.toString());
+
+    if (params['document_datetime[before]'] !== undefined) {
+      searchParams.append('document_datetime[before]', params['document_datetime[before]']);
+    }
+    if (params['document_datetime[after]'] !== undefined && params['document_datetime[after]'] !== null) {
+      searchParams.append('document_datetime[after]', params['document_datetime[after]']);
     }
 
     const query = searchParams.toString();
-    const url = query ? `/mf1/receipts?${query}` : '/mf1/receipts';
+    const url = `/mf1/point-of-sales/${params.serial_number}/receipts${query ? `?${query}` : ''}`;
 
-    // Role-based authentication logic
-    const isMerchant = this.hasMerchantRole();
-    
-    if (isMerchant) {
-      // ROLE_MERCHANT can use JWT
-      if (this.debugEnabled) {
-        console.log('[RECEIPTS-API] Using JWT authentication for merchant role');
-      }
-      
-      const config: CacheRequestConfig = { 
-        authMode: 'jwt' 
-      };
-      return this.httpClient.get<Page<ReceiptOutput>>(url, config);
-    } else {
-      // Other roles must use mTLS
-      if (this.debugEnabled) {
-        console.log('[RECEIPTS-API] Using mTLS authentication for non-merchant role');
-      }
-      
-      const config = this.createMTLSConfig();
-      return this.httpClient.get<Page<ReceiptOutput>>(url, config);
+    if (this.debugEnabled) {
+      console.log('[RECEIPTS-API] Listing receipts for POS:', params.serial_number);
     }
+
+    const config = this.createRequestConfig();
+    return this.httpClient.get<Page<ReceiptOutput>>(url, config);
   }
 
   /**
-   * Get an electronic receipt by UUID (mTLS required)
+   * Get an electronic receipt by UUID
+   * Authentication mode determined by MTLSHandler based on role/platform
    */
   async get(receiptUuid: string): Promise<ReceiptOutput> {
     if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Getting receipt by UUID with mTLS:', receiptUuid);
+      console.log('[RECEIPTS-API] Getting receipt by UUID:', receiptUuid);
     }
 
-    const config = this.createMTLSConfig();
+    const config = this.createRequestConfig();
     return this.httpClient.get<ReceiptOutput>(`/mf1/receipts/${receiptUuid}`, config);
   }
 
   /**
-   * Get receipt details (JSON or PDF) with mTLS
+   * Get receipt details (JSON or PDF)
+   * Authentication mode determined by MTLSHandler
+   * ✅ PDF downloads now use mTLS with binary response support (expo-mutual-tls v1.0.3+)
    */
   async getDetails(
-    receiptUuid: string, 
+    receiptUuid: string,
     format: 'json' | 'pdf' = 'json'
-  ): Promise<ReceiptDetailsOutput | Blob> {
+  ): Promise<ReceiptDetailsOutput | string> {
     if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Getting receipt details with mTLS:', {
+      console.log('[RECEIPTS-API] Getting receipt details:', {
         receiptUuid,
         format
       });
     }
 
     const headers: Record<string, string> = {};
-    const config = this.createMTLSConfig({ headers });
-    
+
     if (format === 'pdf') {
       headers['Accept'] = 'application/pdf';
-      config.headers = headers;
-      
-      // For PDF downloads, use the download method if available
-      if (typeof (this.httpClient as any).download === 'function') {
-        return (this.httpClient as any).download(`/mf1/receipts/${receiptUuid}/details`, config);
-      } else {
-        // Fallback to regular GET for PDF
-        return this.httpClient.get<Blob>(`/mf1/receipts/${receiptUuid}/details`, config);
+      const config = this.createRequestConfig({
+        headers,
+        authMode: 'mtls', // Force mTLS for PDF downloads
+        responseType: 'blob'
+      });
+
+      if (this.debugEnabled) {
+        console.log('[RECEIPTS-API] Downloading PDF receipt (mTLS on mobile, JWT+:444 on web)', config);
       }
+
+      return this.httpClient.get<string>(`/mf1/receipts/${receiptUuid}/details`, config);
     } else {
       headers['Accept'] = 'application/json';
-      config.headers = headers;
-      
+      const config = this.createRequestConfig({ 
+        headers,
+        responseType: 'json',
+        authMode: 'mtls' // Force mTLS for JSON responses
+      });
+
       return this.httpClient.get<ReceiptDetailsOutput>(
-        `/mf1/receipts/${receiptUuid}/details`, 
+        `/mf1/receipts/${receiptUuid}/details`,
         config
       );
     }
   }
 
   /**
-   * Void an electronic receipt (mTLS required)
+   * Void an electronic receipt via same pos
    */
-  async void(voidData: ReceiptReturnOrVoidViaPEMInput): Promise<void> {
+  async voidViaSamePos(voidData: VoidReceiptInput): Promise<void> {
     if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Voiding receipt with mTLS');
+      console.log('[RECEIPTS-API] Voiding receipt via same pos');
     }
 
-    const config = this.createMTLSConfig({
-      data: voidData
-    });
+    const config = this.createRequestConfig();
 
-    await this.httpClient.delete('/mf1/receipts', config);
+    await this.httpClient.delete('/mf1/receipts', voidData, config);
   }
 
   /**
-   * Void an electronic receipt identified by proof of purchase (mTLS required)
+   * Void an electronic receipt via different pos
+   */
+  async voidViaDifferentPos(voidData: ReceiptReturnOrVoidViaPEMInput): Promise<void> {
+    if (this.debugEnabled) {
+      console.log('[RECEIPTS-API] Voiding receipt via different pos');
+    }
+
+    const config = this.createRequestConfig();
+1
+    await this.httpClient.delete('/mf1/receipts/void-via-different-pos', voidData, config);
+  }
+
+  /**
+   * Void an electronic receipt identified by proof of purchase
    */
   async voidWithProof(voidData: ReceiptReturnOrVoidWithProofInput): Promise<void> {
     if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Voiding receipt with proof using mTLS');
+      console.log('[RECEIPTS-API] Voiding receipt with proof');
     }
 
-    const config = this.createMTLSConfig({
-      data: voidData
-    });
+    const config = this.createRequestConfig();
 
-    await this.httpClient.delete('/mf1/receipts/void-with-proof', config);
+    await this.httpClient.delete('/mf1/receipts/void-with-proof', voidData, config);
   }
 
   /**
-   * Return items from an electronic receipt (mTLS required)
+   * Return an electronic receipt via same pos
    */
-  async return(returnData: ReceiptReturnOrVoidViaPEMInput): Promise<ReceiptOutput> {
+  async return(returnData: ReceiptReturnInput): Promise<ReceiptOutput> {
     if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Processing return with mTLS');
+      console.log('[RECEIPTS-API] Processing return via same pos');
     }
 
-    const config = this.createMTLSConfig();
+    const config = this.createRequestConfig();
     return this.httpClient.post<ReceiptOutput>('/mf1/receipts/return', returnData, config);
   }
 
   /**
-   * Return items from an electronic receipt identified by proof of purchase (mTLS required)
+   * get returnable items for a receipt
    */
-  async returnWithProof(returnData: ReceiptReturnOrVoidWithProofInput): Promise<ReceiptOutput> {
+  async getReturnableItems(receiptUuid: string): Promise<ReturnableReceiptItem[]> {
     if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Processing return with proof using mTLS');
+      console.log('[RECEIPTS-API] Getting returnable items for receipt UUID:', receiptUuid);
     }
 
-    const config = this.createMTLSConfig();
-    return this.httpClient.post<ReceiptOutput>('/mf1/receipts/return-with-proof', returnData, config);
+    const config = this.createRequestConfig();
+    return this.httpClient.get<ReturnableReceiptItem[]>(`/mf1/receipts/${receiptUuid}/returnable-items`, config);
   }
 
   /**
-   * Test mTLS connectivity for receipt operations
+   * Return items from an electronic receipt via different pos
    */
-  async testMTLSConnectivity(): Promise<{
-    isConnected: boolean;
-    latency?: number;
-    error?: string;
-  }> {
+  async returnViaDifferentPos(returnData: ReceiptReturnOrVoidViaPEMInput): Promise<ReceiptOutput> {
     if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Testing mTLS connectivity for receipt operations');
+      console.log('[RECEIPTS-API] Processing return via different pos');
     }
 
-    const startTime = Date.now();
+    const config = this.createRequestConfig();
+    return this.httpClient.post<ReceiptOutput>('/mf1/receipts/return-via-different-pos', returnData, config);
+  }
 
-    try {
-      // Test with a lightweight endpoint
-      await this.list({ size: 1 });
-      
-      const latency = Date.now() - startTime;
-      
-      const result = {
-        isConnected: true,
-        latency
-      };
-
-      if (this.debugEnabled) {
-        console.log('[RECEIPTS-API] mTLS connectivity test passed:', result);
-      }
-
-      return result;
-    } catch (error) {
-      const result = {
-        isConnected: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-
-      if (this.debugEnabled) {
-        console.error('[RECEIPTS-API] mTLS connectivity test failed:', result);
-      }
-
-      return result;
+  /**
+   * Return items from an electronic receipt identified by proof of purchase
+   * Authentication mode determined by MTLSHandler
+   */
+  async returnWithProof(returnData: ReceiptReturnOrVoidWithProofInput): Promise<ReceiptOutput> {
+    if (this.debugEnabled) {
+      console.log('[RECEIPTS-API] Processing return with proof');
     }
+
+    const config = this.createRequestConfig();
+    return this.httpClient.post<ReceiptOutput>('/mf1/receipts/return-with-proof', returnData, config);
   }
 
   /**
@@ -284,16 +264,15 @@ export class ReceiptsAPI {
     mtlsAvailable: boolean;
     mtlsReady: boolean;
     userContext: UserContext | null;
-    recommendedAuthMode: 'jwt' | 'mtls';
+    recommendedAuthMode: 'auto';
   }> {
     const mtlsStatus = await this.httpClient.getMTLSStatus();
-    const isMerchant = this.hasMerchantRole();
 
     const status = {
       mtlsAvailable: mtlsStatus.adapterAvailable,
       mtlsReady: mtlsStatus.isReady,
       userContext: this.userContext,
-      recommendedAuthMode: (isMerchant ? 'jwt' : 'mtls') as 'jwt' | 'mtls'
+      recommendedAuthMode: 'auto' as const // Let MTLSHandler decide based on role/platform/method
     };
 
     if (this.debugEnabled) {

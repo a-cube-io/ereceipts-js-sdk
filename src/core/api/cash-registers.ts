@@ -61,7 +61,7 @@ export class CashRegistersAPI {
   /**
    * Get all cash registers for the current merchant
    */
-  async list(params: CashRegisterListParams = {}): Promise<Page<CashRegisterBasicOutput>> {
+  async list(params: CashRegisterListParams): Promise<Page<CashRegisterBasicOutput>> {
     if (this.debugEnabled) {
       console.log('[CASH-REGISTERS-API] Listing cash registers:', params);
     }
@@ -75,12 +75,14 @@ export class CashRegistersAPI {
     if (params.size) {
       searchParams.append('size', params.size.toString());
     }
-    if (params.pem_id) {
-      searchParams.append('pem_id', params.pem_id);
-    }
 
     const query = searchParams.toString();
-    const url = query ? `/mf1/cash-registers?${query}` : '/mf1/cash-registers';
+    const  serialNumber = params.serial_number;
+    let url = `/mf1/point-of-sales/${serialNumber}/cash-registers`;
+    
+    if (query) {
+      url += `?${query}`;
+    }
     
     return this.httpClient.get<Page<CashRegisterBasicOutput>>(
       url, 
