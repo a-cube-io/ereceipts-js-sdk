@@ -7,7 +7,10 @@ import {
   ReceiptReturnOrVoidWithProofInput,
   Page,
   ReceiptListParams,
-  RECEIPT_READY
+  RECEIPT_READY,
+  ReceiptReturnInput,
+  VoidReceiptInput,
+  ReturnableReceiptItem
 } from './types';
 
 /**
@@ -167,48 +170,78 @@ export class ReceiptsAPI {
   }
 
   /**
-   * Void an electronic receipt
-   * Authentication mode determined by MTLSHandler
+   * Void an electronic receipt via same pos
    */
-  async void(voidData: ReceiptReturnOrVoidViaPEMInput): Promise<void> {
+  async voidViaSamePos(voidData: VoidReceiptInput): Promise<void> {
     if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Voiding receipt');
+      console.log('[RECEIPTS-API] Voiding receipt via same pos');
     }
 
-    const config = this.createRequestConfig({
-      data: voidData
-    });
+    const config = this.createRequestConfig();
 
-    await this.httpClient.delete('/mf1/receipts', config);
+    await this.httpClient.delete('/mf1/receipts', voidData, config);
+  }
+
+  /**
+   * Void an electronic receipt via different pos
+   */
+  async voidViaDifferentPos(voidData: ReceiptReturnOrVoidViaPEMInput): Promise<void> {
+    if (this.debugEnabled) {
+      console.log('[RECEIPTS-API] Voiding receipt via different pos');
+    }
+
+    const config = this.createRequestConfig();
+1
+    await this.httpClient.delete('/mf1/receipts/void-via-different-pos', voidData, config);
   }
 
   /**
    * Void an electronic receipt identified by proof of purchase
-   * Authentication mode determined by MTLSHandler
    */
   async voidWithProof(voidData: ReceiptReturnOrVoidWithProofInput): Promise<void> {
     if (this.debugEnabled) {
       console.log('[RECEIPTS-API] Voiding receipt with proof');
     }
 
-    const config = this.createRequestConfig({
-      data: voidData
-    });
+    const config = this.createRequestConfig();
 
-    await this.httpClient.delete('/mf1/receipts/void-with-proof', config);
+    await this.httpClient.delete('/mf1/receipts/void-with-proof', voidData, config);
   }
 
   /**
-   * Return items from an electronic receipt
-   * Authentication mode determined by MTLSHandler
+   * Return an electronic receipt via same pos
    */
-  async return(returnData: ReceiptReturnOrVoidViaPEMInput): Promise<ReceiptOutput> {
+  async return(returnData: ReceiptReturnInput): Promise<ReceiptOutput> {
     if (this.debugEnabled) {
-      console.log('[RECEIPTS-API] Processing return');
+      console.log('[RECEIPTS-API] Processing return via same pos');
     }
 
     const config = this.createRequestConfig();
     return this.httpClient.post<ReceiptOutput>('/mf1/receipts/return', returnData, config);
+  }
+
+  /**
+   * get returnable items for a receipt
+   */
+  async getReturnableItems(receiptUuid: string): Promise<ReturnableReceiptItem[]> {
+    if (this.debugEnabled) {
+      console.log('[RECEIPTS-API] Getting returnable items for receipt UUID:', receiptUuid);
+    }
+
+    const config = this.createRequestConfig();
+    return this.httpClient.get<ReturnableReceiptItem[]>(`/mf1/receipts/${receiptUuid}/returnable-items`, config);
+  }
+
+  /**
+   * Return items from an electronic receipt via different pos
+   */
+  async returnViaDifferentPos(returnData: ReceiptReturnOrVoidViaPEMInput): Promise<ReceiptOutput> {
+    if (this.debugEnabled) {
+      console.log('[RECEIPTS-API] Processing return via different pos');
+    }
+
+    const config = this.createRequestConfig();
+    return this.httpClient.post<ReceiptOutput>('/mf1/receipts/return-via-different-pos', returnData, config);
   }
 
   /**

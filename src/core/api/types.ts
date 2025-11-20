@@ -28,22 +28,19 @@ export interface LdJsonPage<T> {
 export interface CashierCreateInput {
   email: string;
   password: string;
-  first_name: string;
-  last_name: string;
+  name: string;
 }
 
 export interface CashierOutput {
   uuid: string;
   merchant_uuid: string;
   email: string;
-  first_name: string;
-  last_name: string;
+  name: string;
 }
 
 export interface CashierSimpleOutput {
   uuid: string;
-  first_name: string;
-  last_name: string;
+  name: string;
 }
 
 export interface CashierListParams {
@@ -104,7 +101,7 @@ export interface PointOfSaleUpdateInput {
 
 // Receipt types
 export type ReceiptType = 'sale' | 'return' | 'void';
-export type GoodOrService = 'B' | 'S';
+export type GoodOrService = 'goods' | 'service';
 export type VatRateCode = '4' | '5' | '10' | '22' | '2' | '6.4' | '7' | '7.3' | '7.5' | '7.65' | '7.95' | '8.3' | '8.5' | '8.8' | '9.5' | '12.3' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6';
 
 export const VatRateCodeOptions: VatRateCode[] = [
@@ -112,7 +109,7 @@ export const VatRateCodeOptions: VatRateCode[] = [
 ]
 
 export interface ReceiptItem {
-  good_or_service?: GoodOrService;
+  type?: GoodOrService;
   quantity: string;
   description: string;
   unit_price: string;
@@ -121,6 +118,11 @@ export interface ReceiptItem {
   discount?: string;
   is_down_payment_or_voucher_redemption?: boolean;
   complimentary?: boolean;
+}
+
+export interface ReceiptReturnItem {
+ id: number;
+ quantity: string;
 }
 
 export interface ReceiptInput {
@@ -167,11 +169,29 @@ export interface ReceiptDetailsOutput {
   items?: ReceiptItem[];
 }
 
+export interface VoidReceiptInput {
+  document_number: string;
+}
+export interface ReceiptReturnInput {
+  items: ReceiptReturnItem[];
+  document_number: string;
+}
+
+export interface ReturnableReceiptItem {
+  id: number;
+  type?: GoodOrService;
+  quantity: string;
+  returned_quantity: string;
+  description: string;
+  unit_price: string;
+  vat_rate_code?: VatRateCode;
+}
+
 export interface ReceiptReturnOrVoidViaPEMInput {
-  pem_id?: string;
+  pos_id?: string;
   items: ReceiptItem[];
   document_number: string;
-  document_date?: string;
+  document_datetime?: string;
   lottery_code?: string;
 }
 
@@ -340,11 +360,6 @@ export interface JournalsParams {
   date_from?: string;
   date_to?: string;
   page?: number;
-}
-
-export interface JournalCloseInput {
-  closing_timestamp: string;
-  reason?: string;
 }
 
 // Error types

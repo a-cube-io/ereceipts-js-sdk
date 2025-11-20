@@ -388,9 +388,14 @@ export class HttpClient {
   /**
    * DELETE request with authentication support
    */
-  async delete<T>(url: string, config?: HttpRequestConfig): Promise<T> {
+  async delete<T>(url: string, data?: any, config?: HttpRequestConfig): Promise<T> {
     const authConfig = await this.mtlsHandler.determineAuthConfig(url, config?.authMode, 'DELETE');
+    const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
     const client = await this.createClient(authConfig.usePort444, true);
+
+    if (this._isDebugEnabled && data !== cleanedData) {
+      console.log('[HTTP-CLIENT] DELETE data cleaned:', { original: data, cleaned: cleanedData });
+    }
 
     let result: T;
 
@@ -400,7 +405,7 @@ export class HttpClient {
         const mtlsConfig = this.extractMTLSConfig(config);
         result = await this.mtlsHandler.makeRequestMTLS<T>(
           url,
-          { ...mtlsConfig, method: 'DELETE' },
+          { ...mtlsConfig, method: 'DELETE', data: cleanedData },
           undefined,
           this.client.defaults.headers.common['Authorization'] as string
         );
@@ -427,7 +432,7 @@ export class HttpClient {
     }
 
     try {
-      const response: AxiosResponse<T> = await client.delete(url, config);
+      const response: AxiosResponse<T> = await client.delete(url, { ...config, data: cleanedData });
       result = response.data;
 
       return result;

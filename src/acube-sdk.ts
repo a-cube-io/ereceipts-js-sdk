@@ -145,6 +145,40 @@ export class ACubeSDK {
         }
       }
 
+      // Auto-configure certificate if it exists in storage
+      // This ensures mTLS is ready immediately without needing retry logic
+      if (this.adapters?.mtls && this.certificateManager) {
+        try {
+          const hasCert = await this.certificateManager.hasCertificate();
+
+          if (hasCert) {
+            const storedCert = await this.certificateManager.getCertificate();
+
+            if (storedCert) {
+              if (this.config.isDebugEnabled()) {
+                console.log('[ACUBE-SDK] 🔄 Auto-configuring certificate during SDK initialization');
+              }
+
+              await this.adapters.mtls.configureCertificate({
+                certificate: storedCert.certificate,
+                privateKey: storedCert.privateKey,
+                format: storedCert.format.toUpperCase() as 'PEM' | 'P12'
+              });
+
+              if (this.config.isDebugEnabled()) {
+                console.log('[ACUBE-SDK] ✅ Certificate auto-configured successfully');
+              }
+            }
+          }
+        } catch (certConfigError) {
+          // Don't fail SDK initialization if certificate configuration fails
+          // The retry logic in getCertificatesInfo will handle it
+          if (this.config.isDebugEnabled()) {
+            console.warn('[ACUBE-SDK] ⚠️ Certificate auto-configuration failed (will retry on demand):', certConfigError);
+          }
+        }
+      }
+
       this.isInitialized = true;
     } catch (error) {
       throw new ACubeSDKError(
@@ -391,7 +425,7 @@ export class ACubeSDK {
    */
   async hasCertificate() {
     this.ensureInitialized();
-    
+
     if (!this.certificateManager) {
       throw new ACubeSDKError(
         'CERTIFICATE_MANAGER_NOT_INITIALIZED',
@@ -400,6 +434,116 @@ export class ACubeSDK {
     }
 
     return await this.certificateManager.hasCertificate();
+  }
+
+  /**
+   * Get detailed certificate information from stored certificates
+   * This method retrieves certificate metadata including subject, issuer,
+   * validity dates, fingerprints, key usage, and more from the mTLS adapter.
+   *
+   * Uses retry-on-failure pattern similar to executeRequestMTLS:
+   * - First attempt: Try to get certificate info
+   * - If null and certificate exists: Configure certificate and retry once
+   * - Maximum 2 attempts to prevent infinite loops
+   *
+   * @param isRetryAttempt Internal flag to prevent infinite retry loops
+   * @returns Promise with detailed certificate information or null if not available
+   */
+  async getCertificatesInfo(isRetryAttempt: boolean = false): Promise<any> {
+    this.ensureInitialized();
+
+    if (!this.adapters?.mtls) {
+      throw new ACubeSDKError(
+        'MTLS_ADAPTER_NOT_AVAILABLE',
+        'mTLS adapter not available'
+      );
+    }
+
+    try {
+      // Check if certificate exists first
+      const hasCert = await this.adapters.mtls.hasCertificate();
+      if (!hasCert) {
+        if (this.config.isDebugEnabled()) {
+          console.log('[ACUBE-SDK] No certificate stored, cannot retrieve certificate info');
+        }
+        return null;
+      }
+
+      // Try to get certificate info
+      const certInfo = await this.adapters.mtls.getCertificateInfo();
+
+      // Success - certificate info retrieved
+      if (certInfo) {
+        if (this.config.isDebugEnabled()) {
+          console.log('[ACUBE-SDK] ✅ Certificate info retrieved:', {
+            subject: certInfo.subject,
+            issuer: certInfo.issuer,
+            validFrom: certInfo.validFrom,
+            validTo: certInfo.validTo,
+            serialNumber: certInfo.serialNumber,
+            attempt: isRetryAttempt ? 'retry' : 'first'
+          });
+        }
+        return certInfo;
+      }
+
+      // Certificate exists but getCertificateInfo returned null
+      // This means certificate isn't configured in native module yet
+
+      // If this is already a retry attempt, don't retry again to prevent infinite loops
+      if (isRetryAttempt) {
+        if (this.config.isDebugEnabled()) {
+          console.log('[ACUBE-SDK] ❌ Retry attempt failed - certificate may be invalid or corrupted');
+        }
+        return null;
+      }
+
+      // First attempt failed - try to reconfigure certificate and retry
+      if (this.config.isDebugEnabled()) {
+        console.log('[ACUBE-SDK] 🔄 Certificate exists but not configured, configuring and retrying...');
+      }
+
+      // Get certificate from storage
+      if (!this.certificateManager) {
+        if (this.config.isDebugEnabled()) {
+          console.log('[ACUBE-SDK] Certificate manager not available');
+        }
+        return null;
+      }
+
+      const storedCert = await this.certificateManager.getCertificate();
+      if (!storedCert) {
+        if (this.config.isDebugEnabled()) {
+          console.log('[ACUBE-SDK] No certificate found in storage');
+        }
+        return null;
+      }
+
+      // Configure certificate in mTLS adapter
+      await this.adapters.mtls.configureCertificate({
+        certificate: storedCert.certificate,
+        privateKey: storedCert.privateKey,
+        format: storedCert.format.toUpperCase() as 'PEM' | 'P12'
+      });
+
+      if (this.config.isDebugEnabled()) {
+        console.log('[ACUBE-SDK] ✅ Certificate configured, retrying getCertificatesInfo...');
+      }
+
+      // Retry once (with flag to prevent infinite recursion)
+      return await this.getCertificatesInfo(true);
+
+    } catch (error) {
+      if (this.config.isDebugEnabled()) {
+        console.error('[ACUBE-SDK] Failed to get certificates info:', error);
+      }
+
+      throw new ACubeSDKError(
+        'CERTIFICATE_INFO_ERROR',
+        `Failed to retrieve certificate information: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error
+      );
+    }
   }
 
 
