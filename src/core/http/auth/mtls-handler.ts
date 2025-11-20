@@ -218,6 +218,7 @@ export class MTLSHandler {
         return { mode: 'mtls', usePort444: true };
       }
 
+
       // Receipt GET: Always JWT, except for detailed receipt with mTLS
       if (method === 'GET') {
         // Detailed receipt GET (with ID) /details uses mTLS on mobile, JWT+:444 on web
@@ -243,8 +244,8 @@ export class MTLSHandler {
         return { mode: 'jwt', usePort444: false };
       }
 
-      // Receipt POST/PUT/PATCH
-      if (['POST', 'PUT', 'PATCH'].includes(method || '')) {
+      // Receipt POST/PUT/PATCH/DELETE: mTLS on mobile, JWT+:444 on web
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method || '')) {
         if (platform === 'mobile') {
           if (this.isDebugEnabled) {
             console.log('[MTLS-HANDLER] 🏪 MERCHANT modify receipt on mobile - mTLS');
@@ -387,7 +388,9 @@ export class MTLSHandler {
         console.log('[MTLS-HANDLER] 🔄 Deduplicating concurrent request:', {
           method: config.method || 'GET',
           url,
-          requestKey: requestKey.substring(0, 50) + '...'
+          requestKey: requestKey.substring(0, 50) + '...',
+          pendingCount: this.pendingRequests.size,
+          config,
         });
       }
 
@@ -450,7 +453,8 @@ export class MTLSHandler {
         hasData: !!config.data,
         isRetryAttempt,
         approach: 'retry-on-failure',
-        responseType: config.responseType
+        responseType: config.responseType,
+        config,
       });
     }
 

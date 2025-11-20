@@ -2,7 +2,6 @@ import { HttpClient } from './http-client';
 import { 
   JournalOutput, 
   JournalsParams,
-  JournalCloseInput
 } from './types';
 
 /**
@@ -44,12 +43,5 @@ export class JournalsAPI {
    */
   async get(uuid: string): Promise<JournalOutput> {
     return this.httpClient.get<JournalOutput>(`/mf2/journals/${uuid}`);
-  }
-
-  /**
-   * Close a journal
-   */
-  async close(uuid: string, closeData: JournalCloseInput): Promise<JournalOutput> {
-    return this.httpClient.post<JournalOutput>(`/mf2/journals/${uuid}/close`, closeData);
   }
 }

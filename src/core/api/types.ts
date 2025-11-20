@@ -28,22 +28,19 @@ export interface LdJsonPage<T> {
 export interface CashierCreateInput {
   email: string;
   password: string;
-  first_name: string;
-  last_name: string;
+  name: string;
 }
 
 export interface CashierOutput {
   uuid: string;
   merchant_uuid: string;
   email: string;
-  first_name: string;
-  last_name: string;
+  name: string;
 }
 
 export interface CashierSimpleOutput {
   uuid: string;
-  first_name: string;
-  last_name: string;
+  name: string;
 }
 
 export interface CashierListParams {
@@ -363,11 +360,6 @@ export interface JournalsParams {
   date_from?: string;
   date_to?: string;
   page?: number;
-}
-
-export interface JournalCloseInput {
-  closing_timestamp: string;
-  reason?: string;
 }
 
 // Error types

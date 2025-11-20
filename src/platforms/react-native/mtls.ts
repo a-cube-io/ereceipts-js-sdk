@@ -533,7 +533,13 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
     }
 
     if (this.debugEnabled) {
-      console.log('[RN-MTLS-ADAPTER] Making mTLS request:', requestConfig);
+      console.log('[RN-MTLS-ADAPTER] Making mTLS request:', {
+        method: requestConfig.method || 'GET',
+        url: requestConfig.url,
+        headers: requestConfig.headers,
+        data: !!requestConfig.data,
+        responseType: requestConfig.responseType
+      });
     }
 
     try {
