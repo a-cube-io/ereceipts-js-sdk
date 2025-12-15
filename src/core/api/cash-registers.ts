@@ -76,9 +76,12 @@ export class CashRegistersAPI {
       searchParams.append('size', params.size.toString());
     }
 
+    if (params.serial_number) {
+      searchParams.append('serial_number', params.serial_number);
+    }
+
     const query = searchParams.toString();
-    const  serialNumber = params.serial_number;
-    let url = `/mf1/point-of-sales/${serialNumber}/cash-registers`;
+    let url = `/mf1/cash-registers`;
     
     if (query) {
       url += `?${query}`;

@@ -2,8 +2,8 @@ import * as z from "zod";
 
 // Enum options arrays
 export const VAT_RATE_CODE_OPTIONS = [
-  '4', '5', '10', '22', '2', '6.4', '7', '7.3', '7.5', '7.65', '7.95', 
-  '8.3', '8.5', '8.8', '9.5', '12.3', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6'
+  '4.00', '5.00', '10.00', '22.00', '2.00', '6.40', '7.00', '7.30', '7.50', '7.65', '7.95', 
+  '8.30', '8.50', '8.80', '9.50', '12.30', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6'
 ] as const;
 
 export const GOOD_OR_SERVICE_OPTIONS = ['goods', 'service'] as const;
@@ -54,7 +54,15 @@ export const ReceiptInputSchema = z.object({
 }, {
   error: 'At least one payment method is required',
   path: ['payment_methods']
-});
+})
+.refine((data) => {
+  // only one between customer_tax_code and customer_lottery_code can be provided
+  return !data.customer_tax_code || !data.customer_lottery_code;
+}, {
+  error: 'Only one between customer_tax_code and customer_lottery_code can be provided',
+  path: ['customer_tax_code', 'customer_lottery_code']
+})
+;
 
 // Receipt Return or Void via PEM Schema
 export const ReceiptReturnOrVoidViaPEMInputSchema = z.object({

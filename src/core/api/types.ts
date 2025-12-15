@@ -29,17 +29,14 @@ export interface CashierCreateInput {
   email: string;
   password: string;
   name: string;
+  display_name: string;
 }
 
 export interface CashierOutput {
   uuid: string;
   merchant_uuid: string;
+  display_name: string;
   email: string;
-  name: string;
-}
-
-export interface CashierSimpleOutput {
-  uuid: string;
   name: string;
 }
 
@@ -71,6 +68,7 @@ export interface PointOfSaleOutput {
   serial_number: string;
   status: PEMStatus;
   address: Address;
+  operational_status: string;
 }
 
 export interface PointOfSaleListParams { 
@@ -84,6 +82,7 @@ export interface PointOfSaleDetailedOutput {
   status: PEMStatus;
   address: Address;
   registration_key?: string;
+  operational_status: string;
 }
 
 export interface ActivationRequest {
@@ -102,10 +101,10 @@ export interface PointOfSaleUpdateInput {
 // Receipt types
 export type ReceiptType = 'sale' | 'return' | 'void';
 export type GoodOrService = 'goods' | 'service';
-export type VatRateCode = '4' | '5' | '10' | '22' | '2' | '6.4' | '7' | '7.3' | '7.5' | '7.65' | '7.95' | '8.3' | '8.5' | '8.8' | '9.5' | '12.3' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6';
+export type VatRateCode = '4.00' | '5.00' | '10.00' | '22.00' | '2.00' | '6.40' | '7.00' | '7.30' | '7.50' | '7.65' | '7.95' | '8.30' | '8.50' | '8.80' | '9.50' | '12.30' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6';
 
 export const VatRateCodeOptions: VatRateCode[] = [
-  '4', '5', '10', '22', '2', '6.4', '7', '7.3', '7.5', '7.65', '7.95', '8.3', '8.5', '8.8', '9.5', '12.3', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6'
+  '4.00', '5.00', '10.00', '22.00', '2.00', '6.40', '7.00', '7.30', '7.50', '7.65', '7.95', '8.30', '8.50', '8.80', '9.50', '12.30', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6'
 ]
 
 export interface ReceiptItem {
@@ -143,11 +142,14 @@ export interface ReceiptInput {
 export interface ReceiptOutput {
   uuid: string;
   type: ReceiptType;
-  customer_lottery_code?: string;
   created_at: string;
   total_amount: string;
   document_number: string;
   document_datetime?: string;
+  is_returnable: boolean;
+  is_voidable: boolean;
+  pdf_url?: string;
+  parent_receipt_uuid?: string;
 }
 
 export interface ReceiptDetailsOutput {
@@ -166,6 +168,10 @@ export interface ReceiptDetailsOutput {
   total_discount: string;
   total_gross_discount: string;
   discount: string;
+  is_returnable: boolean;
+  is_voidable: boolean;
+  pdf_url?: string;
+  parent_receipt_uuid?: string;
   items?: ReceiptItem[];
 }
 
@@ -243,7 +249,7 @@ export interface CashRegisterDetailedOutput {
 export interface CashRegisterListParams { 
   page?: number; 
   size?: number; 
-  serial_number: string;
+  serial_number?: string;
 }
 
 // Merchant types (MF2)
@@ -284,7 +290,7 @@ export interface MerchantUpdateInput {
 export interface PemCreateInput {
   merchant_uuid: string;
   address?: Address;
-  external_pem_data?: PemData;
+  /* external_pem_data?: PemData; */
 }
 
 export interface PemData {
