@@ -87,6 +87,14 @@ export interface IUserProvider {
 }
 
 /**
+ * API Violation structure for validation errors
+ */
+export interface APIViolation {
+  propertyPath: string;
+  message: string;
+}
+
+/**
  * API Error response
  */
 export interface APIError {
@@ -95,6 +103,7 @@ export interface APIError {
   status: number;
   detail: string;
   instance?: string;
+  violations?: APIViolation[];
 }
 
 /**
@@ -118,13 +127,17 @@ export type SDKError =
  * SDK Exception class
  */
 export class ACubeSDKError extends Error {
+  public violations?: APIViolation[];
+
   constructor(
     public type: SDKError,
     message: string,
     public originalError?: any,
-    public statusCode?: number
+    public statusCode?: number,
+    violations?: APIViolation[]
   ) {
     super(message);
     this.name = 'ACubeSDKError';
+    this.violations = violations;
   }
 }

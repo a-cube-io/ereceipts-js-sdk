@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { ConfigManager } from '../config';
 import { ICacheAdapter, INetworkMonitor, IMTLSAdapter } from '../../adapters';
 import { CertificateManager } from '../certificates/certificate-manager';
@@ -213,6 +213,18 @@ export class HttpClient {
   }
 
   /**
+   * Execute request with consistent error handling
+   * Eliminates duplicate try-catch blocks across all HTTP methods
+   */
+  private async executeRequest<T>(requestFn: () => Promise<T>): Promise<T> {
+    try {
+      return await requestFn();
+    } catch (error) {
+      throw transformError(error);
+    }
+  }
+
+  /**
    * Get current network status
    */
   getNetworkStatus(): { isOnline: boolean; hasMonitor: boolean } {
@@ -239,12 +251,13 @@ export class HttpClient {
     // Only try mTLS if explicitly required
     if (authConfig.mode === 'mtls') {
       try {
-        const mtlsConfig = this.extractMTLSConfig(config);
-        return await this.mtlsHandler.makeRequestMTLS<T>(
-          url,
-          { ...mtlsConfig, method: 'GET' },
-          undefined,
-          this.client.defaults.headers.common['Authorization'] as string
+        return await this.executeRequest(() =>
+          this.mtlsHandler.makeRequestMTLS<T>(
+            url,
+            { ...this.extractMTLSConfig(config), method: 'GET' },
+            undefined,
+            this.client.defaults.headers.common['Authorization'] as string
+          )
         );
       } catch (error) {
         if (this._isDebugEnabled) {
@@ -266,10 +279,12 @@ export class HttpClient {
       });
     }
 
-    return this.cacheHandler.handleCachedRequest<T>(
-      url,
-      () => client.get(url, config),
-      config
+    return this.executeRequest(() =>
+      this.cacheHandler.handleCachedRequest<T>(
+        url,
+        () => client.get(url, config),
+        config
+      )
     );
   }
 
@@ -285,20 +300,17 @@ export class HttpClient {
       console.log('[HTTP-CLIENT] POST data cleaned:', { original: data, cleaned: cleanedData });
     }
 
-    let result: T;
-
     // Only try mTLS if explicitly required
     if (authConfig.mode === 'mtls') {
       try {
-        const mtlsConfig = this.extractMTLSConfig(config);
-        result = await this.mtlsHandler.makeRequestMTLS<T>(
-          url,
-          { ...mtlsConfig, method: 'POST', data: cleanedData },
-          undefined,
-          this.client.defaults.headers.common['Authorization'] as string
+        return await this.executeRequest(() =>
+          this.mtlsHandler.makeRequestMTLS<T>(
+            url,
+            { ...this.extractMTLSConfig(config), method: 'POST', data: cleanedData },
+            undefined,
+            this.client.defaults.headers.common['Authorization'] as string
+          )
         );
-
-        return result;
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS POST failed:', error);
@@ -319,14 +331,10 @@ export class HttpClient {
       });
     }
 
-    try {
-      const response: AxiosResponse<T> = await client.post(url, cleanedData, config);
-      result = response.data;
-
-      return result;
-    } catch (error) {
-      throw transformError(error);
-    }
+    return this.executeRequest(async () => {
+      const response = await client.post(url, cleanedData, config);
+      return response.data;
+    });
   }
 
   /**
@@ -341,20 +349,17 @@ export class HttpClient {
       console.log('[HTTP-CLIENT] PUT data cleaned:', { original: data, cleaned: cleanedData });
     }
 
-    let result: T;
-
     // Only try mTLS if explicitly required
     if (authConfig.mode === 'mtls') {
       try {
-        const mtlsConfig = this.extractMTLSConfig(config);
-        result = await this.mtlsHandler.makeRequestMTLS<T>(
-          url,
-          { ...mtlsConfig, method: 'PUT', data: cleanedData },
-          undefined,
-          this.client.defaults.headers.common['Authorization'] as string
+        return await this.executeRequest(() =>
+          this.mtlsHandler.makeRequestMTLS<T>(
+            url,
+            { ...this.extractMTLSConfig(config), method: 'PUT', data: cleanedData },
+            undefined,
+            this.client.defaults.headers.common['Authorization'] as string
+          )
         );
-
-        return result;
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS PUT failed:', error);
@@ -375,14 +380,10 @@ export class HttpClient {
       });
     }
 
-    try {
-      const response: AxiosResponse<T> = await client.put(url, cleanedData, config);
-      result = response.data;
-
-      return result;
-    } catch (error) {
-      throw transformError(error);
-    }
+    return this.executeRequest(async () => {
+      const response = await client.put(url, cleanedData, config);
+      return response.data;
+    });
   }
 
   /**
@@ -397,20 +398,17 @@ export class HttpClient {
       console.log('[HTTP-CLIENT] DELETE data cleaned:', { original: data, cleaned: cleanedData });
     }
 
-    let result: T;
-
     // Only try mTLS if explicitly required
     if (authConfig.mode === 'mtls') {
       try {
-        const mtlsConfig = this.extractMTLSConfig(config);
-        result = await this.mtlsHandler.makeRequestMTLS<T>(
-          url,
-          { ...mtlsConfig, method: 'DELETE', data: cleanedData },
-          undefined,
-          this.client.defaults.headers.common['Authorization'] as string
+        return await this.executeRequest(() =>
+          this.mtlsHandler.makeRequestMTLS<T>(
+            url,
+            { ...this.extractMTLSConfig(config), method: 'DELETE', data: cleanedData },
+            undefined,
+            this.client.defaults.headers.common['Authorization'] as string
+          )
         );
-
-        return result;
       } catch (error) {
         if (this._isDebugEnabled) {
           console.warn('[HTTP-CLIENT] mTLS DELETE failed:', error);
@@ -431,14 +429,10 @@ export class HttpClient {
       });
     }
 
-    try {
-      const response: AxiosResponse<T> = await client.delete(url, { ...config, data: cleanedData });
-      result = response.data;
-
-      return result;
-    } catch (error) {
-      throw transformError(error);
-    }
+    return this.executeRequest(async () => {
+      const response = await client.delete(url, { ...config, data: cleanedData });
+      return response.data;
+    });
   }
 
   /**
@@ -451,12 +445,13 @@ export class HttpClient {
     // Only try mTLS if explicitly required
     if (authConfig.mode === 'mtls') {
       try {
-        const mtlsConfig = this.extractMTLSConfig(config);
-        return await this.mtlsHandler.makeRequestMTLS<T>(
-          url,
-          { ...mtlsConfig, method: 'PATCH', data },
-          undefined,
-          this.client.defaults.headers.common['Authorization'] as string
+        return await this.executeRequest(() =>
+          this.mtlsHandler.makeRequestMTLS<T>(
+            url,
+            { ...this.extractMTLSConfig(config), method: 'PATCH', data },
+            undefined,
+            this.client.defaults.headers.common['Authorization'] as string
+          )
         );
       } catch (error) {
         if (this._isDebugEnabled) {
@@ -478,20 +473,16 @@ export class HttpClient {
       });
     }
 
-    try {
+    return this.executeRequest(async () => {
       const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
 
       if (this._isDebugEnabled && data !== cleanedData) {
         console.log('[HTTP-CLIENT] PATCH data cleaned:', { original: data, cleaned: cleanedData });
       }
 
-      const response: AxiosResponse<T> = await client.patch(url, cleanedData, config);
-      const result = response.data;
-
-      return result;
-    } catch (error) {
-      throw transformError(error);
-    }
+      const response = await client.patch(url, cleanedData, config);
+      return response.data;
+    });
   }
 
   /**

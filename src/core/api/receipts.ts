@@ -7,10 +7,10 @@ import {
   ReceiptReturnOrVoidWithProofInput,
   Page,
   ReceiptListParams,
-  RECEIPT_READY,
   ReceiptReturnInput,
   VoidReceiptInput,
-  ReturnableReceiptItem
+  ReturnableReceiptItem,
+  RECEIPT_SENT
 } from './types';
 
 /**
@@ -86,7 +86,8 @@ export class ReceiptsAPI {
 
     searchParams.append('page', params.page?.toString() || '1');
     searchParams.append('size', params.size?.toString() || '30');
-    searchParams.append('status', params.status?.toString() || RECEIPT_READY);
+    searchParams.append('status', params.status?.toString() || RECEIPT_SENT);
+    searchParams.append('document_number', params.document_number?.toString() || '');
 
     if (params.sort !== undefined && params.sort !== null) {
       searchParams.append('sort', params.sort);
