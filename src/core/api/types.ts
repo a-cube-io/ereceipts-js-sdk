@@ -217,6 +217,7 @@ export interface ReceiptListParams {
   size?: number;
   status?: ReceiptStatus;
   sort?: ReceiptSortOrder;
+  document_number?: string;
   'document_datetime[before]'?: string;
   'document_datetime[after]'?: string | null;
 }
