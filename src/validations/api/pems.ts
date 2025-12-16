@@ -19,7 +19,7 @@ export const PemCreateInputSchema = z.object({
     .min(1, { error: 'fieldIsRequired' })
     .uuid({ error: 'invalidUuid' }),
   address: AddressSchema.optional(),
-  external_pem_data: PemDataSchema.optional(),
+  /* external_pem_data: PemDataSchema.optional(), */
 });
 
 // Type exports

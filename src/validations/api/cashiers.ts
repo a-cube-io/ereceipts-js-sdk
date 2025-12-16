@@ -15,6 +15,10 @@ export const CashierCreateInputSchema = z.object({
     .string()
     .min(1, { error: 'fieldIsRequired' })
     .max(255, { error: 'nameMaxLength' }),
+  display_name: z
+    .string()
+    .min(1, { error: 'fieldIsRequired' })
+    .max(255, { error: 'displayNameMaxLength' }),
 });
 
 // Type exports

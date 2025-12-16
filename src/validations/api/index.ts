@@ -138,6 +138,7 @@ export const ValidationMessages = {
   reasonMaxLength: 'Reason is too long (max 255 characters)',
   pageMinValue: 'Page number must be at least 1',
   invalidDailyReportStatus: 'Daily report status must be one of: pending, sent, error',
+  displayNameMaxLength: 'Display name is too long (max 255 characters)',
 } as const;
 
 
