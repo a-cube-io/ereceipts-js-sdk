@@ -1,16 +1,17 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios, { AxiosError, AxiosInstance } from 'axios';
+
 import { ISecureStorage } from '../adapters';
 import { ConfigManager } from './config';
-import {
-  AuthCredentials,
-  TokenResponse,
-  StoredTokenData,
-  User,
-  ACubeSDKError,
-  JWTPayload,
-  IUserProvider
-} from './types';
 import { parseLegacyRoles } from './roles';
+import {
+  ACubeSDKError,
+  AuthCredentials,
+  IUserProvider,
+  JWTPayload,
+  StoredTokenData,
+  TokenResponse,
+  User,
+} from './types';
 
 /**
  * Authentication events
@@ -26,7 +27,7 @@ export interface AuthEvents {
 export class AuthManager implements IUserProvider {
   private static readonly TOKEN_KEY = 'acube_tokens';
   private static readonly USER_KEY = 'acube_user';
-  
+
   private httpClient: AxiosInstance;
   private currentUser: User | null = null;
 
@@ -73,7 +74,7 @@ export class AuthManager implements IUserProvider {
           const authError = new ACubeSDKError('AUTH_ERROR', 'Session expired');
           this.events.onAuthError?.(authError);
         }
-        
+
         throw this.transformError(error);
       }
     );
@@ -84,25 +85,29 @@ export class AuthManager implements IUserProvider {
    */
   async login(credentials: AuthCredentials): Promise<User> {
     try {
-      const response = await this.httpClient.post<TokenResponse>('/login', {
-        email: credentials.email,
-        password: credentials.password,
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await this.httpClient.post<TokenResponse>(
+        '/login',
+        {
+          email: credentials.email,
+          password: credentials.password,
         },
-      });
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       // Parse JWT token to extract expiration
       const jwtPayload = this.parseJWTToken(response.data.token);
-      
+
       const tokenData: StoredTokenData = {
         accessToken: response.data.token,
         expiresAt: jwtPayload.exp * 1000, // Convert to milliseconds
       };
 
       await this.storeTokens(tokenData);
-      
+
       // Create user from JWT payload
       const user: User = {
         id: jwtPayload.uid.toString(),
@@ -113,12 +118,12 @@ export class AuthManager implements IUserProvider {
         pid: jwtPayload.pid,
         expiresAt: jwtPayload.exp * 1000, // Convert to milliseconds
       };
-      
+
       this.currentUser = user;
-      
+
       // Store user for future use
       await this.secureStorage.set(AuthManager.USER_KEY, JSON.stringify(user));
-      
+
       this.events.onUserChanged?.(user);
 
       return user;
@@ -143,13 +148,13 @@ export class AuthManager implements IUserProvider {
       if (!payload) {
         throw new Error('JWT token missing payload');
       }
-      
+
       // Add padding if needed for base64 decoding
       const paddedPayload = payload + '==='.slice(0, (4 - (payload.length % 4)) % 4);
-      
+
       // Decode from base64
       const decodedPayload = atob(paddedPayload);
-      
+
       // Parse JSON
       return JSON.parse(decodedPayload) as JWTPayload;
     } catch (error) {
@@ -190,7 +195,7 @@ export class AuthManager implements IUserProvider {
     if (tokenData && !this.isTokenExpired(tokenData)) {
       // Parse user info from JWT token
       const jwtPayload = this.parseJWTToken(tokenData.accessToken);
-      
+
       const user: User = {
         id: jwtPayload.uid.toString(),
         email: jwtPayload.username,
@@ -200,12 +205,12 @@ export class AuthManager implements IUserProvider {
         pid: jwtPayload.pid,
         expiresAt: jwtPayload.exp * 1000, // Convert to milliseconds
       };
-      
+
       this.currentUser = user;
-      
+
       // Store for future use
       await this.secureStorage.set(AuthManager.USER_KEY, JSON.stringify(user));
-      
+
       return user;
     }
 
@@ -225,7 +230,7 @@ export class AuthManager implements IUserProvider {
    */
   async getAccessToken(): Promise<string | null> {
     const tokenData = await this.getStoredTokens();
-    
+
     if (!tokenData) {
       return null;
     }
@@ -238,7 +243,6 @@ export class AuthManager implements IUserProvider {
 
     return tokenData.accessToken;
   }
-
 
   /**
    * Store tokens securely
@@ -274,20 +278,20 @@ export class AuthManager implements IUserProvider {
    */
   private isTokenExpired(tokenData: StoredTokenData): boolean {
     // Add 5 minute buffer
-    return Date.now() >= (tokenData.expiresAt - 300000);
+    return Date.now() >= tokenData.expiresAt - 300000;
   }
 
   /**
    * Transform API errors to SDK errors
    */
-  private transformError(error: any): ACubeSDKError {
+  private transformError(error: unknown): ACubeSDKError {
     if (error instanceof ACubeSDKError) {
       return error;
     }
 
     if (axios.isAxiosError(error)) {
       const response = error.response;
-      
+
       if (!response) {
         return new ACubeSDKError('NETWORK_ERROR', 'Network error occurred', error);
       }
@@ -302,11 +306,15 @@ export class AuthManager implements IUserProvider {
         case 422:
           return new ACubeSDKError('VALIDATION_ERROR', 'Validation error', error, 422);
         default:
-          return new ACubeSDKError('UNKNOWN_ERROR', 'Unknown error occurred', error, response.status);
+          return new ACubeSDKError(
+            'UNKNOWN_ERROR',
+            'Unknown error occurred',
+            error,
+            response.status
+          );
       }
     }
 
     return new ACubeSDKError('UNKNOWN_ERROR', 'Unknown error occurred', error);
   }
 }
-

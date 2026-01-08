@@ -1,17 +1,17 @@
 import {
-  IMTLSAdapter,
   CertificateData,
+  IMTLSAdapter,
   MTLSError,
   MTLSErrorType,
-  MTLSRequestConfig
+  MTLSRequestConfig,
 } from '../../../adapters';
 import { CertificateManager, StoredCertificate } from '../../certificates';
-import { IUserProvider } from '../../types';
 import { hasRole } from '../../roles';
+import { IUserProvider } from '../../types';
 import {
   classifyError,
+  shouldReconfigureCertificate,
   shouldRetryRequest,
-  shouldReconfigureCertificate
 } from '../utils/error-classifier';
 
 /**
@@ -32,7 +32,7 @@ export interface AuthConfig {
  */
 export class MTLSHandler {
   private isDebugEnabled: boolean = false;
-  private pendingRequests = new Map<string, Promise<any>>();
+  private pendingRequests = new Map<string, Promise<unknown>>();
 
   constructor(
     private mtlsAdapter: IMTLSAdapter | null,
@@ -51,11 +51,11 @@ export class MTLSHandler {
 
     try {
       const cert = await this.certificateManager.getCertificate();
-      
+
       if (cert) {
         if (this.isDebugEnabled) {
           console.log('[MTLS-HANDLER] Certificate found:', {
-            format: cert.format
+            format: cert.format,
           });
         }
         return cert;
@@ -91,7 +91,7 @@ export class MTLSHandler {
       if (this.isDebugEnabled) {
         console.log('[MTLS-HANDLER] ✅ mTLS readiness check:', {
           hasCertificate,
-          approach: 'certificate-existence-only'
+          approach: 'certificate-existence-only',
         });
       }
 
@@ -113,7 +113,11 @@ export class MTLSHandler {
    * - CASHIER: mTLS on mobile, JWT+:444 on web (receipts only)
    * - Web Platform: Always JWT, but uses :444 port for browser certificates when needed
    */
-  async determineAuthConfig(url: string, explicitMode?: AuthMode, method?: string): Promise<AuthConfig> {
+  async determineAuthConfig(
+    url: string,
+    explicitMode?: AuthMode,
+    method?: string
+  ): Promise<AuthConfig> {
     // Step 1: Detect platform (web always uses JWT)
     let platform: 'web' | 'mobile' | 'unknown' = 'unknown';
     if (this.mtlsAdapter) {
@@ -161,7 +165,7 @@ export class MTLSHandler {
         userRole,
         isReceiptEndpoint,
         method: method || 'unknown',
-        url
+        url,
       });
     }
 
@@ -209,8 +213,9 @@ export class MTLSHandler {
       }
 
       // Returnable items endpoint: Always mTLS
-      const isReturnableItemsEndpoint = url.match(/\/receipts\/[a-f0-9\-]+\/returnable-items$/) ||
-                                        url.match(/\/mf1\/receipts\/[a-f0-9\-]+\/returnable-items$/);
+      const isReturnableItemsEndpoint =
+        url.match(/\/receipts\/[a-f0-9-]+\/returnable-items$/) ||
+        url.match(/\/mf1\/receipts\/[a-f0-9-]+\/returnable-items$/);
       if (isReturnableItemsEndpoint) {
         if (this.isDebugEnabled) {
           console.log('[MTLS-HANDLER] 🏪 MERCHANT GET returnable items - mTLS');
@@ -218,21 +223,27 @@ export class MTLSHandler {
         return { mode: 'mtls', usePort444: true };
       }
 
-
       // Receipt GET: Always JWT, except for detailed receipt with mTLS
       if (method === 'GET') {
         // Detailed receipt GET (with ID) /details uses mTLS on mobile, JWT+:444 on web
         // ✅ FIXED: expo-mutual-tls v1.0.3+ supports binary responses via base64 encoding
-        if (url.match(/\/receipts\/[a-f0-9\-]+\/details$/) || url.match(/\/mf1\/receipts\/[a-f0-9\-]+\/details$/)) {
+        if (
+          url.match(/\/receipts\/[a-f0-9-]+\/details$/) ||
+          url.match(/\/mf1\/receipts\/[a-f0-9-]+\/details$/)
+        ) {
           if (platform === 'mobile') {
             if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] 🏪 MERCHANT GET detailed receipt on mobile - mTLS (binary response support)');
+              console.log(
+                '[MTLS-HANDLER] 🏪 MERCHANT GET detailed receipt on mobile - mTLS (binary response support)'
+              );
             }
             return { mode: 'mtls', usePort444: true };
           } else {
             // Web platform: JWT with :444 for browser certificates
             if (this.isDebugEnabled) {
-              console.log('[MTLS-HANDLER] 🏪 MERCHANT GET detailed receipt on web - JWT with :444 for browser certificates');
+              console.log(
+                '[MTLS-HANDLER] 🏪 MERCHANT GET detailed receipt on web - JWT with :444 for browser certificates'
+              );
             }
             return { mode: 'jwt', usePort444: true };
           }
@@ -254,7 +265,9 @@ export class MTLSHandler {
         } else {
           // Web platform: JWT with :444 for browser certificates
           if (this.isDebugEnabled) {
-            console.log('[MTLS-HANDLER] 🏪 MERCHANT modify receipt on web - JWT with :444 for browser certificates');
+            console.log(
+              '[MTLS-HANDLER] 🏪 MERCHANT modify receipt on web - JWT with :444 for browser certificates'
+            );
           }
           return { mode: 'jwt', usePort444: true };
         }
@@ -296,8 +309,12 @@ export class MTLSHandler {
             // MERCHANT needs :444 for:
             // 1. Detailed receipt GET (/receipts/{id}/details)
             // 2. POST/PUT/PATCH receipt operations
-            const isDetailedReceiptGet = (method === 'GET') &&
-              !!(url.match(/\/receipts\/[a-f0-9\-]+\/details$/) || url.match(/\/mf1\/receipts\/[a-f0-9\-]+\/details$/));
+            const isDetailedReceiptGet =
+              method === 'GET' &&
+              !!(
+                url.match(/\/receipts\/[a-f0-9-]+\/details$/) ||
+                url.match(/\/mf1\/receipts\/[a-f0-9-]+\/details$/)
+              );
             const isReceiptMutation = ['POST', 'PUT', 'PATCH'].includes(method || '');
 
             usePort444 = isDetailedReceiptGet || isReceiptMutation;
@@ -307,7 +324,7 @@ export class MTLSHandler {
 
       return {
         mode: explicitMode,
-        usePort444
+        usePort444,
       };
     }
 
@@ -324,7 +341,9 @@ export class MTLSHandler {
     // Mobile platform: For receipts without a known role, prefer mTLS
     if (isReceiptEndpoint && platform === 'mobile') {
       if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] 📱 Mobile with unknown role, receipt endpoint - defaulting to mTLS');
+        console.log(
+          '[MTLS-HANDLER] 📱 Mobile with unknown role, receipt endpoint - defaulting to mTLS'
+        );
       }
       return { mode: 'mtls', usePort444: true };
     }
@@ -340,18 +359,26 @@ export class MTLSHandler {
    * Legacy method for backward compatibility
    * @deprecated Use determineAuthConfig instead
    */
-  async determineAuthMode(url: string, explicitMode?: AuthMode, method?: string): Promise<AuthMode> {
+  async determineAuthMode(
+    url: string,
+    explicitMode?: AuthMode,
+    method?: string
+  ): Promise<AuthMode> {
     const config = await this.determineAuthConfig(url, explicitMode, method);
     return config.mode;
   }
-
 
   /**
    * Generate a unique key for request deduplication
    */
   private generateRequestKey(
     url: string,
-    config: { method?: string; data?: any; headers?: any; timeout?: number } = {},
+    config: {
+      method?: string;
+      data?: unknown;
+      headers?: Record<string, string>;
+      timeout?: number;
+    } = {},
     jwtToken?: string
   ): string {
     const method = config.method || 'GET';
@@ -368,17 +395,23 @@ export class MTLSHandler {
    */
   async makeRequestMTLS<T>(
     url: string,
-    config: { method?: string; data?: any; headers?: any; timeout?: number; responseType?: 'json' | 'blob' | 'arraybuffer' | 'text' } = {},
+    config: {
+      method?: string;
+      data?: unknown;
+      headers?: Record<string, string>;
+      timeout?: number;
+      responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
+    } = {},
     certificateOverride?: CertificateData,
     jwtToken?: string,
     isRetryAttempt: boolean = false
   ): Promise<T> {
     if (this.isDebugEnabled) {
-        console.log('[MTLS-HANDLER] Making mTLS request:', {
-          config,
-          url
-        });
-      }
+      console.log('[MTLS-HANDLER] Making mTLS request:', {
+        config,
+        url,
+      });
+    }
     // Generate request key for deduplication (only for non-retry attempts)
     const requestKey = !isRetryAttempt ? this.generateRequestKey(url, config, jwtToken) : null;
 
@@ -395,11 +428,17 @@ export class MTLSHandler {
       }
 
       // Return the existing promise to prevent duplicate requests
-      return this.pendingRequests.get(requestKey)!;
+      return this.pendingRequests.get(requestKey)! as Promise<T>;
     }
 
     // Create the actual request promise
-    const requestPromise = this.executeRequestMTLS<T>(url, config, certificateOverride, jwtToken, isRetryAttempt);
+    const requestPromise = this.executeRequestMTLS<T>(
+      url,
+      config,
+      certificateOverride,
+      jwtToken,
+      isRetryAttempt
+    );
 
     // Store the promise for deduplication (only for non-retry attempts)
     if (requestKey) {
@@ -423,21 +462,25 @@ export class MTLSHandler {
    */
   private async executeRequestMTLS<T>(
     url: string,
-    config: { method?: string; data?: any; headers?: any; timeout?: number; responseType?: 'json' | 'blob' | 'arraybuffer' | 'text' } = {},
+    config: {
+      method?: string;
+      data?: unknown;
+      headers?: Record<string, string>;
+      timeout?: number;
+      responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
+    } = {},
     certificateOverride?: CertificateData,
     jwtToken?: string,
     isRetryAttempt: boolean = false
   ): Promise<T> {
     if (!this.mtlsAdapter) {
-      throw new MTLSError(
-        MTLSErrorType.NOT_SUPPORTED,
-        'mTLS adapter not available'
-      );
+      throw new MTLSError(MTLSErrorType.NOT_SUPPORTED, 'mTLS adapter not available');
     }
 
     // Get the single certificate
     const selectedCert = await this.getCertificate();
-    const certificateData = certificateOverride || (selectedCert ? this.certificateToData(selectedCert) : null);
+    const certificateData =
+      certificateOverride || (selectedCert ? this.certificateToData(selectedCert) : null);
 
     if (!certificateData) {
       throw new MTLSError(
@@ -476,11 +519,11 @@ export class MTLSHandler {
 
       const mtlsConfig: MTLSRequestConfig = {
         url: this.constructMTLSUrl(url),
-        method: (config.method || 'GET') as any,
+        method: (config.method || 'GET') as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
         headers,
         data: config.data,
         timeout: config.timeout,
-        responseType: config.responseType
+        responseType: config.responseType,
       };
 
       if (this.isDebugEnabled) {
@@ -494,7 +537,7 @@ export class MTLSHandler {
           status: response.status,
           hasData: !!response.data,
           response: response,
-          isRetryAttempt
+          isRetryAttempt,
         });
       }
 
@@ -509,7 +552,7 @@ export class MTLSHandler {
           category: errorClassification.category,
           statusCode: errorClassification.statusCode,
           shouldRetry: errorClassification.shouldRetry,
-          isRetryAttempt
+          isRetryAttempt,
         });
       }
 
@@ -574,17 +617,14 @@ export class MTLSHandler {
     options: { format?: 'pem' | 'p12' | 'pkcs12' } = {}
   ): Promise<void> {
     if (!this.certificateManager) {
-      throw new MTLSError(
-        MTLSErrorType.CONFIGURATION_ERROR,
-        'Certificate manager not available'
-      );
+      throw new MTLSError(MTLSErrorType.CONFIGURATION_ERROR, 'Certificate manager not available');
     }
 
     if (this.isDebugEnabled) {
       console.log('[MTLS-HANDLER] Coordinated certificate storage initiated:', {
         format: options.format || 'pem',
         certificateLength: certificate.length,
-        privateKeyLength: privateKey.length
+        privateKeyLength: privateKey.length,
       });
     }
 
@@ -613,11 +653,11 @@ export class MTLSHandler {
             certificate,
             privateKey,
             format: (options.format?.toUpperCase() || 'PEM') as 'PEM' | 'P12',
-            password: undefined // Not used in our simplified system
+            password: undefined, // Not used in our simplified system
           };
-          
+
           await this.mtlsAdapter.configureCertificate(certificateData);
-          
+
           if (this.isDebugEnabled) {
             console.log('[MTLS-HANDLER] Certificate configured in mTLS adapter');
           }
@@ -635,7 +675,6 @@ export class MTLSHandler {
       if (this.isDebugEnabled) {
         console.log('[MTLS-HANDLER] Certificate stored and configured successfully');
       }
-
     } catch (error) {
       if (this.isDebugEnabled) {
         console.error('[MTLS-HANDLER] Coordinated certificate storage failed:', error);
@@ -684,7 +723,6 @@ export class MTLSHandler {
       if (this.isDebugEnabled) {
         console.log('[MTLS-HANDLER] Certificate cleared successfully from all storage systems');
       }
-
     } catch (error) {
       if (this.isDebugEnabled) {
         console.error('[MTLS-HANDLER] Coordinated certificate clearing failed:', error);
@@ -698,14 +736,14 @@ export class MTLSHandler {
    */
   async testConnection(): Promise<boolean> {
     if (!this.mtlsAdapter) return false;
-    
+
     try {
       const result = await this.mtlsAdapter.testConnection();
-      
+
       if (this.isDebugEnabled) {
         console.log('[MTLS-HANDLER] mTLS connection test:', result);
       }
-      
+
       return result;
     } catch (error) {
       if (this.isDebugEnabled) {
@@ -734,11 +772,12 @@ export class MTLSHandler {
       certificateManagerAvailable: !!this.certificateManager,
       isReady: false,
       hasCertificate: false,
-      certificateInfo: null as any,
+      certificateInfo: null as { format: string } | null,
       platformInfo: this.mtlsAdapter?.getPlatformInfo() || null,
       diagnosticTest: false, // Renamed to clarify this is diagnostic only
-      diagnosticTestNote: 'Test endpoint may fail even when mTLS works - for diagnostic purposes only',
-      pendingRequestsCount: this.pendingRequests.size
+      diagnosticTestNote:
+        'Test endpoint may fail even when mTLS works - for diagnostic purposes only',
+      pendingRequestsCount: this.pendingRequests.size,
     };
 
     if (this.certificateManager) {
@@ -762,11 +801,16 @@ export class MTLSHandler {
         try {
           status.diagnosticTest = await this.testConnection();
           if (this.isDebugEnabled) {
-            console.log('[MTLS-HANDLER] 🔍 Diagnostic test completed (result does not affect isReady status)');
+            console.log(
+              '[MTLS-HANDLER] 🔍 Diagnostic test completed (result does not affect isReady status)'
+            );
           }
         } catch (diagnosticError) {
           if (this.isDebugEnabled) {
-            console.warn('[MTLS-HANDLER] 🔍 Diagnostic test failed (this is expected and normal):', diagnosticError);
+            console.warn(
+              '[MTLS-HANDLER] 🔍 Diagnostic test failed (this is expected and normal):',
+              diagnosticError
+            );
           }
           status.diagnosticTest = false;
         }
@@ -780,7 +824,7 @@ export class MTLSHandler {
     if (this.isDebugEnabled) {
       console.log('[MTLS-HANDLER] mTLS Status:', {
         ...status,
-        approach: 'retry-on-failure'
+        approach: 'retry-on-failure',
       });
     }
 
@@ -794,7 +838,7 @@ export class MTLSHandler {
     return {
       certificate: cert.certificate,
       privateKey: cert.privateKey,
-      format: cert.format.toUpperCase() as 'PEM' | 'P12'
+      format: cert.format.toUpperCase() as 'PEM' | 'P12',
     };
   }
 
@@ -809,10 +853,10 @@ export class MTLSHandler {
       console.log('[MTLS-HANDLER] Constructing mTLS URL:', {
         relativePath,
         mtlsBaseUrl,
-        source: mtlsBaseUrl ? 'adapter' : 'fallback'
+        source: mtlsBaseUrl ? 'adapter' : 'fallback',
       });
     }
-    
+
     if (!mtlsBaseUrl) {
       // This should not happen in normal operation, but provide a fallback
       throw new MTLSError(
@@ -820,7 +864,7 @@ export class MTLSHandler {
         'mTLS adapter base URL not configured'
       );
     }
-    
+
     return this.combineUrlAndPath(mtlsBaseUrl, relativePath);
   }
 
@@ -829,20 +873,18 @@ export class MTLSHandler {
    */
   private combineUrlAndPath(baseUrl: string, relativePath: string): string {
     const cleanPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
-    
-    const fullUrl = baseUrl.endsWith('/') 
-      ? `${baseUrl}${cleanPath}`
-      : `${baseUrl}/${cleanPath}`;
-    
+
+    const fullUrl = baseUrl.endsWith('/') ? `${baseUrl}${cleanPath}` : `${baseUrl}/${cleanPath}`;
+
     if (this.isDebugEnabled) {
       console.log('[MTLS-HANDLER] URL construction:', {
         baseUrl,
         relativePath,
         cleanPath,
-        fullUrl
+        fullUrl,
       });
     }
-    
+
     return fullUrl;
   }
 }

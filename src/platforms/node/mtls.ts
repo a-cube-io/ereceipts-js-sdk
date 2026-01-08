@@ -1,22 +1,21 @@
 /**
- * Node.js mTLS Adapter Implementation  
+ * Node.js mTLS Adapter Implementation
  * Uses https.Agent with client certificates + axios for mTLS authentication
  */
-
 // TypeScript type imports for proper typing
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
-import axios from "axios";
+import axios from 'axios';
 
 import {
-  IMTLSAdapter,
   CertificateData,
-  MTLSConnectionConfig,
-  MTLSRequestConfig,
-  MTLSResponse,
   CertificateInfo,
+  CertificateValidator,
+  IMTLSAdapter,
+  MTLSConnectionConfig,
   MTLSError,
   MTLSErrorType,
-  CertificateValidator
+  MTLSRequestConfig,
+  MTLSResponse,
 } from '../../adapters';
 
 // Conditionally import Node.js modules
@@ -35,8 +34,12 @@ try {
   console.warn('Node.js specific modules not available - mTLS functionality will be limited');
 }
 
+interface HttpsAgent {
+  destroy(): void;
+}
+
 interface NodeMTLSConfiguration {
-  httpsAgent: any; // Changed from https.Agent to any to handle non-Node environments
+  httpsAgent: HttpsAgent;
   axiosInstance: AxiosInstance;
   certificateInfo: CertificateInfo;
 }
@@ -51,7 +54,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
 
   constructor(debugEnabled = false) {
     this.debugEnabled = debugEnabled;
-    
+
     if (this.debugEnabled) {
       console.log('[NODE-MTLS-ADAPTER] Node.js mTLS adapter initialized');
     }
@@ -60,15 +63,15 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
   async isMTLSSupported(): Promise<boolean> {
     // Node.js always supports mTLS through https.Agent
     const supported = typeof process !== 'undefined' && process.versions?.node;
-    
+
     if (this.debugEnabled) {
       console.log('[NODE-MTLS-ADAPTER] mTLS support check:', {
         supported: !!supported,
         platform: this.getPlatformInfo().platform,
-        nodeVersion: process.versions?.node || 'unknown'
+        nodeVersion: process.versions?.node || 'unknown',
       });
     }
-    
+
     return !!supported;
   }
 
@@ -80,7 +83,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
         baseUrl: config.baseUrl,
         port: config.port,
         timeout: config.timeout,
-        validateCertificate: config.validateCertificate
+        validateCertificate: config.validateCertificate,
       });
     }
   }
@@ -142,7 +145,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
         format: certificateData.format,
         hasPassword: !!certificateData.password,
         certificateLength: certificateData.certificate.length,
-        privateKeyLength: certificateData.privateKey.length
+        privateKeyLength: certificateData.privateKey.length,
       });
     }
 
@@ -156,14 +159,13 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
       }
 
       // Validate PEM format
-      if (!CertificateValidator.validatePEMFormat(
-        certificateData.certificate, 
-        certificateData.privateKey
-      )) {
-        throw new MTLSError(
-          MTLSErrorType.CERTIFICATE_INVALID,
-          'Invalid PEM certificate format'
-        );
+      if (
+        !CertificateValidator.validatePEMFormat(
+          certificateData.certificate,
+          certificateData.privateKey
+        )
+      ) {
+        throw new MTLSError(MTLSErrorType.CERTIFICATE_INVALID, 'Invalid PEM certificate format');
       }
 
       // Extract certificate and private key (could be file paths or PEM strings)
@@ -177,7 +179,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
         rejectUnauthorized: this.config.validateCertificate ?? true,
         keepAlive: true,
         maxSockets: 10, // Connection pool
-        timeout: this.config.timeout || 30000
+        timeout: this.config.timeout || 30000,
       });
 
       // Create axios instance with the HTTPS agent
@@ -194,7 +196,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
             method: config.method?.toUpperCase(),
             url: config.url,
             baseURL: config.baseURL,
-            headers: Object.keys(config.headers || {}).length
+            headers: Object.keys(config.headers || {}).length,
           });
           return config;
         });
@@ -204,7 +206,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
             console.log('[NODE-MTLS-ADAPTER] Request successful:', {
               status: response.status,
               statusText: response.statusText,
-              url: response.config.url
+              url: response.config.url,
             });
             return response;
           },
@@ -213,7 +215,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
               message: error.message,
               code: error.code,
               status: error.response?.status,
-              url: error.config?.url
+              url: error.config?.url,
             });
             return Promise.reject(error);
           }
@@ -226,7 +228,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
       this.configuration = {
         httpsAgent,
         axiosInstance,
-        certificateInfo
+        certificateInfo,
       };
 
       if (this.debugEnabled) {
@@ -234,18 +236,18 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
           subject: certificateInfo.subject,
           issuer: certificateInfo.issuer,
           validFrom: certificateInfo.validFrom,
-          validTo: certificateInfo.validTo
+          validTo: certificateInfo.validTo,
         });
       }
     } catch (error) {
       if (error instanceof MTLSError) {
         throw error;
       }
-      
+
       if (this.debugEnabled) {
         console.error('[NODE-MTLS-ADAPTER] Certificate configuration failed:', error);
       }
-      
+
       throw new MTLSError(
         MTLSErrorType.CONFIGURATION_ERROR,
         'Failed to configure certificate',
@@ -256,11 +258,11 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
 
   async hasCertificate(): Promise<boolean> {
     const hasCert = this.configuration !== null;
-    
+
     if (this.debugEnabled) {
       console.log('[NODE-MTLS-ADAPTER] Certificate availability check:', hasCert);
     }
-    
+
     return hasCert;
   }
 
@@ -272,16 +274,13 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
     if (this.debugEnabled) {
       console.log('[NODE-MTLS-ADAPTER] Certificate info requested');
     }
-    
+
     return this.configuration.certificateInfo;
   }
 
   async request<T>(requestConfig: MTLSRequestConfig): Promise<MTLSResponse<T>> {
     if (!this.configuration) {
-      throw new MTLSError(
-        MTLSErrorType.CERTIFICATE_NOT_FOUND,
-        'No certificate configured'
-      );
+      throw new MTLSError(MTLSErrorType.CERTIFICATE_NOT_FOUND, 'No certificate configured');
     }
 
     if (this.debugEnabled) {
@@ -289,7 +288,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
         method: requestConfig.method,
         url: requestConfig.url,
         hasData: !!requestConfig.data,
-        headerCount: Object.keys(requestConfig.headers || {}).length
+        headerCount: Object.keys(requestConfig.headers || {}).length,
       });
     }
 
@@ -299,7 +298,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
         url: requestConfig.url,
         headers: requestConfig.headers,
         data: requestConfig.data,
-        timeout: requestConfig.timeout || this.config?.timeout
+        timeout: requestConfig.timeout || this.config?.timeout,
       };
 
       const response = await this.configuration.axiosInstance.request(axiosConfig);
@@ -308,7 +307,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
         console.log('[NODE-MTLS-ADAPTER] mTLS request successful:', {
           status: response.status,
           statusText: response.statusText,
-          hasData: !!response.data
+          hasData: !!response.data,
         });
       }
 
@@ -316,34 +315,36 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
         data: response.data,
         status: response.status,
         statusText: response.statusText,
-        headers: response.headers as Record<string, string>
+        headers: response.headers as Record<string, string>,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (this.debugEnabled) {
         console.error('[NODE-MTLS-ADAPTER] mTLS request failed:', error);
       }
 
+      const errorCode = (error as { code?: string })?.code;
+
       // Handle specific Node.js/axios errors
-      if (error.code === 'CERT_REJECTED') {
+      if (errorCode === 'CERT_REJECTED') {
         throw new MTLSError(
           MTLSErrorType.CERTIFICATE_INVALID,
           'Client certificate rejected by server',
-          error
+          error instanceof Error ? error : undefined
         );
       }
-      
-      if (error.code === 'ECONNREFUSED') {
+
+      if (errorCode === 'ECONNREFUSED') {
         throw new MTLSError(
           MTLSErrorType.CONNECTION_FAILED,
           'Connection refused - check server availability',
-          error
+          error instanceof Error ? error : undefined
         );
       }
 
       throw new MTLSError(
         MTLSErrorType.CONNECTION_FAILED,
         'mTLS request failed',
-        error
+        error instanceof Error ? error : undefined
       );
     }
   }
@@ -356,7 +357,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
     try {
       // Make a simple GET request to test the connection
       const testUrl = `${this.config.baseUrl}/health`;
-      
+
       if (this.debugEnabled) {
         console.log('[NODE-MTLS-ADAPTER] Testing connection to:', testUrl);
       }
@@ -364,13 +365,13 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
       await this.request({
         method: 'GET',
         url: testUrl,
-        timeout: 10000 // Shorter timeout for connection test
+        timeout: 10000, // Shorter timeout for connection test
       });
-      
+
       if (this.debugEnabled) {
         console.log('[NODE-MTLS-ADAPTER] Connection test successful');
       }
-      
+
       return true;
     } catch (error) {
       if (this.debugEnabled) {
@@ -385,7 +386,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
       // Destroy the HTTPS agent to clean up connections
       this.configuration.httpsAgent.destroy();
       this.configuration = null;
-      
+
       if (this.debugEnabled) {
         console.log('[NODE-MTLS-ADAPTER] Certificate removed successfully');
       }
@@ -406,10 +407,9 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
       platform: 'node' as const,
       mtlsSupported: true,
       certificateStorage: 'filesystem' as const,
-      fallbackToJWT: true
+      fallbackToJWT: true,
     };
   }
-
 
   /**
    * Parse certificate info from PEM string
@@ -420,16 +420,16 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
     try {
       // Extract basic info from PEM (this is a placeholder implementation)
       // In production, use a library like 'node-forge' for proper parsing
-      
+
       return {
         subject: 'Certificate Subject', // Would parse from PEM
-        issuer: 'Certificate Issuer',   // Would parse from PEM
-        validFrom: new Date(),           // Would parse from PEM
+        issuer: 'Certificate Issuer', // Would parse from PEM
+        validFrom: new Date(), // Would parse from PEM
         validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Would parse from PEM
-        serialNumber: 'unknown',         // Would parse from PEM
-        fingerprint: 'unknown',          // Would calculate from PEM
-        pemId: '',                       // Would parse from certificate subject
-        cashRegisterUUID: ''             // Would parse from certificate subject
+        serialNumber: 'unknown', // Would parse from PEM
+        fingerprint: 'unknown', // Would calculate from PEM
+        pemId: '', // Would parse from certificate subject
+        cashRegisterUUID: '', // Would parse from certificate subject
       };
     } catch (error) {
       // Return default values if parsing fails
@@ -441,7 +441,7 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
         serialNumber: 'unknown',
         fingerprint: 'unknown',
         pemId: '',
-        cashRegisterUUID: ''
+        cashRegisterUUID: '',
       };
     }
   }

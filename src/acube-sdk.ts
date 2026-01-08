@@ -1,17 +1,17 @@
-import { 
-  SDKConfig, 
-  ConfigManager, 
-  AuthManager, 
+import { CertificateInfo, PlatformAdapters } from './adapters';
+import {
+  ACubeSDKError,
   APIClient,
-  loadPlatformAdapters,
-  createACubeMTLSConfig,
   AuthCredentials,
+  AuthManager,
+  ConfigManager,
+  SDKConfig,
   User,
-  ACubeSDKError 
+  createACubeMTLSConfig,
+  loadPlatformAdapters,
 } from './core';
-import { PlatformAdapters } from './adapters';
-import { OfflineManager, QueueEvents } from './offline';
 import { CertificateManager } from './core/certificates/certificate-manager';
+import { OfflineManager, QueueEvents } from './offline';
 
 /**
  * SDK Events interface
@@ -44,7 +44,7 @@ export class ACubeSDK {
     private events: SDKEvents = {}
   ) {
     this.config = new ConfigManager(config);
-    
+
     if (customAdapters) {
       this.adapters = customAdapters;
     }
@@ -69,7 +69,7 @@ export class ACubeSDK {
 
         this.adapters = loadPlatformAdapters({
           debugEnabled: this.config.isDebugEnabled(),
-          mtlsConfig
+          mtlsConfig,
         });
       }
 
@@ -78,20 +78,16 @@ export class ACubeSDK {
       this.certificateManager = new CertificateManager(
         this.adapters.secureStorage,
         {
-          storageKey: certificateConfig?.storagePrefix || 'acube_certificate'
+          storageKey: certificateConfig?.storagePrefix || 'acube_certificate',
         },
         this.config.isDebugEnabled()
       );
 
       // Initialize auth manager first (needed for API client)
-      this.authManager = new AuthManager(
-        this.config,
-        this.adapters.secureStorage,
-        {
-          onUserChanged: this.events.onUserChanged,
-          onAuthError: this.events.onAuthError,
-        }
-      );
+      this.authManager = new AuthManager(this.config, this.adapters.secureStorage, {
+        onUserChanged: this.events.onUserChanged,
+        onAuthError: this.events.onAuthError,
+      });
 
       // Initialize the API client with all adapters (mTLS is pre-configured)
       // Pass authManager as userProvider for role-based auth decisions
@@ -130,7 +126,7 @@ export class ACubeSDK {
       // Set up network monitoring
       this.adapters.networkMonitor.onStatusChange((online) => {
         this.events.onNetworkStatusChanged?.(online);
-        
+
         if (online && this.offlineManager) {
           // Auto-sync when back online
           this.offlineManager.sync().catch(console.error);
@@ -156,13 +152,15 @@ export class ACubeSDK {
 
             if (storedCert) {
               if (this.config.isDebugEnabled()) {
-                console.log('[ACUBE-SDK] 🔄 Auto-configuring certificate during SDK initialization');
+                console.log(
+                  '[ACUBE-SDK] 🔄 Auto-configuring certificate during SDK initialization'
+                );
               }
 
               await this.adapters.mtls.configureCertificate({
                 certificate: storedCert.certificate,
                 privateKey: storedCert.privateKey,
-                format: storedCert.format.toUpperCase() as 'PEM' | 'P12'
+                format: storedCert.format.toUpperCase() as 'PEM' | 'P12',
               });
 
               if (this.config.isDebugEnabled()) {
@@ -174,7 +172,10 @@ export class ACubeSDK {
           // Don't fail SDK initialization if certificate configuration fails
           // The retry logic in getCertificatesInfo will handle it
           if (this.config.isDebugEnabled()) {
-            console.warn('[ACUBE-SDK] ⚠️ Certificate auto-configuration failed (will retry on demand):', certConfigError);
+            console.warn(
+              '[ACUBE-SDK] ⚠️ Certificate auto-configuration failed (will retry on demand):',
+              certConfigError
+            );
           }
         }
       }
@@ -194,9 +195,9 @@ export class ACubeSDK {
    */
   async login(credentials: AuthCredentials): Promise<User> {
     this.ensureInitialized();
-    
+
     const user = await this.authManager!.login(credentials);
-    
+
     // Set auth header for API calls
     const token = await this.authManager!.getAccessToken();
     if (token) {
@@ -211,7 +212,7 @@ export class ACubeSDK {
    */
   async logout(): Promise<void> {
     this.ensureInitialized();
-    
+
     await this.authManager!.logout();
     this.api!.removeAuthorizationHeader();
   }
@@ -221,7 +222,7 @@ export class ACubeSDK {
    */
   async getCurrentUser(): Promise<User | null> {
     this.ensureInitialized();
-    
+
     try {
       return await this.authManager!.getCurrentUser();
     } catch {
@@ -274,7 +275,6 @@ export class ACubeSDK {
     return this.adapters;
   }
 
-
   /**
    * Store mTLS certificate (replaces any existing certificate)
    */
@@ -288,28 +288,18 @@ export class ACubeSDK {
     } = {}
   ): Promise<void> {
     this.ensureInitialized();
-    
+
     if (!this.api) {
-      throw new ACubeSDKError(
-        'API_CLIENT_NOT_INITIALIZED',
-        'API client not initialized'
-      );
+      throw new ACubeSDKError('API_CLIENT_NOT_INITIALIZED', 'API client not initialized');
     }
 
     const httpClient = this.api.getHttpClient();
     if (!httpClient) {
-      throw new ACubeSDKError(
-        'API_CLIENT_NOT_INITIALIZED',
-        'HTTP client not available'
-      );
+      throw new ACubeSDKError('API_CLIENT_NOT_INITIALIZED', 'HTTP client not available');
     }
 
     // Use coordinated storage to ensure proper clearing of old certificates
-    await httpClient.storeCertificate(
-      certificate,
-      privateKey,
-      { format: options.format }
-    );
+    await httpClient.storeCertificate(certificate, privateKey, { format: options.format });
 
     if (this.config.isDebugEnabled()) {
       console.log('[ACUBE-SDK] mTLS certificate stored successfully');
@@ -321,12 +311,9 @@ export class ACubeSDK {
    */
   async getMTLSStatus() {
     this.ensureInitialized();
-    
+
     if (!this.api) {
-      throw new ACubeSDKError(
-        'CERTIFICATE_MANAGER_NOT_INITIALIZED',
-        'API client not initialized'
-      );
+      throw new ACubeSDKError('CERTIFICATE_MANAGER_NOT_INITIALIZED', 'API client not initialized');
     }
 
     const httpClient = this.api.getHttpClient();
@@ -338,12 +325,9 @@ export class ACubeSDK {
    */
   async testMTLSConnection(): Promise<boolean> {
     this.ensureInitialized();
-    
+
     if (!this.api) {
-      throw new ACubeSDKError(
-        'UNKNOWN_ERROR',
-        'API client not initialized'
-      );
+      throw new ACubeSDKError('UNKNOWN_ERROR', 'API client not initialized');
     }
 
     const httpClient = this.api.getHttpClient();
@@ -355,20 +339,14 @@ export class ACubeSDK {
    */
   async clearCertificate(): Promise<void> {
     this.ensureInitialized();
-    
+
     if (!this.api) {
-      throw new ACubeSDKError(
-        'SDK_INITIALIZATION_ERROR',
-        'API client not initialized'
-      );
+      throw new ACubeSDKError('SDK_INITIALIZATION_ERROR', 'API client not initialized');
     }
 
     const httpClient = this.api.getHttpClient();
     if (!httpClient) {
-      throw new ACubeSDKError(
-        'API_CLIENT_NOT_INITIALIZED',
-        'HTTP client not available'
-      );
+      throw new ACubeSDKError('API_CLIENT_NOT_INITIALIZED', 'HTTP client not available');
     }
 
     // Use coordinated clearing to ensure certificate is removed from both storages
@@ -378,7 +356,6 @@ export class ACubeSDK {
       console.log('[ACUBE-SDK] mTLS certificate cleared');
     }
   }
-
 
   /**
    * Get certificate manager for advanced certificate operations
@@ -393,7 +370,7 @@ export class ACubeSDK {
    */
   async getCertificate() {
     this.ensureInitialized();
-    
+
     if (!this.certificateManager) {
       throw new ACubeSDKError(
         'CERTIFICATE_MANAGER_NOT_INITIALIZED',
@@ -409,7 +386,7 @@ export class ACubeSDK {
    */
   async getCertificateInfo() {
     this.ensureInitialized();
-    
+
     if (!this.certificateManager) {
       throw new ACubeSDKError(
         'CERTIFICATE_MANAGER_NOT_INITIALIZED',
@@ -449,14 +426,11 @@ export class ACubeSDK {
    * @param isRetryAttempt Internal flag to prevent infinite retry loops
    * @returns Promise with detailed certificate information or null if not available
    */
-  async getCertificatesInfo(isRetryAttempt: boolean = false): Promise<any> {
+  async getCertificatesInfo(isRetryAttempt: boolean = false): Promise<CertificateInfo | null> {
     this.ensureInitialized();
 
     if (!this.adapters?.mtls) {
-      throw new ACubeSDKError(
-        'MTLS_ADAPTER_NOT_AVAILABLE',
-        'mTLS adapter not available'
-      );
+      throw new ACubeSDKError('MTLS_ADAPTER_NOT_AVAILABLE', 'mTLS adapter not available');
     }
 
     try {
@@ -481,7 +455,7 @@ export class ACubeSDK {
             validFrom: certInfo.validFrom,
             validTo: certInfo.validTo,
             serialNumber: certInfo.serialNumber,
-            attempt: isRetryAttempt ? 'retry' : 'first'
+            attempt: isRetryAttempt ? 'retry' : 'first',
           });
         }
         return certInfo;
@@ -493,14 +467,18 @@ export class ACubeSDK {
       // If this is already a retry attempt, don't retry again to prevent infinite loops
       if (isRetryAttempt) {
         if (this.config.isDebugEnabled()) {
-          console.log('[ACUBE-SDK] ❌ Retry attempt failed - certificate may be invalid or corrupted');
+          console.log(
+            '[ACUBE-SDK] ❌ Retry attempt failed - certificate may be invalid or corrupted'
+          );
         }
         return null;
       }
 
       // First attempt failed - try to reconfigure certificate and retry
       if (this.config.isDebugEnabled()) {
-        console.log('[ACUBE-SDK] 🔄 Certificate exists but not configured, configuring and retrying...');
+        console.log(
+          '[ACUBE-SDK] 🔄 Certificate exists but not configured, configuring and retrying...'
+        );
       }
 
       // Get certificate from storage
@@ -523,7 +501,7 @@ export class ACubeSDK {
       await this.adapters.mtls.configureCertificate({
         certificate: storedCert.certificate,
         privateKey: storedCert.privateKey,
-        format: storedCert.format.toUpperCase() as 'PEM' | 'P12'
+        format: storedCert.format.toUpperCase() as 'PEM' | 'P12',
       });
 
       if (this.config.isDebugEnabled()) {
@@ -532,7 +510,6 @@ export class ACubeSDK {
 
       // Retry once (with flag to prevent infinite recursion)
       return await this.getCertificatesInfo(true);
-
     } catch (error) {
       if (this.config.isDebugEnabled()) {
         console.error('[ACUBE-SDK] Failed to get certificates info:', error);
@@ -545,7 +522,6 @@ export class ACubeSDK {
       );
     }
   }
-
 
   /**
    * Destroy SDK and cleanup resources

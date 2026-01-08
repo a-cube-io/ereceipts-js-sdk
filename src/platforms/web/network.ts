@@ -1,5 +1,16 @@
 import { INetworkMonitor, NetworkInfo } from '../../adapters';
 
+interface NetworkInformationConnection {
+  type?: string;
+  effectiveType?: '2g' | '3g' | '4g' | '5g';
+  downlink?: number;
+  rtt?: number;
+}
+
+interface NavigatorWithConnection extends Navigator {
+  connection?: NetworkInformationConnection;
+}
+
 /**
  * Web network monitor using navigator.onLine and Network Information API
  */
@@ -24,7 +35,7 @@ export class WebNetworkMonitor implements INetworkMonitor {
 
   onStatusChange(callback: (online: boolean) => void): () => void {
     this.listeners.push(callback);
-    
+
     // Return cleanup function
     return () => {
       const index = this.listeners.indexOf(callback);
@@ -37,13 +48,13 @@ export class WebNetworkMonitor implements INetworkMonitor {
   async getNetworkInfo(): Promise<NetworkInfo | null> {
     // Use Network Information API if available
     if ('connection' in navigator) {
-      const connection = (navigator as any).connection;
-      
+      const connection = (navigator as NavigatorWithConnection).connection;
+
       return {
-        type: this.mapConnectionType(connection.type),
-        effectiveType: connection.effectiveType,
-        downlink: connection.downlink,
-        rtt: connection.rtt,
+        type: this.mapConnectionType(connection?.type ?? 'unknown'),
+        effectiveType: connection?.effectiveType,
+        downlink: connection?.downlink,
+        rtt: connection?.rtt,
       };
     }
 
@@ -62,7 +73,7 @@ export class WebNetworkMonitor implements INetworkMonitor {
   };
 
   private notifyListeners(online: boolean): void {
-    this.listeners.forEach(callback => {
+    this.listeners.forEach((callback) => {
       try {
         callback(online);
       } catch (error) {

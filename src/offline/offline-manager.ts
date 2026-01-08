@@ -1,14 +1,8 @@
-import { IStorage, INetworkMonitor, ICacheAdapter } from '../adapters';
+import { ICacheAdapter, INetworkMonitor, IStorage } from '../adapters';
 import { HttpClient } from '../core/api';
 import { OperationQueue } from './queue';
 import { SyncManager } from './sync-manager';
-import { 
-  OperationType, 
-  ResourceType, 
-  QueueConfig, 
-  QueueEvents, 
-  BatchSyncResult 
-} from './types';
+import { BatchSyncResult, OperationType, QueueConfig, QueueEvents, ResourceType } from './types';
 
 /**
  * Enhanced offline manager with optimistic update support
@@ -40,7 +34,7 @@ export class OfflineManager {
 
     // Use original events without optimistic manager integration
     const enhancedEvents: QueueEvents = {
-      ...events
+      ...events,
     };
 
     // Initialize queue and sync manager with enhanced events
@@ -62,7 +56,7 @@ export class OfflineManager {
     resource: ResourceType,
     endpoint: string,
     method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
-    data?: any,
+    data?: unknown,
     priority: number = 1
   ): Promise<string> {
     return await this.queue.addOperation(type, resource, endpoint, method, data, priority);
@@ -71,7 +65,7 @@ export class OfflineManager {
   /**
    * Queue a receipt creation
    */
-  async queueReceiptCreation(receiptData: any, priority: number = 2): Promise<string> {
+  async queueReceiptCreation(receiptData: unknown, priority: number = 2): Promise<string> {
     return await this.queueOperation(
       'CREATE',
       'receipt',
@@ -85,7 +79,7 @@ export class OfflineManager {
   /**
    * Queue a receipt void operation
    */
-  async queueReceiptVoid(voidData: any, priority: number = 3): Promise<string> {
+  async queueReceiptVoid(voidData: unknown, priority: number = 3): Promise<string> {
     return await this.queueOperation(
       'DELETE',
       'receipt',
@@ -99,7 +93,7 @@ export class OfflineManager {
   /**
    * Queue a receipt return operation
    */
-  async queueReceiptReturn(returnData: any, priority: number = 3): Promise<string> {
+  async queueReceiptReturn(returnData: unknown, priority: number = 3): Promise<string> {
     return await this.queueOperation(
       'CREATE',
       'receipt',
@@ -113,7 +107,7 @@ export class OfflineManager {
   /**
    * Queue a cashier creation
    */
-  async queueCashierCreation(cashierData: any, priority: number = 1): Promise<string> {
+  async queueCashierCreation(cashierData: unknown, priority: number = 1): Promise<string> {
     return await this.queueOperation(
       'CREATE',
       'cashier',
@@ -164,7 +158,7 @@ export class OfflineManager {
    */
   async retryFailed(): Promise<void> {
     await this.queue.retryFailed();
-    
+
     // Trigger sync if online
     if (this.isOnline()) {
       await this.sync();
@@ -235,7 +229,7 @@ export class OfflineManager {
     _operation: OperationType,
     _endpoint: string,
     _method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
-    _data: any,
+    _data: unknown,
     _optimisticData: T,
     _cacheKey: string,
     _priority: number = 2
@@ -248,7 +242,7 @@ export class OfflineManager {
    * Enhanced queue receipt creation with optimistic update
    */
   async queueReceiptCreationWithOptimistic<T>(
-    receiptData: any, 
+    receiptData: unknown,
     optimisticReceipt: T,
     cacheKey: string,
     priority: number = 2
@@ -269,7 +263,7 @@ export class OfflineManager {
    * Enhanced queue receipt void with optimistic update
    */
   async queueReceiptVoidWithOptimistic<T>(
-    voidData: any,
+    voidData: unknown,
     optimisticUpdate: T,
     cacheKey: string,
     priority: number = 3
@@ -290,7 +284,7 @@ export class OfflineManager {
    * Enhanced queue receipt return with optimistic update
    */
   async queueReceiptReturnWithOptimistic<T>(
-    returnData: any,
+    returnData: unknown,
     optimisticReceipt: T,
     cacheKey: string,
     priority: number = 3
@@ -353,7 +347,10 @@ export class OfflineManager {
   /**
    * Manually rollback all pending optimistic operations for a resource (disabled in simplified cache system)
    */
-  async rollbackOptimisticOperationsByResource(_resource: ResourceType, _resourceId?: string): Promise<void> {
+  async rollbackOptimisticOperationsByResource(
+    _resource: ResourceType,
+    _resourceId?: string
+  ): Promise<void> {
     // Optimistic updates disabled in simplified cache system
     return;
   }

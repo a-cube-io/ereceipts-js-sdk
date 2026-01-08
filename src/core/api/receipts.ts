@@ -1,16 +1,16 @@
-import { HttpClient, CacheRequestConfig } from './http-client';
+import { CacheRequestConfig, HttpClient } from './http-client';
 import {
-  ReceiptInput,
-  ReceiptOutput,
+  Page,
+  RECEIPT_SENT,
   ReceiptDetailsOutput,
+  ReceiptInput,
+  ReceiptListParams,
+  ReceiptOutput,
+  ReceiptReturnInput,
   ReceiptReturnOrVoidViaPEMInput,
   ReceiptReturnOrVoidWithProofInput,
-  Page,
-  ReceiptListParams,
-  ReceiptReturnInput,
-  VoidReceiptInput,
   ReturnableReceiptItem,
-  RECEIPT_SENT
+  VoidReceiptInput,
 } from './types';
 
 /**
@@ -42,16 +42,15 @@ export class ReceiptsAPI {
    */
   setUserContext(context: UserContext): void {
     this.userContext = context;
-    
+
     if (this.debugEnabled) {
       console.log('[RECEIPTS-API] User context set:', {
         roles: context.roles,
         userId: context.userId,
-        merchantId: context.merchantId
+        merchantId: context.merchantId,
       });
     }
   }
-
 
   /**
    * Create request configuration
@@ -60,7 +59,7 @@ export class ReceiptsAPI {
   private createRequestConfig(config?: Partial<CacheRequestConfig>): CacheRequestConfig {
     return {
       authMode: 'auto', // Let MTLSHandler decide based on authentication matrix
-      ...config
+      ...config,
     };
   }
 
@@ -96,7 +95,10 @@ export class ReceiptsAPI {
     if (params['document_datetime[before]'] !== undefined) {
       searchParams.append('document_datetime[before]', params['document_datetime[before]']);
     }
-    if (params['document_datetime[after]'] !== undefined && params['document_datetime[after]'] !== null) {
+    if (
+      params['document_datetime[after]'] !== undefined &&
+      params['document_datetime[after]'] !== null
+    ) {
       searchParams.append('document_datetime[after]', params['document_datetime[after]']);
     }
 
@@ -136,7 +138,7 @@ export class ReceiptsAPI {
     if (this.debugEnabled) {
       console.log('[RECEIPTS-API] Getting receipt details:', {
         receiptUuid,
-        format
+        format,
       });
     }
 
@@ -147,20 +149,23 @@ export class ReceiptsAPI {
       const config = this.createRequestConfig({
         headers,
         authMode: 'mtls', // Force mTLS for PDF downloads
-        responseType: 'blob'
+        responseType: 'blob',
       });
 
       if (this.debugEnabled) {
-        console.log('[RECEIPTS-API] Downloading PDF receipt (mTLS on mobile, JWT+:444 on web)', config);
+        console.log(
+          '[RECEIPTS-API] Downloading PDF receipt (mTLS on mobile, JWT+:444 on web)',
+          config
+        );
       }
 
       return this.httpClient.get<string>(`/mf1/receipts/${receiptUuid}/details`, config);
     } else {
       headers['Accept'] = 'application/json';
-      const config = this.createRequestConfig({ 
+      const config = this.createRequestConfig({
         headers,
         responseType: 'json',
-        authMode: 'mtls' // Force mTLS for JSON responses
+        authMode: 'mtls', // Force mTLS for JSON responses
       });
 
       return this.httpClient.get<ReceiptDetailsOutput>(
@@ -192,7 +197,7 @@ export class ReceiptsAPI {
     }
 
     const config = this.createRequestConfig();
-1
+    1;
     await this.httpClient.delete('/mf1/receipts/void-via-different-pos', voidData, config);
   }
 
@@ -230,7 +235,10 @@ export class ReceiptsAPI {
     }
 
     const config = this.createRequestConfig();
-    return this.httpClient.get<ReturnableReceiptItem[]>(`/mf1/receipts/${receiptUuid}/returnable-items`, config);
+    return this.httpClient.get<ReturnableReceiptItem[]>(
+      `/mf1/receipts/${receiptUuid}/returnable-items`,
+      config
+    );
   }
 
   /**
@@ -242,7 +250,11 @@ export class ReceiptsAPI {
     }
 
     const config = this.createRequestConfig();
-    return this.httpClient.post<ReceiptOutput>('/mf1/receipts/return-via-different-pos', returnData, config);
+    return this.httpClient.post<ReceiptOutput>(
+      '/mf1/receipts/return-via-different-pos',
+      returnData,
+      config
+    );
   }
 
   /**
@@ -255,7 +267,11 @@ export class ReceiptsAPI {
     }
 
     const config = this.createRequestConfig();
-    return this.httpClient.post<ReceiptOutput>('/mf1/receipts/return-with-proof', returnData, config);
+    return this.httpClient.post<ReceiptOutput>(
+      '/mf1/receipts/return-with-proof',
+      returnData,
+      config
+    );
   }
 
   /**
@@ -273,7 +289,7 @@ export class ReceiptsAPI {
       mtlsAvailable: mtlsStatus.adapterAvailable,
       mtlsReady: mtlsStatus.isReady,
       userContext: this.userContext,
-      recommendedAuthMode: 'auto' as const // Let MTLSHandler decide based on role/platform/method
+      recommendedAuthMode: 'auto' as const, // Let MTLSHandler decide based on role/platform/method
     };
 
     if (this.debugEnabled) {

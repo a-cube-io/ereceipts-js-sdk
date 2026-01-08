@@ -1,4 +1,4 @@
-import { IStorage, ISecureStorage } from '../../adapters';
+import { ISecureStorage, IStorage } from '../../adapters';
 
 /**
  * Web storage adapter using localStorage
@@ -81,7 +81,7 @@ export class WebSecureStorageAdapter implements ISecureStorage {
     try {
       const encrypted = localStorage.getItem(this.getSecureKey(key));
       if (!encrypted) return null;
-      
+
       return this.decrypt(encrypted);
     } catch {
       return null;
@@ -108,8 +108,8 @@ export class WebSecureStorageAdapter implements ISecureStorage {
   async clear(): Promise<void> {
     try {
       const keys = Object.keys(localStorage);
-      const secureKeys = keys.filter(key => key.startsWith('secure_'));
-      secureKeys.forEach(key => localStorage.removeItem(key));
+      const secureKeys = keys.filter((key) => key.startsWith('secure_'));
+      secureKeys.forEach((key) => localStorage.removeItem(key));
     } catch (error) {
       throw new Error(`Failed to clear secure storage: ${error}`);
     }
@@ -119,8 +119,8 @@ export class WebSecureStorageAdapter implements ISecureStorage {
     try {
       const keys = Object.keys(localStorage);
       return keys
-        .filter(key => key.startsWith('secure_'))
-        .map(key => key.replace('secure_', ''));
+        .filter((key) => key.startsWith('secure_'))
+        .map((key) => key.replace('secure_', ''));
     } catch {
       return [];
     }
@@ -177,7 +177,7 @@ export class WebSecureStorageAdapter implements ISecureStorage {
   private generateKey(): string {
     // Simple key generation - in production, use crypto.getRandomValues()
     return Array.from(crypto.getRandomValues(new Uint8Array(32)))
-      .map(b => b.toString(16).padStart(2, '0'))
+      .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
   }
 

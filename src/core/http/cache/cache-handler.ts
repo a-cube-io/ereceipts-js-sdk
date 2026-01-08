@@ -1,4 +1,5 @@
 import { AxiosResponse } from 'axios';
+
 import { ICacheAdapter, INetworkMonitor } from '../../../adapters';
 
 /**
@@ -74,7 +75,7 @@ export class CacheHandler {
         url,
         cacheKey,
         online,
-        cacheAvailable: !!this.cache
+        cacheAvailable: !!this.cache,
       });
     }
 
@@ -86,11 +87,11 @@ export class CacheHandler {
         // Cache the result (no TTL - cache never expires)
         // Note: Cache failures should NEVER block the main operation
         if (this.cache) {
-          await this.cache.set(cacheKey, response.data).catch(error => {
+          await this.cache.set(cacheKey, response.data).catch((error) => {
             // Always log cache failures (not just in debug mode)
             console.error('[CACHE-HANDLER] Failed to cache response (non-blocking):', {
               url,
-              error: error instanceof Error ? error.message : error
+              error: error instanceof Error ? error.message : error,
             });
             if (this.isDebugEnabled) {
               console.error('[CACHE-HANDLER] Full error details:', error);
@@ -105,10 +106,10 @@ export class CacheHandler {
         return response.data;
       } catch (error) {
         // Network failed while online - try cache as fallback
-        const cached = await this.cache.get<T>(cacheKey).catch(cacheError => {
+        const cached = await this.cache.get<T>(cacheKey).catch((cacheError) => {
           console.error('[CACHE-HANDLER] Failed to read cache during fallback (non-blocking):', {
             url,
-            error: cacheError instanceof Error ? cacheError.message : cacheError
+            error: cacheError instanceof Error ? cacheError.message : cacheError,
           });
           return null;
         });
@@ -122,10 +123,10 @@ export class CacheHandler {
       }
     } else {
       // OFFLINE: Always use cache (no expiration check)
-      const cached = await this.cache.get<T>(cacheKey).catch(cacheError => {
+      const cached = await this.cache.get<T>(cacheKey).catch((cacheError) => {
         console.error('[CACHE-HANDLER] Failed to read cache while offline (non-blocking):', {
           url,
-          error: cacheError instanceof Error ? cacheError.message : cacheError
+          error: cacheError instanceof Error ? cacheError.message : cacheError,
         });
         return null;
       });
@@ -163,7 +164,7 @@ export class CacheHandler {
       // Always log invalidation failures
       console.error('[CACHE-HANDLER] Cache invalidation failed (non-blocking):', {
         pattern,
-        error: error instanceof Error ? error.message : error
+        error: error instanceof Error ? error.message : error,
       });
       if (this.isDebugEnabled) {
         console.error('[CACHE-HANDLER] Full error details:', error);
@@ -178,7 +179,7 @@ export class CacheHandler {
     return {
       available: !!this.cache,
       networkMonitorAvailable: !!this.networkMonitor,
-      isOnline: this.isOnline()
+      isOnline: this.isOnline(),
     };
   }
 }

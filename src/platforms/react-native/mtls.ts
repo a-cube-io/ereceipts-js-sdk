@@ -2,18 +2,23 @@
  * React Native mTLS Adapter Implementation
  * Uses @a-cube-io/expo-mutual-tls for production-ready mTLS authentication
  */
-
 import {
-  IMTLSAdapter,
   CertificateData,
-  MTLSConnectionConfig,
-  MTLSRequestConfig,
-  MTLSResponse,
   CertificateInfo,
+  CertificateValidator,
+  IMTLSAdapter,
+  MTLSConnectionConfig,
   MTLSError,
   MTLSErrorType,
-  CertificateValidator
+  MTLSRequestConfig,
+  MTLSResponse,
 } from '../../adapters';
+import {
+  MTLSCertificateExpiryEvent,
+  MTLSDebugLogEvent,
+  MTLSErrorEvent,
+  MTLSEventSubscription,
+} from './types';
 
 // Import actual types from expo-mutual-tls
 interface CertificateSubject {
@@ -66,13 +71,20 @@ type CertificateDataUnion = P12CertificateData | PemCertificateData;
 
 interface ExpoMutualTLSClass {
   // Configuration methods (static)
-  configurePEM(certService?: string, keyService?: string, enableLogging?: boolean): Promise<{
+  configurePEM(
+    certService?: string,
+    keyService?: string,
+    enableLogging?: boolean
+  ): Promise<{
     success: boolean;
     state: string;
     hasCertificate: boolean;
   }>;
 
-  configureP12(keychainService?: string, enableLogging?: boolean): Promise<{
+  configureP12(
+    keychainService?: string,
+    enableLogging?: boolean
+  ): Promise<{
     success: boolean;
     state: string;
     hasCertificate: boolean;
@@ -93,12 +105,15 @@ interface ExpoMutualTLSClass {
   getCertificatesInfo(): Promise<ParseCertificateResult>;
 
   // Network operations (static)
-  request(url: string, options?: {
-    method?: string;
-    headers?: Record<string, string>;
-    body?: string;
-    responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
-  }): Promise<{
+  request(
+    url: string,
+    options?: {
+      method?: string;
+      headers?: Record<string, string>;
+      body?: string;
+      responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
+    }
+  ): Promise<{
     success: boolean;
     statusCode: number;
     statusMessage: string;
@@ -123,9 +138,25 @@ interface ExpoMutualTLSClass {
   currentState: string;
 
   // Event handlers (static)
-  onDebugLog(callback: (event: { type: string; message?: string; method?: string; url?: string; statusCode?: number; duration?: number; }) => void): any;
-  onError(callback: (event: { message: string; code?: string; }) => void): any;
-  onCertificateExpiry(callback: (event: { alias?: string; subject: string; expiry: number; warning?: boolean; }) => void): any;
+  onDebugLog(
+    callback: (event: {
+      type: string;
+      message?: string;
+      method?: string;
+      url?: string;
+      statusCode?: number;
+      duration?: number;
+    }) => void
+  ): () => void;
+  onError(callback: (event: { message: string; code?: string }) => void): () => void;
+  onCertificateExpiry(
+    callback: (event: {
+      alias?: string;
+      subject: string;
+      expiry: number;
+      warning?: boolean;
+    }) => void
+  ): () => void;
   removeAllListeners(): void;
 }
 
@@ -137,7 +168,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
   private config: MTLSConnectionConfig | null = null;
   private readonly debugEnabled: boolean;
   private isConfigured = false;
-  private eventListeners: any[] = [];
+  private eventListeners: MTLSEventSubscription[] = [];
 
   constructor(debugEnabled = false) {
     this.debugEnabled = debugEnabled;
@@ -150,36 +181,43 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
   private initializeEventHandlers(): void {
     try {
       // Import the default export from @a-cube-io/expo-mutual-tls
-      const ExpoMutualTls = require('@a-cube-io/expo-mutual-tls').default || require('@a-cube-io/expo-mutual-tls');
+      const ExpoMutualTls =
+        require('@a-cube-io/expo-mutual-tls').default || require('@a-cube-io/expo-mutual-tls');
       this.expoMTLS = ExpoMutualTls;
 
       if (this.debugEnabled) {
         // Set up debug logging with the correct event signature
-        const debugListener = ExpoMutualTls.onDebugLog((event: any) => {
+        const debugListener = ExpoMutualTls.onDebugLog((event: MTLSDebugLogEvent) => {
           console.log('[RN-MTLS-DEBUG]', `${event.type}: ${event.message}`, {
             method: event.method,
             url: event.url,
             statusCode: event.statusCode,
-            duration: event.duration
+            duration: event.duration,
           });
         });
         this.eventListeners.push(debugListener);
 
         // Set up error logging with the correct event signature
-        const errorListener = ExpoMutualTls.onError((event: any) => {
+        const errorListener = ExpoMutualTls.onError((event: MTLSErrorEvent) => {
           console.error('[RN-MTLS-ERROR]', `${event.message}`, {
-            code: event.code
+            code: event.code,
           });
         });
         this.eventListeners.push(errorListener);
 
         // Set up certificate expiry monitoring with the correct event signature
-        const expiryListener = ExpoMutualTls.onCertificateExpiry((event: any) => {
-          console.warn('[RN-MTLS-CERT-EXPIRY]', `Certificate ${event.subject} expires at ${new Date(event.expiry)}`, {
-            alias: event.alias,
-            warning: event.warning
-          });
-        });
+        const expiryListener = ExpoMutualTls.onCertificateExpiry(
+          (event: MTLSCertificateExpiryEvent) => {
+            console.warn(
+              '[RN-MTLS-CERT-EXPIRY]',
+              `Certificate ${event.subject} expires at ${new Date(event.expiry)}`,
+              {
+                alias: event.alias,
+                warning: event.warning,
+              }
+            );
+          }
+        );
         this.eventListeners.push(expiryListener);
 
         console.log('[RN-MTLS-ADAPTER] Expo mTLS module loaded successfully');
@@ -193,24 +231,21 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
 
   async isMTLSSupported(): Promise<boolean> {
     const supported = this.expoMTLS !== null;
-    
+
     if (this.debugEnabled) {
       console.log('[RN-MTLS-ADAPTER] mTLS support check:', {
         supported,
         platform: this.getPlatformInfo().platform,
-        moduleAvailable: !!this.expoMTLS
+        moduleAvailable: !!this.expoMTLS,
       });
     }
-    
+
     return supported;
   }
 
   async initialize(config: MTLSConnectionConfig): Promise<void> {
     if (!this.expoMTLS) {
-      throw new MTLSError(
-        MTLSErrorType.NOT_SUPPORTED,
-        'Expo mTLS module not available'
-      );
+      throw new MTLSError(MTLSErrorType.NOT_SUPPORTED, 'Expo mTLS module not available');
     }
 
     this.config = config;
@@ -220,17 +255,14 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
         baseUrl: config.baseUrl,
         port: config.port,
         timeout: config.timeout,
-        validateCertificate: config.validateCertificate
+        validateCertificate: config.validateCertificate,
       });
     }
   }
 
   async configureCertificate(certificateData: CertificateData): Promise<void> {
     if (!this.expoMTLS) {
-      throw new MTLSError(
-        MTLSErrorType.NOT_SUPPORTED,
-        'Expo mTLS module not available'
-      );
+      throw new MTLSError(MTLSErrorType.NOT_SUPPORTED, 'Expo mTLS module not available');
     }
 
     if (!this.config) {
@@ -245,28 +277,27 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
         format: certificateData.format,
         hasPassword: !!certificateData.password,
         certificateLength: certificateData.certificate.length,
-        privateKeyLength: certificateData.privateKey.length
+        privateKeyLength: certificateData.privateKey.length,
       });
     }
 
     try {
       if (certificateData.format === 'PEM') {
         // Validate PEM format
-        if (!CertificateValidator.validatePEMFormat(
-          certificateData.certificate, 
-          certificateData.privateKey
-        )) {
-          throw new MTLSError(
-            MTLSErrorType.CERTIFICATE_INVALID,
-            'Invalid PEM certificate format'
-          );
+        if (
+          !CertificateValidator.validatePEMFormat(
+            certificateData.certificate,
+            certificateData.privateKey
+          )
+        ) {
+          throw new MTLSError(MTLSErrorType.CERTIFICATE_INVALID, 'Invalid PEM certificate format');
         }
 
         // Step 1: Configure PEM services (optional parameters for keychain services)
         const configResult = await this.expoMTLS.configurePEM(
           'client-cert-service', // certService
-          'client-key-service',  // keyService
-          this.debugEnabled      // enableLogging
+          'client-key-service', // keyService
+          this.debugEnabled // enableLogging
         );
 
         if (this.debugEnabled) {
@@ -292,10 +323,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
         }
 
         if (!storeResult) {
-          throw new MTLSError(
-            MTLSErrorType.CERTIFICATE_INVALID,
-            'Failed to store PEM certificate'
-          );
+          throw new MTLSError(MTLSErrorType.CERTIFICATE_INVALID, 'Failed to store PEM certificate');
         }
       } else if (certificateData.format === 'P12') {
         if (!certificateData.password) {
@@ -308,7 +336,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
         // Step 1: Configure P12 keychain service
         const configResult = await this.expoMTLS.configureP12(
           'client-p12-service', // keychainService
-          this.debugEnabled     // enableLogging
+          this.debugEnabled // enableLogging
         );
 
         if (this.debugEnabled) {
@@ -333,10 +361,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
         }
 
         if (!storeResult) {
-          throw new MTLSError(
-            MTLSErrorType.CERTIFICATE_INVALID,
-            'Failed to store P12 certificate'
-          );
+          throw new MTLSError(MTLSErrorType.CERTIFICATE_INVALID, 'Failed to store P12 certificate');
         }
       } else {
         throw new MTLSError(
@@ -350,11 +375,11 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
       if (error instanceof MTLSError) {
         throw error;
       }
-      
+
       if (this.debugEnabled) {
         console.error('[RN-MTLS-ADAPTER] Certificate configuration failed:', error);
       }
-      
+
       throw new MTLSError(
         MTLSErrorType.CONFIGURATION_ERROR,
         'Failed to configure certificate',
@@ -371,11 +396,11 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
     try {
       // Use static method call
       const hasCert = await this.expoMTLS.hasCertificate();
-      
+
       if (this.debugEnabled) {
         console.log('[RN-MTLS-ADAPTER] Certificate availability check:', hasCert);
       }
-      
+
       return hasCert;
     } catch (error) {
       if (this.debugEnabled) {
@@ -427,7 +452,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
           subject: cert.subject.commonName,
           issuer: cert.issuer.commonName,
           validFrom: new Date(cert.validFrom),
-          validTo: new Date(cert.validTo)
+          validTo: new Date(cert.validTo),
         });
       }
 
@@ -440,7 +465,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
         serialNumber: cert.serialNumber,
         fingerprint: cert.fingerprints.sha256,
         pemId: cert.subject.commonName?.split(':')[1] || '', // PEM ID is part[1] (divide by : ) of commonName if available
-        cashRegisterUUID: cert.subject.commonName?.split(':')[0] || '' // Cash Register UUID is part[0] (divide by : ) of commonName if available
+        cashRegisterUUID: cert.subject.commonName?.split(':')[0] || '', // Cash Register UUID is part[0] (divide by : ) of commonName if available
       };
     } catch (error) {
       if (this.debugEnabled) {
@@ -481,9 +506,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
           certificateData.password
         );
       } else if (certificateData.format === 'PEM') {
-        result = await this.expoMTLS.parseCertificatePEM(
-          certificateData.certificate
-        );
+        result = await this.expoMTLS.parseCertificatePEM(certificateData.certificate);
       } else {
         throw new MTLSError(
           MTLSErrorType.CERTIFICATE_INVALID,
@@ -494,7 +517,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
       if (this.debugEnabled) {
         console.log('[RN-MTLS-ADAPTER] Certificate parsed successfully:', {
           certificateCount: result.certificates.length,
-          subjects: result.certificates.map(cert => cert.subject.commonName)
+          subjects: result.certificates.map((cert) => cert.subject.commonName),
         });
       }
 
@@ -518,18 +541,12 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
 
   async request<T>(requestConfig: MTLSRequestConfig): Promise<MTLSResponse<T>> {
     if (!this.expoMTLS) {
-      throw new MTLSError(
-        MTLSErrorType.NOT_SUPPORTED,
-        'Expo mTLS module not available'
-      );
+      throw new MTLSError(MTLSErrorType.NOT_SUPPORTED, 'Expo mTLS module not available');
     }
 
     const hasCert = await this.hasCertificate();
     if (!hasCert) {
-      throw new MTLSError(
-        MTLSErrorType.CERTIFICATE_NOT_FOUND,
-        'No certificate configured'
-      );
+      throw new MTLSError(MTLSErrorType.CERTIFICATE_NOT_FOUND, 'No certificate configured');
     }
 
     if (this.debugEnabled) {
@@ -538,7 +555,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
         url: requestConfig.url,
         headers: requestConfig.headers,
         data: !!requestConfig.data,
-        responseType: requestConfig.responseType
+        responseType: requestConfig.responseType,
       });
     }
 
@@ -549,7 +566,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
         method: requestConfig.method || 'GET',
         headers: requestConfig.headers,
         body: requestConfig.data ? JSON.stringify(requestConfig.data) : undefined,
-        responseType: requestConfig.responseType
+        responseType: requestConfig.responseType,
       });
 
       if (this.debugEnabled) {
@@ -565,10 +582,10 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
         );
       }
 
-      // Parse response body if JSON
-      let data: any = response.body;
+      let data: string | Record<string, unknown> = response.body;
       // only parse if responseType is 'json' or if Content-Type header indicates JSON
-      const contentType = response.headers['Content-Type'] || response.headers['content-type'] || '';
+      const contentType =
+        response.headers['Content-Type'] || response.headers['content-type'] || '';
       if (requestConfig.responseType === 'json' || contentType.includes('application/json')) {
         try {
           data = JSON.parse(response.body);
@@ -587,21 +604,17 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
       });
 
       return {
-        data,
+        data: data as T,
         status: response.statusCode,
         statusText: response.statusMessage,
-        headers: normalizedHeaders
+        headers: normalizedHeaders,
       };
     } catch (error) {
       if (this.debugEnabled) {
         console.error('[RN-MTLS-ADAPTER] mTLS request failed:', error);
       }
 
-      throw new MTLSError(
-        MTLSErrorType.CONNECTION_FAILED,
-        'mTLS request failed',
-        error as Error
-      );
+      throw new MTLSError(MTLSErrorType.CONNECTION_FAILED, 'mTLS request failed', error as Error);
     }
   }
 
@@ -630,7 +643,10 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
       }
 
       if (this.debugEnabled) {
-        console.log('[RN-MTLS-ADAPTER] 🔍 Running diagnostic test (may fail even if mTLS works):', this.config.baseUrl);
+        console.log(
+          '[RN-MTLS-ADAPTER] 🔍 Running diagnostic test (may fail even if mTLS works):',
+          this.config.baseUrl
+        );
       }
 
       const result = await this.expoMTLS.testConnection(this.config.baseUrl);
@@ -642,7 +658,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
           statusMessage: result.statusMessage,
           tlsVersion: result.tlsVersion,
           cipherSuite: result.cipherSuite,
-          note: 'Test endpoint may return 500 while actual requests work'
+          note: 'Test endpoint may return 500 while actual requests work',
         });
       }
 
@@ -667,10 +683,10 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
       // Use static method call
       await this.expoMTLS.removeCertificate();
       this.isConfigured = false;
-      
+
       // Cleanup event listeners
       this.cleanupEventListeners();
-      
+
       if (this.debugEnabled) {
         console.log('[RN-MTLS-ADAPTER] Certificate removed successfully');
       }
@@ -678,7 +694,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
       if (this.debugEnabled) {
         console.error('[RN-MTLS-ADAPTER] Failed to remove certificate:', error);
       }
-      
+
       throw new MTLSError(
         MTLSErrorType.CONFIGURATION_ERROR,
         'Failed to remove certificate',
@@ -696,7 +712,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
     }
 
     // Remove individual listeners if they have remove methods
-    this.eventListeners.forEach(listener => {
+    this.eventListeners.forEach((listener) => {
       if (listener && typeof listener.remove === 'function') {
         listener.remove();
       }
@@ -730,7 +746,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
       mtlsSupported: this.expoMTLS !== null,
       certificateStorage: 'keychain' as const,
       fallbackToJWT: true,
-      configured: this.isConfigured
+      configured: this.isConfigured,
     };
   }
 }

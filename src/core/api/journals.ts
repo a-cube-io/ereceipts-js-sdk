@@ -1,8 +1,5 @@
 import { HttpClient } from './http-client';
-import { 
-  JournalOutput, 
-  JournalsParams,
-} from './types';
+import { JournalOutput, JournalsParams } from './types';
 
 /**
  * Journals API manager (MF2)
@@ -15,7 +12,7 @@ export class JournalsAPI {
    */
   async list(params: JournalsParams = {}): Promise<JournalOutput[]> {
     const searchParams = new URLSearchParams();
-    
+
     if (params.pem_serial_number) {
       searchParams.append('pem_serial_number', params.pem_serial_number);
     }
@@ -34,7 +31,7 @@ export class JournalsAPI {
 
     const query = searchParams.toString();
     const url = query ? `/mf2/journals?${query}` : '/mf2/journals';
-    
+
     return this.httpClient.get<JournalOutput[]>(url);
   }
 

@@ -1,8 +1,5 @@
 import { ISecureStorage } from '../../adapters';
-import { 
-  CertificateError, 
-  CertificateErrorType
-} from './certificate-errors';
+import { CertificateError, CertificateErrorType } from './certificate-errors';
 
 /**
  * Single certificate data structure - Essential fields only
@@ -29,7 +26,7 @@ export interface CertificateManagerConfig {
 
 /**
  * Simplified Certificate Manager - Supports only ONE certificate per device
- * 
+ *
  * Key behaviors:
  * - Installing a new certificate automatically removes the existing one
  * - No certificate IDs needed - there's only one
@@ -49,7 +46,7 @@ export class CertificateManager {
 
     if (this.isDebugEnabled) {
       console.log('[CERTIFICATE-MANAGER] Initialized single certificate manager:', {
-        storageKey: this.storageKey
+        storageKey: this.storageKey,
       });
     }
   }
@@ -90,7 +87,7 @@ export class CertificateManager {
       const certData: StoredCertificate = {
         certificate: certificate.trim(),
         privateKey: privateKey.trim(),
-        format: options.format || 'pem'
+        format: options.format || 'pem',
       };
 
       // Store the certificate (this replaces any existing one)
@@ -99,10 +96,9 @@ export class CertificateManager {
       if (this.isDebugEnabled) {
         console.log('[CERTIFICATE-MANAGER] Certificate stored successfully:', {
           format: certData.format,
-          replacedExisting: !!existingCert
+          replacedExisting: !!existingCert,
         });
       }
-
     } catch (error) {
       if (this.isDebugEnabled) {
         console.error('[CERTIFICATE-MANAGER] Failed to store certificate:', error);
@@ -124,9 +120,8 @@ export class CertificateManager {
    */
   async getCertificate(): Promise<StoredCertificate | null> {
     try {
-
       const stored = await this.storage.get(this.storageKey);
-      
+
       if (!stored) {
         if (this.isDebugEnabled) {
           console.log('[CERTIFICATE-MANAGER] No certificate found in storage');
@@ -146,12 +141,11 @@ export class CertificateManager {
 
       if (this.isDebugEnabled) {
         console.log('[CERTIFICATE-MANAGER] Certificate retrieved:', {
-          format: certData.format
+          format: certData.format,
         });
       }
 
       return certData;
-
     } catch (error) {
       if (this.isDebugEnabled) {
         console.error('[CERTIFICATE-MANAGER] Failed to retrieve certificate:', error);
@@ -201,7 +195,6 @@ export class CertificateManager {
       if (this.isDebugEnabled) {
         console.log('[CERTIFICATE-MANAGER] Certificate cleared from storage');
       }
-
     } catch (error) {
       if (this.isDebugEnabled) {
         console.error('[CERTIFICATE-MANAGER] Failed to clear certificate:', error);
@@ -220,7 +213,7 @@ export class CertificateManager {
   async getCertificateInfo(): Promise<{ format: string } | null> {
     try {
       const cert = await this.getCertificate();
-      
+
       if (!cert) {
         return null;
       }
@@ -228,7 +221,6 @@ export class CertificateManager {
       return {
         format: cert.format,
       };
-
     } catch (error) {
       if (this.isDebugEnabled) {
         console.error('[CERTIFICATE-MANAGER] Failed to get certificate info:', error);
@@ -236,5 +228,4 @@ export class CertificateManager {
       return null;
     }
   }
-
 }

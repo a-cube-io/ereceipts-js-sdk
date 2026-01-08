@@ -1,11 +1,11 @@
 import { HttpClient } from './http-client';
-import { 
-  MerchantOutput, 
-  MerchantCreateInput, 
-  MerchantUpdateInput, 
+import {
+  LdJsonPage,
+  MerchantCreateInput,
+  MerchantOutput,
+  MerchantUpdateInput,
   MerchantsParams,
   PointOfSaleOutputMf2,
-  LdJsonPage
 } from './types';
 
 /**
@@ -19,14 +19,14 @@ export class MerchantsAPI {
    */
   async list(params: MerchantsParams): Promise<MerchantOutput[]> {
     const searchParams = new URLSearchParams();
-    
+
     if (params.page) {
       searchParams.append('page', params.page.toString());
     }
 
     const query = searchParams.toString();
     const url = query ? `/mf2/merchants?${query}` : '/mf2/merchants';
-    
+
     return this.httpClient.get<MerchantOutput[]>(url);
   }
 
@@ -54,22 +54,25 @@ export class MerchantsAPI {
   /**
    * Retrieve Point of Sale resources for a specific merchant by Supplier logged
    */
-  async listPointOfSalesBySuppliers(merchantUuid: string, params?: { 
-    page?: number,
-   }): Promise<LdJsonPage<PointOfSaleOutputMf2>> {
+  async listPointOfSalesBySuppliers(
+    merchantUuid: string,
+    params?: {
+      page?: number;
+    }
+  ): Promise<LdJsonPage<PointOfSaleOutputMf2>> {
     const searchParams = new URLSearchParams();
-    
+
     if (params?.page) {
       searchParams.append('page', params.page.toString());
     }
 
     const query = searchParams.toString();
-    const url = query 
-      ? `/mf2/merchants/${merchantUuid}/point-of-sales?${query}` 
+    const url = query
+      ? `/mf2/merchants/${merchantUuid}/point-of-sales?${query}`
       : `/mf2/merchants/${merchantUuid}/point-of-sales`;
 
     return this.httpClient.get<LdJsonPage<PointOfSaleOutputMf2>>(url, {
-      headers: { 'Accept': 'application/ld+json' }
+      headers: { Accept: 'application/ld+json' },
     });
   }
 
@@ -77,21 +80,19 @@ export class MerchantsAPI {
    *  Retrieve Point of Sale resources for a specific merchant by Merchant logged
    */
   async listPointOfSalesByMerchants(params?: {
-    page?: number,
+    page?: number;
   }): Promise<LdJsonPage<PointOfSaleOutputMf2>> {
     const searchParams = new URLSearchParams();
-    
+
     if (params?.page) {
       searchParams.append('page', params.page.toString());
     }
 
     const query = searchParams.toString();
-    const url = query 
-      ? `/mf1/point-of-sales?${query}` 
-      : `/mf1/point-of-sales`;
+    const url = query ? `/mf1/point-of-sales?${query}` : `/mf1/point-of-sales`;
 
     return this.httpClient.get<LdJsonPage<PointOfSaleOutputMf2>>(url, {
-      headers: { 'Accept': 'application/ld+json' }
+      headers: { Accept: 'application/ld+json' },
     });
   }
 }

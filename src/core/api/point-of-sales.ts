@@ -1,15 +1,14 @@
 import { HttpClient } from './http-client';
-import { 
-  PointOfSaleOutput, 
-  PointOfSaleDetailedOutput,
-  PointOfSaleUpdateInput,
+import {
   ActivationRequest,
   PEMStatusOfflineRequest,
-  Page, 
+  Page,
+  PointOfSaleDetailedOutput,
   PointOfSaleListParams,
-  PointOfSaleOutputMf2
+  PointOfSaleOutput,
+  PointOfSaleOutputMf2,
+  PointOfSaleUpdateInput,
 } from './types';
-
 
 /**
  * Point of Sales API manager
@@ -20,9 +19,9 @@ export class PointOfSalesAPI {
   /**
    * Retrieve Point of Sales (PEMs)
    */
-  async list(params: PointOfSaleListParams  = {}): Promise<Page<PointOfSaleOutput>> {
+  async list(params: PointOfSaleListParams = {}): Promise<Page<PointOfSaleOutput>> {
     const searchParams = new URLSearchParams();
-    
+
     if (params.status) {
       searchParams.append('status', params.status);
     }
@@ -35,7 +34,7 @@ export class PointOfSalesAPI {
 
     const query = searchParams.toString();
     const url = query ? `/mf1/point-of-sales?${query}` : '/mf1/point-of-sales';
-    
+
     return this.httpClient.get<Page<PointOfSaleOutput>>(url);
   }
 
@@ -49,14 +48,20 @@ export class PointOfSalesAPI {
   /**
    * Update a Point of Sale
    */
-  async update(serialNumber: string, updateData: PointOfSaleUpdateInput): Promise<PointOfSaleDetailedOutput> {
-    return this.httpClient.put<PointOfSaleDetailedOutput>(`/mf1/point-of-sales/${serialNumber}`, updateData);
+  async update(
+    serialNumber: string,
+    updateData: PointOfSaleUpdateInput
+  ): Promise<PointOfSaleDetailedOutput> {
+    return this.httpClient.put<PointOfSaleDetailedOutput>(
+      `/mf1/point-of-sales/${serialNumber}`,
+      updateData
+    );
   }
 
   /**
    * Close a journal
    */
-  async close(serial_number: string){
+  async close(serial_number: string) {
     this.httpClient.post(`/mf1/point-of-sales/${serial_number}/close`);
   }
 
@@ -81,7 +86,7 @@ export class PointOfSalesAPI {
     return this.httpClient.post(`/mf1/point-of-sales/${serialNumber}/status/offline`, offlineData);
   }
 
-   /**
+  /**
    * Retrieve a POS resource by UUID
    */
   async getMf2Pos(serialNumber: string): Promise<PointOfSaleOutputMf2> {

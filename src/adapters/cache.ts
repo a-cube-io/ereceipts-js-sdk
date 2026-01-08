@@ -100,4 +100,3 @@ export interface CacheOptions {
   /** Enable debug logging */
   debugEnabled?: boolean;
 }
-

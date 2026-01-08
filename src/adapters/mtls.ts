@@ -21,12 +21,12 @@ export interface MTLSRequestConfig {
   url: string;
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   headers?: Record<string, string>;
-  data?: any;
+  data?: unknown;
   timeout?: number;
   responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
 }
 
-export interface MTLSResponse<T = any> {
+export interface MTLSResponse<T = unknown> {
   data: T;
   status: number;
   statusText: string;
@@ -53,48 +53,48 @@ export interface IMTLSAdapter {
    * Check if mTLS is supported on current platform
    */
   isMTLSSupported(): Promise<boolean>;
-  
+
   /**
    * Initialize the mTLS adapter with configuration
    */
   initialize(config: MTLSConnectionConfig): Promise<void>;
-  
+
   /**
    * Configure certificates for mTLS authentication
    */
   configureCertificate(certificateData: CertificateData): Promise<void>;
-  
+
   /**
    * Check if certificate is configured and valid
    */
   hasCertificate(): Promise<boolean>;
-  
+
   /**
    * Get certificate information
    */
   getCertificateInfo(): Promise<CertificateInfo | null>;
-  
+
   /**
    * Make authenticated mTLS request
    */
   request<T>(config: MTLSRequestConfig): Promise<MTLSResponse<T>>;
-  
+
   /**
    * Test mTLS connection to endpoint
    */
   testConnection(): Promise<boolean>;
-  
+
   /**
    * Remove stored certificates
    */
   removeCertificate(): Promise<void>;
-  
+
   /**
    * Get the configured mTLS base URL
    * Returns null if not initialized or configured
    */
   getBaseUrl(): string | null;
-  
+
   /**
    * Get platform-specific information
    */
@@ -124,17 +124,17 @@ export class CertificateValidator {
   static validatePEMFormat(certificate: string, privateKey: string): boolean {
     const certRegex = /-----BEGIN CERTIFICATE-----[\s\S]*-----END CERTIFICATE-----/;
     const keyRegex = /-----BEGIN (RSA )?PRIVATE KEY-----[\s\S]*-----END (RSA )?PRIVATE KEY-----/;
-    
+
     return certRegex.test(certificate) && keyRegex.test(privateKey);
   }
-  
+
   /**
    * Check if the certificate is expired
    */
   static isCertificateExpired(validTo: Date): boolean {
     return new Date() > validTo;
   }
-  
+
   /**
    * Get days until the certificate expires
    */
@@ -155,7 +155,7 @@ export enum MTLSErrorType {
   CERTIFICATE_INVALID = 'MTLS_CERTIFICATE_INVALID',
   CONNECTION_FAILED = 'MTLS_CONNECTION_FAILED',
   AUTHENTICATION_FAILED = 'MTLS_AUTHENTICATION_FAILED',
-  CONFIGURATION_ERROR = 'MTLS_CONFIGURATION_ERROR'
+  CONFIGURATION_ERROR = 'MTLS_CONFIGURATION_ERROR',
 }
 
 export class MTLSError extends Error {
@@ -179,17 +179,19 @@ export class PlatformDetector {
    */
   static detectPlatform(): 'react-native' | 'node' | 'web' {
     // React Native detection
-    if (typeof global !== 'undefined' && 
-        (global as any).__expo || 
-        typeof navigator !== 'undefined' && (navigator as any).product === 'ReactNative') {
+    if (
+      (typeof global !== 'undefined' && (global as { __expo?: unknown }).__expo) ||
+      (typeof navigator !== 'undefined' &&
+        (navigator as { product?: string }).product === 'ReactNative')
+    ) {
       return 'react-native';
     }
-    
+
     // Node.js detection
     if (typeof process !== 'undefined' && process.versions?.node) {
       return 'node';
     }
-    
+
     // Web browser detection (default fallback)
     return 'web';
   }
@@ -220,15 +222,15 @@ export class PlatformDetector {
    */
   static getPlatformDetails() {
     const platform = this.detectPlatform();
-    
+
     return {
       platform,
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
       nodeVersion: typeof process !== 'undefined' ? process.version : undefined,
-      isExpo: typeof global !== 'undefined' && !!(global as any).__expo,
+      isExpo: typeof global !== 'undefined' && !!(global as { __expo?: unknown }).__expo,
       hasWindow: typeof window !== 'undefined',
       hasDocument: typeof document !== 'undefined',
-      hasProcess: typeof process !== 'undefined'
+      hasProcess: typeof process !== 'undefined',
     };
   }
 }
@@ -300,7 +302,7 @@ export class MTLSAdapterFactory {
     try {
       const adapter = await this.createAdapter();
       if (!adapter) return false;
-      
+
       return await adapter.isMTLSSupported();
     } catch {
       return false;

@@ -22,7 +22,7 @@ export enum CertificateWarningType {
   CERTIFICATE_NEAR_EXPIRY = 'CERTIFICATE_NEAR_EXPIRY',
   FALLBACK_TO_JWT = 'FALLBACK_TO_JWT',
   CERTIFICATE_NOT_CONFIGURED = 'CERTIFICATE_NOT_CONFIGURED',
-  MTLS_CONNECTION_FAILED = 'MTLS_CONNECTION_FAILED'
+  MTLS_CONNECTION_FAILED = 'MTLS_CONNECTION_FAILED',
 }
 
 /**
@@ -67,9 +67,11 @@ export class CertificateError extends Error {
    * Check if this error requires mTLS configuration
    */
   requiresMTLSConfiguration(): boolean {
-    return this.type === CertificateErrorType.MTLS_REQUIRED ||
-           this.type === CertificateErrorType.CERTIFICATE_NOT_FOUND ||
-           this.type === CertificateErrorType.CERTIFICATE_MANAGER_NOT_AVAILABLE;
+    return (
+      this.type === CertificateErrorType.MTLS_REQUIRED ||
+      this.type === CertificateErrorType.CERTIFICATE_NOT_FOUND ||
+      this.type === CertificateErrorType.CERTIFICATE_MANAGER_NOT_AVAILABLE
+    );
   }
 
   /**
@@ -78,33 +80,33 @@ export class CertificateError extends Error {
   getUserMessage(): string {
     switch (this.type) {
       case CertificateErrorType.CERTIFICATE_NOT_FOUND:
-        return this.certificateId 
+        return this.certificateId
           ? `Certificate "${this.certificateId}" not found. Please configure a certificate for mTLS authentication.`
           : 'No certificate found. Please configure a certificate for mTLS authentication.';
-      
+
       case CertificateErrorType.CERTIFICATE_MANAGER_NOT_AVAILABLE:
         return 'Certificate manager is not available. Please ensure the SDK is properly initialized.';
-      
+
       case CertificateErrorType.CERTIFICATE_EXPIRED:
         return this.certificateId
           ? `Certificate "${this.certificateId}" has expired. Please update your certificate.`
           : 'Certificate has expired. Please update your certificate.';
-      
+
       case CertificateErrorType.CERTIFICATE_INVALID:
         return 'Certificate is invalid. Please check the certificate format and content.';
-      
+
       case CertificateErrorType.CERTIFICATE_STORAGE_ERROR:
         return 'Failed to store certificate. Please check storage permissions and try again.';
-      
+
       case CertificateErrorType.CERTIFICATE_VALIDATION_ERROR:
         return 'Certificate validation failed. Please ensure the certificate is valid and properly formatted.';
-      
+
       case CertificateErrorType.MTLS_REQUIRED:
         return 'This endpoint requires mTLS authentication. Please configure a certificate.';
-      
+
       case CertificateErrorType.MTLS_NOT_SUPPORTED:
         return 'mTLS is not supported on this platform.';
-      
+
       default:
         return this.message;
     }
@@ -122,11 +124,13 @@ export class CertificateError extends Error {
       certificateId: this.certificateId,
       isRecoverable: this.isRecoverable,
       stack: this.stack,
-      originalError: this.originalError ? {
-        name: this.originalError.name,
-        message: this.originalError.message,
-        stack: this.originalError.stack
-      } : undefined
+      originalError: this.originalError
+        ? {
+            name: this.originalError.name,
+            message: this.originalError.message,
+            stack: this.originalError.stack,
+          }
+        : undefined,
     };
   }
 }
@@ -138,7 +142,7 @@ export class CertificateWarning {
   public readonly type: CertificateWarningType;
   public readonly message: string;
   public readonly certificateId?: string;
-  public readonly context?: Record<string, any>;
+  public readonly context?: Record<string, unknown>;
   public readonly timestamp: Date;
 
   constructor(
@@ -146,7 +150,7 @@ export class CertificateWarning {
     message: string,
     options: {
       certificateId?: string;
-      context?: Record<string, any>;
+      context?: Record<string, unknown>;
     } = {}
   ) {
     this.type = type;
@@ -163,21 +167,21 @@ export class CertificateWarning {
     switch (this.type) {
       case CertificateWarningType.NO_CERTIFICATE_AVAILABLE:
         return 'No certificate available for mTLS authentication. Falling back to JWT authentication.';
-      
+
       case CertificateWarningType.CERTIFICATE_NEAR_EXPIRY:
         return this.certificateId
           ? `Certificate "${this.certificateId}" will expire soon. Please renew your certificate.`
           : 'Certificate will expire soon. Please renew your certificate.';
-      
+
       case CertificateWarningType.FALLBACK_TO_JWT:
         return 'mTLS authentication failed. Falling back to JWT authentication.';
-      
+
       case CertificateWarningType.CERTIFICATE_NOT_CONFIGURED:
         return 'Certificate is not configured. Using JWT authentication for this request.';
-      
+
       case CertificateWarningType.MTLS_CONNECTION_FAILED:
         return 'mTLS connection test failed. Certificate may not be properly configured.';
-      
+
       default:
         return this.message;
     }
@@ -193,7 +197,7 @@ export class CertificateWarning {
       userMessage: this.getUserMessage(),
       certificateId: this.certificateId,
       context: this.context,
-      timestamp: this.timestamp.toISOString()
+      timestamp: this.timestamp.toISOString(),
     };
   }
 }
@@ -221,7 +225,7 @@ export function createCertificateWarning(
   message: string,
   options?: {
     certificateId?: string;
-    context?: Record<string, any>;
+    context?: Record<string, unknown>;
   }
 ): CertificateWarning {
   return new CertificateWarning(type, message, options);

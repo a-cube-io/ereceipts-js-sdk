@@ -1,7 +1,6 @@
 /**
  * Core SDK types
  */
-
 import type { UserRoles } from './roles';
 
 export type Environment = 'production' | 'development' | 'sandbox';
@@ -132,7 +131,7 @@ export class ACubeSDKError extends Error {
   constructor(
     public type: SDKError,
     message: string,
-    public originalError?: any,
+    public originalError?: unknown,
     public statusCode?: number,
     violations?: APIViolation[]
   ) {

@@ -1,10 +1,39 @@
-import { IStorage, ISecureStorage } from '../../adapters';
+import { ISecureStorage, IStorage } from '../../adapters';
 
 /**
  * React Native storage adapter using AsyncStorage
  */
+interface AsyncStorageInterface {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
+  removeItem(key: string): Promise<void>;
+  clear(): Promise<void>;
+  getAllKeys(): Promise<string[]>;
+  multiGet(keys: string[]): Promise<[string, string | null][]>;
+  multiSet(pairs: [string, string][]): Promise<void>;
+  multiRemove(keys: string[]): Promise<void>;
+}
+
+interface ExpoSecureStoreInterface {
+  getItemAsync(key: string): Promise<string | null>;
+  setItemAsync(key: string, value: string): Promise<void>;
+  deleteItemAsync(key: string): Promise<void>;
+}
+
+interface KeychainCredentials {
+  password: string;
+  username: string;
+  service: string;
+}
+
+interface KeychainInterface {
+  getInternetCredentials(server: string): Promise<KeychainCredentials | false>;
+  setInternetCredentials(server: string, username: string, password: string): Promise<void>;
+  resetInternetCredentials(server: string): Promise<void>;
+}
+
 export class ReactNativeStorageAdapter implements IStorage {
-  private AsyncStorage: any;
+  private AsyncStorage: AsyncStorageInterface | null = null;
 
   constructor() {
     this.initializeAsyncStorage();
@@ -21,16 +50,18 @@ export class ReactNativeStorageAdapter implements IStorage {
         const ReactNative = require('react-native');
         this.AsyncStorage = ReactNative.AsyncStorage;
       } catch {
-        throw new Error('AsyncStorage not available. Please install @react-native-async-storage/async-storage');
+        throw new Error(
+          'AsyncStorage not available. Please install @react-native-async-storage/async-storage'
+        );
       }
     }
   }
 
   async get(key: string): Promise<string | null> {
     if (!this.AsyncStorage) await this.initializeAsyncStorage();
-    
+
     try {
-      return await this.AsyncStorage.getItem(key);
+      return await this.AsyncStorage!.getItem(key);
     } catch (error) {
       console.error('Failed to get item from AsyncStorage:', error);
       return null;
@@ -39,9 +70,9 @@ export class ReactNativeStorageAdapter implements IStorage {
 
   async set(key: string, value: string): Promise<void> {
     if (!this.AsyncStorage) await this.initializeAsyncStorage();
-    
+
     try {
-      await this.AsyncStorage.setItem(key, value);
+      await this.AsyncStorage!.setItem(key, value);
     } catch (error) {
       throw new Error(`Failed to store item: ${error}`);
     }
@@ -49,9 +80,9 @@ export class ReactNativeStorageAdapter implements IStorage {
 
   async remove(key: string): Promise<void> {
     if (!this.AsyncStorage) await this.initializeAsyncStorage();
-    
+
     try {
-      await this.AsyncStorage.removeItem(key);
+      await this.AsyncStorage!.removeItem(key);
     } catch (error) {
       throw new Error(`Failed to remove item: ${error}`);
     }
@@ -59,9 +90,9 @@ export class ReactNativeStorageAdapter implements IStorage {
 
   async clear(): Promise<void> {
     if (!this.AsyncStorage) await this.initializeAsyncStorage();
-    
+
     try {
-      await this.AsyncStorage.clear();
+      await this.AsyncStorage!.clear();
     } catch (error) {
       throw new Error(`Failed to clear storage: ${error}`);
     }
@@ -69,9 +100,9 @@ export class ReactNativeStorageAdapter implements IStorage {
 
   async getAllKeys(): Promise<string[]> {
     if (!this.AsyncStorage) await this.initializeAsyncStorage();
-    
+
     try {
-      return await this.AsyncStorage.getAllKeys();
+      return await this.AsyncStorage!.getAllKeys();
     } catch (error) {
       console.error('Failed to get all keys:', error);
       return [];
@@ -80,9 +111,9 @@ export class ReactNativeStorageAdapter implements IStorage {
 
   async multiGet(keys: string[]): Promise<Record<string, string | null>> {
     if (!this.AsyncStorage) await this.initializeAsyncStorage();
-    
+
     try {
-      const pairs = await this.AsyncStorage.multiGet(keys);
+      const pairs = await this.AsyncStorage!.multiGet(keys);
       const result: Record<string, string | null> = {};
       pairs.forEach(([key, value]: [string, string | null]) => {
         result[key] = value;
@@ -91,7 +122,7 @@ export class ReactNativeStorageAdapter implements IStorage {
     } catch (error) {
       console.error('Failed to get multiple items:', error);
       const result: Record<string, string | null> = {};
-      keys.forEach(key => {
+      keys.forEach((key) => {
         result[key] = null;
       });
       return result;
@@ -100,10 +131,10 @@ export class ReactNativeStorageAdapter implements IStorage {
 
   async multiSet(items: Record<string, string>): Promise<void> {
     if (!this.AsyncStorage) await this.initializeAsyncStorage();
-    
+
     try {
       const pairs = Object.entries(items);
-      await this.AsyncStorage.multiSet(pairs);
+      await this.AsyncStorage!.multiSet(pairs);
     } catch (error) {
       throw new Error(`Failed to store multiple items: ${error}`);
     }
@@ -111,9 +142,9 @@ export class ReactNativeStorageAdapter implements IStorage {
 
   async multiRemove(keys: string[]): Promise<void> {
     if (!this.AsyncStorage) await this.initializeAsyncStorage();
-    
+
     try {
-      await this.AsyncStorage.multiRemove(keys);
+      await this.AsyncStorage!.multiRemove(keys);
     } catch (error) {
       throw new Error(`Failed to remove multiple items: ${error}`);
     }
@@ -124,8 +155,8 @@ export class ReactNativeStorageAdapter implements IStorage {
  * React Native secure storage adapter using expo-secure-store or react-native-keychain
  */
 export class ReactNativeSecureStorageAdapter implements ISecureStorage {
-  private secureStore: any;
-  private keychain: any;
+  private secureStore: ExpoSecureStoreInterface | null = null;
+  private keychain: KeychainInterface | null = null;
   private isExpo: boolean = false;
 
   constructor() {
@@ -156,7 +187,9 @@ export class ReactNativeSecureStorageAdapter implements ISecureStorage {
       console.error('react-native-keychain not available');
     }
 
-    throw new Error('No secure storage available. Please install expo-secure-store or react-native-keychain');
+    throw new Error(
+      'No secure storage available. Please install expo-secure-store or react-native-keychain'
+    );
   }
 
   async get(key: string): Promise<string | null> {
@@ -174,7 +207,7 @@ export class ReactNativeSecureStorageAdapter implements ISecureStorage {
     } catch (error) {
       console.error('Failed to get secure item:', error);
     }
-    
+
     return null;
   }
 

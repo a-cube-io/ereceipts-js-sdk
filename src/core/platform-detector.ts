@@ -13,9 +13,14 @@ export interface PlatformInfo {
 }
 
 // Type declarations for global variables that may not be available
-declare const global: any;
-declare const process: any;
-declare const window: any;
+declare const global: typeof globalThis & {
+  __DEV__?: boolean;
+  navigator?: { product?: string };
+  Expo?: unknown;
+  expo?: unknown;
+};
+declare const process: { versions?: { node?: string } } | undefined;
+declare const window: { document?: unknown; navigator?: unknown } | undefined;
 
 /**
  * Detect the current platform
@@ -53,11 +58,7 @@ export function detectPlatform(): PlatformInfo {
   }
 
   // Check for Node.js
-  if (
-    typeof process !== 'undefined' &&
-    process.versions &&
-    process.versions.node
-  ) {
+  if (typeof process !== 'undefined' && process.versions && process.versions.node) {
     return {
       platform: 'node',
       isReactNative: false,
@@ -82,8 +83,10 @@ export function detectPlatform(): PlatformInfo {
  */
 function checkExpo(): boolean {
   try {
-    return typeof global !== 'undefined' && 
-           (typeof global.Expo !== 'undefined' || typeof global.expo !== 'undefined');
+    return (
+      typeof global !== 'undefined' &&
+      (typeof global.Expo !== 'undefined' || typeof global.expo !== 'undefined')
+    );
   } catch {
     return false;
   }

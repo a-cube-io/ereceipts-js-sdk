@@ -3,9 +3,4 @@
  */
 
 // Object utilities
-export {
-  clearObject,
-  clearObjectShallow,
-  isEmpty,
-  hasNonEmptyValues
-} from './object';
+export { clearObject, clearObjectShallow, isEmpty, hasNonEmptyValues } from './object';

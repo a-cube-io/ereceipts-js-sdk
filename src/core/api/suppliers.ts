@@ -1,10 +1,5 @@
 import { HttpClient } from './http-client';
-import { 
-  SupplierOutput, 
-  SupplierCreateInput, 
-  SupplierUpdateInput, 
-  SuppliersParams
-} from './types';
+import { SupplierCreateInput, SupplierOutput, SupplierUpdateInput, SuppliersParams } from './types';
 
 /**
  * Suppliers API manager (MF2)
@@ -17,14 +12,14 @@ export class SuppliersAPI {
    */
   async list(params: SuppliersParams): Promise<SupplierOutput[]> {
     const searchParams = new URLSearchParams();
-    
+
     if (params.page) {
       searchParams.append('page', params.page.toString());
     }
 
     const query = searchParams.toString();
     const url = query ? `/mf2/suppliers?${query}` : '/mf2/suppliers';
-    
+
     return this.httpClient.get<SupplierOutput[]>(url);
   }
 

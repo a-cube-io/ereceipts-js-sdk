@@ -1,13 +1,7 @@
 import { INetworkMonitor } from '../adapters';
 import { HttpClient } from '../core/api';
 import { OperationQueue } from './queue';
-import { 
-  QueuedOperation, 
-  SyncResult, 
-  BatchSyncResult, 
-  QueueConfig, 
-  QueueEvents 
-} from './types';
+import { BatchSyncResult, QueueConfig, QueueEvents, QueuedOperation, SyncResult } from './types';
 
 /**
  * Sync manager for handling offline operations
@@ -67,20 +61,18 @@ export class SyncManager {
         if (batch.length === 0) break;
 
         // Process batch in parallel
-        const batchPromises = batch.map(operation => 
-          this.processOperation(operation)
-        );
+        const batchPromises = batch.map((operation) => this.processOperation(operation));
 
         const batchResults = await Promise.allSettled(batchPromises);
-        
+
         batchResults.forEach((result, index) => {
           const operation = batch[index];
           if (!operation) return;
-          
+
           if (result.status === 'fulfilled') {
             const syncResult = result.value;
             results.push(syncResult);
-            
+
             if (syncResult.success) {
               successCount++;
               this.events.onOperationCompleted?.(syncResult);
@@ -95,11 +87,11 @@ export class SyncManager {
               success: false,
               error: result.reason?.message || 'Unknown error',
             };
-            
+
             results.push(syncResult);
             failureCount++;
             this.events.onOperationFailed?.(syncResult);
-            
+
             // Update operation status
             this.queue.updateOperation(operation.id, {
               status: 'failed',
@@ -122,7 +114,7 @@ export class SyncManager {
       };
 
       this.events.onBatchSyncCompleted?.(batchResult);
-      
+
       if (this.queue.isEmpty()) {
         this.events.onQueueEmpty?.();
       }
@@ -144,7 +136,7 @@ export class SyncManager {
 
     try {
       const response = await this.executeOperation(operation);
-      
+
       // Operation successful
       await this.queue.updateOperation(operation.id, {
         status: 'completed',
@@ -157,12 +149,12 @@ export class SyncManager {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+
       // Check if we should retry
       if (operation.retryCount < operation.maxRetries && this.isRetryableError(error)) {
         // Schedule retry with exponential backoff
         const delay = this.calculateRetryDelay(operation.retryCount);
-        
+
         await this.queue.updateOperation(operation.id, {
           status: 'pending',
           retryCount: operation.retryCount + 1,
@@ -200,9 +192,9 @@ export class SyncManager {
   /**
    * Execute the actual HTTP operation
    */
-  private async executeOperation(operation: QueuedOperation): Promise<any> {
+  private async executeOperation(operation: QueuedOperation): Promise<unknown> {
     const { method, endpoint, data, headers } = operation;
-    
+
     const config = headers ? { headers } : undefined;
 
     switch (method) {
@@ -224,24 +216,27 @@ export class SyncManager {
   /**
    * Check if an error is retryable
    */
-  private isRetryableError(error: any): boolean {
+  private isRetryableError(error: unknown): boolean {
+    const errorObj = error as { code?: string; statusCode?: number };
+
     // Network errors are retryable
-    if (error.code === 'NETWORK_ERROR') {
+    if (errorObj.code === 'NETWORK_ERROR') {
       return true;
     }
 
     // Server errors (5xx) are retryable
-    if (error.statusCode && error.statusCode >= 500) {
+    if (errorObj.statusCode && errorObj.statusCode >= 500) {
       return true;
     }
 
     // Rate limiting is retryable
-    if (error.statusCode === 429) {
+    if (errorObj.statusCode === 429) {
       return true;
     }
 
     // Timeout errors are retryable
-    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+    const errorMessage = (error as Error)?.message;
+    if (errorObj.code === 'ECONNABORTED' || errorMessage?.includes('timeout')) {
       return true;
     }
 
@@ -260,7 +255,7 @@ export class SyncManager {
    * Utility delay function
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -312,7 +307,7 @@ export class SyncManager {
     if (this.networkUnsubscribe) {
       this.networkUnsubscribe();
     }
-    
+
     if (this.syncTimeout) {
       clearTimeout(this.syncTimeout);
     }

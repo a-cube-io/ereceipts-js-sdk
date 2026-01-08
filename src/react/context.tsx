@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { ACubeSDK, SDKConfig, SDKEvents, User, ACubeSDKError } from '../';
+import React, { ReactNode, createContext, useContext, useEffect, useState } from 'react';
+
+import { ACubeSDK, ACubeSDKError, SDKConfig, SDKEvents, User } from '../';
 
 /**
  * ACube SDK Context interface
@@ -113,9 +114,10 @@ export function ACubeProvider({
         }
       } catch (err) {
         if (mounted) {
-          const sdkError = err instanceof ACubeSDKError 
-            ? err 
-            : new ACubeSDKError('UNKNOWN_ERROR', 'Failed to initialize SDK', err);
+          const sdkError =
+            err instanceof ACubeSDKError
+              ? err
+              : new ACubeSDKError('UNKNOWN_ERROR', 'Failed to initialize SDK', err);
           setError(sdkError);
         }
       } finally {
@@ -145,11 +147,7 @@ export function ACubeProvider({
     pendingOperations,
   };
 
-  return (
-    <ACubeContext.Provider value={contextValue}>
-      {children}
-    </ACubeContext.Provider>
-  );
+  return <ACubeContext.Provider value={contextValue}>{children}</ACubeContext.Provider>;
 }
 
 /**

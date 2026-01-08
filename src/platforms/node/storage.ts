@@ -1,4 +1,4 @@
-import { IStorage, ISecureStorage } from '../../adapters';
+import { ISecureStorage, IStorage } from '../../adapters';
 
 /**
  * Node.js storage adapter using in-memory storage (for testing)
@@ -28,7 +28,7 @@ export class NodeStorageAdapter implements IStorage {
 
   async multiGet(keys: string[]): Promise<Record<string, string | null>> {
     const result: Record<string, string | null> = {};
-    keys.forEach(key => {
+    keys.forEach((key) => {
       result[key] = this.storage.get(key) || null;
     });
     return result;
@@ -41,7 +41,7 @@ export class NodeStorageAdapter implements IStorage {
   }
 
   async multiRemove(keys: string[]): Promise<void> {
-    keys.forEach(key => {
+    keys.forEach((key) => {
       this.storage.delete(key);
     });
   }
@@ -76,7 +76,7 @@ export class NodeSecureStorageAdapter implements ISecureStorage {
 
   async multiGet(keys: string[]): Promise<Record<string, string | null>> {
     const result: Record<string, string | null> = {};
-    keys.forEach(key => {
+    keys.forEach((key) => {
       result[key] = this.secureStorage.get(key) || null;
     });
     return result;
@@ -89,7 +89,7 @@ export class NodeSecureStorageAdapter implements ISecureStorage {
   }
 
   async multiRemove(keys: string[]): Promise<void> {
-    keys.forEach(key => {
+    keys.forEach((key) => {
       this.secureStorage.delete(key);
     });
   }

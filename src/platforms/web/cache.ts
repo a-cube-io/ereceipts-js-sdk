@@ -1,6 +1,7 @@
-import { ICacheAdapter, CachedItem, CacheSize, CacheOptions } from '../../adapters';
+import { IDBPDatabase, IDBPTransaction, deleteDB, openDB } from 'idb';
+
+import { CacheOptions, CacheSize, CachedItem, ICacheAdapter } from '../../adapters';
 import { compressData, decompressData } from '../../adapters/compression';
-import { openDB, IDBPDatabase, deleteDB } from 'idb';
 
 /**
  * Web cache adapter using IndexedDB with automatic error recovery
@@ -30,7 +31,7 @@ export class WebCacheAdapter implements ICacheAdapter {
     this.initPromise = this.initialize();
   }
 
-  private debug(message: string, data?: any): void {
+  private debug(message: string, data?: unknown): void {
     if (this.debugEnabled) {
       if (data) {
         console.log(`[CACHE-WEB] ${message}`, data);
@@ -45,7 +46,7 @@ export class WebCacheAdapter implements ICacheAdapter {
 
     this.debug('Initializing IndexedDB cache', {
       dbName: WebCacheAdapter.DB_NAME,
-      version: WebCacheAdapter.DB_VERSION
+      version: WebCacheAdapter.DB_VERSION,
     });
 
     try {
@@ -66,37 +67,33 @@ export class WebCacheAdapter implements ICacheAdapter {
   }
 
   private async openDatabase(): Promise<IDBPDatabase> {
-    return await openDB(
-      WebCacheAdapter.DB_NAME,
-      WebCacheAdapter.DB_VERSION,
-      {
-        upgrade: (db, oldVersion, newVersion, transaction) => {
-          this.debug('Database upgrade needed', { oldVersion, newVersion });
-          this.handleUpgrade(db, oldVersion, newVersion, transaction);
-        },
-        blocked: () => {
-          this.debug('Database blocked - another tab may be open');
-        },
-        blocking: () => {
-          this.debug('Database blocking - will close connection');
-          if (this.db) {
-            this.db.close();
-            this.db = null;
-          }
-        },
-        terminated: () => {
-          this.debug('Database connection terminated unexpectedly');
+    return await openDB(WebCacheAdapter.DB_NAME, WebCacheAdapter.DB_VERSION, {
+      upgrade: (db, oldVersion, newVersion, transaction) => {
+        this.debug('Database upgrade needed', { oldVersion, newVersion });
+        this.handleUpgrade(db, oldVersion, newVersion, transaction);
+      },
+      blocked: () => {
+        this.debug('Database blocked - another tab may be open');
+      },
+      blocking: () => {
+        this.debug('Database blocking - will close connection');
+        if (this.db) {
+          this.db.close();
           this.db = null;
-        },
-      }
-    );
+        }
+      },
+      terminated: () => {
+        this.debug('Database connection terminated unexpectedly');
+        this.db = null;
+      },
+    });
   }
 
   private handleUpgrade(
     db: IDBPDatabase,
     oldVersion: number,
     newVersion: number | null,
-    transaction: any
+    transaction: IDBPTransaction<unknown, string[], 'versionchange'>
   ): void {
     this.debug('Handling database upgrade', { oldVersion, newVersion });
 
@@ -114,7 +111,7 @@ export class WebCacheAdapter implements ICacheAdapter {
       // Remove unused indexes from simplified cache structure
       const indexesToRemove = ['tags', 'source', 'syncStatus'];
 
-      indexesToRemove.forEach(indexName => {
+      indexesToRemove.forEach((indexName) => {
         try {
           if (store.indexNames.contains(indexName)) {
             store.deleteIndex(indexName);
@@ -131,9 +128,11 @@ export class WebCacheAdapter implements ICacheAdapter {
   }
 
   private isVersionConflictError(errorMessage: string): boolean {
-    return errorMessage.includes('less than the existing version') ||
-           errorMessage.includes('version conflict') ||
-           errorMessage.includes('VersionError');
+    return (
+      errorMessage.includes('less than the existing version') ||
+      errorMessage.includes('version conflict') ||
+      errorMessage.includes('VersionError')
+    );
   }
 
   private async handleVersionConflict(): Promise<void> {
@@ -157,10 +156,12 @@ export class WebCacheAdapter implements ICacheAdapter {
       await deleteDB(WebCacheAdapter.DB_NAME);
 
       // Wait a bit for the deletion to complete
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Try to open the database again
-      this.debug(`Retrying database initialization (attempt ${this.retryCount}/${this.maxRetries})`);
+      this.debug(
+        `Retrying database initialization (attempt ${this.retryCount}/${this.maxRetries})`
+      );
       this.db = await this.openDatabase();
 
       this.debug('Successfully recovered from version conflict');
@@ -196,13 +197,13 @@ export class WebCacheAdapter implements ICacheAdapter {
 
       // Handle decompression if needed
       const isCompressed = !!item.compressed;
-      let finalData: any;
+      let finalData: T;
 
       if (isCompressed) {
         const decompressed = decompressData(item.data as string, true);
-        finalData = JSON.parse(decompressed.data);
+        finalData = JSON.parse(decompressed.data) as T;
       } else {
-        finalData = item.data;
+        finalData = item.data as T;
       }
 
       return {
@@ -229,7 +230,7 @@ export class WebCacheAdapter implements ICacheAdapter {
     await this.ensureInitialized();
 
     // Handle compression if enabled
-    let finalData: any = item.data;
+    let finalData: T | string = item.data;
     let isCompressed = false;
 
     if (this.options.compression && this.options.compressionThreshold) {
@@ -245,14 +246,14 @@ export class WebCacheAdapter implements ICacheAdapter {
           originalSize: compressionResult.originalSize,
           compressedSize: compressionResult.compressedSize,
           compressed: isCompressed,
-          savings: compressionResult.originalSize - compressionResult.compressedSize
+          savings: compressionResult.originalSize - compressionResult.compressedSize,
         });
       }
     }
 
     this.debug('Setting cache item', { key, timestamp: item.timestamp, compressed: isCompressed });
 
-    const storedItem: StoredCacheItem<any> = {
+    const storedItem: StoredCacheItem<T | string> = {
       key,
       data: finalData,
       timestamp: item.timestamp,
@@ -294,9 +295,9 @@ export class WebCacheAdapter implements ICacheAdapter {
     }
   }
 
-  private prepareBatchItem<T>(key: string, item: CachedItem<T>): StoredCacheItem<any> {
+  private prepareBatchItem<T>(key: string, item: CachedItem<T>): StoredCacheItem<T | string> {
     // Handle compression if enabled (same logic as setItem)
-    let finalData: any = item.data;
+    let finalData: T | string = item.data;
     let isCompressed = false;
 
     if (this.options.compression && this.options.compressionThreshold) {
@@ -321,7 +322,7 @@ export class WebCacheAdapter implements ICacheAdapter {
     await this.ensureInitialized();
 
     const keys = await this.getKeys(pattern);
-    const deletePromises = keys.map(key => this.delete(key));
+    const deletePromises = keys.map((key) => this.delete(key));
     await Promise.all(deletePromises);
   }
 
@@ -385,14 +386,14 @@ export class WebCacheAdapter implements ICacheAdapter {
     try {
       const transaction = this.db!.transaction([WebCacheAdapter.STORE_NAME], 'readonly');
       const store = transaction.objectStore(WebCacheAdapter.STORE_NAME);
-      const allKeys = await store.getAllKeys() as string[];
+      const allKeys = (await store.getAllKeys()) as string[];
 
       if (!pattern) {
         return allKeys;
       }
 
       const regex = this.patternToRegex(pattern);
-      return allKeys.filter(key => regex.test(key));
+      return allKeys.filter((key) => regex.test(key));
     } catch (error) {
       this.debug('Error getting cache keys', error);
       return [];

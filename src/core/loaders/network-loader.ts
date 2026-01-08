@@ -1,9 +1,8 @@
 import { INetworkMonitor } from '../../adapters';
-
+import { NodeNetworkMonitor } from '../../platforms/node/network';
+import { ReactNativeNetworkMonitor } from '../../platforms/react-native/network';
 // Static imports for all platforms
 import { WebNetworkMonitor } from '../../platforms/web/network';
-import { ReactNativeNetworkMonitor } from '../../platforms/react-native/network';
-import { NodeNetworkMonitor } from '../../platforms/node/network';
 
 /**
  * Load platform-specific network monitor

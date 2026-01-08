@@ -3,7 +3,13 @@
  */
 
 export type OperationType = 'CREATE' | 'UPDATE' | 'DELETE';
-export type ResourceType = 'receipt' | 'cashier' | 'point-of-sale' | 'cash-register' | 'merchant' | 'pem';
+export type ResourceType =
+  | 'receipt'
+  | 'cashier'
+  | 'point-of-sale'
+  | 'cash-register'
+  | 'merchant'
+  | 'pem';
 export type OperationStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
 /**
@@ -15,7 +21,7 @@ export interface QueuedOperation {
   resource: ResourceType;
   endpoint: string;
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  data?: any;
+  data?: unknown;
   headers?: Record<string, string>;
   status: OperationStatus;
   createdAt: number;
@@ -33,7 +39,7 @@ export interface SyncResult {
   operation: QueuedOperation;
   success: boolean;
   error?: string;
-  response?: any;
+  response?: unknown;
 }
 
 /**

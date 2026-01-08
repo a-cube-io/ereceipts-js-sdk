@@ -1,4 +1,4 @@
-import {Environment, SDKConfig} from './types';
+import { Environment, SDKConfig } from './types';
 
 /**
  * Default SDK configuration
@@ -25,15 +25,15 @@ export class ConfigManager {
   }
 
   private mergeConfig(userConfig: SDKConfig): Required<SDKConfig> {
-      return {
-        ...DEFAULT_CONFIG,
-        ...userConfig,
-        apiUrl: userConfig.apiUrl || this.getDefaultApiUrl(userConfig.environment),
-        authUrl: userConfig.authUrl || this.getDefaultAuthUrl(userConfig.environment),
-        certificateConfig: {
-          ...DEFAULT_CONFIG.certificateConfig,
-          ...userConfig.certificateConfig
-        }
+    return {
+      ...DEFAULT_CONFIG,
+      ...userConfig,
+      apiUrl: userConfig.apiUrl || this.getDefaultApiUrl(userConfig.environment),
+      authUrl: userConfig.authUrl || this.getDefaultAuthUrl(userConfig.environment),
+      certificateConfig: {
+        ...DEFAULT_CONFIG.certificateConfig,
+        ...userConfig.certificateConfig,
+      },
     };
   }
 

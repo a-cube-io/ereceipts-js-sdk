@@ -1,15 +1,12 @@
 /**
  * Role and Permission Management System
- * 
+ *
  * This module provides type-safe role management with hierarchical permissions
  * and context-based authorization for the ACube E-Receipt system.
  */
 
 // Base role definitions
-export type BaseRole = 
-  | 'ROLE_SUPPLIER'
-  | 'ROLE_CASHIER'
-  | 'ROLE_MERCHANT' 
+export type BaseRole = 'ROLE_SUPPLIER' | 'ROLE_CASHIER' | 'ROLE_MERCHANT';
 
 // Context definitions
 export type RoleContext = 'ereceipts-it.acubeapi.com';
@@ -60,19 +57,19 @@ export const ROLE_LEVELS: Record<BaseRole, RoleLevel> = {
  * @returns Array of all effective roles (direct + inherited)
  */
 export function getEffectiveRoles(
-  userRoles: UserRoles, 
+  userRoles: UserRoles,
   context: RoleContext = DEFAULT_CONTEXT
 ): BaseRole[] {
   const directRoles = userRoles[context] || [];
   const effectiveRoles = new Set<BaseRole>();
 
   // Add direct roles
-  directRoles.forEach(role => effectiveRoles.add(role));
+  directRoles.forEach((role) => effectiveRoles.add(role));
 
   // Add inherited roles
-  directRoles.forEach(role => {
+  directRoles.forEach((role) => {
     const inheritedRoles = getInheritedRoles(role);
-    inheritedRoles.forEach(inheritedRole => effectiveRoles.add(inheritedRole));
+    inheritedRoles.forEach((inheritedRole) => effectiveRoles.add(inheritedRole));
   });
 
   return Array.from(effectiveRoles);
@@ -90,8 +87,8 @@ export function getInheritedRoles(role: BaseRole): BaseRole[] {
   while (toProcess.length > 0) {
     const currentRole = toProcess.pop()!;
     const childRoles = ROLE_HIERARCHY[currentRole] || [];
-    
-    childRoles.forEach(childRole => {
+
+    childRoles.forEach((childRole) => {
       if (!inherited.has(childRole)) {
         inherited.add(childRole);
         toProcess.push(childRole);
@@ -130,7 +127,7 @@ export function hasAnyRole(
   roles: BaseRole[],
   context: RoleContext = DEFAULT_CONTEXT
 ): boolean {
-  return roles.some(role => hasRole(userRoles, role, context));
+  return roles.some((role) => hasRole(userRoles, role, context));
 }
 
 /**
@@ -145,7 +142,7 @@ export function hasAllRoles(
   roles: BaseRole[],
   context: RoleContext = DEFAULT_CONTEXT
 ): boolean {
-  return roles.every(role => hasRole(userRoles, role, context));
+  return roles.every((role) => hasRole(userRoles, role, context));
 }
 
 /**
@@ -154,10 +151,7 @@ export function hasAllRoles(
  * @param context - Context to check
  * @returns True if user has any roles in the context
  */
-export function hasContext(
-  userRoles: UserRoles,
-  context: RoleContext
-): boolean {
+export function hasContext(userRoles: UserRoles, context: RoleContext): boolean {
   return context in userRoles && !!userRoles[context] && userRoles[context].length > 0;
 }
 
@@ -168,7 +162,11 @@ export function hasContext(
  */
 export function getUserContexts(userRoles: UserRoles): RoleContext[] {
   const contexts: RoleContext[] = [];
-  if (DEFAULT_CONTEXT in userRoles && userRoles[DEFAULT_CONTEXT] && userRoles[DEFAULT_CONTEXT]!.length > 0) {
+  if (
+    DEFAULT_CONTEXT in userRoles &&
+    userRoles[DEFAULT_CONTEXT] &&
+    userRoles[DEFAULT_CONTEXT]!.length > 0
+  ) {
     contexts.push(DEFAULT_CONTEXT);
   }
   return contexts;
@@ -187,9 +185,9 @@ export function hasMinimumRoleLevel(
   context: RoleContext = DEFAULT_CONTEXT
 ): boolean {
   const effectiveRoles = getEffectiveRoles(userRoles, context);
-  const userLevels = effectiveRoles.map(role => ROLE_LEVELS[role]);
+  const userLevels = effectiveRoles.map((role) => ROLE_LEVELS[role]);
   const maxUserLevel = Math.max(...userLevels, 0);
-  
+
   return maxUserLevel >= minimumLevel;
 }
 
@@ -204,12 +202,12 @@ export function getHighestRoleLevel(
   context: RoleContext = DEFAULT_CONTEXT
 ): RoleLevel | null {
   const effectiveRoles = getEffectiveRoles(userRoles, context);
-  
+
   if (effectiveRoles.length === 0) {
     return null;
   }
 
-  const userLevels = effectiveRoles.map(role => ROLE_LEVELS[role]);
+  const userLevels = effectiveRoles.map((role) => ROLE_LEVELS[role]);
   return Math.max(...userLevels) as RoleLevel;
 }
 
@@ -240,19 +238,17 @@ export function canPerformAction(
  */
 export function createContextRoleChecker(context: RoleContext) {
   return {
-    hasRole: (userRoles: UserRoles, role: BaseRole) => 
-      hasRole(userRoles, role, context),
-    
-    hasAnyRole: (userRoles: UserRoles, roles: BaseRole[]) => 
-      hasAnyRole(userRoles, roles, context),
-    
-    hasAllRoles: (userRoles: UserRoles, roles: BaseRole[]) => 
+    hasRole: (userRoles: UserRoles, role: BaseRole) => hasRole(userRoles, role, context),
+
+    hasAnyRole: (userRoles: UserRoles, roles: BaseRole[]) => hasAnyRole(userRoles, roles, context),
+
+    hasAllRoles: (userRoles: UserRoles, roles: BaseRole[]) =>
       hasAllRoles(userRoles, roles, context),
-    
-    hasMinimumLevel: (userRoles: UserRoles, level: RoleLevel) => 
+
+    hasMinimumLevel: (userRoles: UserRoles, level: RoleLevel) =>
       hasMinimumRoleLevel(userRoles, level, context),
-    
-    canPerformAction: (userRoles: UserRoles, requiredRoles: BaseRole[], requireAll?: boolean) => 
+
+    canPerformAction: (userRoles: UserRoles, requiredRoles: BaseRole[], requireAll?: boolean) =>
       canPerformAction(userRoles, requiredRoles, context, requireAll),
   };
 }
@@ -261,15 +257,20 @@ export function createContextRoleChecker(context: RoleContext) {
  * Role-based authorization decorator for methods
  */
 export function requiresRole(roles: BaseRole[], context: RoleContext = DEFAULT_CONTEXT) {
-  return function (_target: any, _propertyName: string, descriptor: PropertyDescriptor) {
+  return function (_target: object, _propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
 
-    descriptor.value = function (...args: any[]) {
+    descriptor.value = function (...args: unknown[]) {
       // Assume first parameter contains user roles or user object
-      const userRoles = args[0]?.roles || args[0];
-      
-      if (!hasAnyRole(userRoles, roles, context)) {
-        throw new Error(`Access denied. Required roles: ${roles.join(', ')} in context: ${context}`);
+      const firstArg = args[0] as { roles?: UserRoles } | UserRoles | undefined;
+      const userRoles = (firstArg && 'roles' in firstArg ? firstArg.roles : firstArg) as
+        | UserRoles
+        | undefined;
+
+      if (!userRoles || !hasAnyRole(userRoles, roles, context)) {
+        throw new Error(
+          `Access denied. Required roles: ${roles.join(', ')} in context: ${context}`
+        );
       }
 
       return method.apply(this, args);
@@ -289,8 +290,8 @@ export interface RoleAware {
 /**
  * Type guard to check if an object has role information
  */
-export function hasRoleInformation(obj: any): obj is RoleAware {
-  return obj && typeof obj === 'object' && 'roles' in obj;
+export function hasRoleInformation(obj: unknown): obj is RoleAware {
+  return Boolean(obj && typeof obj === 'object' && 'roles' in obj);
 }
 
 /**
@@ -300,14 +301,14 @@ export function hasRoleInformation(obj: any): obj is RoleAware {
  */
 export function parseLegacyRoles(legacyRoles: Record<string, string[]>): UserRoles {
   const userRoles: UserRoles = {};
-  
+
   // Only process the default context
   if (DEFAULT_CONTEXT in legacyRoles) {
-    userRoles[DEFAULT_CONTEXT] = legacyRoles[DEFAULT_CONTEXT].filter((role): role is BaseRole => 
+    userRoles[DEFAULT_CONTEXT] = legacyRoles[DEFAULT_CONTEXT].filter((role): role is BaseRole =>
       Object.keys(ROLE_HIERARCHY).includes(role)
     );
   }
-  
+
   return userRoles;
 }
 
@@ -318,11 +319,11 @@ export function parseLegacyRoles(legacyRoles: Record<string, string[]>): UserRol
  */
 export function toLegacyRoles(userRoles: UserRoles): Record<string, string[]> {
   const legacyRoles: Record<string, string[]> = {};
-  
+
   Object.entries(userRoles).forEach(([context, roles]) => {
     legacyRoles[context] = roles;
   });
-  
+
   return legacyRoles;
 }
 

@@ -56,7 +56,7 @@ export interface Address {
   province: string;
 }
 
-export type PointOfSaleMf2Type =  'AP' | 'SP' | 'TM' | 'PV'
+export type PointOfSaleMf2Type = 'AP' | 'SP' | 'TM' | 'PV';
 
 export interface PointOfSaleOutputMf2 {
   id: string;
@@ -71,9 +71,9 @@ export interface PointOfSaleOutput {
   operational_status: string;
 }
 
-export interface PointOfSaleListParams { 
-  status?: PEMStatus; 
-  page?: number; 
+export interface PointOfSaleListParams {
+  status?: PEMStatus;
+  page?: number;
   size?: number;
 }
 
@@ -101,11 +101,54 @@ export interface PointOfSaleUpdateInput {
 // Receipt types
 export type ReceiptType = 'sale' | 'return' | 'void';
 export type GoodOrService = 'goods' | 'service';
-export type VatRateCode = '4.00' | '5.00' | '10.00' | '22.00' | '2.00' | '6.40' | '7.00' | '7.30' | '7.50' | '7.65' | '7.95' | '8.30' | '8.50' | '8.80' | '9.50' | '12.30' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6';
+export type VatRateCode =
+  | '4.00'
+  | '5.00'
+  | '10.00'
+  | '22.00'
+  | '2.00'
+  | '6.40'
+  | '7.00'
+  | '7.30'
+  | '7.50'
+  | '7.65'
+  | '7.95'
+  | '8.30'
+  | '8.50'
+  | '8.80'
+  | '9.50'
+  | '12.30'
+  | 'N1'
+  | 'N2'
+  | 'N3'
+  | 'N4'
+  | 'N5'
+  | 'N6';
 
 export const VatRateCodeOptions: VatRateCode[] = [
-  '4.00', '5.00', '10.00', '22.00', '2.00', '6.40', '7.00', '7.30', '7.50', '7.65', '7.95', '8.30', '8.50', '8.80', '9.50', '12.30', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6'
-]
+  '4.00',
+  '5.00',
+  '10.00',
+  '22.00',
+  '2.00',
+  '6.40',
+  '7.00',
+  '7.30',
+  '7.50',
+  '7.65',
+  '7.95',
+  '8.30',
+  '8.50',
+  '8.80',
+  '9.50',
+  '12.30',
+  'N1',
+  'N2',
+  'N3',
+  'N4',
+  'N5',
+  'N6',
+];
 
 export interface ReceiptItem {
   type?: GoodOrService;
@@ -120,8 +163,8 @@ export interface ReceiptItem {
 }
 
 export interface ReceiptReturnItem {
- id: number;
- quantity: string;
+  id: number;
+  quantity: string;
 }
 
 export interface ReceiptInput {
@@ -203,12 +246,12 @@ export interface ReceiptReturnOrVoidViaPEMInput {
 
 export type ReceiptProofType = 'POS' | 'VR' | 'ND';
 
-export const RECEIPT_READY='ready';
-export const RECEIPT_SENT='sent';
+export const RECEIPT_READY = 'ready';
+export const RECEIPT_SENT = 'sent';
 export type ReceiptStatus = typeof RECEIPT_READY | typeof RECEIPT_SENT;
 
-export const RECEIPT_SORT_DESCENDING='descending';
-export const RECEIPT_SORT_ASCENDING='ascending';
+export const RECEIPT_SORT_DESCENDING = 'descending';
+export const RECEIPT_SORT_ASCENDING = 'ascending';
 export type ReceiptSortOrder = typeof RECEIPT_SORT_DESCENDING | typeof RECEIPT_SORT_ASCENDING;
 
 export interface ReceiptListParams {
@@ -247,9 +290,9 @@ export interface CashRegisterDetailedOutput {
   private_key: string;
 }
 
-export interface CashRegisterListParams { 
-  page?: number; 
-  size?: number; 
+export interface CashRegisterListParams {
+  page?: number;
+  size?: number;
   serial_number?: string;
 }
 
@@ -266,7 +309,7 @@ export interface MerchantOutput {
 }
 
 export interface MerchantsParams {
-  page?: number
+  page?: number;
 }
 
 export interface MerchantCreateInput {

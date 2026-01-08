@@ -1,10 +1,11 @@
 import axios from 'axios';
+
 import { ACubeSDKError } from '../../types';
 
 /**
  * Transform axios errors to SDK errors
  */
-export function transformError(error: any): ACubeSDKError {
+export function transformError(error: unknown): ACubeSDKError {
   if (axios.isAxiosError(error)) {
     const response = error.response;
 

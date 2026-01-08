@@ -4,12 +4,12 @@ import { MTLSError } from '../../../adapters';
  * Error types for better error classification
  */
 export enum ErrorCategory {
-  SERVER_ERROR = 'SERVER_ERROR',           // 5xx - Server internal errors
-  CLIENT_ERROR = 'CLIENT_ERROR',           // 4xx - Client request errors
-  AUTH_ERROR = 'AUTH_ERROR',               // 401, 403 - Authentication/Authorization
+  SERVER_ERROR = 'SERVER_ERROR', // 5xx - Server internal errors
+  CLIENT_ERROR = 'CLIENT_ERROR', // 4xx - Client request errors
+  AUTH_ERROR = 'AUTH_ERROR', // 401, 403 - Authentication/Authorization
   CERTIFICATE_ERROR = 'CERTIFICATE_ERROR', // Certificate-related errors
-  NETWORK_ERROR = 'NETWORK_ERROR',         // Network/connection errors
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR'          // Unknown errors
+  NETWORK_ERROR = 'NETWORK_ERROR', // Network/connection errors
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR', // Unknown errors
 }
 
 /**
@@ -26,20 +26,22 @@ export interface ErrorClassification {
 /**
  * Extract status code from various error types
  */
-function extractStatusCode(error: any): number | undefined {
+function extractStatusCode(error: unknown): number | undefined {
   // Check MTLSError
   if (error instanceof MTLSError && error.statusCode) {
     return error.statusCode;
   }
 
+  const errorObj = error as { response?: { status?: number }; statusCode?: number };
+
   // Check axios error
-  if (error?.response?.status) {
-    return error.response.status;
+  if (errorObj?.response?.status) {
+    return errorObj.response.status;
   }
 
   // Check if error has statusCode property
-  if (typeof error?.statusCode === 'number') {
-    return error.statusCode;
+  if (typeof errorObj?.statusCode === 'number') {
+    return errorObj.statusCode;
   }
 
   return undefined;
@@ -48,7 +50,7 @@ function extractStatusCode(error: any): number | undefined {
 /**
  * Classify error based on status code and error type
  */
-export function classifyError(error: any): ErrorClassification {
+export function classifyError(error: unknown): ErrorClassification {
   const statusCode = extractStatusCode(error);
   const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -59,7 +61,7 @@ export function classifyError(error: any): ErrorClassification {
       statusCode,
       message: errorMessage,
       shouldRetry: false,
-      userMessage: `Server error (${statusCode}): The server encountered an error. Please contact support if this persists.`
+      userMessage: `Server error (${statusCode}): The server encountered an error. Please contact support if this persists.`,
     };
   }
 
@@ -70,7 +72,7 @@ export function classifyError(error: any): ErrorClassification {
       statusCode,
       message: errorMessage,
       shouldRetry: false,
-      userMessage: `Authentication error (${statusCode}): Invalid credentials or insufficient permissions.`
+      userMessage: `Authentication error (${statusCode}): Invalid credentials or insufficient permissions.`,
     };
   }
 
@@ -81,7 +83,7 @@ export function classifyError(error: any): ErrorClassification {
       statusCode,
       message: errorMessage,
       shouldRetry: false,
-      userMessage: `Request error (${statusCode}): ${errorMessage}`
+      userMessage: `Request error (${statusCode}): ${errorMessage}`,
     };
   }
 
@@ -92,21 +94,23 @@ export function classifyError(error: any): ErrorClassification {
       statusCode,
       message: errorMessage,
       shouldRetry: true,
-      userMessage: 'Certificate error: Unable to establish secure connection. Please check your certificate.'
+      userMessage:
+        'Certificate error: Unable to establish secure connection. Please check your certificate.',
     };
   }
 
   // Network errors (no status code) - Retry once
-  if (!statusCode && (
-    errorMessage.toLowerCase().includes('network') ||
-    errorMessage.toLowerCase().includes('timeout') ||
-    errorMessage.toLowerCase().includes('connection')
-  )) {
+  if (
+    !statusCode &&
+    (errorMessage.toLowerCase().includes('network') ||
+      errorMessage.toLowerCase().includes('timeout') ||
+      errorMessage.toLowerCase().includes('connection'))
+  ) {
     return {
       category: ErrorCategory.NETWORK_ERROR,
       message: errorMessage,
       shouldRetry: true,
-      userMessage: 'Network error: Unable to connect to server. Please check your connection.'
+      userMessage: 'Network error: Unable to connect to server. Please check your connection.',
     };
   }
 
@@ -116,14 +120,14 @@ export function classifyError(error: any): ErrorClassification {
     statusCode,
     message: errorMessage,
     shouldRetry: false,
-    userMessage: `Unexpected error: ${errorMessage}`
+    userMessage: `Unexpected error: ${errorMessage}`,
   };
 }
 
 /**
  * Check if error should trigger certificate reconfiguration
  */
-export function shouldReconfigureCertificate(error: any): boolean {
+export function shouldReconfigureCertificate(error: unknown): boolean {
   const classification = classifyError(error);
 
   // Only reconfigure for certificate errors, not for server/client errors
@@ -133,7 +137,7 @@ export function shouldReconfigureCertificate(error: any): boolean {
 /**
  * Check if error should be retried
  */
-export function shouldRetryRequest(error: any, isRetryAttempt: boolean): boolean {
+export function shouldRetryRequest(error: unknown, isRetryAttempt: boolean): boolean {
   // Never retry if this is already a retry attempt
   if (isRetryAttempt) {
     return false;
@@ -146,7 +150,7 @@ export function shouldRetryRequest(error: any, isRetryAttempt: boolean): boolean
 /**
  * Get user-friendly error message
  */
-export function getUserFriendlyMessage(error: any): string {
+export function getUserFriendlyMessage(error: unknown): string {
   const classification = classifyError(error);
   return classification.userMessage;
 }

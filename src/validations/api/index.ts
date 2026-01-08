@@ -1,13 +1,13 @@
 /**
  * Zod validation schemas for ACube E-Receipt API
- * 
+ *
  * This module exports all validation schemas and types for API input DTOs.
  * Use these schemas to validate user input before sending requests to the API.
- * 
+ *
  * @example
  * ```typescript
  * import { ReceiptInputSchema, ReceiptInputType } from '@/validations/api';
- * 
+ *
  * // Validate input data
  * const result = ReceiptInputSchema.safeParse(userInput);
  * if (!result.success) {
@@ -18,8 +18,7 @@
  * }
  * ```
  */
-
-import * as z from "zod";
+import * as z from 'zod';
 
 // Receipt schemas and types
 export {
@@ -49,10 +48,7 @@ export {
 } from './receipts';
 
 // Cashier schemas and types
-export {
-  CashierCreateInputSchema,
-  type CashierCreateInputType,
-} from './cashiers';
+export { CashierCreateInputSchema, type CashierCreateInputType } from './cashiers';
 
 // Point of Sales schemas and types
 export {
@@ -68,10 +64,7 @@ export {
 } from './point-of-sales';
 
 // Cash Register schemas and types
-export {
-  CashRegisterCreateSchema,
-  type CashRegisterCreateType,
-} from './cash-registers';
+export { CashRegisterCreateSchema, type CashRegisterCreateType } from './cash-registers';
 
 // Merchant schemas and types
 export {
@@ -99,10 +92,7 @@ export {
 } from './suppliers';
 
 // Journal schemas and types
-export {
-  JournalCloseInputSchema,
-  type JournalCloseInputType,
-} from './journals';
+export { JournalCloseInputSchema, type JournalCloseInputType } from './journals';
 
 // Daily Reports schemas and types
 export {
@@ -120,7 +110,8 @@ export const ValidationMessages = {
   paymentMethodRequired: 'At least one payment method is required',
   invalidEmail: 'Please enter a valid email address',
   passwordMinLength: 'Password must be at least 8 characters long',
-  passwordComplexity: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
+  passwordComplexity:
+    'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
   invalidZipCode: 'Please enter a valid 5-digit zip code',
   provinceMinLength: 'Province code must be 2 characters',
   provinceMaxLength: 'Province code must be 2 characters',
@@ -130,7 +121,8 @@ export const ValidationMessages = {
   invalidVatNumber: 'Please enter a valid VAT number (11 digits)',
   invalidFiscalCode: 'Please enter a valid fiscal code (11 digits)',
   businessNameMaxLength: 'Business name is too long (max 200 characters)',
-  businessNameOrPersonalNamesRequired: 'Please provide either a business name or first/last name, but not both',
+  businessNameOrPersonalNamesRequired:
+    'Please provide either a business name or first/last name, but not both',
   firstNameMaxLength: 'First name is too long (max 100 characters)',
   lastNameMaxLength: 'Last name is too long (max 100 characters)',
   invalidUuid: 'Please enter a valid UUID',
@@ -141,25 +133,24 @@ export const ValidationMessages = {
   displayNameMaxLength: 'Display name is too long (max 255 characters)',
 } as const;
 
-
 // Validation helper functions
 export const validateInput = <T>(schema: z.ZodSchema<T>, data: unknown) => {
   const result = schema.safeParse(data);
-  
+
   if (!result.success) {
-    const errors = result.error.issues.map((error: any) => ({
+    const errors = result.error.issues.map((error) => ({
       field: error.path.join('.'),
       message: error.message,
       code: error.code,
     }));
-    
+
     return {
       success: false,
       errors,
       data: null,
     };
   }
-  
+
   return {
     success: true,
     errors: [],

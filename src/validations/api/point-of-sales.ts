@@ -1,7 +1,14 @@
-import * as z from "zod";
+import * as z from 'zod';
 
 // Enum options arrays
-export const PEM_STATUS_OPTIONS = ['NEW', 'REGISTERED', 'ACTIVATED', 'ONLINE', 'OFFLINE', 'DISCARDED'] as const;
+export const PEM_STATUS_OPTIONS = [
+  'NEW',
+  'REGISTERED',
+  'ACTIVATED',
+  'ONLINE',
+  'OFFLINE',
+  'DISCARDED',
+] as const;
 
 // Address Schema (reusable)
 export const AddressSchema = z.object({
@@ -33,7 +40,7 @@ export const PEMStatusOfflineRequestSchema = z.object({
     .string()
     .min(1, { error: 'fieldIsRequired' })
     .refine((val) => !isNaN(Date.parse(val)), {
-      error: 'invalidDateFormat'
+      error: 'invalidDateFormat',
     }),
   reason: z.string().min(1, { error: 'fieldIsRequired' }),
 });

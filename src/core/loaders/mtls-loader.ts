@@ -1,15 +1,14 @@
 import { IMTLSAdapter, MTLSConnectionConfig } from '../../adapters';
-import { detectPlatform, Platform } from '../platform-detector';
-
 // Static imports for all platforms
 import { ReactNativeMTLSAdapter } from '../../platforms/react-native/mtls';
 import { WebMTLSAdapter } from '../../platforms/web/mtls';
+import { Platform, detectPlatform } from '../platform-detector';
 
 /**
  * Load and optionally initialize a platform-specific mTLS adapter
  */
 export function loadMTLSAdapter(
-  platform: Platform, 
+  platform: Platform,
   debugEnabled = false,
   config?: {
     baseUrl?: string;
@@ -21,7 +20,7 @@ export function loadMTLSAdapter(
 ): IMTLSAdapter | null {
   try {
     let adapter: IMTLSAdapter;
-    
+
     switch (platform) {
       case 'react-native':
         adapter = loadReactNativeMTLSAdapter(debugEnabled);
@@ -44,9 +43,9 @@ export function loadMTLSAdapter(
         baseUrl: config.baseUrl,
         port: config.port || 444,
         timeout: config.timeout || 30000,
-        validateCertificate: config.validateCertificate ?? true
+        validateCertificate: config.validateCertificate ?? true,
       };
-      
+
       // Initialize asynchronously in the background - don't block adapter creation
       void initializeAdapterAsync(adapter, mtlsConfig, debugEnabled);
     }
@@ -64,23 +63,23 @@ export function loadMTLSAdapter(
  * Initialize the adapter asynchronously without blocking
  */
 async function initializeAdapterAsync(
-  adapter: IMTLSAdapter, 
-  config: MTLSConnectionConfig, 
+  adapter: IMTLSAdapter,
+  config: MTLSConnectionConfig,
   debugEnabled: boolean
 ): Promise<void> {
   try {
     const isSupported = await adapter.isMTLSSupported();
-    
+
     if (isSupported) {
       await adapter.initialize(config);
-      
+
       if (debugEnabled) {
         const platformInfo = adapter.getPlatformInfo();
         console.log('[MTLS-LOADER] mTLS adapter initialized:', {
           platform: platformInfo.platform,
           mtlsSupported: platformInfo.mtlsSupported,
           certificateStorage: platformInfo.certificateStorage,
-          baseUrl: config.baseUrl
+          baseUrl: config.baseUrl,
         });
       }
     } else {
@@ -103,7 +102,7 @@ function loadReactNativeMTLSAdapter(debugEnabled = false): IMTLSAdapter {
 }
 
 /**
- * Load Node.js mTLS adapter (https.Agent + axios-based) 
+ * Load Node.js mTLS adapter (https.Agent + axios-based)
  * Only loaded dynamically to avoid bundling Node.js code in non-Node environments
  */
 function loadNodeMTLSAdapter(debugEnabled = false): IMTLSAdapter {
@@ -130,7 +129,7 @@ function loadWebMTLSAdapter(debugEnabled = false): IMTLSAdapter {
  */
 export function detectPlatformForMTLS(): 'react-native' | 'node' | 'web' {
   const { platform } = detectPlatform();
-  return platform === 'unknown' ? 'web' : platform as 'react-native' | 'node' | 'web';
+  return platform === 'unknown' ? 'web' : (platform as 'react-native' | 'node' | 'web');
 }
 
 /**
@@ -142,22 +141,22 @@ export const MTLS_CONFIG_BY_PLATFORM = {
     certificateStorage: 'keychain',
     fallbackToJWT: true,
     defaultTimeout: 30000,
-    description: 'Uses @a-cube-io/expo-mutual-tls for native mTLS support'
+    description: 'Uses @a-cube-io/expo-mutual-tls for native mTLS support',
   },
   node: {
     mtlsSupported: true,
     certificateStorage: 'filesystem',
     fallbackToJWT: true,
     defaultTimeout: 30000,
-    description: 'Uses https.Agent with client certificates + axios'
+    description: 'Uses https.Agent with client certificates + axios',
   },
   web: {
     mtlsSupported: false,
     certificateStorage: 'browser-managed',
     fallbackToJWT: true,
     defaultTimeout: 30000,
-    description: 'Browser security model prevents programmatic mTLS - uses JWT only'
-  }
+    description: 'Browser security model prevents programmatic mTLS - uses JWT only',
+  },
 } as const;
 
 /**

@@ -12,11 +12,6 @@ export * from './daily-reports';
 export * from './journals';
 
 // Re-export mTLS types for convenience
-export type { 
-  AuthMode, 
-  CacheRequestConfig 
-} from './http-client';
+export type { AuthMode, CacheRequestConfig } from './http-client';
 
-export type {
-  UserContext 
-} from './receipts';
+export type { UserContext } from './receipts';

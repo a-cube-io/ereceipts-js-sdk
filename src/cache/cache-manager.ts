@@ -1,4 +1,4 @@
-import { ICacheAdapter, CacheSize } from '../adapters';
+import { CacheSize, ICacheAdapter } from '../adapters';
 
 /**
  * Cache management configuration (simplified)
@@ -22,7 +22,7 @@ export interface CacheManagementConfig {
  * Cache cleanup strategy (simplified)
  */
 export type CleanupStrategy =
-  | 'lru'        // Least Recently Used
+  | 'lru' // Least Recently Used
   | 'age-based'; // Remove oldest items first
 
 /**
@@ -87,7 +87,7 @@ export class CacheManager {
   async getMemoryStats(): Promise<MemoryStats> {
     const current = await this.cache.getSize();
     const memoryUsagePercentage = (current.bytes / this.config.maxCacheSize) * 100;
-    const isMemoryPressure = memoryUsagePercentage >= (this.config.memoryPressureThreshold * 100);
+    const isMemoryPressure = memoryUsagePercentage >= this.config.memoryPressureThreshold * 100;
 
     // Recommend cleanup strategy based on current state
     let recommendedStrategy: CleanupStrategy = 'lru';
@@ -153,7 +153,7 @@ export class CacheManager {
    */
   async handleMemoryPressure(): Promise<CleanupResult> {
     const stats = await this.getMemoryStats();
-    
+
     if (!stats.isMemoryPressure) {
       return {
         entriesRemoved: 0,
@@ -177,25 +177,25 @@ export class CacheManager {
 
     // Sort by access time (oldest first)
     const sortedKeys = keys
-      .map(key => ({
+      .map((key) => ({
         key,
         accessTime: this.accessTimes.get(key) || 0,
       }))
       .sort((a, b) => a.accessTime - b.accessTime);
 
     // Remove least recently used entries
-    const targetRemoval = Math.ceil(keys.length * (this.config.memoryPressureCleanupPercentage / 100));
-    const keysToRemove = sortedKeys.slice(0, targetRemoval).map(item => item.key);
+    const targetRemoval = Math.ceil(
+      keys.length * (this.config.memoryPressureCleanupPercentage / 100)
+    );
+    const keysToRemove = sortedKeys.slice(0, targetRemoval).map((item) => item.key);
 
     await this.removeKeys(keysToRemove);
-    
+
     // Clean up access times for removed keys
-    keysToRemove.forEach(key => this.accessTimes.delete(key));
+    keysToRemove.forEach((key) => this.accessTimes.delete(key));
 
     return keysToRemove.length;
   }
-
-
 
   /**
    * Clean cache based on age (remove oldest first)
@@ -217,23 +217,23 @@ export class CacheManager {
 
     // Only remove items older than minimum age
     const eligibleItems = items
-      .filter(item => item.age >= this.config.minAgeForRemoval)
+      .filter((item) => item.age >= this.config.minAgeForRemoval)
       .sort((a, b) => b.age - a.age); // Oldest first
 
     // If no items are old enough, remove oldest items anyway if we're over limits
-    const itemsToProcess = eligibleItems.length > 0 ? eligibleItems : items.sort((a, b) => b.age - a.age);
-    
+    const itemsToProcess =
+      eligibleItems.length > 0 ? eligibleItems : items.sort((a, b) => b.age - a.age);
+
     const targetRemoval = Math.min(
       Math.ceil(keys.length * (this.config.memoryPressureCleanupPercentage / 100)),
       itemsToProcess.length
     );
 
-    const keysToRemove = itemsToProcess.slice(0, targetRemoval).map(item => item.key);
+    const keysToRemove = itemsToProcess.slice(0, targetRemoval).map((item) => item.key);
 
     await this.removeKeys(keysToRemove);
     return keysToRemove.length;
   }
-
 
   /**
    * Remove multiple keys efficiently
@@ -242,11 +242,8 @@ export class CacheManager {
     if (keys.length === 0) return;
 
     // Use batch invalidation for efficiency
-    await Promise.all(
-      keys.map(key => this.cache.invalidate(key))
-    );
+    await Promise.all(keys.map((key) => this.cache.invalidate(key)));
   }
-
 
   /**
    * Track cache access for LRU implementation
@@ -264,7 +261,7 @@ export class CacheManager {
     this.cleanupTimer = setInterval(async () => {
       try {
         const stats = await this.getMemoryStats();
-        
+
         // Decide whether cleanup is needed
         if (stats.isMemoryPressure) {
           await this.handleMemoryPressure();

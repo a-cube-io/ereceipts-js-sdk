@@ -13,7 +13,7 @@ export class NodeNetworkMonitor implements INetworkMonitor {
 
   onStatusChange(callback: (online: boolean) => void): () => void {
     this.listeners.push(callback);
-    
+
     // Return cleanup function
     return () => {
       const index = this.listeners.indexOf(callback);
@@ -41,7 +41,7 @@ export class NodeNetworkMonitor implements INetworkMonitor {
   }
 
   private notifyListeners(online: boolean): void {
-    this.listeners.forEach(callback => {
+    this.listeners.forEach((callback) => {
       try {
         callback(online);
       } catch (error) {

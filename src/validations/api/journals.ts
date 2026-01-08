@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from 'zod';
 
 // Journal Close Input Schema
 export const JournalCloseInputSchema = z.object({
@@ -6,12 +6,9 @@ export const JournalCloseInputSchema = z.object({
     .string()
     .min(1, { error: 'fieldIsRequired' })
     .refine((val) => !isNaN(Date.parse(val)), {
-      error: 'invalidDateFormat'
+      error: 'invalidDateFormat',
     }),
-  reason: z
-    .string()
-    .max(255, { error: 'reasonMaxLength' })
-    .optional(),
+  reason: z.string().max(255, { error: 'reasonMaxLength' }).optional(),
 });
 
 // Type exports

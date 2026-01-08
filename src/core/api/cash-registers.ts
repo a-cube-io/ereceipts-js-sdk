@@ -1,10 +1,10 @@
 import { HttpClient } from '../http';
-import { 
-  CashRegisterCreate, 
-  CashRegisterBasicOutput, 
+import {
+  CashRegisterBasicOutput,
+  CashRegisterCreate,
   CashRegisterDetailedOutput,
-  Page, 
-  CashRegisterListParams
+  CashRegisterListParams,
+  Page,
 } from './types';
 
 /**
@@ -28,14 +28,14 @@ export class CashRegistersAPI {
     if (this.debugEnabled) {
       console.log('[CASH-REGISTERS-API] Creating cash register:', {
         name: cashRegisterData.name,
-        pemId: (cashRegisterData as any).pem_id
+        pemId: (cashRegisterData as { pem_id?: string }).pem_id,
       });
     }
 
     try {
       // Create a cash register using standard JWT authentication
       const cashRegister = await this.httpClient.post<CashRegisterDetailedOutput>(
-        '/mf1/cash-registers', 
+        '/mf1/cash-registers',
         cashRegisterData,
         { authMode: 'jwt' } // Use JWT for creation
       );
@@ -45,7 +45,7 @@ export class CashRegistersAPI {
           id: cashRegister.uuid,
           name: cashRegister.name,
           hasCertificate: !!cashRegister.mtls_certificate,
-          hasPrivateKey: !!cashRegister.private_key
+          hasPrivateKey: !!cashRegister.private_key,
         });
       }
 
@@ -68,7 +68,7 @@ export class CashRegistersAPI {
 
     // Use JWT for listing (standard operation)
     const searchParams = new URLSearchParams();
-    
+
     if (params.page) {
       searchParams.append('page', params.page.toString());
     }
@@ -82,15 +82,12 @@ export class CashRegistersAPI {
 
     const query = searchParams.toString();
     let url = `/mf1/cash-registers`;
-    
+
     if (query) {
       url += `?${query}`;
     }
-    
-    return this.httpClient.get<Page<CashRegisterBasicOutput>>(
-      url, 
-      { authMode: 'jwt' }
-    );
+
+    return this.httpClient.get<Page<CashRegisterBasicOutput>>(url, { authMode: 'jwt' });
   }
 
   /**
@@ -111,7 +108,7 @@ export class CashRegistersAPI {
       if (this.debugEnabled) {
         console.log('[CASH-REGISTERS-API] Cash register retrieved:', {
           id: cashRegister.uuid,
-          name: cashRegister.name
+          name: cashRegister.name,
         });
       }
 
@@ -144,7 +141,7 @@ export class CashRegistersAPI {
           id: cashRegister.uuid,
           name: cashRegister.name,
           hasCertificate: !!cashRegister.mtls_certificate,
-          hasPrivateKey: !!cashRegister.private_key
+          hasPrivateKey: !!cashRegister.private_key,
         });
       }
 
@@ -156,7 +153,6 @@ export class CashRegistersAPI {
       throw error;
     }
   }
-
 
   /**
    * Get certificate status for a cash register
@@ -179,7 +175,7 @@ export class CashRegistersAPI {
       return {
         hasCertificate: false,
         isConfigured: false,
-        canConnect: false
+        canConnect: false,
       };
     }
 
@@ -202,10 +198,12 @@ export class CashRegistersAPI {
         hasCertificate,
         isConfigured: hasCertificate,
         canConnect,
-        certificateInfo: hasCertificate ? {
-          configuredAt: new Date(), // Since we don't have specific metadata anymore
-          source: 'device'
-        } : undefined
+        certificateInfo: hasCertificate
+          ? {
+              configuredAt: new Date(), // Since we don't have specific metadata anymore
+              source: 'device',
+            }
+          : undefined,
       };
 
       if (this.debugEnabled) {
@@ -220,9 +218,8 @@ export class CashRegistersAPI {
       return {
         hasCertificate: false,
         isConfigured: false,
-        canConnect: false
+        canConnect: false,
       };
     }
   }
-
 }

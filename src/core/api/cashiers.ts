@@ -12,7 +12,7 @@ export class CashiersAPI {
    */
   async list(params: CashierListParams = {}): Promise<Page<CashierOutput>> {
     const searchParams = new URLSearchParams();
-    
+
     if (params.page) {
       searchParams.append('page', params.page.toString());
     }
@@ -22,7 +22,7 @@ export class CashiersAPI {
 
     const query = searchParams.toString();
     const url = query ? `/mf1/cashiers?${query}` : '/mf1/cashiers';
-    
+
     return this.httpClient.get<Page<CashierOutput>>(url);
   }
 

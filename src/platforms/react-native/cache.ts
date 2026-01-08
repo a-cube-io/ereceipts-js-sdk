@@ -1,5 +1,14 @@
-import { ICacheAdapter, CachedItem, CacheSize, CacheOptions } from '../../adapters';
+import { CacheOptions, CacheSize, CachedItem, ICacheAdapter } from '../../adapters';
 import { compressData, decompressData } from '../../adapters/compression';
+import {
+  CacheRow,
+  ExpoSQLiteDatabase,
+  RNSQLiteDatabase,
+  SQLiteColumnInfo,
+  SQLiteExecuteResult,
+  SQLiteParams,
+  SQLiteTransaction,
+} from './types';
 
 /**
  * React Native cache adapter using SQLite (Expo or react-native-sqlite-storage)
@@ -9,7 +18,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
   private static readonly DB_NAME = 'acube_cache.db';
   private static readonly TABLE_NAME = 'cache_entries';
 
-  private db: any = null;
+  private db: ExpoSQLiteDatabase | RNSQLiteDatabase | null = null;
   private initPromise: Promise<void> | null = null;
   private options: CacheOptions;
   private isExpo = false;
@@ -28,7 +37,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     this.initPromise = this.initialize();
   }
 
-  private debug(message: string, data?: any): void {
+  private debug(message: string, data?: Record<string, unknown> | unknown): void {
     if (this.debugEnabled) {
       if (data) {
         console.log(`[CACHE-RN] ${message}`, data);
@@ -38,17 +47,19 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     }
   }
 
-  private normalizeResults(results: any): any[] {
-    // Handle different SQLite result formats
+  private normalizeResults<T = CacheRow>(results: SQLiteExecuteResult): T[] {
     if (this.isExpo) {
-      // Expo SQLite: results.results or direct array
-      return results.results || results || [];
+      const expoResults = results as { results?: T[] } | T[];
+      if (Array.isArray(expoResults)) {
+        return expoResults;
+      }
+      return expoResults.results || [];
     } else {
-      // React Native SQLite: results.rows with .item() method
-      const rows = results.rows;
+      const rnResults = results as { rows?: { length: number; item(i: number): T } };
+      const rows = rnResults.rows;
       if (!rows || rows.length === 0) return [];
 
-      const normalizedRows = [];
+      const normalizedRows: T[] = [];
       for (let i = 0; i < rows.length; i++) {
         normalizedRows.push(rows.item(i));
       }
@@ -70,7 +81,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
         // Fallback to react-native-sqlite-storage
         const SQLite = require('react-native-sqlite-storage');
 
-        this.db = await new Promise<any>((resolve, reject) => {
+        this.db = await new Promise<RNSQLiteDatabase>((resolve, reject) => {
           SQLite.openDatabase(
             {
               name: ReactNativeCacheAdapter.DB_NAME,
@@ -80,11 +91,13 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
             reject
           );
         });
-        
+
         this.isExpo = false;
         await this.createTables();
       } catch (rnError) {
-        throw new Error(`Failed to initialize SQLite: Expo error: ${expoError}, RN error: ${rnError}`);
+        throw new Error(
+          `Failed to initialize SQLite: Expo error: ${expoError}, RN error: ${rnError}`
+        );
       }
     }
   }
@@ -124,7 +137,9 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
         this.debug('Compressed column already exists');
       }
 
-      this.debug('Database migrations completed', { hasCompressedColumn: this.hasCompressedColumn });
+      this.debug('Database migrations completed', {
+        hasCompressedColumn: this.hasCompressedColumn,
+      });
     } catch (error) {
       this.debug('Migration failed, disabling compression features', error);
       this.hasCompressedColumn = false;
@@ -137,14 +152,14 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     try {
       const pragmaSQL = `PRAGMA table_info(${ReactNativeCacheAdapter.TABLE_NAME})`;
       const results = await this.executeSql(pragmaSQL);
-      const columns = this.normalizeResults(results);
+      const columns = this.normalizeResults<SQLiteColumnInfo>(results);
 
-      this.debug('Table columns found', { columns: columns.map(c => c.name) });
+      this.debug('Table columns found', { columns: columns.map((c) => c.name) });
 
-      return columns.some(column => column.name === columnName);
+      return columns.some((column) => column.name === columnName);
     } catch (error) {
       this.debug('Error checking column existence', error);
-      return false; // Assume column doesn't exist if we can't check
+      return false;
     }
   }
 
@@ -164,8 +179,10 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     }
 
     const row = rows[0];
+    if (!row) {
+      return null;
+    }
 
-    // Handle decompression if needed (fallback if column doesn't exist)
     const isCompressed = this.hasCompressedColumn ? !!row.compressed : false;
     const rawData = isCompressed ? decompressData(row.data, true).data : row.data;
 
@@ -205,7 +222,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
         originalSize: compressionResult.originalSize,
         compressedSize: compressionResult.compressedSize,
         compressed: isCompressed,
-        savings: compressionResult.originalSize - compressionResult.compressedSize
+        savings: compressionResult.originalSize - compressionResult.compressedSize,
       });
     }
 
@@ -213,12 +230,12 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
       key,
       timestamp: item.timestamp,
       compressed: isCompressed,
-      hasCompressedColumn: this.hasCompressedColumn
+      hasCompressedColumn: this.hasCompressedColumn,
     });
 
     // Build SQL and parameters based on available columns
     let sql: string;
-    let params: any[];
+    let params: SQLiteParams;
 
     if (this.hasCompressedColumn) {
       sql = `
@@ -226,12 +243,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
         (cache_key, data, timestamp, compressed)
         VALUES (?, ?, ?, ?)
       `;
-      params = [
-        key,
-        finalData,
-        item.timestamp,
-        isCompressed ? 1 : 0,
-      ];
+      params = [key, finalData, item.timestamp, isCompressed ? 1 : 0];
     } else {
       // Fallback for databases without compressed column
       sql = `
@@ -239,11 +251,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
         (cache_key, data, timestamp)
         VALUES (?, ?, ?)
       `;
-      params = [
-        key,
-        finalData,
-        item.timestamp,
-      ];
+      params = [key, finalData, item.timestamp];
     }
 
     this.debug('Executing setItem SQL', { key, paramsCount: params.length });
@@ -259,27 +267,22 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     this.debug('Batch setting items', { count: items.length });
 
     if (this.isExpo) {
-      // Expo SQLite - use withTransactionAsync for batching
-      await this.db.withTransactionAsync(async () => {
+      await (this.db as ExpoSQLiteDatabase).withTransactionAsync(async () => {
         for (const [key, item] of items) {
           await this.setBatchItem(key, item);
         }
       });
     } else {
-      // React Native SQLite - use transaction
-      return new Promise((resolve, reject) => {
-        this.db.transaction(
-          async (tx: any) => {
-            try {
-              for (const [key, item] of items) {
-                await this.setBatchItemRN(tx, key, item);
-              }
-            } catch (error) {
-              reject(error);
-            }
+      return new Promise<void>((resolve, reject) => {
+        (this.db as RNSQLiteDatabase).transaction(
+          (tx: SQLiteTransaction) => {
+            const promises = items.map(([key, item]) => this.setBatchItemRN(tx, key, item));
+            Promise.all(promises)
+              .then(() => resolve())
+              .catch(reject);
           },
           reject,
-          resolve
+          () => resolve()
         );
       });
     }
@@ -301,7 +304,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
 
     // Build SQL and parameters based on available columns
     let sql: string;
-    let params: any[];
+    let params: SQLiteParams;
 
     if (this.hasCompressedColumn) {
       sql = `
@@ -309,29 +312,24 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
         (cache_key, data, timestamp, compressed)
         VALUES (?, ?, ?, ?)
       `;
-      params = [
-        key,
-        finalData,
-        item.timestamp,
-        isCompressed ? 1 : 0,
-      ];
+      params = [key, finalData, item.timestamp, isCompressed ? 1 : 0];
     } else {
       sql = `
         INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
         (cache_key, data, timestamp)
         VALUES (?, ?, ?)
       `;
-      params = [
-        key,
-        finalData,
-        item.timestamp,
-      ];
+      params = [key, finalData, item.timestamp];
     }
 
-    await this.db.runAsync(sql, params);
+    await (this.db as ExpoSQLiteDatabase).runAsync(sql, params);
   }
 
-  private async setBatchItemRN(tx: any, key: string, item: CachedItem<any>): Promise<void> {
+  private async setBatchItemRN<T>(
+    tx: SQLiteTransaction,
+    key: string,
+    item: CachedItem<T>
+  ): Promise<void> {
     // Handle compression if enabled and compressed column is available
     const serializedData = JSON.stringify(item.data);
     let finalData = serializedData;
@@ -345,7 +343,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
 
     // Build SQL and parameters based on available columns
     let sql: string;
-    let params: any[];
+    let params: SQLiteParams;
 
     if (this.hasCompressedColumn) {
       sql = `
@@ -353,23 +351,14 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
         (cache_key, data, timestamp, compressed)
         VALUES (?, ?, ?, ?)
       `;
-      params = [
-        key,
-        finalData,
-        item.timestamp,
-        isCompressed ? 1 : 0,
-      ];
+      params = [key, finalData, item.timestamp, isCompressed ? 1 : 0];
     } else {
       sql = `
         INSERT OR REPLACE INTO ${ReactNativeCacheAdapter.TABLE_NAME}
         (cache_key, data, timestamp)
         VALUES (?, ?, ?)
       `;
-      params = [
-        key,
-        finalData,
-        item.timestamp,
-      ];
+      params = [key, finalData, item.timestamp];
     }
 
     return new Promise<void>((resolve, reject) => {
@@ -377,7 +366,10 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
         sql,
         params,
         () => resolve(),
-        (_: any, error: any) => reject(error)
+        (_: SQLiteTransaction, error: Error) => {
+          reject(error);
+          return false;
+        }
       );
     });
   }
@@ -390,7 +382,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
 
     const placeholders = keys.map(() => '?').join(',');
     const sql = `DELETE FROM ${ReactNativeCacheAdapter.TABLE_NAME} WHERE cache_key IN (${placeholders})`;
-    
+
     await this.executeSql(sql, keys);
   }
 
@@ -405,19 +397,19 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     await this.ensureInitialized();
 
     const sql = `
-      SELECT 
+      SELECT
         COUNT(*) as entries,
         SUM(LENGTH(data)) as bytes
       FROM ${ReactNativeCacheAdapter.TABLE_NAME}
     `;
-    
+
     const results = await this.executeSql(sql);
-    const rows = this.normalizeResults(results);
-    const row = rows[0];
+    const rows = this.normalizeResults<{ entries: number; bytes: number }>(results);
+    const row = rows[0] || { entries: 0, bytes: 0 };
 
     return {
       entries: row.entries || 0,
-      bytes: (row.bytes || 0) * 2, // Rough UTF-16 estimation
+      bytes: (row.bytes || 0) * 2,
       lastCleanup: Date.now(),
     };
   }
@@ -431,7 +423,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     await this.ensureInitialized();
 
     let sql = `SELECT cache_key FROM ${ReactNativeCacheAdapter.TABLE_NAME}`;
-    const params: any[] = [];
+    const params: SQLiteParams = [];
 
     if (pattern) {
       // Simple pattern matching with LIKE
@@ -451,26 +443,27 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     return keys;
   }
 
-
-  private async executeSql(sql: string, params: any[] = []): Promise<any> {
+  private async executeSql(sql: string, params: SQLiteParams = []): Promise<SQLiteExecuteResult> {
     if (this.isExpo) {
-      // Expo SQLite
+      const expoDB = this.db as ExpoSQLiteDatabase;
       if (sql.toLowerCase().includes('select') || sql.toLowerCase().includes('pragma')) {
-        const result = await this.db.getAllAsync(sql, params);
-        // Normalize to match expected structure - wrap in results array if needed
+        const result = await expoDB.getAllAsync(sql, params);
         return Array.isArray(result) ? { results: result } : result;
       } else {
-        return await this.db.runAsync(sql, params);
+        return await expoDB.runAsync(sql, params);
       }
     } else {
       // react-native-sqlite-storage
       return new Promise((resolve, reject) => {
-        this.db.transaction((tx: any) => {
+        (this.db as RNSQLiteDatabase).transaction((tx: SQLiteTransaction) => {
           tx.executeSql(
             sql,
             params,
-            (_: any, results: any) => resolve(results),
-            (_: any, error: any) => reject(error)
+            (_: SQLiteTransaction, results: SQLiteExecuteResult) => resolve(results),
+            (_: SQLiteTransaction, error: Error) => {
+              reject(error);
+              return false;
+            }
           );
         });
       });
@@ -483,7 +476,6 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
     }
     await this.initPromise;
   }
-
 }
 
 /**
@@ -491,7 +483,7 @@ export class ReactNativeCacheAdapter implements ICacheAdapter {
  * Cache never expires - data persists until explicitly invalidated
  */
 export class MemoryCacheAdapter implements ICacheAdapter {
-  private cache = new Map<string, CachedItem<any>>();
+  private cache = new Map<string, CachedItem<unknown>>();
   private options: CacheOptions;
   private debugEnabled = false;
   private totalBytes = 0;
@@ -504,7 +496,7 @@ export class MemoryCacheAdapter implements ICacheAdapter {
     this.debugEnabled = options.debugEnabled || false;
   }
 
-  private debug(message: string, data?: any): void {
+  private debug(message: string, data?: Record<string, unknown> | unknown): void {
     if (this.debugEnabled) {
       if (data) {
         console.log(`[CACHE-MEMORY] ${message}`, data);
@@ -514,7 +506,7 @@ export class MemoryCacheAdapter implements ICacheAdapter {
     }
   }
 
-  private calculateItemSize(key: string, item: CachedItem<any>): number {
+  private calculateItemSize(key: string, item: CachedItem<unknown>): number {
     // Calculate rough size estimation for memory usage
     const keySize = key.length * 2; // UTF-16 estimation
     const itemSize = JSON.stringify(item).length * 2; // UTF-16 estimation
@@ -542,7 +534,7 @@ export class MemoryCacheAdapter implements ICacheAdapter {
 
     return {
       ...item,
-      data: finalData,
+      data: finalData as T,
       compressed: isCompressed,
     };
   }
@@ -551,7 +543,7 @@ export class MemoryCacheAdapter implements ICacheAdapter {
     this.debug('Setting cache item', { key });
 
     // Handle compression if enabled
-    let finalData: any = data;
+    let finalData: T | string = data;
     let isCompressed = false;
 
     if (this.options.compression && this.options.compressionThreshold) {
@@ -566,12 +558,12 @@ export class MemoryCacheAdapter implements ICacheAdapter {
           key,
           originalSize: compressionResult.originalSize,
           compressedSize: compressionResult.compressedSize,
-          savings: compressionResult.originalSize - compressionResult.compressedSize
+          savings: compressionResult.originalSize - compressionResult.compressedSize,
         });
       }
     }
 
-    const item: CachedItem<any> = {
+    const item: CachedItem<T | string> = {
       data: finalData,
       timestamp: Date.now(),
       compressed: isCompressed,
@@ -610,7 +602,7 @@ export class MemoryCacheAdapter implements ICacheAdapter {
     this.debug('Updated cache size', {
       entries: this.cache.size,
       totalBytes: this.totalBytes,
-      newItemSize
+      newItemSize,
     });
   }
 
@@ -621,7 +613,7 @@ export class MemoryCacheAdapter implements ICacheAdapter {
 
     let totalNewBytes = 0;
     let totalOldBytes = 0;
-    let itemsToRemove: string[] = [];
+    const itemsToRemove: string[] = [];
 
     // First pass: calculate size changes and identify capacity issues
     for (const [key, item] of items) {
@@ -655,7 +647,7 @@ export class MemoryCacheAdapter implements ICacheAdapter {
       if (itemsToRemove.length > 0) {
         this.debug('Removed items for batch capacity', {
           removedCount: itemsToRemove.length,
-          removedKeys: itemsToRemove
+          removedKeys: itemsToRemove,
         });
       }
     }
@@ -672,7 +664,7 @@ export class MemoryCacheAdapter implements ICacheAdapter {
       count: items.length,
       totalBytes: this.totalBytes,
       entries: this.cache.size,
-      bytesAdded: totalNewBytes - totalOldBytes
+      bytesAdded: totalNewBytes - totalOldBytes,
     });
   }
 
@@ -698,7 +690,7 @@ export class MemoryCacheAdapter implements ICacheAdapter {
         entriesRemoved: removed,
         bytesFreed,
         remainingEntries: this.cache.size,
-        remainingBytes: this.totalBytes
+        remainingBytes: this.totalBytes,
       });
     }
   }
@@ -727,7 +719,7 @@ export class MemoryCacheAdapter implements ICacheAdapter {
     if (!pattern) return keys;
 
     const regex = this.patternToRegex(pattern);
-    return keys.filter(key => regex.test(key));
+    return keys.filter((key) => regex.test(key));
   }
 
   private patternToRegex(pattern: string): RegExp {

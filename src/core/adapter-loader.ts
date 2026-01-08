@@ -1,11 +1,11 @@
 import { PlatformAdapters } from '../adapters';
-import { detectPlatform } from './platform-detector';
-import { 
-  loadCacheAdapter, 
-  loadStorageAdapters, 
+import {
+  loadCacheAdapter,
+  loadMTLSAdapter,
   loadNetworkMonitor,
-  loadMTLSAdapter
+  loadStorageAdapters,
 } from './loaders';
+import { detectPlatform } from './platform-detector';
 
 /**
  * Configuration for mTLS adapter initialization
@@ -33,31 +33,36 @@ export function loadPlatformAdapters(
   optionsOrDebug: PlatformAdapterOptions | boolean = {}
 ): PlatformAdapters {
   // Handle legacy boolean parameter for backward compatibility
-  const options: PlatformAdapterOptions = typeof optionsOrDebug === 'boolean' 
-    ? { debugEnabled: optionsOrDebug }
-    : optionsOrDebug;
-    
+  const options: PlatformAdapterOptions =
+    typeof optionsOrDebug === 'boolean' ? { debugEnabled: optionsOrDebug } : optionsOrDebug;
+
   const { debugEnabled = false, mtlsConfig } = options;
   const { platform } = detectPlatform();
-  
+
   if (debugEnabled) {
     console.log('[ADAPTER-LOADER] Loading adapters for platform:', platform);
   }
-  
+
   // Load all adapters using dedicated loaders
   const storageAdapters = loadStorageAdapters(platform);
   const networkMonitor = loadNetworkMonitor(platform);
   const cache = loadCacheAdapter(platform);
-  
+
   // Load mTLS adapter with optional configuration
-  const mtls = loadMTLSAdapter(platform, debugEnabled, mtlsConfig ? {
-    baseUrl: mtlsConfig.baseUrl,
-    port: mtlsConfig.port,
-    timeout: mtlsConfig.timeout,
-    validateCertificate: mtlsConfig.validateCertificate,
-    autoInitialize: mtlsConfig.autoInitialize
-  } : undefined);
-  
+  const mtls = loadMTLSAdapter(
+    platform,
+    debugEnabled,
+    mtlsConfig
+      ? {
+          baseUrl: mtlsConfig.baseUrl,
+          port: mtlsConfig.port,
+          timeout: mtlsConfig.timeout,
+          validateCertificate: mtlsConfig.validateCertificate,
+          autoInitialize: mtlsConfig.autoInitialize,
+        }
+      : undefined
+  );
+
   if (debugEnabled) {
     console.log('[ADAPTER-LOADER] Adapters loaded:', {
       platform,
@@ -70,7 +75,7 @@ export function loadPlatformAdapters(
       baseUrl: mtlsConfig?.baseUrl || 'N/A',
     });
   }
-  
+
   return {
     ...storageAdapters,
     networkMonitor,
@@ -89,18 +94,18 @@ export function createACubeMTLSConfig(
   autoInitialize = true,
   forcePort444 = true
 ): MTLSAdapterConfig {
-  
-  const mtlsBaseUrl = forcePort444 && !baseUrl.includes(':444')
-    ? (baseUrl.includes(':444')
+  const mtlsBaseUrl =
+    forcePort444 && !baseUrl.includes(':444')
+      ? baseUrl.includes(':444')
         ? baseUrl.replace(':444', ':444')
-        : baseUrl.replace(/:\d+$/, '') + ':444')
-    : baseUrl;
+        : baseUrl.replace(/:\d+$/, '') + ':444'
+      : baseUrl;
 
   return {
     baseUrl: mtlsBaseUrl,
     port: 444,
     timeout: timeout || 30000,
     validateCertificate: true,
-    autoInitialize
+    autoInitialize,
   };
 }

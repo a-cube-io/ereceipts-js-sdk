@@ -1,9 +1,11 @@
-import { IStorage, ISecureStorage } from '../../adapters';
-
+import { ISecureStorage, IStorage } from '../../adapters';
+import { NodeSecureStorageAdapter, NodeStorageAdapter } from '../../platforms/node/storage';
+import {
+  ReactNativeSecureStorageAdapter,
+  ReactNativeStorageAdapter,
+} from '../../platforms/react-native/storage';
 // Static imports for all platforms
-import { WebStorageAdapter, WebSecureStorageAdapter } from '../../platforms/web/storage';
-import { ReactNativeStorageAdapter, ReactNativeSecureStorageAdapter } from '../../platforms/react-native/storage';
-import { NodeStorageAdapter, NodeSecureStorageAdapter } from '../../platforms/node/storage';
+import { WebSecureStorageAdapter, WebStorageAdapter } from '../../platforms/web/storage';
 
 /**
  * Storage adapters result

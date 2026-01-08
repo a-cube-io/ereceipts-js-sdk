@@ -1,8 +1,26 @@
-import { detectPlatform } from '../../core/platform-detector';
 import { INetworkMonitor, NetworkInfo } from '../../adapters';
+import { detectPlatform } from '../../core/platform-detector';
+
+interface NetworkState {
+  isConnected: boolean;
+  isInternetReachable: boolean | null;
+  type?: string;
+  details?: {
+    cellularGeneration?: string;
+    downlink?: number;
+    rtt?: number;
+  };
+}
+
+interface NetInfoModule {
+  fetch(): Promise<NetworkState>;
+  getNetworkStateAsync(): Promise<NetworkState>;
+  addEventListener(callback: (state: NetworkState) => void): () => void;
+  addNetworkStateListener(callback: (state: NetworkState) => void): () => void;
+}
 
 export class ReactNativeNetworkMonitor implements INetworkMonitor {
-  private netInfoModule: any | null = null;
+  private netInfoModule: NetInfoModule | null = null;
   private unsubscribeFn: (() => void) | null = null;
   private listeners: Array<(online: boolean) => void> = [];
   private currentState: boolean = true;
@@ -10,7 +28,7 @@ export class ReactNativeNetworkMonitor implements INetworkMonitor {
 
   constructor() {
     this.isExpo = detectPlatform().isExpo;
-    this.init().catch(error => {
+    this.init().catch((error) => {
       console.error('Network monitor initialization failed:', error);
     });
   }
@@ -75,12 +93,12 @@ export class ReactNativeNetworkMonitor implements INetworkMonitor {
 
     if (this.isExpo) {
       // expo‑network: addNetworkStateListener returns unsubscribe function
-      this.unsubscribeFn = this.netInfoModule.addNetworkStateListener((state: any) => {
+      this.unsubscribeFn = this.netInfoModule.addNetworkStateListener((state: NetworkState) => {
         this.handleStateChange(!!state.isConnected, state.isInternetReachable ?? false);
       });
     } else {
       // @react‑native‑community/netinfo: addEventListener returns unsubscribe function
-      this.unsubscribeFn = this.netInfoModule.addEventListener((state: any) => {
+      this.unsubscribeFn = this.netInfoModule.addEventListener((state: NetworkState) => {
         this.handleStateChange(!!state.isConnected, state.isInternetReachable ?? false);
       });
     }
@@ -114,7 +132,7 @@ export class ReactNativeNetworkMonitor implements INetworkMonitor {
 
     if (!this.netInfoModule) {
       // late init if needed
-      this.init().catch(error => {
+      this.init().catch((error) => {
         console.error('Late initialization of network monitor failed:', error);
       });
     }
@@ -167,7 +185,9 @@ export class ReactNativeNetworkMonitor implements INetworkMonitor {
     this.listeners = [];
   }
 
-  private mapConnectionType(type: string | null | undefined): 'wifi' | 'cellular' | 'ethernet' | 'unknown' {
+  private mapConnectionType(
+    type: string | null | undefined
+  ): 'wifi' | 'cellular' | 'ethernet' | 'unknown' {
     switch (type) {
       case 'wifi':
         return 'wifi';

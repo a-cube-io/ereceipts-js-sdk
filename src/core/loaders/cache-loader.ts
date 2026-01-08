@@ -1,8 +1,7 @@
 import { ICacheAdapter } from '../../adapters';
-
+import { MemoryCacheAdapter, ReactNativeCacheAdapter } from '../../platforms/react-native/cache';
 // Static imports for all platforms
 import { WebCacheAdapter } from '../../platforms/web/cache';
-import { ReactNativeCacheAdapter, MemoryCacheAdapter } from '../../platforms/react-native/cache';
 
 /**
  * Load platform-specific cache adapter

@@ -1,17 +1,17 @@
-import { ConfigManager } from '../config';
-import { HttpClient } from './http-client';
-import { ICacheAdapter, INetworkMonitor, IMTLSAdapter } from '../../adapters';
+import { ICacheAdapter, IMTLSAdapter, INetworkMonitor } from '../../adapters';
 import { CertificateManager } from '../certificates/certificate-manager';
+import { ConfigManager } from '../config';
 import { IUserProvider } from '../types';
-import { ReceiptsAPI } from './receipts';
-import { CashiersAPI } from './cashiers';
-import { PointOfSalesAPI } from './point-of-sales';
 import { CashRegistersAPI } from './cash-registers';
+import { CashiersAPI } from './cashiers';
+import { DailyReportsAPI } from './daily-reports';
+import { HttpClient } from './http-client';
+import { JournalsAPI } from './journals';
 import { MerchantsAPI } from './merchants';
 import { PemsAPI } from './pems';
+import { PointOfSalesAPI } from './point-of-sales';
+import { ReceiptsAPI } from './receipts';
 import { SuppliersAPI } from './suppliers';
-import { DailyReportsAPI } from './daily-reports';
-import { JournalsAPI } from './journals';
 
 /**
  * Main API client that combines all resource managers
@@ -42,7 +42,14 @@ export class APIClient {
   ) {
     this.cache = cache;
     this.networkMonitor = networkMonitor;
-    this.httpClient = new HttpClient(config, certificateManager, cache, networkMonitor, mtlsAdapter, userProvider);
+    this.httpClient = new HttpClient(
+      config,
+      certificateManager,
+      cache,
+      networkMonitor,
+      mtlsAdapter,
+      userProvider
+    );
 
     // Initialize resource managers
     this.receipts = new ReceiptsAPI(this.httpClient);

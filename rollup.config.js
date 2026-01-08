@@ -2,6 +2,7 @@ import typescript from '@rollup/plugin-typescript';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
+import replace from '@rollup/plugin-replace';
 import dts from 'rollup-plugin-dts';
 
 const external = [
@@ -78,7 +79,7 @@ export default [
             }),
         ],
     },
-    // React Native specific build (excludes Node.js externals)
+    // React Native specific build (excludes Node.js code completely)
     {
         ...createBaseConfig(false),
         output: {
@@ -88,6 +89,19 @@ export default [
             inlineDynamicImports: true,
         },
         plugins: [
+            // Replace ALL Node.js requires with stubs to prevent Metro bundler issues
+            replace({
+                preventAssignment: true,
+                delimiters: ['', ''],
+                values: {
+                    // Replace node platform loader
+                    "require('../../platforms/node/mtls')": "({ NodeMTLSAdapter: null })",
+                    // Replace Node.js built-in modules
+                    "require('node:https')": "null",
+                    "require('node:fs/promises')": "null",
+                    "require('node:fs')": "({ existsSync: () => false })",
+                }
+            }),
             ...createBaseConfig(false).plugins,
             typescript({
                 tsconfig: './tsconfig.json',

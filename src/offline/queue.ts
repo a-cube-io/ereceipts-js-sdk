@@ -1,11 +1,5 @@
 import { IStorage } from '../adapters';
-import { 
-  QueuedOperation, 
-  OperationType, 
-  ResourceType, 
-  QueueConfig, 
-  QueueEvents 
-} from './types';
+import { OperationType, QueueConfig, QueueEvents, QueuedOperation, ResourceType } from './types';
 
 /**
  * Default queue configuration
@@ -25,7 +19,7 @@ const DEFAULT_CONFIG: QueueConfig = {
  */
 export class OperationQueue {
   private static readonly QUEUE_KEY = 'acube_operation_queue';
-  
+
   private queue: QueuedOperation[] = [];
   private isProcessing = false;
   private syncIntervalId?: NodeJS.Timeout;
@@ -37,7 +31,7 @@ export class OperationQueue {
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.loadQueue();
-    
+
     if (this.config.syncInterval > 0) {
       this.startAutoSync();
     }
@@ -51,13 +45,13 @@ export class OperationQueue {
     resource: ResourceType,
     endpoint: string,
     method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
-    data?: any,
+    data?: unknown,
     priority: number = 1
   ): Promise<string> {
     // Check queue size limit
     if (this.queue.length >= this.config.maxQueueSize) {
       // Remove oldest low-priority operation
-      const lowPriorityIndex = this.queue.findIndex(op => op.priority === 1);
+      const lowPriorityIndex = this.queue.findIndex((op) => op.priority === 1);
       if (lowPriorityIndex !== -1) {
         this.queue.splice(lowPriorityIndex, 1);
       } else {
@@ -81,7 +75,7 @@ export class OperationQueue {
     };
 
     // Insert operation based on priority (higher priority first)
-    const insertIndex = this.queue.findIndex(op => op.priority < priority);
+    const insertIndex = this.queue.findIndex((op) => op.priority < priority);
     if (insertIndex === -1) {
       this.queue.push(operation);
     } else {
@@ -98,21 +92,21 @@ export class OperationQueue {
    * Get all pending operations
    */
   getPendingOperations(): QueuedOperation[] {
-    return this.queue.filter(op => op.status === 'pending' || op.status === 'failed');
+    return this.queue.filter((op) => op.status === 'pending' || op.status === 'failed');
   }
 
   /**
    * Get operation by ID
    */
   getOperation(id: string): QueuedOperation | undefined {
-    return this.queue.find(op => op.id === id);
+    return this.queue.find((op) => op.id === id);
   }
 
   /**
    * Remove operation from queue
    */
   async removeOperation(id: string): Promise<boolean> {
-    const index = this.queue.findIndex(op => op.id === id);
+    const index = this.queue.findIndex((op) => op.id === id);
     if (index === -1) {
       return false;
     }
@@ -126,7 +120,7 @@ export class OperationQueue {
    * Update operation status
    */
   async updateOperation(id: string, updates: Partial<QueuedOperation>): Promise<boolean> {
-    const operation = this.queue.find(op => op.id === id);
+    const operation = this.queue.find((op) => op.id === id);
     if (!operation) {
       return false;
     }
@@ -152,10 +146,10 @@ export class OperationQueue {
   } {
     return {
       total: this.queue.length,
-      pending: this.queue.filter(op => op.status === 'pending').length,
-      processing: this.queue.filter(op => op.status === 'processing').length,
-      completed: this.queue.filter(op => op.status === 'completed').length,
-      failed: this.queue.filter(op => op.status === 'failed').length,
+      pending: this.queue.filter((op) => op.status === 'pending').length,
+      processing: this.queue.filter((op) => op.status === 'processing').length,
+      completed: this.queue.filter((op) => op.status === 'completed').length,
+      failed: this.queue.filter((op) => op.status === 'failed').length,
     };
   }
 
@@ -171,7 +165,7 @@ export class OperationQueue {
    * Clear completed operations
    */
   async clearCompleted(): Promise<void> {
-    this.queue = this.queue.filter(op => op.status !== 'completed');
+    this.queue = this.queue.filter((op) => op.status !== 'completed');
     await this.saveQueue();
   }
 
@@ -179,7 +173,7 @@ export class OperationQueue {
    * Clear failed operations
    */
   async clearFailed(): Promise<void> {
-    this.queue = this.queue.filter(op => op.status !== 'failed');
+    this.queue = this.queue.filter((op) => op.status !== 'failed');
     await this.saveQueue();
   }
 
@@ -187,8 +181,8 @@ export class OperationQueue {
    * Retry failed operations
    */
   async retryFailed(): Promise<void> {
-    const failedOperations = this.queue.filter(op => op.status === 'failed');
-    
+    const failedOperations = this.queue.filter((op) => op.status === 'failed');
+
     for (const operation of failedOperations) {
       if (operation.retryCount < operation.maxRetries) {
         operation.status = 'pending';
@@ -206,7 +200,7 @@ export class OperationQueue {
    */
   getNextBatch(): QueuedOperation[] {
     return this.queue
-      .filter(op => op.status === 'pending')
+      .filter((op) => op.status === 'pending')
       .sort((a, b) => b.priority - a.priority || a.createdAt - b.createdAt)
       .slice(0, this.config.batchSize);
   }
@@ -266,9 +260,9 @@ export class OperationQueue {
       const queueData = await this.storage.get(OperationQueue.QUEUE_KEY);
       if (queueData) {
         this.queue = JSON.parse(queueData);
-        
+
         // Reset processing status on load (in case app crashed while processing)
-        this.queue.forEach(op => {
+        this.queue.forEach((op) => {
           if (op.status === 'processing') {
             op.status = 'pending';
           }

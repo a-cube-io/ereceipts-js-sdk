@@ -1,10 +1,10 @@
 import axios, { AxiosInstance } from 'axios';
-import { ConfigManager } from '../config';
-import { ICacheAdapter, INetworkMonitor, IMTLSAdapter } from '../../adapters';
-import { CertificateManager } from '../certificates/certificate-manager';
-import { IUserProvider } from '../types';
-import { clearObject } from '../../utils';
 
+import { ICacheAdapter, IMTLSAdapter, INetworkMonitor } from '../../adapters';
+import { clearObject } from '../../utils';
+import { CertificateManager } from '../certificates/certificate-manager';
+import { ConfigManager } from '../config';
+import { IUserProvider } from '../types';
 import { MTLSHandler } from './auth/mtls-handler';
 import { CacheHandler } from './cache/cache-handler';
 import { HttpRequestConfig } from './types';
@@ -39,7 +39,7 @@ export class HttpClient {
     this.mtlsAdapter = mtlsAdapter || null;
     this.userProvider = userProvider || null;
     this._isDebugEnabled = config.isDebugEnabled();
-    
+
     // Initialize handlers
     this.mtlsHandler = new MTLSHandler(
       mtlsAdapter || null,
@@ -47,13 +47,9 @@ export class HttpClient {
       this._isDebugEnabled,
       userProvider
     );
-    
-    this.cacheHandler = new CacheHandler(
-      cache,
-      networkMonitor,
-      this._isDebugEnabled
-    );
-    
+
+    this.cacheHandler = new CacheHandler(cache, networkMonitor, this._isDebugEnabled);
+
     // Log initialization state
     if (this._isDebugEnabled) {
       console.log('[HTTP-CLIENT] Initialized:', {
@@ -61,12 +57,15 @@ export class HttpClient {
         hasCache: !!cache,
         hasNetworkMonitor: !!networkMonitor,
         hasMTLSAdapter: !!mtlsAdapter,
-        networkState: networkMonitor?.isOnline() || 'unknown'
+        networkState: networkMonitor?.isOnline() || 'unknown',
       });
     }
   }
 
-  private async createClient(usePort444: boolean = false, withAuth: boolean = false): Promise<AxiosInstance> {
+  private async createClient(
+    usePort444: boolean = false,
+    withAuth: boolean = false
+  ): Promise<AxiosInstance> {
     let baseURL = this.config.getApiUrl();
 
     // Modify URL for :444 port if needed
@@ -88,7 +87,7 @@ export class HttpClient {
       console.log('[HTTP-CLIENT] Creating axios client:', {
         baseURL,
         timeout: this.config.getTimeout(),
-        usePort444
+        usePort444,
       });
     }
 
@@ -162,7 +161,6 @@ export class HttpClient {
     return client;
   }
 
-
   /**
    * Set authorization header
    */
@@ -182,8 +180,8 @@ export class HttpClient {
    */
   private extractMTLSConfig(config?: HttpRequestConfig): {
     method?: string;
-    data?: any;
-    headers?: any;
+    data?: unknown;
+    headers?: Record<string, string>;
     timeout?: number;
     responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
   } {
@@ -191,19 +189,22 @@ export class HttpClient {
 
     const mtlsConfig: {
       method?: string;
-      data?: any;
-      headers?: any;
+      data?: unknown;
+      headers?: Record<string, string>;
       timeout?: number;
       responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
     } = {};
 
     if (config.method) mtlsConfig.method = config.method;
     if (config.data) mtlsConfig.data = config.data;
-    if (config.headers) mtlsConfig.headers = config.headers;
+    if (config.headers) mtlsConfig.headers = config.headers as Record<string, string>;
     if (config.timeout) mtlsConfig.timeout = config.timeout;
 
     // Only pass supported responseType values
-    if (config.responseType && ['json', 'blob', 'arraybuffer', 'text'].includes(config.responseType)) {
+    if (
+      config.responseType &&
+      ['json', 'blob', 'arraybuffer', 'text'].includes(config.responseType)
+    ) {
       mtlsConfig.responseType = config.responseType as 'json' | 'blob' | 'arraybuffer' | 'text';
     }
 
@@ -230,7 +231,7 @@ export class HttpClient {
   getNetworkStatus(): { isOnline: boolean; hasMonitor: boolean } {
     return {
       isOnline: this.cacheHandler.isOnline(),
-      hasMonitor: !!this.cacheHandler
+      hasMonitor: !!this.cacheHandler,
     };
   }
 
@@ -275,23 +276,19 @@ export class HttpClient {
       console.log('[HTTP-CLIENT] Using JWT for GET:', {
         url,
         usePort444: authConfig.usePort444,
-        authMode: authConfig.mode
+        authMode: authConfig.mode,
       });
     }
 
     return this.executeRequest(() =>
-      this.cacheHandler.handleCachedRequest<T>(
-        url,
-        () => client.get(url, config),
-        config
-      )
+      this.cacheHandler.handleCachedRequest<T>(url, () => client.get(url, config), config)
     );
   }
 
   /**
    * POST request with authentication support
    */
-  async post<T>(url: string, data?: any, config?: HttpRequestConfig): Promise<T> {
+  async post<T>(url: string, data?: unknown, config?: HttpRequestConfig): Promise<T> {
     const authConfig = await this.mtlsHandler.determineAuthConfig(url, config?.authMode, 'POST');
     const cleanedData = data ? clearObject(data) : data;
     const client = await this.createClient(authConfig.usePort444, true);
@@ -327,7 +324,7 @@ export class HttpClient {
       console.log('[HTTP-CLIENT] Using JWT for POST:', {
         url,
         usePort444: authConfig.usePort444,
-        authMode: authConfig.mode
+        authMode: authConfig.mode,
       });
     }
 
@@ -340,7 +337,7 @@ export class HttpClient {
   /**
    * PUT request with authentication support
    */
-  async put<T>(url: string, data?: any, config?: HttpRequestConfig): Promise<T> {
+  async put<T>(url: string, data?: unknown, config?: HttpRequestConfig): Promise<T> {
     const authConfig = await this.mtlsHandler.determineAuthConfig(url, config?.authMode, 'PUT');
     const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
     const client = await this.createClient(authConfig.usePort444, true);
@@ -376,7 +373,7 @@ export class HttpClient {
       console.log('[HTTP-CLIENT] Using JWT for PUT:', {
         url,
         usePort444: authConfig.usePort444,
-        authMode: authConfig.mode
+        authMode: authConfig.mode,
       });
     }
 
@@ -389,7 +386,7 @@ export class HttpClient {
   /**
    * DELETE request with authentication support
    */
-  async delete<T>(url: string, data?: any, config?: HttpRequestConfig): Promise<T> {
+  async delete<T>(url: string, data?: unknown, config?: HttpRequestConfig): Promise<T> {
     const authConfig = await this.mtlsHandler.determineAuthConfig(url, config?.authMode, 'DELETE');
     const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
     const client = await this.createClient(authConfig.usePort444, true);
@@ -425,7 +422,7 @@ export class HttpClient {
       console.log('[HTTP-CLIENT] Using JWT for DELETE:', {
         url,
         usePort444: authConfig.usePort444,
-        authMode: authConfig.mode
+        authMode: authConfig.mode,
       });
     }
 
@@ -438,7 +435,7 @@ export class HttpClient {
   /**
    * PATCH request with authentication support
    */
-  async patch<T>(url: string, data?: any, config?: HttpRequestConfig): Promise<T> {
+  async patch<T>(url: string, data?: unknown, config?: HttpRequestConfig): Promise<T> {
     const authConfig = await this.mtlsHandler.determineAuthConfig(url, config?.authMode, 'PATCH');
     const client = await this.createClient(authConfig.usePort444, true);
 
@@ -469,7 +466,7 @@ export class HttpClient {
       console.log('[HTTP-CLIENT] Using JWT for PATCH:', {
         url,
         usePort444: authConfig.usePort444,
-        authMode: authConfig.mode
+        authMode: authConfig.mode,
       });
     }
 
@@ -553,8 +550,7 @@ export class HttpClient {
     return this.cacheHandler.invalidateCache(pattern);
   }
 
-
-    get isDebugEnabled(): boolean {
-        return this._isDebugEnabled;
-    }
+  get isDebugEnabled(): boolean {
+    return this._isDebugEnabled;
+  }
 }
