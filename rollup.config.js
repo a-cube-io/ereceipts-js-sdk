@@ -3,11 +3,21 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import replace from '@rollup/plugin-replace';
+import alias from '@rollup/plugin-alias';
 import dts from 'rollup-plugin-dts';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const aliasEntries = {
+  entries: [
+    { find: '@', replacement: path.resolve(__dirname, 'src') }
+  ]
+};
 
 const external = [
     'axios',
-    'react',
     'react-native',
     '@react-native-async-storage/async-storage',
     '@react-native-community/netinfo',
@@ -20,7 +30,6 @@ const external = [
     'expo-network'
 ];
 
-// Node.js specific externals (only for Node.js/web builds, not React Native)
 const nodeExternals = [
     'https',
     'fs',
@@ -34,6 +43,7 @@ const createBaseConfig = (includeNodeExternals = true) => ({
         return allExternals.some(dep => id.startsWith(dep));
     },
     plugins: [
+        alias(aliasEntries),
         json(),
         resolve({
             browser: true,
@@ -44,7 +54,6 @@ const createBaseConfig = (includeNodeExternals = true) => ({
 });
 
 export default [
-    // Browser ESM build (includes Node.js externals)
     {
         ...createBaseConfig(true),
         output: {
@@ -61,7 +70,6 @@ export default [
             }),
         ],
     },
-    // CommonJS build for Node.js (includes Node.js externals)
     {
         ...createBaseConfig(true),
         output: {
@@ -79,7 +87,6 @@ export default [
             }),
         ],
     },
-    // React Native specific build (excludes Node.js code completely)
     {
         ...createBaseConfig(false),
         output: {
@@ -89,14 +96,11 @@ export default [
             inlineDynamicImports: true,
         },
         plugins: [
-            // Replace ALL Node.js requires with stubs to prevent Metro bundler issues
             replace({
                 preventAssignment: true,
                 delimiters: ['', ''],
                 values: {
-                    // Replace node platform loader
                     "require('../../platforms/node/mtls')": "({ NodeMTLSAdapter: null })",
-                    // Replace Node.js built-in modules
                     "require('node:https')": "null",
                     "require('node:fs/promises')": "null",
                     "require('node:fs')": "({ existsSync: () => false })",
@@ -109,52 +113,6 @@ export default [
             }),
         ],
     },
-    // React components ESM build (includes Node.js externals)
-    {
-        ...createBaseConfig(true),
-        input: 'src/react/index.ts',
-        external: id => {
-            const allExternals = [...external, ...nodeExternals, './index', '../index'];
-            return allExternals.some(dep => id.startsWith(dep));
-        },
-        output: {
-            file: 'dist/react.esm.js',
-            format: 'es',
-            sourcemap: true,
-            inlineDynamicImports: true,
-        },
-        plugins: [
-            ...createBaseConfig(true).plugins,
-            typescript({
-                tsconfig: './tsconfig.json',
-                declaration: false,
-            }),
-        ],
-    },
-    // React components CJS build (includes Node.js externals)
-    {
-        ...createBaseConfig(true),
-        input: 'src/react/index.ts',
-        external: id => {
-            const allExternals = [...external, ...nodeExternals, './index', '../index'];
-            return allExternals.some(dep => id.startsWith(dep));
-        },
-        output: {
-            file: 'dist/react.cjs.js',
-            format: 'cjs',
-            sourcemap: true,
-            exports: 'named',
-            inlineDynamicImports: true,
-        },
-        plugins: [
-            ...createBaseConfig(true).plugins,
-            typescript({
-                tsconfig: './tsconfig.json',
-                declaration: false,
-            }),
-        ],
-    },
-    // TypeScript declarations
     {
         input: 'src/index.ts',
         output: {
@@ -162,16 +120,9 @@ export default [
             format: 'es',
         },
         external: [...external, ...nodeExternals],
-        plugins: [dts()],
-    },
-    // React TypeScript declarations
-    {
-        input: 'src/react/index.ts',
-        output: {
-            file: 'dist/react.d.ts',
-            format: 'es',
-        },
-        external: [...external, ...nodeExternals, './index', '../index'],
-        plugins: [dts()],
+        plugins: [
+            alias(aliasEntries),
+            dts(),
+        ],
     },
 ];
