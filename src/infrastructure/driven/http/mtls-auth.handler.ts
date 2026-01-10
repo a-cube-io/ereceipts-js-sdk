@@ -116,6 +116,9 @@ export class MtlsAuthHandler implements IAuthHandler {
 
     if (jwtToken) {
       headers['Authorization'] = jwtToken;
+      log.debug('JWT token present:', jwtToken.substring(0, 20) + '...');
+    } else {
+      log.warn('No JWT token provided for mTLS request');
     }
 
     const fullUrl = this.constructMtlsUrl(url);

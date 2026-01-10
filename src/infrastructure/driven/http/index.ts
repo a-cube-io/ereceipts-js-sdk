@@ -1,5 +1,4 @@
 export * from './axios-http.adapter';
-export * from './http-client';
 export * from './jwt-auth.handler';
 export * from './mtls-auth.handler';
 export * from './auth-strategy';

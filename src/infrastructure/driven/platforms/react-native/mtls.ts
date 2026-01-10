@@ -508,9 +508,13 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
       method: requestConfig.method || 'GET',
       url: requestConfig.url,
       headers: requestConfig.headers,
-      data: !!requestConfig.data,
+      hasData: !!requestConfig.data,
       responseType: requestConfig.responseType,
     });
+
+    if (requestConfig.data) {
+      log.debug('mTLS request body:', requestConfig.data);
+    }
 
     try {
       const response = await this.expoMTLS.request(requestConfig.url, {

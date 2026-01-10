@@ -16,6 +16,7 @@ import {
 } from '@/domain/entities/receipt.entity';
 import { Page } from '@/domain/value-objects/page.vo';
 import { GoodOrService, VatRateCode } from '@/domain/value-objects/vat-code.vo';
+import { formatDecimal } from '@/shared/utils';
 
 export interface ReceiptItemApiInput {
   type?: GoodOrService;
@@ -123,14 +124,14 @@ export class ReceiptMapper {
       items: input.items.map((item) => this.itemToApiInput(item)),
       customer_tax_code: input.customerTaxCode,
       customer_lottery_code: input.customerLotteryCode,
-      discount: input.discount,
+      discount: formatDecimal(input.discount),
       invoice_issuing: input.invoiceIssuing,
       uncollected_dcr_to_ssn: input.uncollectedDcrToSsn,
-      services_uncollected_amount: input.servicesUncollectedAmount,
-      goods_uncollected_amount: input.goodsUncollectedAmount,
-      cash_payment_amount: input.cashPaymentAmount,
-      electronic_payment_amount: input.electronicPaymentAmount,
-      ticket_restaurant_payment_amount: input.ticketRestaurantPaymentAmount,
+      services_uncollected_amount: formatDecimal(input.servicesUncollectedAmount),
+      goods_uncollected_amount: formatDecimal(input.goodsUncollectedAmount),
+      cash_payment_amount: formatDecimal(input.cashPaymentAmount),
+      electronic_payment_amount: formatDecimal(input.electronicPaymentAmount),
+      ticket_restaurant_payment_amount: formatDecimal(input.ticketRestaurantPaymentAmount),
       ticket_restaurant_quantity: input.ticketRestaurantQuantity,
     };
   }
@@ -138,12 +139,12 @@ export class ReceiptMapper {
   static itemToApiInput(item: ReceiptItem): ReceiptItemApiInput {
     return {
       type: item.type,
-      quantity: item.quantity,
+      quantity: formatDecimal(item.quantity) as string,
       description: item.description,
-      unit_price: item.unitPrice,
+      unit_price: formatDecimal(item.unitPrice) as string,
       vat_rate_code: item.vatRateCode,
       simplified_vat_allocation: item.simplifiedVatAllocation,
-      discount: item.discount,
+      discount: formatDecimal(item.discount),
       is_down_payment_or_voucher_redemption: item.isDownPaymentOrVoucherRedemption,
       complimentary: item.complimentary,
     };
@@ -197,7 +198,7 @@ export class ReceiptMapper {
   static returnItemToApiInput(item: ReceiptReturnItem): { id: number; quantity: string } {
     return {
       id: item.id,
-      quantity: item.quantity,
+      quantity: formatDecimal(item.quantity) as string,
     };
   }
 

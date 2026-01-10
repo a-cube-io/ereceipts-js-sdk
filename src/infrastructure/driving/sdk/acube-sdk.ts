@@ -1,4 +1,9 @@
-import { CertificateInfo, PlatformAdapters } from '@/application/ports/driven';
+import {
+  CertificateInfo,
+  ICertificatePort,
+  IMTLSPort,
+  PlatformAdapters,
+} from '@/application/ports/driven';
 import { IHttpPort } from '@/application/ports/driven/http.port';
 import { ITokenStoragePort } from '@/application/ports/driven/token-storage.port';
 import { AuthenticationService } from '@/application/services/authentication.service';
@@ -12,6 +17,9 @@ import { IPemRepository } from '@/domain/repositories/pem.repository';
 import { IPointOfSaleRepository } from '@/domain/repositories/point-of-sale.repository';
 import { IReceiptRepository } from '@/domain/repositories/receipt.repository';
 import { ISupplierRepository } from '@/domain/repositories/supplier.repository';
+import { AuthStrategy, IUserProvider } from '@/infrastructure/driven/http/auth-strategy';
+import { JwtAuthHandler } from '@/infrastructure/driven/http/jwt-auth.handler';
+import { MtlsAuthHandler } from '@/infrastructure/driven/http/mtls-auth.handler';
 import { OfflineManager, QueueEvents } from '@/infrastructure/driven/offline';
 import { createACubeMTLSConfig, loadPlatformAdapters } from '@/infrastructure/loaders';
 import { ConfigManager } from '@/shared/config';
@@ -136,6 +144,60 @@ export class ACubeSDK {
         if (token) {
           httpPort.setAuthToken(token);
         }
+      }
+
+      // Connect mTLS adapter to HTTP port for /mf1 and /mf2 requests
+      if (this.adapters?.mtls && 'setMTLSAdapter' in httpPort) {
+        const httpWithMtls = httpPort as { setMTLSAdapter: (adapter: IMTLSPort) => void };
+        httpWithMtls.setMTLSAdapter(this.adapters.mtls);
+      }
+
+      // Create and connect AuthStrategy
+      if ('setAuthStrategy' in httpPort) {
+        const jwtHandler = new JwtAuthHandler(tokenStorage);
+        const certificatePort: ICertificatePort | null = this.certificateService
+          ? {
+              storeCertificate: this.certificateService.storeCertificate.bind(
+                this.certificateService
+              ),
+              getCertificate: this.certificateService.getCertificate.bind(this.certificateService),
+              getCertificateInfo: this.certificateService.getCertificateInfo.bind(
+                this.certificateService
+              ),
+              hasCertificate: this.certificateService.hasCertificate.bind(this.certificateService),
+              clearCertificate: this.certificateService.clearCertificate.bind(
+                this.certificateService
+              ),
+            }
+          : null;
+        const mtlsHandler = new MtlsAuthHandler(this.adapters?.mtls || null, certificatePort);
+
+        const userProvider: IUserProvider = {
+          getCurrentUser: async () => {
+            try {
+              return await this.authService!.getCurrentUser();
+            } catch {
+              return null;
+            }
+          },
+          getAccessToken: async () => {
+            try {
+              return await this.authService!.getAccessToken();
+            } catch {
+              return null;
+            }
+          },
+        };
+
+        const authStrategy = new AuthStrategy(
+          jwtHandler,
+          mtlsHandler,
+          userProvider,
+          this.adapters?.mtls || null
+        );
+
+        const httpWithStrategy = httpPort as { setAuthStrategy: (strategy: AuthStrategy) => void };
+        httpWithStrategy.setAuthStrategy(authStrategy);
       }
 
       if (this.adapters?.mtls && this.certificateService) {
