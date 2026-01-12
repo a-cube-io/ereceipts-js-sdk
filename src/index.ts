@@ -1,20 +1,31 @@
-// Main SDK exports
-export * from './acube-sdk';
+export { ACubeSDK, createACubeSDK } from './infrastructure/driving/sdk/acube-sdk';
+export type { SDKEvents } from './infrastructure/driving/sdk/acube-sdk';
+export { DIContainer, DI_TOKENS } from './infrastructure/driving/sdk/di-container';
+export { SDKFactory } from './infrastructure/driving/sdk/sdk-factory';
+export type { SDKFactoryConfig, SDKServices } from './infrastructure/driving/sdk/sdk-factory';
 
-// Core functionality
-export * from './core';
+export * from './domain/entities';
+export * from './domain/value-objects';
+export * from './domain/repositories';
 
-// Adapters
-export * from './adapters';
+export * from './application/ports/driven/http.port';
+export * from './application/dto';
 
-// Offline functionality
-export * from './offline';
+export * from './infrastructure/driven/http';
+export * from './infrastructure/driven/api';
 
-// Validation schemas and utilities
-export * from './validations/api';
+export { ACubeSDKError, ConfigManager } from './shared';
+export { AuthenticationService } from './application/services/authentication.service';
+export { CertificateService } from './application/services/certificate.service';
+export { createACubeMTLSConfig, loadPlatformAdapters } from './infrastructure/loaders';
+export type { SDKConfig, Environment, User, AuthCredentials, JWTPayload } from './shared/types';
+export type { Domain, UserRole, UserRoles } from './domain/value-objects';
 
-// Utility functions
-export * from './utils';
+export * from './application/ports/driven';
+export { MTLSError, MTLSErrorType } from './domain/errors';
+export { CertificateValidator, parseJwt, isTokenExpired, extractRoles } from './domain/services';
+export * from './infrastructure/driven/offline';
+export * from './shared/validation';
+export * from './shared/utils';
 
-// Re-export main create function for convenience
-export { createACubeSDK as default } from './acube-sdk';
+export { createACubeSDK as default } from './infrastructure/driving/sdk/acube-sdk';

@@ -29,26 +29,6 @@ declare module '@react-native-community/netinfo' {
   }
 }
 
-// React Native
-declare module 'react-native' {
-  export const Platform: {
-    OS: 'ios' | 'android' | 'web' | 'windows' | 'macos';
-    select: <T>(specifics: { [platform: string]: T; default?: T }) => T;
-  };
-
-  // Legacy AsyncStorage (deprecated, but needed for fallback)
-  export const AsyncStorage: {
-    getItem(key: string): Promise<string | null>;
-    setItem(key: string, value: string): Promise<void>;
-    removeItem(key: string): Promise<void>;
-    multiGet(keys: string[]): Promise<Array<[string, string | null]>>;
-    multiSet(keyValuePairs: Array<[string, string]>): Promise<void>;
-    multiRemove(keys: string[]): Promise<void>;
-    clear(): Promise<void>;
-    getAllKeys(): Promise<string[]>;
-  };
-}
-
 // Expo SecureStore
 declare module 'expo-secure-store' {
   export function getItemAsync(key: string): Promise<string | null>;
@@ -69,9 +49,7 @@ declare module 'react-native-keychain' {
     password: string
   ): Promise<void>;
 
-  export function getInternetCredentials(
-    server: string
-  ): Promise<UserCredentials | false>;
+  export function getInternetCredentials(server: string): Promise<UserCredentials | false>;
 
   export function resetInternetCredentials(server: string): Promise<void>;
 }
