@@ -7,7 +7,6 @@ import {
   MerchantsParams,
 } from '@/domain/entities/merchant.entity';
 import { IMerchantRepository } from '@/domain/repositories/merchant.repository';
-import { Page } from '@/domain/value-objects/page.vo';
 
 export class MerchantRepositoryImpl implements IMerchantRepository {
   constructor(private readonly http: IHttpPort) {}
@@ -23,8 +22,8 @@ export class MerchantRepositoryImpl implements IMerchantRepository {
     return MerchantMapper.fromApiOutput(response.data);
   }
 
-  async findAll(params?: MerchantsParams): Promise<Page<Merchant>> {
-    const response = await this.http.get<Page<MerchantApiOutput>>('/mf2/merchants', {
+  async findAll(params?: MerchantsParams): Promise<Merchant[]> {
+    const response = await this.http.get<MerchantApiOutput[]>('/mf2/merchants', {
       params: { page: params?.page },
     });
     return MerchantMapper.pageFromApi(response.data);

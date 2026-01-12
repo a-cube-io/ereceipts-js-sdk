@@ -1,6 +1,7 @@
 import { PemCertificates, PemCreateInput, PemCreateOutput } from '@/domain/entities/pem.entity';
 import { PointOfSaleMf2 } from '@/domain/entities/point-of-sale.entity';
-import { Page } from '@/domain/value-objects/page.vo';
+
+import { AddressApiOutput } from './merchant.dto';
 
 export interface PemCreateApiInput {
   merchant_uuid: string;
@@ -24,9 +25,10 @@ export interface PemCertificatesApiOutput {
 }
 
 export interface PointOfSaleMf2ApiOutput {
-  id: string;
+  serial_number: string;
   status: 'NEW' | 'REGISTERED' | 'ACTIVATED' | 'ONLINE' | 'OFFLINE' | 'DISCARDED';
   type: 'AP' | 'SP' | 'TM' | 'PV';
+  address?: AddressApiOutput;
 }
 
 export class PemMapper {
@@ -64,25 +66,22 @@ export class PemMapper {
 
   static fromPointOfSaleMf2ApiOutput(output: PointOfSaleMf2ApiOutput): PointOfSaleMf2 {
     return {
-      id: output.id,
+      serialNumber: output.serial_number,
       status: output.status,
       type: output.type,
+      address: output.address
+        ? {
+            streetAddress: output.address.street_address,
+            streetNumber: output.address.street_number ?? '',
+            zipCode: output.address.zip_code,
+            city: output.address.city,
+            province: output.address.province,
+          }
+        : undefined,
     };
   }
 
-  static pageFromApi(data: {
-    members: PointOfSaleMf2ApiOutput[];
-    total?: number;
-    page?: number;
-    size?: number;
-    pages?: number;
-  }): Page<PointOfSaleMf2> {
-    return {
-      members: data.members.map((item) => PemMapper.fromPointOfSaleMf2ApiOutput(item)),
-      total: data.total,
-      page: data.page,
-      size: data.size,
-      pages: data.pages,
-    };
+  static pageFromApi(data: PointOfSaleMf2ApiOutput[]): PointOfSaleMf2[] {
+    return data.map((item) => PemMapper.fromPointOfSaleMf2ApiOutput(item));
   }
 }

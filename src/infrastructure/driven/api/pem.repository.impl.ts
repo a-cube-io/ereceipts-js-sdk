@@ -8,7 +8,6 @@ import { IHttpPort } from '@/application/ports/driven/http.port';
 import { PemCertificates, PemCreateInput, PemCreateOutput } from '@/domain/entities/pem.entity';
 import { PointOfSaleMf2 } from '@/domain/entities/point-of-sale.entity';
 import { IPemRepository } from '@/domain/repositories/pem.repository';
-import { Page } from '@/domain/value-objects/page.vo';
 
 export class PemRepositoryImpl implements IPemRepository {
   constructor(private readonly http: IHttpPort) {}
@@ -26,8 +25,8 @@ export class PemRepositoryImpl implements IPemRepository {
     return PemMapper.fromPointOfSaleMf2ApiOutput(response.data);
   }
 
-  async findAllByMerchant(merchantUuid: string, page?: number): Promise<Page<PointOfSaleMf2>> {
-    const response = await this.http.get<Page<PointOfSaleMf2ApiOutput>>(
+  async findAllByMerchant(merchantUuid: string, page?: number): Promise<PointOfSaleMf2[]> {
+    const response = await this.http.get<PointOfSaleMf2ApiOutput[]>(
       `/mf2/merchants/${merchantUuid}/point-of-sales`,
       { params: { page } }
     );

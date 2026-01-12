@@ -4,7 +4,6 @@ import {
   MerchantUpdateInput,
 } from '@/domain/entities/merchant.entity';
 import { Address } from '@/domain/value-objects/address.vo';
-import { Page } from '@/domain/value-objects/page.vo';
 
 export interface AddressApiOutput {
   street_address: string;
@@ -101,13 +100,7 @@ export class MerchantMapper {
     };
   }
 
-  static pageFromApi(response: Page<MerchantApiOutput>): Page<Merchant> {
-    return {
-      members: response.members.map((m) => this.fromApiOutput(m)),
-      total: response.total,
-      page: response.page,
-      size: response.size,
-      pages: response.pages,
-    };
+  static pageFromApi(response: MerchantApiOutput[]): Merchant[] {
+    return response.map((m) => this.fromApiOutput(m));
   }
 }

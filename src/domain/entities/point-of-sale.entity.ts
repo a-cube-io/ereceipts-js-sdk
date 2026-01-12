@@ -16,9 +16,10 @@ export interface PointOfSaleDetailed extends PointOfSale {
 }
 
 export interface PointOfSaleMf2 {
-  id: string;
+  serialNumber: string;
   status: PEMStatus;
   type: PointOfSaleType;
+  address?: Address;
 }
 
 export interface PointOfSaleListParams {
