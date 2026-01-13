@@ -23,6 +23,10 @@ export class AuthStrategy {
     method: string,
     explicitMode?: AuthMode
   ): Promise<AuthConfig> {
+    if (this.isNotificationEndpoint(url) || this.isTelemetryEndpoint(url)) {
+      return { mode: 'mtls', usePort444: true };
+    }
+
     const platform = this.detectPlatform();
     const userRole = await this.getUserRole();
     const isReceiptEndpoint = this.isReceiptEndpoint(url);
@@ -147,5 +151,13 @@ export class AuthStrategy {
       url.match(/\/receipts\/[a-f0-9-]+\/details$/) ||
       url.match(/\/mf1\/receipts\/[a-f0-9-]+\/details$/)
     );
+  }
+
+  private isNotificationEndpoint(url: string): boolean {
+    return url.includes('/mf1/notifications');
+  }
+
+  private isTelemetryEndpoint(url: string): boolean {
+    return !!url.match(/\/mf1\/point-of-sales\/[^/]+\/telemetry/);
   }
 }

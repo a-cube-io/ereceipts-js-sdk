@@ -103,6 +103,36 @@ export {
   type DailyReportsParamsType,
 } from './daily-reports';
 
+// Notification schemas and types
+export {
+  NotificationSchema,
+  NotificationScopeSchema,
+  NotificationListResponseSchema,
+  NotificationMf2UnreachableSchema,
+  NotificationPemsBlockedSchema,
+  NotificationPemBackOnlineSchema,
+  NotificationDataBlockAtSchema,
+  NotificationDataPemStatusSchema,
+  PemStatusSchema,
+  type NotificationSchemaType,
+  type NotificationListResponseSchemaType,
+} from './notifications';
+
+// Telemetry schemas and types
+export {
+  TelemetrySchema,
+  TelemetryMerchantSchema,
+  TelemetrySupplierSchema,
+  TelemetrySoftwareSchema,
+  TelemetrySoftwareVersionSchema,
+  PendingReceiptsSchema,
+  TransmissionSchema,
+  MessageSchema,
+  LotterySchema,
+  LotterySecretRequestSchema,
+  type TelemetrySchemaType,
+} from './telemetry';
+
 // Common validation utilities
 export const ValidationMessages = {
   fieldIsRequired: 'This field is required',

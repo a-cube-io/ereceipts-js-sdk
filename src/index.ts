@@ -4,6 +4,30 @@ export { DIContainer, DI_TOKENS } from './infrastructure/driving/sdk/di-containe
 export { SDKFactory } from './infrastructure/driving/sdk/sdk-factory';
 export type { SDKFactoryConfig, SDKServices } from './infrastructure/driving/sdk/sdk-factory';
 
+// SDKManager - Simplified API for production use
+export { SDKManager } from './infrastructure/driving/sdk/sdk-manager';
+export type {
+  SDKManagerConfig,
+  SDKManagerEvents,
+  ManagedServices,
+  TelemetryOperations,
+} from './infrastructure/driving/sdk/sdk-manager';
+
+// Application state types
+export { AppStateService } from './application/services/app-state.service';
+export type { AppState, AppMode, WarningState } from './application/services/app-state.service';
+export { NotificationService } from './application/services/notification.service';
+export type {
+  NotificationServiceConfig,
+  NotificationSyncState,
+  NotificationEvents,
+} from './application/services/notification.service';
+export { TelemetryService } from './application/services/telemetry.service';
+export type {
+  TelemetryState,
+  TelemetryServiceConfig,
+} from './application/services/telemetry.service';
+
 export * from './domain/entities';
 export * from './domain/value-objects';
 export * from './domain/repositories';

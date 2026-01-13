@@ -1,9 +1,33 @@
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { distinctUntilChanged, map } from 'rxjs/operators';
+
 import { ICertificatePort, StoredCertificate } from '@/application/ports/driven/certificate.port';
 import { ISecureStoragePort } from '@/application/ports/driven/storage.port';
 
 const CERTIFICATE_KEY = 'acube_certificate';
 
+export type CertificateState = 'idle' | 'loading' | 'stored' | 'error';
+
 export class CertificateService implements ICertificatePort {
+  private readonly certificateSubject = new BehaviorSubject<StoredCertificate | null>(null);
+  private readonly stateSubject = new BehaviorSubject<CertificateState>('idle');
+  private readonly destroy$ = new Subject<void>();
+
+  get certificate$(): Observable<StoredCertificate | null> {
+    return this.certificateSubject.asObservable();
+  }
+
+  get hasCertificate$(): Observable<boolean> {
+    return this.certificateSubject.pipe(
+      map((cert) => cert !== null),
+      distinctUntilChanged()
+    );
+  }
+
+  get state$(): Observable<CertificateState> {
+    return this.stateSubject.asObservable();
+  }
+
   constructor(private readonly secureStorage: ISecureStoragePort) {}
 
   async hasCertificate(): Promise<boolean> {
@@ -12,14 +36,22 @@ export class CertificateService implements ICertificatePort {
   }
 
   async getCertificate(): Promise<StoredCertificate | null> {
+    this.stateSubject.next('loading');
+
     const stored = await this.secureStorage.get(CERTIFICATE_KEY);
     if (!stored) {
+      this.stateSubject.next('idle');
       return null;
     }
+
     const certData = JSON.parse(stored) as StoredCertificate;
     if (!certData.certificate || !certData.privateKey) {
+      this.stateSubject.next('idle');
       return null;
     }
+
+    this.certificateSubject.next(certData);
+    this.stateSubject.next('stored');
     return certData;
   }
 
@@ -39,10 +71,14 @@ export class CertificateService implements ICertificatePort {
     };
 
     await this.secureStorage.set(CERTIFICATE_KEY, JSON.stringify(certData));
+    this.certificateSubject.next(certData);
+    this.stateSubject.next('stored');
   }
 
   async clearCertificate(): Promise<void> {
     await this.secureStorage.remove(CERTIFICATE_KEY);
+    this.certificateSubject.next(null);
+    this.stateSubject.next('idle');
   }
 
   async getCertificateInfo(): Promise<{ format: string } | null> {
@@ -51,5 +87,10 @@ export class CertificateService implements ICertificatePort {
       return null;
     }
     return { format: cert.format };
+  }
+
+  destroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

@@ -1,3 +1,5 @@
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
+
 import {
   ICachePort as ICacheAdapter,
   INetworkPort as INetworkMonitor,
@@ -10,7 +12,9 @@ import {
   OperationType,
   QueueConfig,
   QueueEvents,
+  QueuedOperation,
   ResourceType,
+  SyncStatus,
 } from '@/domain/entities/offline.entity';
 
 import { OperationQueue } from './queue';
@@ -19,6 +23,21 @@ import { SyncManager } from './sync-manager';
 export class OfflineManager {
   private queue: OperationQueue;
   private syncManager: SyncManager;
+  private readonly queueSubject = new BehaviorSubject<QueuedOperation[]>([]);
+  private readonly syncStatusSubject = new BehaviorSubject<SyncStatus>({
+    isOnline: true,
+    isProcessing: false,
+    queueStats: { total: 0, pending: 0, processing: 0, completed: 0, failed: 0 },
+  });
+  private readonly destroy$ = new Subject<void>();
+
+  get queue$(): Observable<QueuedOperation[]> {
+    return this.queueSubject.asObservable();
+  }
+
+  get syncStatus$(): Observable<SyncStatus> {
+    return this.syncStatusSubject.asObservable();
+  }
 
   constructor(
     storage: IStorage,
@@ -30,8 +49,41 @@ export class OfflineManager {
   ) {
     const finalConfig = { ...DEFAULT_QUEUE_CONFIG, ...config };
 
-    this.queue = new OperationQueue(storage, finalConfig, events);
-    this.syncManager = new SyncManager(this.queue, httpPort, networkMonitor, finalConfig, events);
+    const wrappedEvents: QueueEvents = {
+      ...events,
+      onOperationAdded: (op) => {
+        this.updateQueueState();
+        events.onOperationAdded?.(op);
+      },
+      onOperationCompleted: (result) => {
+        this.updateQueueState();
+        events.onOperationCompleted?.(result);
+      },
+      onOperationFailed: (result) => {
+        this.updateQueueState();
+        events.onOperationFailed?.(result);
+      },
+      onBatchSyncCompleted: (result) => {
+        this.updateQueueState();
+        events.onBatchSyncCompleted?.(result);
+      },
+    };
+
+    this.queue = new OperationQueue(storage, finalConfig, wrappedEvents);
+    this.syncManager = new SyncManager(
+      this.queue,
+      httpPort,
+      networkMonitor,
+      finalConfig,
+      wrappedEvents
+    );
+
+    this.updateQueueState();
+  }
+
+  private updateQueueState(): void {
+    this.queueSubject.next(this.queue.getPendingOperations());
+    this.syncStatusSubject.next(this.syncManager.getSyncStatus());
   }
 
   async queueOperation(
@@ -42,7 +94,9 @@ export class OfflineManager {
     data?: unknown,
     priority: number = 1
   ): Promise<string> {
-    return await this.queue.addOperation(type, resource, endpoint, method, data, priority);
+    const id = await this.queue.addOperation(type, resource, endpoint, method, data, priority);
+    this.updateQueueState();
+    return id;
   }
 
   async queueReceiptCreation(receiptData: unknown, priority: number = 2): Promise<string> {
@@ -106,11 +160,14 @@ export class OfflineManager {
   }
 
   async sync(): Promise<BatchSyncResult | null> {
-    return await this.syncManager.triggerSync();
+    const result = await this.syncManager.triggerSync();
+    this.updateQueueState();
+    return result;
   }
 
   async retryFailed(): Promise<void> {
     await this.queue.retryFailed();
+    this.updateQueueState();
     if (this.isOnline()) {
       await this.sync();
     }
@@ -118,14 +175,17 @@ export class OfflineManager {
 
   async clearCompleted(): Promise<void> {
     await this.queue.clearCompleted();
+    this.updateQueueState();
   }
 
   async clearFailed(): Promise<void> {
     await this.queue.clearFailed();
+    this.updateQueueState();
   }
 
   async clearAll(): Promise<void> {
     await this.queue.clearQueue();
+    this.updateQueueState();
   }
 
   getOperation(id: string) {
@@ -133,7 +193,9 @@ export class OfflineManager {
   }
 
   async removeOperation(id: string): Promise<boolean> {
-    return await this.queue.removeOperation(id);
+    const result = await this.queue.removeOperation(id);
+    this.updateQueueState();
+    return result;
   }
 
   getQueueStats() {
@@ -149,6 +211,8 @@ export class OfflineManager {
   }
 
   destroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
     this.queue.destroy();
     this.syncManager.destroy();
   }

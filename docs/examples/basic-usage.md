@@ -253,3 +253,4 @@ sdk.destroy();
 
 - [App Completa](./complete-app.md)
 - [Flusso Scontrini](./receipts-flow.md)
+- [Notifiche e Telemetria](./notifications-telemetry.md)
