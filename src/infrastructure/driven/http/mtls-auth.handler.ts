@@ -115,7 +115,7 @@ export class MtlsAuthHandler implements IAuthHandler {
     };
 
     if (jwtToken) {
-      headers['Authorization'] = jwtToken;
+      headers['Authorization'] = `Bearer ${jwtToken}`;
       log.debug('JWT token present:', jwtToken.substring(0, 20) + '...');
     } else {
       log.warn('No JWT token provided for mTLS request');
@@ -132,6 +132,7 @@ export class MtlsAuthHandler implements IAuthHandler {
       responseType: config.responseType,
     };
 
+    log.debug('header-mtls', headers);
     log.debug(`${config.method} ${fullUrl}`);
     if (config.data) {
       log.debug('Request body:', config.data);

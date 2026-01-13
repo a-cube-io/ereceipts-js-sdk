@@ -45,6 +45,8 @@ export class ACubeSDK {
   private certificateService?: CertificateService;
   private container?: DIContainer;
   private isInitialized = false;
+  private currentOnlineState = true;
+  private networkSubscription?: { unsubscribe: () => void };
 
   constructor(
     config: SDKConfig,
@@ -129,7 +131,8 @@ export class ACubeSDK {
         queueEvents
       );
 
-      this.adapters.networkMonitor.onStatusChange((online) => {
+      this.networkSubscription = this.adapters.networkMonitor.online$.subscribe((online) => {
+        this.currentOnlineState = online;
         this.events.onNetworkStatusChanged?.(online);
 
         if (online && this.offlineManager) {
@@ -323,7 +326,7 @@ export class ACubeSDK {
 
   isOnline(): boolean {
     this.ensureInitialized();
-    return this.adapters!.networkMonitor.isOnline();
+    return this.currentOnlineState;
   }
 
   getConfig(): SDKConfig {
@@ -512,6 +515,7 @@ export class ACubeSDK {
   }
 
   destroy(): void {
+    this.networkSubscription?.unsubscribe();
     this.offlineManager?.destroy();
     this.container?.clear();
     this.isInitialized = false;

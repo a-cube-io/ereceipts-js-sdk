@@ -18,8 +18,8 @@ export interface IReceiptRepository {
   findById(receiptUuid: string): Promise<Receipt>;
   findAll(params: ReceiptListParams): Promise<Page<Receipt>>;
   getDetails(receiptUuid: string, format: 'json'): Promise<ReceiptDetails>;
-  getDetails(receiptUuid: string, format: 'pdf'): Promise<Blob>;
-  getDetails(receiptUuid: string, format: 'json' | 'pdf'): Promise<ReceiptDetails | Blob>;
+  getDetails(receiptUuid: string, format: 'pdf'): Promise<string>;
+  getDetails(receiptUuid: string, format: 'json' | 'pdf'): Promise<ReceiptDetails | string>;
   getReturnableItems(receiptUuid: string): Promise<ReturnableReceiptItem[]>;
   voidReceipt(input: VoidReceiptInput): Promise<void>;
   voidViaDifferentDevice(input: VoidViaDifferentDeviceInput): Promise<void>;

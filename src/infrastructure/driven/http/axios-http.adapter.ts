@@ -69,6 +69,7 @@ export class AxiosHttpAdapter implements IHttpPort {
     }
 
     const fullUrl = this.constructMtlsUrl(url);
+
     const headers: Record<string, string> = {
       ...(method !== 'GET' && data ? { 'Content-Type': 'application/json' } : {}),
       ...(config?.headers || {}),
@@ -242,8 +243,10 @@ export class AxiosHttpAdapter implements IHttpPort {
   }
 
   async delete<T>(url: string, config?: HttpRequestConfig): Promise<HttpResponse<T>> {
+    const data = config?.data;
+    const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
     if (await this.shouldUseMTLS(url, 'DELETE')) {
-      return this.makeMTLSRequest<T>(url, 'DELETE', undefined, config);
+      return this.makeMTLSRequest<T>(url, 'DELETE', cleanedData, config);
     }
     const response = await this.client.delete<T>(url, this.mapConfig(config));
     return this.mapResponse(response);

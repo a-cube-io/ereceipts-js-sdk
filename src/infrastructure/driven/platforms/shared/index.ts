@@ -4,4 +4,4 @@ export {
   withMultiOperations,
 } from './base-storage.mixin';
 
-export { NetworkObserverMixin, type NetworkStatusCallback } from './observer.mixin';
+export { NetworkBase } from './network-base';

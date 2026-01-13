@@ -1,7 +1,10 @@
-import { INetworkPort as INetworkMonitor, NetworkInfo } from '@/application/ports/driven';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+
+import { NetworkInfo } from '@/application/ports/driven';
 import { createPrefixedLogger, detectPlatform } from '@/shared/utils';
 
-import { NetworkObserverMixin } from '../shared';
+import { NetworkBase } from '../shared/network-base';
 
 const log = createPrefixedLogger('RN-NETWORK');
 
@@ -24,18 +27,19 @@ interface NetInfoModule {
 }
 
 /**
- * React Native network monitor using @react-native-community/netinfo or expo-network
- * Uses NetworkObserverMixin for listener management
+ * React Native network monitor using RxJS
+ * Supports both @react-native-community/netinfo and expo-network
  */
-export class ReactNativeNetworkMonitor extends NetworkObserverMixin implements INetworkMonitor {
+export class ReactNativeNetworkMonitor extends NetworkBase {
   private netInfoModule: NetInfoModule | null = null;
-  private unsubscribeFn: (() => void) | null = null;
-  private currentState: boolean = true;
+  private nativeUnsubscribe: (() => void) | null = null;
   private readonly isExpo: boolean;
+  private readonly moduleReady$ = new Subject<void>();
 
   constructor() {
-    super();
+    super(true, 500); // Higher debounce for mobile networks
     this.isExpo = detectPlatform().isExpo;
+
     this.init().catch((error) => {
       log.error('Network monitor initialization failed:', error);
     });
@@ -50,6 +54,9 @@ export class ReactNativeNetworkMonitor extends NetworkObserverMixin implements I
 
     await this.fetchInitialState();
     this.subscribeToStateChanges();
+
+    this.moduleReady$.next();
+    this.moduleReady$.complete();
   }
 
   private async loadRNModule(): Promise<void> {
@@ -78,15 +85,15 @@ export class ReactNativeNetworkMonitor extends NetworkObserverMixin implements I
     if (!this.netInfoModule) return;
 
     try {
-      let online = false;
+      let state: NetworkState;
       if (this.isExpo) {
-        const state = await this.netInfoModule.getNetworkStateAsync();
-        online = !!(state.isConnected && state.isInternetReachable !== false);
+        state = await this.netInfoModule.getNetworkStateAsync();
       } else {
-        const state = await this.netInfoModule.fetch();
-        online = !!(state.isConnected && state.isInternetReachable !== false);
+        state = await this.netInfoModule.fetch();
       }
-      this.currentState = online;
+
+      const online = !!(state.isConnected && state.isInternetReachable !== false);
+      this.updateStatus(online);
       log.debug('Initial network state:', online ? 'online' : 'offline');
     } catch (error) {
       log.warn('Could not fetch initial network state:', error);
@@ -98,85 +105,61 @@ export class ReactNativeNetworkMonitor extends NetworkObserverMixin implements I
 
     log.debug('Subscribing to network state changes');
 
-    if (this.isExpo) {
-      this.unsubscribeFn = this.netInfoModule.addNetworkStateListener((state: NetworkState) => {
-        this.handleStateChange(!!state.isConnected, state.isInternetReachable ?? false);
-      });
-    } else {
-      this.unsubscribeFn = this.netInfoModule.addEventListener((state: NetworkState) => {
-        this.handleStateChange(!!state.isConnected, state.isInternetReachable ?? false);
-      });
-    }
-  }
-
-  private handleStateChange(isConnected: boolean, isInternetReachable: boolean): void {
-    const online = isConnected && isInternetReachable !== false;
-    if (online !== this.currentState) {
-      this.currentState = online;
-      this.notifyListeners(online);
-    }
-  }
-
-  isOnline(): boolean {
-    return this.currentState;
-  }
-
-  // Override to add late initialization support
-  onStatusChange(callback: (online: boolean) => void): () => void {
-    this.listeners.push(callback);
-
-    if (!this.netInfoModule) {
-      this.init().catch((error) => {
-        log.error('Late initialization of network monitor failed:', error);
-      });
-    }
-
-    return () => {
-      const idx = this.listeners.indexOf(callback);
-      if (idx >= 0) {
-        this.listeners.splice(idx, 1);
-      }
+    const handleState = (state: NetworkState): void => {
+      const online = !!(state.isConnected && (state.isInternetReachable ?? true));
+      this.updateStatus(online);
     };
+
+    if (this.isExpo) {
+      this.nativeUnsubscribe = this.netInfoModule.addNetworkStateListener(handleState);
+    } else {
+      this.nativeUnsubscribe = this.netInfoModule.addEventListener(handleState);
+    }
+
+    // Cleanup native listener when destroy$ emits
+    this.destroy$.pipe(takeUntil(this.destroy$)).subscribe({
+      complete: () => {
+        if (this.nativeUnsubscribe) {
+          this.nativeUnsubscribe();
+          this.nativeUnsubscribe = null;
+        }
+      },
+    });
   }
 
   async getNetworkInfo(): Promise<NetworkInfo | null> {
+    // Wait for module initialization if not ready
     if (!this.netInfoModule) {
-      await this.init();
-      if (!this.netInfoModule) {
-        return null;
-      }
+      await new Promise<void>((resolve) => {
+        this.moduleReady$.subscribe({ complete: () => resolve() });
+      });
+
+      if (!this.netInfoModule) return null;
     }
 
     try {
-      if (this.isExpo) {
-        const state = await this.netInfoModule.getNetworkStateAsync();
-        return {
-          type: this.mapConnectionType(state.type),
-          effectiveType: undefined,
-          downlink: undefined,
-          rtt: undefined,
-        };
-      } else {
-        const state = await this.netInfoModule.fetch();
-        return {
-          type: this.mapConnectionType(state.type),
-          effectiveType: this.mapEffectiveType(state.details?.cellularGeneration),
-          downlink: state.details?.downlink,
-          rtt: state.details?.rtt,
-        };
-      }
+      const state = this.isExpo
+        ? await this.netInfoModule.getNetworkStateAsync()
+        : await this.netInfoModule.fetch();
+
+      return {
+        type: this.mapConnectionType(state.type),
+        effectiveType: this.mapEffectiveType(state.details?.cellularGeneration),
+        downlink: state.details?.downlink,
+        rtt: state.details?.rtt,
+      };
     } catch (error) {
       log.error('Failed to fetch detailed network info:', error);
       return null;
     }
   }
 
-  destroy(): void {
-    if (this.unsubscribeFn) {
-      this.unsubscribeFn();
-      this.unsubscribeFn = null;
+  override destroy(): void {
+    if (this.nativeUnsubscribe) {
+      this.nativeUnsubscribe();
+      this.nativeUnsubscribe = null;
     }
-    this.clearListeners();
+    super.destroy();
   }
 
   private mapConnectionType(
