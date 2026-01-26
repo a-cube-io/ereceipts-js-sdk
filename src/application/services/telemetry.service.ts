@@ -10,6 +10,7 @@ export interface TelemetryState {
   data: Telemetry | null;
   isCached: boolean;
   isLoading: boolean;
+  lastFetchedAt: number | null;
   error?: string;
 }
 
@@ -33,6 +34,7 @@ export class TelemetryService {
     data: null,
     isCached: false,
     isLoading: false,
+    lastFetchedAt: null,
   });
   private readonly destroy$ = new Subject<void>();
   private readonly config: TelemetryServiceConfig;
@@ -80,6 +82,7 @@ export class TelemetryService {
         data,
         isCached: false,
         isLoading: false,
+        lastFetchedAt: Date.now(),
       };
 
       this.stateSubject.next(newState);
@@ -112,6 +115,7 @@ export class TelemetryService {
           data,
           isCached: false,
           isLoading: false,
+          lastFetchedAt: Date.now(),
         };
 
         this.stateSubject.next(newState);
@@ -132,6 +136,7 @@ export class TelemetryService {
         data: cached.data,
         isCached: true,
         isLoading: false,
+        lastFetchedAt: cached.timestamp,
       };
 
       this.stateSubject.next(newState);
@@ -144,6 +149,7 @@ export class TelemetryService {
       data: null,
       isCached: false,
       isLoading: false,
+      lastFetchedAt: null,
       error: errorMessage,
     };
 

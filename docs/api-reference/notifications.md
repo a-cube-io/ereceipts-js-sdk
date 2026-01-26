@@ -28,7 +28,73 @@ const notifications = await sdk.notifications.fetchNotifications({
 | `page` | `number` | `1` | Numero pagina |
 | `size` | `number` | `30` | Dimensione pagina |
 
-**Ritorna:** `Promise<Notification[]>`
+**Ritorna:** `Promise<Page<Notification>>`
+
+## Costanti
+
+Le notifiche utilizzano costanti tipizzate per una migliore developer experience:
+
+```typescript
+import {
+  NOTIFICATION_CODES,
+  NOTIFICATION_TYPES,
+  NOTIFICATION_LEVELS,
+  NOTIFICATION_SOURCES,
+  NOTIFICATION_SCOPES,
+} from '@a-cube-io/ereceipts-js-sdk';
+```
+
+### NOTIFICATION_CODES
+
+```typescript
+const NOTIFICATION_CODES = {
+  MF2_UNREACHABLE: 'SYS-W-01',
+  STATUS_OFFLINE: 'SYS-C-01',
+  STATUS_ONLINE: 'SYS-I-01',
+  COMMUNICATION_RESTORED: 'SYS-I-02',
+} as const;
+```
+
+### NOTIFICATION_TYPES
+
+```typescript
+const NOTIFICATION_TYPES = {
+  MF2_UNREACHABLE: 'INTERNAL_COMMUNICATION_FAILURE',
+  STATUS_OFFLINE: 'STATUS_OFFLINE',
+  STATUS_ONLINE: 'STATUS_ONLINE',
+  COMMUNICATION_RESTORED: 'INTERNAL_COMMUNICATION_RESTORED',
+} as const;
+```
+
+### NOTIFICATION_LEVELS
+
+```typescript
+const NOTIFICATION_LEVELS = {
+  INFO: 'info',
+  WARNING: 'warning',
+  ERROR: 'error',
+  CRITICAL: 'critical',
+} as const;
+```
+
+### NOTIFICATION_SOURCES
+
+```typescript
+const NOTIFICATION_SOURCES = {
+  SYSTEM: 'system',
+  ITALIAN_TAX_AUTHORITY: 'Italian Tax Authority',
+} as const;
+```
+
+### NOTIFICATION_SCOPES
+
+```typescript
+const NOTIFICATION_SCOPES = {
+  GLOBAL: 'global',
+  MERCHANT: 'merchant',
+  PEM: 'pem',
+} as const;
+```
 
 ## Tipi di Notifica
 
@@ -36,60 +102,75 @@ Le notifiche sono tipizzate in base al campo `code` usando una discriminated uni
 
 ### NotificationMf2Unreachable
 
-Notifica quando MF2 non e' raggiungibile.
+Notifica quando MF2 non e' raggiungibile. Include un countdown per il blocco.
 
 ```typescript
 interface NotificationMf2Unreachable {
   uuid: string;
-  scope: { type: 'global' };
-  source: 'system' | 'Italian Tax Authority';
-  level: 'info' | 'warning' | 'error' | 'critical';
+  message: string;
+  scope: NotificationScope;
+  source: NotificationSource;
+  level: NotificationLevel;
   createdAt: string;
   type: 'INTERNAL_COMMUNICATION_FAILURE';
   code: 'SYS-W-01';
-  data: {
+  payload: {
     block_at: string;
   };
 }
 ```
 
-### NotificationPemsBlocked
+### NotificationStatusOffline
 
-Notifica quando i PEM sono bloccati (passaggio a OFFLINE).
+Notifica quando lo stato passa a OFFLINE.
 
 ```typescript
-interface NotificationPemsBlocked {
+interface NotificationStatusOffline {
   uuid: string;
-  scope: { type: 'global' };
-  source: 'system' | 'Italian Tax Authority';
-  level: 'info' | 'warning' | 'error' | 'critical';
+  message: string;
+  scope: NotificationScope;
+  source: NotificationSource;
+  level: NotificationLevel;
   createdAt: string;
-  type: 'PEM_STATUS_CHANGED';
+  type: 'STATUS_OFFLINE';
   code: 'SYS-C-01';
-  data: {
-    from: 'ONLINE' | 'OFFLINE';
-    to: 'ONLINE' | 'OFFLINE';
-  };
+  payload: null;
 }
 ```
 
-### NotificationPemBackOnline
+### NotificationStatusOnline
 
-Notifica quando un PEM torna online.
+Notifica quando lo stato torna ONLINE.
 
 ```typescript
-interface NotificationPemBackOnline {
+interface NotificationStatusOnline {
   uuid: string;
-  scope: { type: 'global' };
-  source: 'system' | 'Italian Tax Authority';
-  level: 'info' | 'warning' | 'error' | 'critical';
+  message: string;
+  scope: NotificationScope;
+  source: NotificationSource;
+  level: NotificationLevel;
   createdAt: string;
-  type: 'PEM_STATUS_CHANGED';
+  type: 'STATUS_ONLINE';
   code: 'SYS-I-01';
-  data: {
-    from: 'ONLINE' | 'OFFLINE';
-    to: 'ONLINE' | 'OFFLINE';
-  };
+  payload: null;
+}
+```
+
+### NotificationCommunicationRestored
+
+Notifica quando la comunicazione con MF2 viene ripristinata.
+
+```typescript
+interface NotificationCommunicationRestored {
+  uuid: string;
+  message: string;
+  scope: NotificationScope;
+  source: NotificationSource;
+  level: NotificationLevel;
+  createdAt: string;
+  type: 'INTERNAL_COMMUNICATION_RESTORED';
+  code: 'SYS-I-02';
+  payload: null;
 }
 ```
 
@@ -97,9 +178,10 @@ interface NotificationPemBackOnline {
 
 | Codice | Tipo | Descrizione |
 |--------|------|-------------|
-| `SYS-W-01` | `INTERNAL_COMMUNICATION_FAILURE` | MF2 non raggiungibile |
-| `SYS-C-01` | `PEM_STATUS_CHANGED` | PEM passato a OFFLINE |
-| `SYS-I-01` | `PEM_STATUS_CHANGED` | PEM tornato ONLINE |
+| `SYS-W-01` | `INTERNAL_COMMUNICATION_FAILURE` | MF2 non raggiungibile, countdown al blocco |
+| `SYS-C-01` | `STATUS_OFFLINE` | Stato passato a OFFLINE |
+| `SYS-I-01` | `STATUS_ONLINE` | Stato tornato ONLINE |
+| `SYS-I-02` | `INTERNAL_COMMUNICATION_RESTORED` | Comunicazione MF2 ripristinata |
 
 ## NotificationService
 
@@ -170,20 +252,25 @@ interface NotificationSyncState {
 ## Esempio Utilizzo
 
 ```typescript
+import { NOTIFICATION_CODES } from '@a-cube-io/ereceipts-js-sdk';
+
 // Fetch semplice
-const notifications = await sdk.notifications.fetchNotifications();
+const page = await sdk.notifications.fetchNotifications();
 
 // Gestione per tipo
-notifications.forEach((notification) => {
+page.members.forEach((notification) => {
   switch (notification.code) {
-    case 'SYS-W-01':
-      console.log('MF2 bloccato da:', notification.data.block_at);
+    case NOTIFICATION_CODES.MF2_UNREACHABLE:
+      console.log('MF2 bloccato da:', notification.payload.block_at);
       break;
-    case 'SYS-C-01':
-      console.log('PEM offline:', notification.data.from, '->', notification.data.to);
+    case NOTIFICATION_CODES.STATUS_OFFLINE:
+      console.log('Stato offline');
       break;
-    case 'SYS-I-01':
-      console.log('PEM online:', notification.data.from, '->', notification.data.to);
+    case NOTIFICATION_CODES.STATUS_ONLINE:
+      console.log('Stato online');
+      break;
+    case NOTIFICATION_CODES.COMMUNICATION_RESTORED:
+      console.log('Comunicazione ripristinata');
       break;
   }
 });
@@ -194,8 +281,10 @@ notifications.forEach((notification) => {
 - Endpoint: `GET /mf1/notifications`
 - Autenticazione: mTLS (porta 444)
 - Le notifiche sono solo in lettura (no acknowledge)
+- Il campo `payload` è opzionale in API (omesso quando `null`)
 
 ## Prossimi Passi
 
 - [Telemetry API](./telemetry.md)
+- [App State](./app-state.md)
 - [SDK Instance](./sdk-instance.md)

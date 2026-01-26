@@ -30,69 +30,78 @@ const telemetryData = await sdk.telemetry.getTelemetry('pem-uuid-here');
 
 ### Telemetry
 
-Snapshot completo dello stato di un Point of Sale.
+Snapshot completo dello stato di un Point of Sale. Molti campi sono nullable in quanto dipendono dallo stato del PEM.
 
 ```typescript
 interface Telemetry {
   pemId: string;
-  pemStatus: PemStatus;
-  pemStatusChangedAt: string;
+  pemStatus: string;
+  pemStatusChangedAt: string | null;
   merchant: TelemetryMerchant;
   supplier: TelemetrySupplier;
   software: TelemetrySoftware;
-  lastCommunicationAt: string;
-  pendingReceipts: PendingReceipts;
-  lastReceiptTransmission: Transmission;
-  lastMessageFromMf2: Message;
-  adeCorrispettiviTransmission: Transmission;
-  lastMessageFromAde: Message;
-  lottery: LotteryInfo;
+  lastCommunicationAt: string | null;
+  pendingReceipts: PendingReceipts | null;
+  lastReceiptTransmission: TransmissionAttemptInfo | null;
+  lastMessageFromMf2: MessageInfo | null;
+  adeCorrispettiviTransmission: TransmissionAttemptInfo | null;
+  lastMessageFromAde: MessageInfo | null;
+  lottery: LotteryTelemetry;
 }
 ```
 
 ### PemStatus
 
-```typescript
-type PemStatus = 'ONLINE' | 'OFFLINE' | 'ERROR';
-```
+Lo stato del PEM è rappresentato come stringa. I valori comuni sono:
 
 | Stato | Descrizione |
 |-------|-------------|
 | `ONLINE` | PEM operativo e connesso |
 | `OFFLINE` | PEM non raggiungibile |
-| `ERROR` | PEM in stato di errore |
 
 ### TelemetryMerchant / TelemetrySupplier
 
+Informazioni sull'esercente e sul fornitore. Tutti i campi sono nullable.
+
 ```typescript
 interface TelemetryMerchant {
-  vatNumber: string;
+  vatNumber: string | null;
   fiscalCode: string | null;
-  businessName: string;
+  businessName: string | null;
+}
+
+interface TelemetrySupplier {
+  vatNumber: string | null;
+  fiscalCode: string | null;
+  businessName: string | null;
 }
 ```
 
 ### TelemetrySoftware
 
+Informazioni sul software del registratore di cassa.
+
 ```typescript
 interface TelemetrySoftware {
-  code: string;
-  name: string;
-  approvalReference: string;
-  versionInfo: TelemetrySoftwareVersion;
+  code: string | null;
+  name: string | null;
+  approvalReference: string | null;
+  versionInfo: TelemetrySoftwareVersion | null;
 }
 
 interface TelemetrySoftwareVersion {
-  version: string;
-  swid: string;
-  installedAt: string;
-  status: SoftwareStatus;
+  version: string | null;
+  swid: string | null;
+  installedAt: string | null;
+  status: SoftwareVersionStatus;
 }
 
-type SoftwareStatus = 'active' | 'inactive' | 'archived';
+type SoftwareVersionStatus = 'active';
 ```
 
 ### PendingReceipts
+
+Scontrini in attesa di trasmissione.
 
 ```typescript
 interface PendingReceipts {
@@ -101,32 +110,46 @@ interface PendingReceipts {
 }
 ```
 
-### Transmission
+### TransmissionAttemptInfo
+
+Informazioni su un tentativo di trasmissione.
 
 ```typescript
-interface Transmission {
-  attemptedAt: string;
-  outcome: TransmissionOutcome;
-}
-
-type TransmissionOutcome = 'success' | 'failed' | 'pending';
-```
-
-### Message
-
-```typescript
-interface Message {
-  receivedAt: string;
-  content: string;
+interface TransmissionAttemptInfo {
+  attemptedAt: string | null;
+  outcome: string | null;
 }
 ```
 
-### LotteryInfo
+| Outcome | Descrizione |
+|---------|-------------|
+| `success` | Trasmissione riuscita |
+| `failed` | Trasmissione fallita |
+
+### MessageInfo
+
+Messaggi ricevuti da MF2 o ADE.
 
 ```typescript
-interface LotteryInfo {
-  lastTransmission: Transmission;
-  secretRequest: Transmission;
+interface MessageInfo {
+  receivedAt: string | null;
+  content: string | null;
+}
+```
+
+### LotteryTelemetry
+
+Informazioni sulla lotteria degli scontrini.
+
+```typescript
+interface LotteryTelemetry {
+  lastTransmission: TransmissionAttemptInfo | null;
+  secretRequest: LotterySecretRequestInfo | null;
+}
+
+interface LotterySecretRequestInfo {
+  requestedAt: string | null;
+  outcome: string | null;
 }
 ```
 
@@ -187,28 +210,35 @@ if (telemetry.pemStatus === 'OFFLINE') {
   console.warn('PEM offline da:', telemetry.pemStatusChangedAt);
 }
 
-// Verifica scontrini in sospeso
-if (telemetry.pendingReceipts.count > 0) {
+// Verifica scontrini in sospeso (con null check)
+if (telemetry.pendingReceipts && telemetry.pendingReceipts.count > 0) {
   console.log(
     `${telemetry.pendingReceipts.count} scontrini in sospeso`,
     `per un totale di ${telemetry.pendingReceipts.totalAmount}`
   );
 }
 
-// Verifica ultima trasmissione
-if (telemetry.lastReceiptTransmission.outcome === 'failed') {
+// Verifica ultima trasmissione (con null check)
+if (telemetry.lastReceiptTransmission?.outcome === 'failed') {
   console.error(
     'Ultima trasmissione fallita:',
     telemetry.lastReceiptTransmission.attemptedAt
   );
 }
 
-// Info software
-console.log(
-  'Software:',
-  telemetry.software.name,
-  'v' + telemetry.software.versionInfo.version
-);
+// Info software (con null check)
+if (telemetry.software.name && telemetry.software.versionInfo?.version) {
+  console.log(
+    'Software:',
+    telemetry.software.name,
+    'v' + telemetry.software.versionInfo.version
+  );
+}
+
+// Lotteria (con null check)
+if (telemetry.lottery.secretRequest?.requestedAt) {
+  console.log('Ultimo secret request:', telemetry.lottery.secretRequest.requestedAt);
+}
 ```
 
 ## Note Tecniche
@@ -216,6 +246,7 @@ console.log(
 - Endpoint: `GET /mf1/point-of-sales/{pemId}/telemetry`
 - Autenticazione: mTLS (porta 444)
 - I dati sono uno snapshot in tempo reale
+- Molti campi sono nullable e richiedono controlli appropriati
 
 ## Prossimi Passi
 
