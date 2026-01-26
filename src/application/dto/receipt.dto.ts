@@ -81,7 +81,7 @@ export interface VoidReceiptApiInput {
 }
 
 export interface VoidViaDifferentDeviceApiInput {
-  pos_id: string;
+  device_id: string;
   items: ReceiptItemApiInput[];
   document_number: string;
   document_datetime: string;
@@ -95,7 +95,7 @@ export interface VoidWithProofApiInput {
 }
 
 export interface ReturnViaDifferentDeviceApiInput {
-  pos_id: string;
+  device_id: string;
   items: ReceiptItemApiInput[];
   document_number: string;
   document_datetime: string;
@@ -259,7 +259,7 @@ export class ReceiptMapper {
     input: VoidViaDifferentDeviceInput
   ): VoidViaDifferentDeviceApiInput {
     return {
-      pos_id: input.posId,
+      device_id: input.deviceId,
       items: input.items.map((item) => this.itemToApiInput(item)),
       document_number: input.documentNumber,
       document_datetime: input.documentDatetime,
@@ -279,7 +279,7 @@ export class ReceiptMapper {
     input: ReturnViaDifferentDeviceInput
   ): ReturnViaDifferentDeviceApiInput {
     return {
-      pos_id: input.posId,
+      device_id: input.deviceId,
       items: input.items.map((item) => this.itemToApiInput(item)),
       document_number: input.documentNumber,
       document_datetime: input.documentDatetime,

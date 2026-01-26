@@ -1,3 +1,6 @@
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
+
 import { IHttpPort } from '@/application/ports/driven/http.port';
 import { ITokenStoragePort } from '@/application/ports/driven/token-storage.port';
 import { JwtPayload, isTokenExpired, parseJwt } from '@/domain/services/jwt-parser.service';
@@ -32,8 +35,28 @@ export interface AuthServiceConfig {
   timeout?: number;
 }
 
+export type AuthState = 'idle' | 'authenticating' | 'authenticated' | 'error';
+
 export class AuthenticationService {
-  private currentUser: User | null = null;
+  private readonly userSubject = new BehaviorSubject<User | null>(null);
+  private readonly authStateSubject = new BehaviorSubject<AuthState>('idle');
+  private readonly destroy$ = new Subject<void>();
+
+  get user$(): Observable<User | null> {
+    return this.userSubject.asObservable();
+  }
+
+  get isAuthenticated$(): Observable<boolean> {
+    return this.userSubject.pipe(
+      map((user) => user !== null),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
+    );
+  }
+
+  get authState$(): Observable<AuthState> {
+    return this.authStateSubject.asObservable();
+  }
 
   constructor(
     private readonly httpPort: IHttpPort,
@@ -43,39 +66,50 @@ export class AuthenticationService {
   ) {}
 
   async login(credentials: AuthCredentials): Promise<User> {
-    const response = await this.httpPort.post<TokenResponse>(`${this.config.authUrl}/login`, {
-      email: credentials.email,
-      password: credentials.password,
-    });
+    this.authStateSubject.next('authenticating');
 
-    const jwtPayload = parseJwt(response.data.token);
-    const expiresAt = jwtPayload.exp * 1000;
+    try {
+      const response = await this.httpPort.post<TokenResponse>(`${this.config.authUrl}/login`, {
+        email: credentials.email,
+        password: credentials.password,
+      });
 
-    await this.tokenStorage.saveAccessToken(response.data.token, expiresAt);
+      const jwtPayload = parseJwt(response.data.token);
+      const expiresAt = jwtPayload.exp * 1000;
 
-    const user = this.createUserFromPayload(jwtPayload);
-    this.currentUser = user;
+      await this.tokenStorage.saveAccessToken(response.data.token, expiresAt);
 
-    await this.tokenStorage.saveUser(user);
-    this.events.onUserChanged?.(user);
+      const user = this.createUserFromPayload(jwtPayload);
+      await this.tokenStorage.saveUser(user);
 
-    return user;
+      this.userSubject.next(user);
+      this.authStateSubject.next('authenticated');
+      this.events.onUserChanged?.(user);
+
+      return user;
+    } catch (error) {
+      this.authStateSubject.next('error');
+      throw error;
+    }
   }
 
   async logout(): Promise<void> {
     await this.tokenStorage.clearTokens();
-    this.currentUser = null;
+    this.userSubject.next(null);
+    this.authStateSubject.next('idle');
     this.events.onUserChanged?.(null);
   }
 
   async getCurrentUser(): Promise<User | null> {
-    if (this.currentUser) {
-      return this.currentUser;
+    const currentUser = this.userSubject.value;
+    if (currentUser) {
+      return currentUser;
     }
 
     const storedUser = await this.tokenStorage.getUser<User>();
     if (storedUser) {
-      this.currentUser = storedUser;
+      this.userSubject.next(storedUser);
+      this.authStateSubject.next('authenticated');
       return storedUser;
     }
 
@@ -91,8 +125,9 @@ export class AuthenticationService {
     }
 
     const user = this.createUserFromPayload(jwtPayload);
-    this.currentUser = user;
     await this.tokenStorage.saveUser(user);
+    this.userSubject.next(user);
+    this.authStateSubject.next('authenticated');
 
     return user;
   }
@@ -116,7 +151,8 @@ export class AuthenticationService {
     const jwtPayload = parseJwt(token);
     if (isTokenExpired(jwtPayload)) {
       await this.tokenStorage.clearTokens();
-      this.currentUser = null;
+      this.userSubject.next(null);
+      this.authStateSubject.next('idle');
       this.events.onUserChanged?.(null);
       return null;
     }
@@ -134,5 +170,10 @@ export class AuthenticationService {
       pid: jwtPayload.pid,
       expiresAt: jwtPayload.exp * 1000,
     };
+  }
+
+  destroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

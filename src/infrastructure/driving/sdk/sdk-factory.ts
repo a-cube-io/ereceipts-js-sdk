@@ -7,20 +7,24 @@ import { ICashierRepository } from '@/domain/repositories/cashier.repository';
 import { IDailyReportRepository } from '@/domain/repositories/daily-report.repository';
 import { IJournalRepository } from '@/domain/repositories/journal.repository';
 import { IMerchantRepository } from '@/domain/repositories/merchant.repository';
+import { INotificationRepository } from '@/domain/repositories/notification.repository';
 import { IPemRepository } from '@/domain/repositories/pem.repository';
 import { IPointOfSaleRepository } from '@/domain/repositories/point-of-sale.repository';
 import { IReceiptRepository } from '@/domain/repositories/receipt.repository';
 import { ISupplierRepository } from '@/domain/repositories/supplier.repository';
+import { ITelemetryRepository } from '@/domain/repositories/telemetry.repository';
 import {
   CashRegisterRepositoryImpl,
   CashierRepositoryImpl,
   DailyReportRepositoryImpl,
   JournalRepositoryImpl,
   MerchantRepositoryImpl,
+  NotificationRepositoryImpl,
   PemRepositoryImpl,
   PointOfSaleRepositoryImpl,
   ReceiptRepositoryImpl,
   SupplierRepositoryImpl,
+  TelemetryRepositoryImpl,
 } from '@/infrastructure/driven/api';
 import { AxiosHttpAdapter } from '@/infrastructure/driven/http/axios-http.adapter';
 import { TokenStorageAdapter } from '@/infrastructure/driven/storage/token-storage.adapter';
@@ -47,6 +51,8 @@ export interface SDKServices {
   pems: IPemRepository;
   dailyReports: IDailyReportRepository;
   journals: IJournalRepository;
+  notifications: INotificationRepository;
+  telemetry: ITelemetryRepository;
 }
 
 export class SDKFactory {
@@ -105,6 +111,16 @@ export class SDKFactory {
       return new JournalRepositoryImpl(http);
     });
 
+    container.registerFactory(DI_TOKENS.NOTIFICATION_REPOSITORY, () => {
+      const http = container.get<IHttpPort>(DI_TOKENS.HTTP_PORT);
+      return new NotificationRepositoryImpl(http);
+    });
+
+    container.registerFactory(DI_TOKENS.TELEMETRY_REPOSITORY, () => {
+      const http = container.get<IHttpPort>(DI_TOKENS.HTTP_PORT);
+      return new TelemetryRepositoryImpl(http);
+    });
+
     return container;
   }
 
@@ -138,6 +154,8 @@ export class SDKFactory {
       pems: container.get<IPemRepository>(DI_TOKENS.PEM_REPOSITORY),
       dailyReports: container.get<IDailyReportRepository>(DI_TOKENS.DAILY_REPORT_REPOSITORY),
       journals: container.get<IJournalRepository>(DI_TOKENS.JOURNAL_REPOSITORY),
+      notifications: container.get<INotificationRepository>(DI_TOKENS.NOTIFICATION_REPOSITORY),
+      telemetry: container.get<ITelemetryRepository>(DI_TOKENS.TELEMETRY_REPOSITORY),
     };
 
     if (container.has(DI_TOKENS.TOKEN_STORAGE_PORT)) {

@@ -45,10 +45,10 @@ export class ReceiptRepositoryImpl implements IReceiptRepository {
   }
 
   async getDetails(receiptUuid: string, format: 'json'): Promise<ReceiptDetails>;
-  async getDetails(receiptUuid: string, format: 'pdf'): Promise<Blob>;
-  async getDetails(receiptUuid: string, format: 'json' | 'pdf'): Promise<ReceiptDetails | Blob> {
+  async getDetails(receiptUuid: string, format: 'pdf'): Promise<string>;
+  async getDetails(receiptUuid: string, format: 'json' | 'pdf'): Promise<ReceiptDetails | string> {
     if (format === 'pdf') {
-      const response = await this.http.get<Blob>(`/mf1/receipts/${receiptUuid}/details`, {
+      const response = await this.http.get<string>(`/mf1/receipts/${receiptUuid}/details`, {
         headers: { Accept: 'application/pdf' },
         responseType: 'blob',
       });

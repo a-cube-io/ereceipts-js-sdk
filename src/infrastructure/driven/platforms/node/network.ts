@@ -1,16 +1,14 @@
-import { INetworkPort as INetworkMonitor, NetworkInfo } from '@/application/ports/driven';
+import { NetworkInfo } from '@/application/ports/driven';
 
-import { NetworkObserverMixin } from '../shared';
+import { NetworkBase } from '../shared/network-base';
 
 /**
- * Node.js network monitor (basic implementation)
- * Uses NetworkObserverMixin for listener management
+ * Node.js network monitor using RxJS
+ * Assumes always online by default (server environment)
  */
-export class NodeNetworkMonitor extends NetworkObserverMixin implements INetworkMonitor {
-  private isConnected: boolean = true;
-
-  isOnline(): boolean {
-    return this.isConnected;
+export class NodeNetworkMonitor extends NetworkBase {
+  constructor() {
+    super(true, 300);
   }
 
   async getNetworkInfo(): Promise<NetworkInfo | null> {
@@ -23,16 +21,6 @@ export class NodeNetworkMonitor extends NetworkObserverMixin implements INetwork
    * Manually set network status (for testing)
    */
   setNetworkStatus(online: boolean): void {
-    if (online !== this.isConnected) {
-      this.isConnected = online;
-      this.notifyListeners(online);
-    }
-  }
-
-  /**
-   * Cleanup method
-   */
-  destroy(): void {
-    this.clearListeners();
+    this.updateStatus(online);
   }
 }

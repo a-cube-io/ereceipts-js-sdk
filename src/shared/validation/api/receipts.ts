@@ -96,7 +96,7 @@ export const ReceiptInputSchema = z
 
 // Receipt Return or Void via PEM Schema
 export const ReceiptReturnOrVoidViaPEMInputSchema = z.object({
-  pos_id: z.string().optional(),
+  device_id: z.string().optional(),
   items: z.array(ReceiptItemSchema).min(1, { error: 'arrayMin1' }),
   document_number: z.string().min(1, { error: 'fieldIsRequired' }),
   document_datetime: z.string().optional(),

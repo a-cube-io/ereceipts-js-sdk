@@ -88,7 +88,7 @@ export interface VoidReceiptInput {
  * DELETE /mf1/receipts/void-via-different-device
  */
 export interface VoidViaDifferentDeviceInput {
-  posId: string;
+  deviceId: string;
   items: ReceiptItem[];
   documentNumber: string;
   documentDatetime: string;
@@ -112,7 +112,7 @@ export interface VoidWithProofInput {
  * POST /mf1/receipts/return-via-different-device
  */
 export interface ReturnViaDifferentDeviceInput {
-  posId: string;
+  deviceId: string;
   items: ReceiptItem[];
   documentNumber: string;
   documentDatetime: string;

@@ -44,6 +44,8 @@ L'SDK espone i seguenti repository:
 | `sdk.pems` | `IPemRepository` | Gestione PEM |
 | `sdk.dailyReports` | `IDailyReportRepository` | Report giornalieri |
 | `sdk.journals` | `IJournalRepository` | Gestione giornali |
+| `sdk.notifications` | `INotificationRepository` | Notifiche sistema |
+| `sdk.telemetry` | `ITelemetryRepository` | Telemetria PEM |
 
 ## Metodi Autenticazione
 
@@ -296,3 +298,5 @@ class ACubeSDKError extends Error {
 
 - [Receipt API](./receipts.md)
 - [Merchant API](./merchants.md)
+- [Notifications API](./notifications.md)
+- [Telemetry API](./telemetry.md)

@@ -7,3 +7,5 @@ export * from './supplier.dto';
 export * from './pem.dto';
 export * from './daily-report.dto';
 export * from './journal.dto';
+export * from './notification.dto';
+export * from './telemetry.dto';

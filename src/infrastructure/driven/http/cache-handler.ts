@@ -1,4 +1,5 @@
 import { AxiosResponse } from 'axios';
+import { Subscription } from 'rxjs';
 
 import {
   ICachePort as ICacheAdapter,
@@ -13,18 +14,27 @@ export interface CacheConfig {
 }
 
 export class CacheHandler {
+  private currentOnlineState = true;
+  private networkSubscription?: Subscription;
+
   constructor(
     private cache?: ICacheAdapter,
     private networkMonitor?: INetworkMonitor
-  ) {}
+  ) {
+    this.setupNetworkMonitoring();
+  }
+
+  private setupNetworkMonitoring(): void {
+    if (this.networkMonitor) {
+      this.networkSubscription = this.networkMonitor.online$.subscribe((online) => {
+        this.currentOnlineState = online;
+      });
+    }
+  }
 
   isOnline(): boolean {
     if (this.networkMonitor) {
-      try {
-        return this.networkMonitor.isOnline();
-      } catch {
-        // Fallback
-      }
+      return this.currentOnlineState;
     }
 
     if (typeof navigator !== 'undefined' && 'onLine' in navigator) {
@@ -99,5 +109,9 @@ export class CacheHandler {
       networkMonitorAvailable: !!this.networkMonitor,
       isOnline: this.isOnline(),
     };
+  }
+
+  destroy(): void {
+    this.networkSubscription?.unsubscribe();
   }
 }

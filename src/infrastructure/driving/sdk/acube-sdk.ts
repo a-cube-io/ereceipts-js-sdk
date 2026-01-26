@@ -13,10 +13,12 @@ import { ICashierRepository } from '@/domain/repositories/cashier.repository';
 import { IDailyReportRepository } from '@/domain/repositories/daily-report.repository';
 import { IJournalRepository } from '@/domain/repositories/journal.repository';
 import { IMerchantRepository } from '@/domain/repositories/merchant.repository';
+import { INotificationRepository } from '@/domain/repositories/notification.repository';
 import { IPemRepository } from '@/domain/repositories/pem.repository';
 import { IPointOfSaleRepository } from '@/domain/repositories/point-of-sale.repository';
 import { IReceiptRepository } from '@/domain/repositories/receipt.repository';
 import { ISupplierRepository } from '@/domain/repositories/supplier.repository';
+import { ITelemetryRepository } from '@/domain/repositories/telemetry.repository';
 import { AuthStrategy, IUserProvider } from '@/infrastructure/driven/http/auth-strategy';
 import { JwtAuthHandler } from '@/infrastructure/driven/http/jwt-auth.handler';
 import { MtlsAuthHandler } from '@/infrastructure/driven/http/mtls-auth.handler';
@@ -45,6 +47,8 @@ export class ACubeSDK {
   private certificateService?: CertificateService;
   private container?: DIContainer;
   private isInitialized = false;
+  private currentOnlineState = true;
+  private networkSubscription?: { unsubscribe: () => void };
 
   constructor(
     config: SDKConfig,
@@ -129,7 +133,8 @@ export class ACubeSDK {
         queueEvents
       );
 
-      this.adapters.networkMonitor.onStatusChange((online) => {
+      this.networkSubscription = this.adapters.networkMonitor.online$.subscribe((online) => {
+        this.currentOnlineState = online;
         this.events.onNetworkStatusChanged?.(online);
 
         if (online && this.offlineManager) {
@@ -280,6 +285,16 @@ export class ACubeSDK {
     return this.container!.get<IJournalRepository>(DI_TOKENS.JOURNAL_REPOSITORY);
   }
 
+  get notifications(): INotificationRepository {
+    this.ensureInitialized();
+    return this.container!.get<INotificationRepository>(DI_TOKENS.NOTIFICATION_REPOSITORY);
+  }
+
+  get telemetry(): ITelemetryRepository {
+    this.ensureInitialized();
+    return this.container!.get<ITelemetryRepository>(DI_TOKENS.TELEMETRY_REPOSITORY);
+  }
+
   async login(credentials: AuthCredentials): Promise<User> {
     this.ensureInitialized();
 
@@ -323,7 +338,7 @@ export class ACubeSDK {
 
   isOnline(): boolean {
     this.ensureInitialized();
-    return this.adapters!.networkMonitor.isOnline();
+    return this.currentOnlineState;
   }
 
   getConfig(): SDKConfig {
@@ -512,6 +527,7 @@ export class ACubeSDK {
   }
 
   destroy(): void {
+    this.networkSubscription?.unsubscribe();
     this.offlineManager?.destroy();
     this.container?.clear();
     this.isInitialized = false;

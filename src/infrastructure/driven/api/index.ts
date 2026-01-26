@@ -7,3 +7,5 @@ export * from './supplier.repository.impl';
 export * from './pem.repository.impl';
 export * from './daily-report.repository.impl';
 export * from './journal.repository.impl';
+export * from './notification.repository.impl';
+export * from './telemetry.repository.impl';

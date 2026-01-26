@@ -1,3 +1,6 @@
+import { Subject, Subscription } from 'rxjs';
+import { filter, pairwise, startWith, takeUntil } from 'rxjs/operators';
+
 import { INetworkPort as INetworkMonitor } from '@/application/ports/driven';
 import { IHttpPort } from '@/application/ports/driven/http.port';
 import {
@@ -13,7 +16,8 @@ import { OperationQueue } from './queue';
 
 export class SyncManager {
   private isOnline = true;
-  private networkUnsubscribe?: () => void;
+  private readonly destroy$ = new Subject<void>();
+  private networkSubscription?: Subscription;
 
   constructor(
     private queue: OperationQueue,
@@ -22,18 +26,26 @@ export class SyncManager {
     private config: QueueConfig,
     private events: QueueEvents = {}
   ) {
-    this.isOnline = networkMonitor.isOnline();
     this.setupNetworkMonitoring();
   }
 
   private setupNetworkMonitoring(): void {
-    this.networkUnsubscribe = this.networkMonitor.onStatusChange((online) => {
-      const wasOffline = !this.isOnline;
-      this.isOnline = online;
-
-      if (online && wasOffline) {
+    // Subscribe to online$ to track current state
+    this.networkSubscription = this.networkMonitor.online$
+      .pipe(
+        startWith(true), // Assume online initially
+        pairwise(),
+        filter(([wasOnline, isNowOnline]) => !wasOnline && isNowOnline),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => {
+        // Offline → Online transition detected
         this.syncPendingOperations();
-      }
+      });
+
+    // Track current online state
+    this.networkMonitor.online$.pipe(takeUntil(this.destroy$)).subscribe((online) => {
+      this.isOnline = online;
     });
   }
 
@@ -221,8 +233,8 @@ export class SyncManager {
   }
 
   destroy(): void {
-    if (this.networkUnsubscribe) {
-      this.networkUnsubscribe();
-    }
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.networkSubscription?.unsubscribe();
   }
 }

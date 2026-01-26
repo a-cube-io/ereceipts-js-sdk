@@ -1,6 +1,9 @@
-import { INetworkPort as INetworkMonitor, NetworkInfo } from '@/application/ports/driven';
+import { fromEvent, merge } from 'rxjs';
+import { map, takeUntil } from 'rxjs/operators';
 
-import { NetworkObserverMixin } from '../shared';
+import { NetworkInfo } from '@/application/ports/driven';
+
+import { NetworkBase } from '../shared/network-base';
 
 interface NetworkInformationConnection {
   type?: string;
@@ -14,23 +17,25 @@ interface NavigatorWithConnection extends Navigator {
 }
 
 /**
- * Web network monitor using navigator.onLine and Network Information API
- * Uses NetworkObserverMixin for listener management
+ * Web network monitor using RxJS with browser events
+ * Uses fromEvent to create observables from online/offline events
  */
-export class WebNetworkMonitor extends NetworkObserverMixin implements INetworkMonitor {
+export class WebNetworkMonitor extends NetworkBase {
   constructor() {
-    super();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', this.handleOnline);
-      window.addEventListener('offline', this.handleOffline);
-    }
+    const initialOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    super(initialOnline, 300);
+    this.setupListeners();
   }
 
-  isOnline(): boolean {
-    if (typeof navigator !== 'undefined' && 'onLine' in navigator) {
-      return navigator.onLine;
-    }
-    return true;
+  private setupListeners(): void {
+    if (typeof window === 'undefined') return;
+
+    merge(
+      fromEvent(window, 'online').pipe(map(() => true)),
+      fromEvent(window, 'offline').pipe(map(() => false))
+    )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((online) => this.updateStatus(online));
   }
 
   async getNetworkInfo(): Promise<NetworkInfo | null> {
@@ -46,17 +51,9 @@ export class WebNetworkMonitor extends NetworkObserverMixin implements INetworkM
     }
 
     return {
-      type: this.isOnline() ? 'unknown' : 'unknown',
+      type: 'unknown',
     };
   }
-
-  private handleOnline = (): void => {
-    this.notifyListeners(true);
-  };
-
-  private handleOffline = (): void => {
-    this.notifyListeners(false);
-  };
 
   private mapConnectionType(type: string): 'wifi' | 'cellular' | 'ethernet' | 'unknown' {
     switch (type) {
@@ -73,16 +70,5 @@ export class WebNetworkMonitor extends NetworkObserverMixin implements INetworkM
       default:
         return 'unknown';
     }
-  }
-
-  /**
-   * Cleanup method to remove event listeners
-   */
-  destroy(): void {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('online', this.handleOnline);
-      window.removeEventListener('offline', this.handleOffline);
-    }
-    this.clearListeners();
   }
 }
