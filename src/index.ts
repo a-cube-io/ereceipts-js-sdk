@@ -1,20 +1,55 @@
-// Main SDK exports
-export * from './acube-sdk';
+export { ACubeSDK, createACubeSDK } from './infrastructure/driving/sdk/acube-sdk';
+export type { SDKEvents } from './infrastructure/driving/sdk/acube-sdk';
+export { DIContainer, DI_TOKENS } from './infrastructure/driving/sdk/di-container';
+export { SDKFactory } from './infrastructure/driving/sdk/sdk-factory';
+export type { SDKFactoryConfig, SDKServices } from './infrastructure/driving/sdk/sdk-factory';
 
-// Core functionality
-export * from './core';
+// SDKManager - Simplified API for production use
+export { SDKManager } from './infrastructure/driving/sdk/sdk-manager';
+export type {
+  SDKManagerConfig,
+  SDKManagerEvents,
+  ManagedServices,
+  TelemetryOperations,
+} from './infrastructure/driving/sdk/sdk-manager';
 
-// Adapters
-export * from './adapters';
+// Application state types
+export { AppStateService } from './application/services/app-state.service';
+export type { AppState, AppMode, WarningState } from './application/services/app-state.service';
+export { NotificationService } from './application/services/notification.service';
+export type {
+  NotificationServiceConfig,
+  NotificationSyncState,
+  NotificationEvents,
+} from './application/services/notification.service';
+export { TelemetryService } from './application/services/telemetry.service';
+export type {
+  TelemetryState,
+  TelemetryServiceConfig,
+} from './application/services/telemetry.service';
 
-// Offline functionality
-export * from './offline';
+export * from './domain/entities';
+export * from './domain/value-objects';
+export * from './domain/repositories';
 
-// Validation schemas and utilities
-export * from './validations/api';
+export * from './application/ports/driven/http.port';
+export * from './application/dto';
 
-// Utility functions
-export * from './utils';
+export * from './infrastructure/driven/http';
+export * from './infrastructure/driven/api';
 
-// Re-export main create function for convenience
-export { createACubeSDK as default } from './acube-sdk';
+export { ACubeSDKError, ConfigManager } from './shared';
+export { AuthenticationService } from './application/services/authentication.service';
+export { CertificateService } from './application/services/certificate.service';
+export { createACubeMTLSConfig, loadPlatformAdapters } from './infrastructure/loaders';
+export type { SDKConfig, Environment, User, AuthCredentials, JWTPayload } from './shared/types';
+export type { Domain, UserRole, UserRoles } from './domain/value-objects';
+
+export * from './application/ports/driven';
+export { MTLSError, MTLSErrorType } from './domain/errors';
+export { CertificateValidator, parseJwt, isTokenExpired, extractRoles } from './domain/services';
+export * from './infrastructure/driven/offline';
+export * from './shared/validation';
+export * from './shared/utils';
+
+export { createACubeSDK as default } from './infrastructure/driving/sdk/acube-sdk';
