@@ -1,104 +1,68 @@
-/**
- * PEM Status
- */
-export type PemStatus = 'ONLINE' | 'OFFLINE' | 'ERROR';
+export type SoftwareVersionStatus = 'active';
 
-/**
- * Software Status
- */
-export type SoftwareStatus = 'active' | 'inactive' | 'archived';
-
-/**
- * Transmission Outcome
- */
-export type TransmissionOutcome = 'success' | 'failed' | 'pending';
-
-/**
- * Merchant info in telemetry context
- */
 export interface TelemetryMerchant {
-  vatNumber: string;
+  vatNumber: string | null;
   fiscalCode: string | null;
-  businessName: string;
+  businessName: string | null;
 }
 
-/**
- * Supplier info in telemetry context (same structure as merchant)
- */
 export interface TelemetrySupplier {
-  vatNumber: string;
+  vatNumber: string | null;
   fiscalCode: string | null;
-  businessName: string;
+  businessName: string | null;
 }
 
-/**
- * Software version information
- */
 export interface TelemetrySoftwareVersion {
-  version: string;
-  swid: string;
-  installedAt: string;
-  status: SoftwareStatus;
+  version: string | null;
+  swid: string | null;
+  installedAt: string | null;
+  status: SoftwareVersionStatus;
 }
 
-/**
- * Software information
- */
 export interface TelemetrySoftware {
-  code: string;
-  name: string;
-  approvalReference: string;
-  versionInfo: TelemetrySoftwareVersion;
+  code: string | null;
+  name: string | null;
+  approvalReference: string | null;
+  versionInfo: TelemetrySoftwareVersion | null;
 }
 
-/**
- * Pending receipts summary
- */
 export interface PendingReceipts {
   count: number;
   totalAmount: string;
 }
 
-/**
- * Transmission record
- */
-export interface Transmission {
-  attemptedAt: string;
-  outcome: TransmissionOutcome;
+export interface TransmissionAttemptInfo {
+  attemptedAt: string | null;
+  outcome: string | null;
 }
 
-/**
- * Message record
- */
-export interface Message {
-  receivedAt: string;
-  content: string;
+export interface LotterySecretRequestInfo {
+  requestedAt: string | null;
+  outcome: string | null;
 }
 
-/**
- * Lottery transmission info
- */
-export interface LotteryInfo {
-  lastTransmission: Transmission;
-  secretRequest: Transmission;
+export interface MessageInfo {
+  receivedAt: string | null;
+  content: string | null;
 }
 
-/**
- * Telemetry Entity - Aggregate Root
- * Complete snapshot of a Point of Sale status
- */
+export interface LotteryTelemetry {
+  lastTransmission: TransmissionAttemptInfo | null;
+  secretRequest: LotterySecretRequestInfo | null;
+}
+
 export interface Telemetry {
   pemId: string;
-  pemStatus: PemStatus;
-  pemStatusChangedAt: string;
+  pemStatus: string;
+  pemStatusChangedAt: string | null;
   merchant: TelemetryMerchant;
   supplier: TelemetrySupplier;
   software: TelemetrySoftware;
-  lastCommunicationAt: string;
-  pendingReceipts: PendingReceipts;
-  lastReceiptTransmission: Transmission;
-  lastMessageFromMf2: Message;
-  adeCorrispettiviTransmission: Transmission;
-  lastMessageFromAde: Message;
-  lottery: LotteryInfo;
+  lastCommunicationAt: string | null;
+  pendingReceipts: PendingReceipts | null;
+  lastReceiptTransmission: TransmissionAttemptInfo | null;
+  lastMessageFromMf2: MessageInfo | null;
+  adeCorrispettiviTransmission: TransmissionAttemptInfo | null;
+  lastMessageFromAde: MessageInfo | null;
+  lottery: LotteryTelemetry;
 }

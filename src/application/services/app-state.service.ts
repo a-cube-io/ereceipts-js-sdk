@@ -2,7 +2,7 @@ import { BehaviorSubject, Observable, Subject, combineLatest } from 'rxjs';
 import { distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
 
 import { INetworkPort } from '@/application/ports/driven/network.port';
-import { Notification } from '@/domain/entities/notification.entity';
+import { NOTIFICATION_CODES, Notification } from '@/domain/entities/notification.entity';
 
 export type AppMode = 'NORMAL' | 'WARNING' | 'BLOCKED' | 'OFFLINE';
 
@@ -86,35 +86,51 @@ export class AppStateService {
 
     const latestByCode = this.getLatestNotificationByCode(notifications);
 
-    const sysCritical = latestByCode.get('SYS-C-01');
-    const sysInfo = latestByCode.get('SYS-I-01');
-    const sysWarning = latestByCode.get('SYS-W-01');
+    const statusOffline = latestByCode.get(NOTIFICATION_CODES.STATUS_OFFLINE);
+    const statusOnline = latestByCode.get(NOTIFICATION_CODES.STATUS_ONLINE);
+    const mf2Unreachable = latestByCode.get(NOTIFICATION_CODES.MF2_UNREACHABLE);
+    const commRestored = latestByCode.get(NOTIFICATION_CODES.COMMUNICATION_RESTORED);
 
     let newMode: AppMode = 'NORMAL';
     let warningState: WarningState = { active: false, blockAt: null, remainingMs: 0 };
 
-    if (sysCritical && sysInfo) {
-      const criticalTime = new Date(sysCritical.createdAt).getTime();
-      const infoTime = new Date(sysInfo.createdAt).getTime();
-      newMode = criticalTime > infoTime ? 'BLOCKED' : 'NORMAL';
-    } else if (sysCritical) {
+    // Determine BLOCKED state based on STATUS_OFFLINE vs STATUS_ONLINE
+    if (statusOffline && statusOnline) {
+      const offlineTime = new Date(statusOffline.createdAt).getTime();
+      const onlineTime = new Date(statusOnline.createdAt).getTime();
+      newMode = offlineTime > onlineTime ? 'BLOCKED' : 'NORMAL';
+    } else if (statusOffline) {
       newMode = 'BLOCKED';
     }
 
-    if (newMode !== 'BLOCKED' && sysWarning && sysWarning.code === 'SYS-W-01') {
-      const blockAtStr = sysWarning.data.block_at;
-      const blockAt = new Date(blockAtStr);
-      const now = Date.now();
-      const remainingMs = blockAt.getTime() - now;
+    // Determine WARNING state based on MF2_UNREACHABLE vs COMMUNICATION_RESTORED
+    if (newMode !== 'BLOCKED' && mf2Unreachable) {
+      const warningTime = new Date(mf2Unreachable.createdAt).getTime();
+      const restoredTime = commRestored ? new Date(commRestored.createdAt).getTime() : 0;
 
-      if (remainingMs > 0) {
-        newMode = 'WARNING';
-        warningState = {
-          active: true,
-          blockAt,
-          remainingMs,
-        };
-        this.startWarningTimer(blockAt);
+      // Only show warning if MF2_UNREACHABLE is more recent than COMMUNICATION_RESTORED
+      if (warningTime > restoredTime && mf2Unreachable.payload) {
+        const blockAtStr = mf2Unreachable.payload.block_at;
+        const blockAt = new Date(blockAtStr);
+        const now = Date.now();
+        const remainingMs = blockAt.getTime() - now;
+
+        if (remainingMs > 0) {
+          newMode = 'WARNING';
+          warningState = {
+            active: true,
+            blockAt,
+            remainingMs,
+          };
+          this.startWarningTimer(blockAt);
+        } else {
+          // Warning countdown expired → transition to BLOCKED
+          newMode = 'BLOCKED';
+          this.stopWarningTimer();
+        }
+      } else {
+        // Communication restored, clear warning
+        this.stopWarningTimer();
       }
     } else {
       this.stopWarningTimer();

@@ -1,45 +1,41 @@
 import {
-  LotteryInfo,
-  Message,
-  PemStatus,
+  LotterySecretRequestInfo,
+  LotteryTelemetry,
+  MessageInfo,
   PendingReceipts,
-  SoftwareStatus,
+  SoftwareVersionStatus,
   Telemetry,
   TelemetryMerchant,
   TelemetrySoftware,
   TelemetrySoftwareVersion,
   TelemetrySupplier,
-  Transmission,
-  TransmissionOutcome,
+  TransmissionAttemptInfo,
 } from '@/domain/entities/telemetry.entity';
 
-/**
- * API interfaces (snake_case)
- */
 export interface TelemetryMerchantApiOutput {
-  vat_number: string;
+  vat_number: string | null;
   fiscal_code: string | null;
-  business_name: string;
+  business_name: string | null;
 }
 
 export interface TelemetrySupplierApiOutput {
-  vat_number: string;
+  vat_number: string | null;
   fiscal_code: string | null;
-  business_name: string;
+  business_name: string | null;
 }
 
 export interface TelemetrySoftwareVersionApiOutput {
-  version: string;
-  swid: string;
-  installed_at: string;
+  version: string | null;
+  swid: string | null;
+  installed_at: string | null;
   status: string;
 }
 
 export interface TelemetrySoftwareApiOutput {
-  code: string;
-  name: string;
-  approval_reference: string;
-  version_info: TelemetrySoftwareVersionApiOutput;
+  code: string | null;
+  name: string | null;
+  approval_reference: string | null;
+  version_info: TelemetrySoftwareVersionApiOutput | null;
 }
 
 export interface PendingReceiptsApiOutput {
@@ -47,61 +43,67 @@ export interface PendingReceiptsApiOutput {
   total_amount: string;
 }
 
-export interface TransmissionApiOutput {
-  attempted_at: string;
-  outcome: string;
+export interface TransmissionAttemptApiOutput {
+  attempted_at: string | null;
+  outcome: string | null;
 }
 
 export interface MessageApiOutput {
-  received_at: string;
-  content: string;
+  received_at: string | null;
+  content: string | null;
 }
 
 export interface LotterySecretRequestApiOutput {
-  requested_at: string;
-  outcome: string;
+  requested_at: string | null;
+  outcome: string | null;
 }
 
 export interface LotteryApiOutput {
-  last_transmission: TransmissionApiOutput;
-  secret_request: LotterySecretRequestApiOutput;
+  last_transmission: TransmissionAttemptApiOutput | null;
+  secret_request: LotterySecretRequestApiOutput | null;
 }
 
 export interface TelemetryApiOutput {
   pem_id: string;
   pem_status: string;
-  pem_status_changed_at: string;
+  pem_status_changed_at: string | null;
   merchant: TelemetryMerchantApiOutput;
   supplier: TelemetrySupplierApiOutput;
   software: TelemetrySoftwareApiOutput;
-  last_communication_at: string;
-  pending_receipts: PendingReceiptsApiOutput;
-  last_receipt_transmission: TransmissionApiOutput;
-  last_message_from_mf2: MessageApiOutput;
-  ade_corrispettivi_transmission: TransmissionApiOutput;
-  last_message_from_ade: MessageApiOutput;
+  last_communication_at: string | null;
+  pending_receipts: PendingReceiptsApiOutput | null;
+  last_receipt_transmission: TransmissionAttemptApiOutput | null;
+  last_message_from_mf2: MessageApiOutput | null;
+  ade_corrispettivi_transmission: TransmissionAttemptApiOutput | null;
+  last_message_from_ade: MessageApiOutput | null;
   lottery: LotteryApiOutput;
 }
 
-/**
- * Telemetry Mapper
- * Converts between API (snake_case) and Domain (camelCase)
- */
 export class TelemetryMapper {
   static fromApiOutput(output: TelemetryApiOutput): Telemetry {
     return {
       pemId: output.pem_id,
-      pemStatus: output.pem_status as PemStatus,
+      pemStatus: output.pem_status,
       pemStatusChangedAt: output.pem_status_changed_at,
       merchant: this.merchantFromApi(output.merchant),
       supplier: this.supplierFromApi(output.supplier),
       software: this.softwareFromApi(output.software),
       lastCommunicationAt: output.last_communication_at,
-      pendingReceipts: this.pendingReceiptsFromApi(output.pending_receipts),
-      lastReceiptTransmission: this.transmissionFromApi(output.last_receipt_transmission),
-      lastMessageFromMf2: this.messageFromApi(output.last_message_from_mf2),
-      adeCorrispettiviTransmission: this.transmissionFromApi(output.ade_corrispettivi_transmission),
-      lastMessageFromAde: this.messageFromApi(output.last_message_from_ade),
+      pendingReceipts: output.pending_receipts
+        ? this.pendingReceiptsFromApi(output.pending_receipts)
+        : null,
+      lastReceiptTransmission: output.last_receipt_transmission
+        ? this.transmissionFromApi(output.last_receipt_transmission)
+        : null,
+      lastMessageFromMf2: output.last_message_from_mf2
+        ? this.messageFromApi(output.last_message_from_mf2)
+        : null,
+      adeCorrispettiviTransmission: output.ade_corrispettivi_transmission
+        ? this.transmissionFromApi(output.ade_corrispettivi_transmission)
+        : null,
+      lastMessageFromAde: output.last_message_from_ade
+        ? this.messageFromApi(output.last_message_from_ade)
+        : null,
       lottery: this.lotteryFromApi(output.lottery),
     };
   }
@@ -129,7 +131,7 @@ export class TelemetryMapper {
       version: output.version,
       swid: output.swid,
       installedAt: output.installed_at,
-      status: output.status as SoftwareStatus,
+      status: output.status as SoftwareVersionStatus,
     };
   }
 
@@ -138,7 +140,7 @@ export class TelemetryMapper {
       code: output.code,
       name: output.name,
       approvalReference: output.approval_reference,
-      versionInfo: this.softwareVersionFromApi(output.version_info),
+      versionInfo: output.version_info ? this.softwareVersionFromApi(output.version_info) : null,
     };
   }
 
@@ -149,27 +151,39 @@ export class TelemetryMapper {
     };
   }
 
-  private static transmissionFromApi(output: TransmissionApiOutput): Transmission {
+  private static transmissionFromApi(
+    output: TransmissionAttemptApiOutput
+  ): TransmissionAttemptInfo {
     return {
       attemptedAt: output.attempted_at,
-      outcome: output.outcome as TransmissionOutcome,
+      outcome: output.outcome,
     };
   }
 
-  private static messageFromApi(output: MessageApiOutput): Message {
+  private static messageFromApi(output: MessageApiOutput): MessageInfo {
     return {
       receivedAt: output.received_at,
       content: output.content,
     };
   }
 
-  private static lotteryFromApi(output: LotteryApiOutput): LotteryInfo {
+  private static secretRequestFromApi(
+    output: LotterySecretRequestApiOutput
+  ): LotterySecretRequestInfo {
     return {
-      lastTransmission: this.transmissionFromApi(output.last_transmission),
-      secretRequest: {
-        attemptedAt: output.secret_request.requested_at,
-        outcome: output.secret_request.outcome as TransmissionOutcome,
-      },
+      requestedAt: output.requested_at,
+      outcome: output.outcome,
+    };
+  }
+
+  private static lotteryFromApi(output: LotteryApiOutput): LotteryTelemetry {
+    return {
+      lastTransmission: output.last_transmission
+        ? this.transmissionFromApi(output.last_transmission)
+        : null,
+      secretRequest: output.secret_request
+        ? this.secretRequestFromApi(output.secret_request)
+        : null,
     };
   }
 }

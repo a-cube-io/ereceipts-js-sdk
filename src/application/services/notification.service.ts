@@ -4,6 +4,7 @@ import { filter, pairwise, startWith, switchMap, takeUntil } from 'rxjs/operator
 import { INetworkPort } from '@/application/ports/driven/network.port';
 import { Notification, NotificationListParams } from '@/domain/entities/notification.entity';
 import { INotificationRepository } from '@/domain/repositories/notification.repository';
+import { Page } from '@/domain/value-objects/page.vo';
 
 export interface NotificationServiceConfig {
   pollIntervalMs: number;
@@ -87,11 +88,11 @@ export class NotificationService {
     this.pollingSubscription = undefined;
   }
 
-  async triggerSync(): Promise<Notification[]> {
+  async triggerSync(): Promise<Page<Notification>> {
     return this.fetchNotifications();
   }
 
-  async fetchNotifications(params?: NotificationListParams): Promise<Notification[]> {
+  async fetchNotifications(params?: NotificationListParams): Promise<Page<Notification>> {
     this.syncStateSubject.next({
       ...this.syncStateSubject.value,
       status: 'syncing',
@@ -103,12 +104,12 @@ export class NotificationService {
         size: params?.size ?? this.config.defaultPageSize,
       };
 
-      const notifications = await this.repository.fetchNotifications(fetchParams);
+      const page = await this.repository.fetchNotifications(fetchParams);
 
-      this.notificationsSubject.next(notifications);
+      this.notificationsSubject.next(page.members);
 
-      if (notifications.length > 0) {
-        this.events?.onNewNotifications?.(notifications);
+      if (page.members.length > 0) {
+        this.events?.onNewNotifications?.(page.members);
       }
 
       this.syncStateSubject.next({
@@ -116,7 +117,7 @@ export class NotificationService {
         lastSyncAt: Date.now(),
       });
 
-      return notifications;
+      return page;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
@@ -130,7 +131,7 @@ export class NotificationService {
         this.events?.onSyncError?.(error);
       }
 
-      return [];
+      return { members: [] };
     }
   }
 

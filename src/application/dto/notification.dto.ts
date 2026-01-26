@@ -1,17 +1,21 @@
 import {
+  NOTIFICATION_CODES,
+  NOTIFICATION_TYPES,
   Notification,
-  NotificationDataBlockAt,
-  NotificationDataPemStatus,
+  NotificationCommunicationRestored,
   NotificationLevel,
   NotificationMf2Unreachable,
-  NotificationPemBackOnline,
-  NotificationPemsBlocked,
+  NotificationPayloadBlockAt,
   NotificationScope,
   NotificationSource,
+  NotificationStatusOffline,
+  NotificationStatusOnline,
 } from '@/domain/entities/notification.entity';
+import { Page } from '@/domain/value-objects/page.vo';
 
 interface NotificationApiOutputBase {
   uuid: string;
+  message: string;
   scope: NotificationScope;
   source: NotificationSource;
   level: NotificationLevel;
@@ -19,36 +23,48 @@ interface NotificationApiOutputBase {
 }
 
 export interface NotificationMf2UnreachableApiOutput extends NotificationApiOutputBase {
-  type: 'INTERNAL_COMMUNICATION_FAILURE';
-  code: 'SYS-W-01';
-  data: NotificationDataBlockAt;
+  type: typeof NOTIFICATION_TYPES.MF2_UNREACHABLE;
+  code: typeof NOTIFICATION_CODES.MF2_UNREACHABLE;
+  payload: NotificationPayloadBlockAt;
 }
 
-export interface NotificationPemsBlockedApiOutput extends NotificationApiOutputBase {
-  type: 'PEM_STATUS_CHANGED';
-  code: 'SYS-C-01';
-  data: NotificationDataPemStatus;
+export interface NotificationStatusOfflineApiOutput extends NotificationApiOutputBase {
+  type: typeof NOTIFICATION_TYPES.STATUS_OFFLINE;
+  code: typeof NOTIFICATION_CODES.STATUS_OFFLINE;
+  payload?: null;
 }
 
-export interface NotificationPemBackOnlineApiOutput extends NotificationApiOutputBase {
-  type: 'PEM_STATUS_CHANGED';
-  code: 'SYS-I-01';
-  data: NotificationDataPemStatus;
+export interface NotificationStatusOnlineApiOutput extends NotificationApiOutputBase {
+  type: typeof NOTIFICATION_TYPES.STATUS_ONLINE;
+  code: typeof NOTIFICATION_CODES.STATUS_ONLINE;
+  payload?: null;
+}
+
+export interface NotificationCommunicationRestoredApiOutput extends NotificationApiOutputBase {
+  type: typeof NOTIFICATION_TYPES.COMMUNICATION_RESTORED;
+  code: typeof NOTIFICATION_CODES.COMMUNICATION_RESTORED;
+  payload?: null;
 }
 
 export type NotificationApiOutput =
   | NotificationMf2UnreachableApiOutput
-  | NotificationPemsBlockedApiOutput
-  | NotificationPemBackOnlineApiOutput;
+  | NotificationStatusOfflineApiOutput
+  | NotificationStatusOnlineApiOutput
+  | NotificationCommunicationRestoredApiOutput;
 
-export interface NotificationListApiOutput {
+export interface NotificationPageApiOutput {
   members: NotificationApiOutput[];
+  total?: number;
+  page?: number;
+  size?: number;
+  pages?: number;
 }
 
 export class NotificationMapper {
   static fromApiOutput(output: NotificationApiOutput): Notification {
     const base = {
       uuid: output.uuid,
+      message: output.message,
       scope: output.scope,
       source: output.source,
       level: output.level,
@@ -56,27 +72,34 @@ export class NotificationMapper {
     };
 
     switch (output.code) {
-      case 'SYS-W-01':
+      case NOTIFICATION_CODES.MF2_UNREACHABLE:
         return {
           ...base,
           type: output.type,
           code: output.code,
-          data: output.data,
+          payload: output.payload,
         } as NotificationMf2Unreachable;
-      case 'SYS-C-01':
+      case NOTIFICATION_CODES.STATUS_OFFLINE:
         return {
           ...base,
           type: output.type,
           code: output.code,
-          data: output.data,
-        } as NotificationPemsBlocked;
-      case 'SYS-I-01':
+          payload: null,
+        } as NotificationStatusOffline;
+      case NOTIFICATION_CODES.STATUS_ONLINE:
         return {
           ...base,
           type: output.type,
           code: output.code,
-          data: output.data,
-        } as NotificationPemBackOnline;
+          payload: null,
+        } as NotificationStatusOnline;
+      case NOTIFICATION_CODES.COMMUNICATION_RESTORED:
+        return {
+          ...base,
+          type: output.type,
+          code: output.code,
+          payload: null,
+        } as NotificationCommunicationRestored;
     }
   }
 
@@ -84,7 +107,13 @@ export class NotificationMapper {
     return outputs.map((o) => this.fromApiOutput(o));
   }
 
-  static listFromApiResponse(response: NotificationListApiOutput): Notification[] {
-    return this.listFromApi(response.members);
+  static pageFromApiResponse(response: NotificationPageApiOutput): Page<Notification> {
+    return {
+      members: this.listFromApi(response.members),
+      total: response.total,
+      page: response.page,
+      size: response.size,
+      pages: response.pages,
+    };
   }
 }
