@@ -1,6 +1,6 @@
 {
   "name": "@a-cube-io/ereceipts-js-sdk",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "description": "ACube E-Receipt SDK for multi-platform support",
   "type": "module",
   "main": "./dist/index.cjs.js",
@@ -74,7 +74,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:a-cube-io/ereceipts-js-sdk.git"
+    "url": "git+ssh://git@github.com/a-cube-io/ereceipts-js-sdk.git"
   },
   "keywords": [
     "acube",
