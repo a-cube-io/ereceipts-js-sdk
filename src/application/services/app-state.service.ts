@@ -103,13 +103,15 @@ export class AppStateService {
       newMode = 'BLOCKED';
     }
 
-    // Determine WARNING state based on MF2_UNREACHABLE vs COMMUNICATION_RESTORED
+    // Determine WARNING state based on MF2_UNREACHABLE vs COMMUNICATION_RESTORED/STATUS_ONLINE
     if (newMode !== 'BLOCKED' && mf2Unreachable) {
       const warningTime = new Date(mf2Unreachable.createdAt).getTime();
       const restoredTime = commRestored ? new Date(commRestored.createdAt).getTime() : 0;
+      const onlineTime = statusOnline ? new Date(statusOnline.createdAt).getTime() : 0;
 
-      // Only show warning if MF2_UNREACHABLE is more recent than COMMUNICATION_RESTORED
-      if (warningTime > restoredTime && mf2Unreachable.payload) {
+      // Only show warning if MF2_UNREACHABLE is more recent than both COMMUNICATION_RESTORED and STATUS_ONLINE
+      // STATUS_ONLINE invalidates old MF2_UNREACHABLE (PEM went offline then back online)
+      if (warningTime > restoredTime && warningTime > onlineTime && mf2Unreachable.payload) {
         const blockAtStr = mf2Unreachable.payload.block_at;
         const blockAt = new Date(blockAtStr);
         const now = Date.now();
