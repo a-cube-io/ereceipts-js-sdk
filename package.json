@@ -1,6 +1,6 @@
 {
   "name": "@a-cube-io/ereceipts-js-sdk",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "ACube E-Receipt SDK for multi-platform support",
   "type": "module",
   "main": "./dist/index.cjs.js",
@@ -33,6 +33,7 @@
     "typecheck": "npx tsc --noEmit",
     "quality": "npm run format && npm run lint:fix && npm run typecheck",
     "prepublishOnly": "npm run build",
+    "deploy": "./deploy.sh",
     "prepare": "husky"
   },
   "dependencies": {
