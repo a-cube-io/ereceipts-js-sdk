@@ -95,24 +95,24 @@ console.log('Scontrino creato:', receipt.documentNumber);
 ## Documentazione
 
 ### Getting Started
-- [Installazione](./getting-started/installation.md)
-- [Configurazione](./getting-started/configuration.md)
-- [Setup Expo](./getting-started/expo-setup.md)
-- [Autenticazione](./authentication/overview.md)
+- [Installazione](./docs/getting-started/installation.md)
+- [Configurazione](./docs/getting-started/configuration.md)
+- [Setup Expo](./docs/getting-started/expo-setup.md)
+- [Autenticazione](./docs/authentication/overview.md)
 
 ### API Reference
-- [SDKManager](./api-reference/sdk-manager.md) - API semplificata per produzione
-- [ACubeSDK](./api-reference/sdk-instance.md) - API completa
-- [AppStateService](./api-reference/app-state.md) - Gestione stati app
-- [Notifications](./api-reference/notifications.md) - Sistema notifiche
-- [Telemetry](./api-reference/telemetry.md) - Telemetria PEM
+- [SDKManager](./docs/api-reference/sdk-manager.md) - API semplificata per produzione
+- [ACubeSDK](./docs/api-reference/sdk-instance.md) - API completa
+- [AppStateService](./docs/api-reference/app-state.md) - Gestione stati app
+- [Notifications](./docs/api-reference/notifications.md) - Sistema notifiche
+- [Telemetry](./docs/api-reference/telemetry.md) - Telemetria PEM
 
 ### Esempi
-- [Esempi Base](./examples/basic-usage.md)
-- [Notifiche e Telemetria](./examples/notifications-telemetry.md) - Esempio Expo completo
+- [Esempi Base](./docs/examples/basic-usage.md)
+- [Notifiche e Telemetria](./docs/examples/notifications-telemetry.md) - Esempio Expo completo
 
 ### Troubleshooting
-- [Problemi Comuni](./troubleshooting/common-issues.md)
+- [Problemi Comuni](./docs/troubleshooting/common-issues.md)
 
 ## Ambienti Disponibili
 
