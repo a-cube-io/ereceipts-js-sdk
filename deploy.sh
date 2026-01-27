@@ -92,16 +92,20 @@ if [[ -n $(git status --porcelain) ]]; then
     fi
 fi
 
+# Parse current version
+IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT_VERSION//v/}"
+PATCH_NUM="${PATCH%%-*}"  # Remove prerelease suffix if any
+
 # Version selection menu
 echo -e "${BLUE}Select version bump:${NC}"
 echo ""
-echo "  1) patch      (bug fixes)           $CURRENT_VERSION -> $(npm version patch --dry-run --no-git-tag-version 2>/dev/null | tail -1 || echo "?.?.?")"
-echo "  2) minor      (new features)        $CURRENT_VERSION -> $(npm version minor --dry-run --no-git-tag-version 2>/dev/null | tail -1 || echo "?.?.?")"
-echo "  3) major      (breaking changes)    $CURRENT_VERSION -> $(npm version major --dry-run --no-git-tag-version 2>/dev/null | tail -1 || echo "?.?.?")"
-echo "  4) prepatch   (patch prerelease)    $CURRENT_VERSION -> x.x.x-0"
-echo "  5) preminor   (minor prerelease)    $CURRENT_VERSION -> x.x.0-0"
-echo "  6) premajor   (major prerelease)    $CURRENT_VERSION -> x.0.0-0"
-echo "  7) prerelease (increment pre)       $CURRENT_VERSION -> x.x.x-N"
+echo "  1) patch      (bug fixes)           $CURRENT_VERSION -> $MAJOR.$MINOR.$((PATCH_NUM + 1))"
+echo "  2) minor      (new features)        $CURRENT_VERSION -> $MAJOR.$((MINOR + 1)).0"
+echo "  3) major      (breaking changes)    $CURRENT_VERSION -> $((MAJOR + 1)).0.0"
+echo "  4) prepatch   (patch prerelease)    $CURRENT_VERSION -> $MAJOR.$MINOR.$((PATCH_NUM + 1))-0"
+echo "  5) preminor   (minor prerelease)    $CURRENT_VERSION -> $MAJOR.$((MINOR + 1)).0-0"
+echo "  6) premajor   (major prerelease)    $CURRENT_VERSION -> $((MAJOR + 1)).0.0-0"
+echo "  7) prerelease (increment pre)       $CURRENT_VERSION -> next prerelease"
 echo "  8) custom     (enter manually)"
 echo ""
 read -p "Choice [1-8]: " VERSION_CHOICE
