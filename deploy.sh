@@ -80,6 +80,32 @@ echo ""
 echo -e "Current version: ${GREEN}$CURRENT_VERSION${NC}"
 echo ""
 
+# Check npm login status
+echo -e "${BLUE}Checking npm authentication...${NC}"
+NPM_USER=$(npm whoami 2>/dev/null || echo "")
+
+if [[ -z "$NPM_USER" ]]; then
+    echo -e "${RED}Not logged in to npm.${NC}"
+    echo ""
+    read -p "Login now? (Y/n): " DO_LOGIN
+
+    if [[ "$DO_LOGIN" =~ ^[Nn]$ ]]; then
+        echo "Aborted. Run 'npm login' first."
+        exit 1
+    fi
+
+    npm login
+
+    NPM_USER=$(npm whoami 2>/dev/null || echo "")
+    if [[ -z "$NPM_USER" ]]; then
+        echo -e "${RED}Login failed.${NC}"
+        exit 1
+    fi
+fi
+
+echo -e "Logged in as: ${GREEN}$NPM_USER${NC}"
+echo ""
+
 # Check for uncommitted changes
 if [[ -n $(git status --porcelain) ]]; then
     echo -e "${YELLOW}Warning: You have uncommitted changes${NC}"
@@ -182,7 +208,14 @@ if [[ ! "$CONFIRM_PUBLISH" =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-npm publish --access public
+# Ask for OTP (2FA)
+read -p "Enter OTP code (leave empty if no 2FA): " OTP_CODE
+
+if [[ -n "$OTP_CODE" ]]; then
+    npm publish --access public --otp "$OTP_CODE"
+else
+    npm publish --access public
+fi
 
 echo ""
 echo -e "${BLUE}Pushing to git remote...${NC}"
