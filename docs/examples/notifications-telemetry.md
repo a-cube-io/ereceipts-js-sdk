@@ -545,13 +545,17 @@ src/
 ## Note Importanti
 
 1. **SDKManager.configure()** deve essere chiamato UNA SOLA VOLTA all'avvio
-2. Il polling delle notifiche parte automaticamente dopo `initialize()`
+2. **Polling automatico**: Dopo `initialize()`:
+   - Notifiche: polling parte sempre (default 30s)
+   - Telemetria: polling parte automaticamente se certificato installato (default 60s)
 3. La telemetria usa cache automatica quando offline
 4. Gli observable emettono `distinctUntilChanged` per evitare re-render inutili
 5. **mTLS Required**: Le API richiedono certificato mTLS:
    ```typescript
    const services = SDKManager.getInstance().getServices();
    await services.storeCertificate(cert, privateKey, { format: 'pem' });
+   // Dopo aver installato il certificato, avvia telemetria manualmente se necessario
+   await services.telemetry.startPollingAuto();
    ```
 
 ## API Reference

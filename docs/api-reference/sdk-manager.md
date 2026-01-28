@@ -13,7 +13,8 @@ import { SDKManager, type SDKManagerConfig, type ManagedServices } from '@a-cube
 `SDKManager` fornisce:
 - **Singleton pattern** - un unico punto di inizializzazione
 - **Observable app state** - stato dell'app (NORMAL, WARNING, BLOCKED, OFFLINE)
-- **Observable telemetry** - dati telemetria con cache offline
+- **Observable telemetry** - dati telemetria con polling automatico
+- **Auto-polling** - notifiche e telemetria partono automaticamente
 - **Servizi semplificati** - API pulita per uso in produzione
 
 ## Configurazione
@@ -26,11 +27,11 @@ interface SDKManagerConfig {
   debug?: boolean;
 
   // Configurazione notifiche
-  notificationPollIntervalMs?: number;  // default: 30000
+  notificationPollIntervalMs?: number;  // default: 30000 (30 sec)
   notificationPageSize?: number;        // default: 30
 
   // Configurazione telemetria
-  telemetryCacheTtlMs?: number;         // default: 300000 (5 min)
+  telemetryPollIntervalMs?: number;     // default: 60000 (60 sec)
 }
 ```
 
@@ -42,6 +43,7 @@ interface SDKManagerConfig {
 SDKManager.configure({
   environment: 'sandbox',
   notificationPollIntervalMs: 30000,
+  telemetryPollIntervalMs: 60000,
 });
 ```
 
@@ -50,6 +52,8 @@ SDKManager.configure({
 ```typescript
 const manager = SDKManager.getInstance();
 await manager.initialize();
+// Notifiche polling: parte automaticamente
+// Telemetria polling: parte automaticamente se certificato installato
 ```
 
 ### 3. Utilizzo
@@ -58,6 +62,13 @@ await manager.initialize();
 // Osserva lo stato dell'app
 manager.appState$.subscribe(state => {
   console.log('Mode:', state.mode);
+});
+
+// Osserva la telemetria
+manager.telemetryState$.subscribe(state => {
+  if (state.data) {
+    console.log('PEM:', state.data.pemStatus);
+  }
 });
 
 // Usa i servizi
@@ -173,12 +184,15 @@ manager.warning$.subscribe(warning => {
 
 ### telemetryState$
 
-Stream dello stato telemetria.
+Stream dello stato telemetria con polling automatico.
 
 ```typescript
 manager.telemetryState$.subscribe(state => {
-  if (state.data) {
+  if (state.isLoading) {
+    console.log('Caricamento telemetria...');
+  } else if (state.data) {
     console.log('PEM Status:', state.data.pemStatus);
+    console.log('Ultimo fetch:', new Date(state.lastFetchedAt));
   }
   console.log('Cached:', state.isCached);
 });
@@ -190,10 +204,50 @@ manager.telemetryState$.subscribe(state => {
 
 ### initialize()
 
-Inizializza SDK e tutti i servizi. Avvia il polling delle notifiche.
+Inizializza SDK e tutti i servizi. Avvia automaticamente:
+- Polling notifiche (ogni 30s default)
+- Polling telemetria (ogni 60s default, se certificato installato)
 
 ```typescript
 await manager.initialize();
+```
+
+### getPemId()
+
+Ottiene il pemId dal certificato installato.
+
+```typescript
+const pemId = await manager.getPemId();
+if (pemId) {
+  console.log('Certificato per PEM:', pemId);
+}
+```
+
+### startTelemetryPollingAuto()
+
+Avvia il polling telemetria usando il pemId dal certificato.
+
+```typescript
+const pemId = await manager.startTelemetryPollingAuto();
+if (pemId) {
+  console.log('Telemetry polling avviato per:', pemId);
+}
+```
+
+### startTelemetryPolling(pemId)
+
+Avvia il polling telemetria per un pemId specifico.
+
+```typescript
+manager.startTelemetryPolling('pem-uuid');
+```
+
+### stopTelemetryPolling()
+
+Ferma il polling telemetria.
+
+```typescript
+manager.stopTelemetryPolling();
 ```
 
 ### getServices()
@@ -232,12 +286,12 @@ Forza sincronizzazione notifiche.
 await manager.syncNotifications();
 ```
 
-### getTelemetry()
+### syncTelemetry()
 
-Shortcut per ottenere dati telemetria.
+Forza sincronizzazione telemetria.
 
 ```typescript
-const telemetry = await manager.getTelemetry(pemId);
+const state = await manager.syncTelemetry();
 ```
 
 ### getIsInitialized()
@@ -275,12 +329,8 @@ interface ManagedServices {
   dailyReports: IDailyReportRepository;
   journals: IJournalRepository;
 
-  // Telemetria semplificata
-  telemetry: {
-    getTelemetry: (pemId: string) => Promise<TelemetryState>;
-    refreshTelemetry: (pemId: string) => Promise<TelemetryState>;
-    clearCache: (pemId: string) => Promise<void>;
-  };
+  // Telemetria
+  telemetry: TelemetryOperations;
 
   // Auth
   login: (credentials: AuthCredentials) => Promise<User>;
@@ -295,6 +345,21 @@ interface ManagedServices {
 
   // Network
   isOnline: () => boolean;
+}
+```
+
+### TelemetryOperations
+
+```typescript
+interface TelemetryOperations {
+  startPollingAuto: () => Promise<string | null>;
+  startPolling: (pemId: string) => void;
+  stopPolling: () => void;
+  getTelemetry: (pemId: string) => Promise<TelemetryState>;
+  refreshTelemetry: (pemId: string) => Promise<TelemetryState>;
+  triggerSync: () => Promise<TelemetryState>;
+  clearTelemetry: () => void;
+  getPemId: () => Promise<string | null>;
 }
 ```
 
@@ -323,16 +388,17 @@ SDKManager.configure(
   {
     environment: 'production',
     notificationPollIntervalMs: 30000,
-    telemetryCacheTtlMs: 300000,
+    telemetryPollIntervalMs: 60000,
   },
   undefined,  // auto-detect adapters
   {
     onAppStateChanged: (state) => console.log('App mode:', state.mode),
+    onTelemetryStateChanged: (state) => console.log('Telemetry:', state.data?.pemStatus),
     onNetworkStatusChanged: (online) => console.log('Network:', online),
   }
 );
 
-// 2. Inizializza
+// 2. Inizializza (polling parte automaticamente)
 const manager = SDKManager.getInstance();
 await manager.initialize();
 
@@ -351,6 +417,33 @@ teleSub.unsubscribe();
 SDKManager.destroy();
 ```
 
+## Auto-Polling Behavior
+
+All'inizializzazione, SDKManager:
+
+1. **Notifiche**: Polling parte sempre automaticamente
+2. **Telemetria**: Polling parte automaticamente SE:
+   - Un certificato mTLS è installato
+   - Il certificato contiene un `pemId` valido
+
+```typescript
+await manager.initialize();
+// Notifiche: polling attivo
+// Telemetria: polling attivo se certificato presente
+
+// Verifica stato
+const pemId = await manager.getPemId();
+console.log('Telemetry polling:', pemId ? 'attivo' : 'non attivo');
+
+// Avvia manualmente se necessario
+if (!pemId) {
+  // Installa certificato prima
+  await services.storeCertificate(cert, key);
+  // Poi avvia polling
+  await manager.startTelemetryPollingAuto();
+}
+```
+
 ## Utilizzo con React
 
 Vedi [Esempio React](../examples/notifications-telemetry.md) per un'implementazione completa con:
@@ -364,4 +457,5 @@ Vedi [Esempio React](../examples/notifications-telemetry.md) per un'implementazi
 - [App State API](./app-state.md)
 - [Notifications API](./notifications.md)
 - [Telemetry API](./telemetry.md)
+- [Caching](../advanced/caching.md)
 - [Esempio Completo](../examples/notifications-telemetry.md)
