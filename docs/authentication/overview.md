@@ -108,20 +108,26 @@ interface User {
   id: string;
   email: string;
   username: string;
-  roles: UserRole[];
+  roles: UserRoles;  // Ruoli per dominio
   fid: string;
   pid: string | null;
   expiresAt: number;
 }
 
-type UserRole =
-  | 'administrator'
-  | 'owner'
-  | 'manager'
-  | 'operator'
-  | 'readonly'
-  | 'superadmin';
+type UserRole = 'ROLE_SUPPLIER' | 'ROLE_CASHIER' | 'ROLE_MERCHANT';
+type Domain = 'ereceipts-it.acubeapi.com';
+type UserRoles = Record<Domain, UserRole[]>;
 ```
+
+### Ruoli e Permessi
+
+| Ruolo | Descrizione | Polling |
+|-------|-------------|---------|
+| **ROLE_MERCHANT** | Proprietario/gestore attivita' | Notifiche + Telemetria |
+| **ROLE_CASHIER** | Operatore cassa | Notifiche + Telemetria |
+| **ROLE_SUPPLIER** | Fornitore | Solo Network State |
+
+> **Nota**: Gli utenti SUPPLIER non hanno accesso agli endpoint di notifiche e telemetria. L'SDK disabilita automaticamente il polling per questi utenti.
 
 ## Eventi di Autenticazione
 

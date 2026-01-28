@@ -129,6 +129,9 @@ export class AxiosHttpAdapter implements IHttpPort {
       (config) => {
         if (this.authToken) {
           config.headers.Authorization = `Bearer ${this.authToken}`;
+          log.debug('Adding JWT token to request');
+        } else {
+          log.warn('No JWT token available for request:', { url: config.url });
         }
 
         const method = config.method?.toUpperCase() ?? 'UNKNOWN';
@@ -253,6 +256,7 @@ export class AxiosHttpAdapter implements IHttpPort {
   }
 
   setAuthToken(token: string | null): void {
+    log.info('setAuthToken called:', { hasToken: !!token, tokenPrefix: token?.substring(0, 20) });
     this.authToken = token;
   }
 
