@@ -7,6 +7,25 @@ L'autenticazione mTLS (Mutual TLS) e' richiesta per operazioni fiscali critiche 
 - **Development Build**: mTLS non funziona con Expo Go
 - **Certificato Client**: File .pem o .p12 fornito da ACube
 - **Chiave Privata**: Associata al certificato
+- **Modulo nativo**: `@a-cube-io/expo-mutual-tls`
+
+## Installazione Modulo mTLS
+
+Il SDK utilizza `@a-cube-io/expo-mutual-tls` per gestire le connessioni mTLS su iOS e Android.
+
+```bash
+npx expo install @a-cube-io/expo-mutual-tls
+```
+
+### Caratteristiche del Modulo
+
+| Feature | Descrizione |
+|---------|-------------|
+| Formati supportati | P12 (PKCS#12), PEM |
+| Storage sicuro | iOS Keychain, Android Keystore |
+| Implementazione | Native Swift e Kotlin |
+| Gestione scadenza | Warning automatici |
+| Event logging | Monitoraggio operazioni |
 
 ## Quando Usare mTLS
 

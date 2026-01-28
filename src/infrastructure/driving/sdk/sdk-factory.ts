@@ -1,3 +1,5 @@
+import { ICachePort, INetworkPort } from '@/application/ports/driven';
+import { ICacheKeyGenerator } from '@/application/ports/driven/cache-key.port';
 import { IHttpPort } from '@/application/ports/driven/http.port';
 import { ISecureStoragePort } from '@/application/ports/driven/storage.port';
 import { ITokenStoragePort } from '@/application/ports/driven/token-storage.port';
@@ -26,6 +28,8 @@ import {
   SupplierRepositoryImpl,
   TelemetryRepositoryImpl,
 } from '@/infrastructure/driven/api';
+import { CacheKeyGenerator } from '@/infrastructure/driven/cache/cache-key-generator';
+import { CachingHttpDecorator } from '@/infrastructure/driven/cache/caching-http-decorator';
 import { AxiosHttpAdapter } from '@/infrastructure/driven/http/axios-http.adapter';
 import { TokenStorageAdapter } from '@/infrastructure/driven/storage/token-storage.adapter';
 
@@ -64,6 +68,7 @@ export class SDKFactory {
       timeout: config.timeout,
     });
 
+    container.register(DI_TOKENS.BASE_HTTP_PORT, httpAdapter);
     container.register(DI_TOKENS.HTTP_PORT, httpAdapter);
 
     container.registerFactory(DI_TOKENS.RECEIPT_REPOSITORY, () => {
@@ -122,6 +127,33 @@ export class SDKFactory {
     });
 
     return container;
+  }
+
+  static registerCacheServices(
+    container: DIContainer,
+    cache: ICachePort,
+    network?: INetworkPort
+  ): void {
+    container.register(DI_TOKENS.CACHE_PORT, cache);
+
+    if (network) {
+      container.register(DI_TOKENS.NETWORK_PORT, network);
+    }
+
+    const keyGenerator = new CacheKeyGenerator();
+    container.register(DI_TOKENS.CACHE_KEY_GENERATOR, keyGenerator);
+
+    const baseHttp = container.get<IHttpPort>(DI_TOKENS.BASE_HTTP_PORT);
+    const cachingHttp = new CachingHttpDecorator(baseHttp, cache, keyGenerator, network);
+
+    container.register(DI_TOKENS.HTTP_PORT, cachingHttp);
+  }
+
+  static getCacheKeyGenerator(container: DIContainer): ICacheKeyGenerator | undefined {
+    if (container.has(DI_TOKENS.CACHE_KEY_GENERATOR)) {
+      return container.get<ICacheKeyGenerator>(DI_TOKENS.CACHE_KEY_GENERATOR);
+    }
+    return undefined;
   }
 
   static registerAuthServices(

@@ -51,13 +51,22 @@ L'SDK richiede alcune dipendenze peer per funzionare correttamente con Expo.
 expo install expo-secure-store @react-native-async-storage/async-storage
 ```
 
-### Dipendenze Opzionali
+### Dipendenze mTLS (Richieste per operazioni fiscali)
 
-Per funzionalita' mTLS (autenticazione con certificato):
+Per l'autenticazione mTLS (creazione scontrini, annulli, PEM, ecc.) e' **necessario** installare:
 
 ```bash
-expo install expo-file-system
+npx expo install @a-cube-io/expo-mutual-tls
 ```
+
+Questo modulo fornisce:
+- Supporto certificati P12 (PKCS#12) e PEM
+- Storage sicuro (iOS Keychain / Android Keystore)
+- Implementazioni native Swift e Kotlin
+
+> **Importante**: mTLS richiede un development build, non funziona con Expo Go.
+
+### Dipendenze Opzionali
 
 Per monitoraggio stato rete:
 
@@ -70,7 +79,8 @@ expo install @react-native-community/netinfo
 ```json
 {
   "dependencies": {
-    "@a-cube-io/ereceipts-js-sdk": "^1.0.0"
+    "@a-cube-io/ereceipts-js-sdk": "^2.0.0",
+    "@a-cube-io/expo-mutual-tls": "^1.0.0"
   },
   "peerDependencies": {
     "expo-secure-store": ">=12.0.0",

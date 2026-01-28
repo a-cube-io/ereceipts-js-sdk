@@ -12,3 +12,7 @@ export {
   type CleanupResult,
   type MemoryStats,
 } from './cache-manager';
+
+export { CacheKeyGenerator } from './cache-key-generator';
+
+export { CachingHttpDecorator, type CachingHttpDecoratorConfig } from './caching-http-decorator';
