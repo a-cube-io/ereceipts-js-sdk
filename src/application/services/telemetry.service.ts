@@ -1,8 +1,7 @@
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { BehaviorSubject, Observable, Subject, Subscription, interval } from 'rxjs';
+import { filter, pairwise, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
 import { INetworkPort } from '@/application/ports/driven/network.port';
-import { IStoragePort } from '@/application/ports/driven/storage.port';
 import { Telemetry } from '@/domain/entities/telemetry.entity';
 import { ITelemetryRepository } from '@/domain/repositories/telemetry.repository';
 
@@ -15,19 +14,17 @@ export interface TelemetryState {
 }
 
 export interface TelemetryServiceConfig {
-  cacheKeyPrefix: string;
-  cacheTtlMs: number;
+  pollIntervalMs: number;
+}
+
+export interface TelemetryEvents {
+  onTelemetryUpdate?: (telemetry: Telemetry) => void;
+  onSyncError?: (error: Error) => void;
 }
 
 const DEFAULT_CONFIG: TelemetryServiceConfig = {
-  cacheKeyPrefix: 'acube_telemetry_',
-  cacheTtlMs: 300000,
+  pollIntervalMs: 60000, // 1 minute default for telemetry
 };
-
-interface CachedTelemetry {
-  data: Telemetry;
-  timestamp: number;
-}
 
 export class TelemetryService {
   private readonly stateSubject = new BehaviorSubject<TelemetryState>({
@@ -37,8 +34,10 @@ export class TelemetryService {
     lastFetchedAt: null,
   });
   private readonly destroy$ = new Subject<void>();
+  private pollingSubscription?: Subscription;
+  private networkSubscription?: Subscription;
   private readonly config: TelemetryServiceConfig;
-  private isOnline = true;
+  private currentPemId?: string;
 
   get state$(): Observable<TelemetryState> {
     return this.stateSubject.asObservable();
@@ -46,37 +45,92 @@ export class TelemetryService {
 
   constructor(
     private readonly repository: ITelemetryRepository,
-    private readonly storagePort: IStoragePort,
     private readonly networkPort: INetworkPort,
-    config?: Partial<TelemetryServiceConfig>
+    config?: Partial<TelemetryServiceConfig>,
+    private readonly events?: TelemetryEvents
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.setupNetworkMonitoring();
   }
 
   private setupNetworkMonitoring(): void {
-    this.networkPort.online$.pipe(takeUntil(this.destroy$)).subscribe((online) => {
-      this.isOnline = online;
-    });
+    this.networkSubscription = this.networkPort.online$
+      .pipe(
+        startWith(true),
+        pairwise(),
+        filter(([wasOnline, isNowOnline]) => !wasOnline && isNowOnline),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => {
+        this.triggerSync();
+      });
+  }
+
+  startPolling(pemId: string): void {
+    if (this.pollingSubscription) {
+      // If already polling for same pemId, do nothing
+      if (this.currentPemId === pemId) {
+        return;
+      }
+      // If polling for different pemId, stop and restart
+      this.stopPolling();
+    }
+
+    this.currentPemId = pemId;
+
+    this.pollingSubscription = interval(this.config.pollIntervalMs)
+      .pipe(
+        startWith(0),
+        switchMap(() => this.fetchTelemetry()),
+        takeUntil(this.destroy$)
+      )
+      .subscribe();
+  }
+
+  stopPolling(): void {
+    this.pollingSubscription?.unsubscribe();
+    this.pollingSubscription = undefined;
+    this.currentPemId = undefined;
+  }
+
+  async triggerSync(): Promise<TelemetryState> {
+    if (!this.currentPemId) {
+      return this.stateSubject.value;
+    }
+    return this.fetchTelemetry();
   }
 
   async getTelemetry(pemId: string): Promise<TelemetryState> {
-    return this.fetchWithFallback(pemId);
+    // Start polling if not already polling for this pemId
+    if (this.currentPemId !== pemId) {
+      this.startPolling(pemId);
+    }
+    return this.stateSubject.value;
   }
 
   async refreshTelemetry(pemId: string): Promise<TelemetryState> {
-    if (!this.isOnline) {
+    // Update pemId and fetch immediately
+    if (this.currentPemId !== pemId) {
+      this.startPolling(pemId);
+    } else {
+      return this.fetchTelemetry();
+    }
+    return this.stateSubject.value;
+  }
+
+  private async fetchTelemetry(): Promise<TelemetryState> {
+    if (!this.currentPemId) {
       return this.stateSubject.value;
     }
 
     this.stateSubject.next({
       ...this.stateSubject.value,
       isLoading: true,
+      error: undefined,
     });
 
     try {
-      const data = await this.repository.getTelemetry(pemId);
-      await this.cacheData(pemId, data);
+      const data = await this.repository.getTelemetry(this.currentPemId);
 
       const newState: TelemetryState = {
         data,
@@ -86,6 +140,7 @@ export class TelemetryService {
       };
 
       this.stateSubject.next(newState);
+      this.events?.onTelemetryUpdate?.(data);
       return newState;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -96,105 +151,28 @@ export class TelemetryService {
       };
 
       this.stateSubject.next(newState);
-      return newState;
-    }
-  }
 
-  private async fetchWithFallback(pemId: string): Promise<TelemetryState> {
-    this.stateSubject.next({
-      ...this.stateSubject.value,
-      isLoading: true,
-    });
-
-    if (this.isOnline) {
-      try {
-        const data = await this.repository.getTelemetry(pemId);
-        await this.cacheData(pemId, data);
-
-        const newState: TelemetryState = {
-          data,
-          isCached: false,
-          isLoading: false,
-          lastFetchedAt: Date.now(),
-        };
-
-        this.stateSubject.next(newState);
-        return newState;
-      } catch (error) {
-        return this.loadFromCache(pemId, error);
+      if (error instanceof Error) {
+        this.events?.onSyncError?.(error);
       }
-    }
 
-    return this.loadFromCache(pemId);
-  }
-
-  private async loadFromCache(pemId: string, originalError?: unknown): Promise<TelemetryState> {
-    const cached = await this.getCachedData(pemId);
-
-    if (cached && this.isCacheValid(cached.timestamp)) {
-      const newState: TelemetryState = {
-        data: cached.data,
-        isCached: true,
-        isLoading: false,
-        lastFetchedAt: cached.timestamp,
-      };
-
-      this.stateSubject.next(newState);
       return newState;
     }
+  }
 
-    const errorMessage =
-      originalError instanceof Error ? originalError.message : 'No cached data available';
-    const newState: TelemetryState = {
+  clearTelemetry(): void {
+    this.stateSubject.next({
       data: null,
       isCached: false,
       isLoading: false,
       lastFetchedAt: null,
-      error: errorMessage,
-    };
-
-    this.stateSubject.next(newState);
-    return newState;
-  }
-
-  private async cacheData(pemId: string, data: Telemetry): Promise<void> {
-    const cacheKey = this.getCacheKey(pemId);
-    const cached: CachedTelemetry = {
-      data,
-      timestamp: Date.now(),
-    };
-    await this.storagePort.set(cacheKey, JSON.stringify(cached));
-  }
-
-  private async getCachedData(pemId: string): Promise<CachedTelemetry | null> {
-    const cacheKey = this.getCacheKey(pemId);
-    const stored = await this.storagePort.get(cacheKey);
-
-    if (!stored) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(stored) as CachedTelemetry;
-    } catch {
-      return null;
-    }
-  }
-
-  private isCacheValid(timestamp: number): boolean {
-    return Date.now() - timestamp < this.config.cacheTtlMs;
-  }
-
-  private getCacheKey(pemId: string): string {
-    return `${this.config.cacheKeyPrefix}${pemId}`;
-  }
-
-  clearCache(pemId: string): Promise<void> {
-    return this.storagePort.remove(this.getCacheKey(pemId));
+    });
   }
 
   destroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.pollingSubscription?.unsubscribe();
+    this.networkSubscription?.unsubscribe();
   }
 }

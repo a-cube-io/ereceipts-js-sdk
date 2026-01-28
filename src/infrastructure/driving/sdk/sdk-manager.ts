@@ -2,7 +2,6 @@ import { Observable } from 'rxjs';
 
 import { PlatformAdapters } from '@/application/ports/driven';
 import { INetworkPort } from '@/application/ports/driven/network.port';
-import { IStoragePort } from '@/application/ports/driven/storage.port';
 import {
   AppMode,
   AppState,
@@ -11,7 +10,6 @@ import {
 } from '@/application/services/app-state.service';
 import { NotificationService } from '@/application/services/notification.service';
 import { TelemetryService, TelemetryState } from '@/application/services/telemetry.service';
-import { Telemetry } from '@/domain/entities/telemetry.entity';
 import { ICashRegisterRepository } from '@/domain/repositories/cash-register.repository';
 import { ICashierRepository } from '@/domain/repositories/cashier.repository';
 import { IDailyReportRepository } from '@/domain/repositories/daily-report.repository';
@@ -33,20 +31,30 @@ export interface SDKManagerConfig extends SDKConfig {
   notificationPollIntervalMs?: number;
   /** Notification page size for fetching (default: 30) */
   notificationPageSize?: number;
-  /** Telemetry cache TTL in milliseconds (default: 300000) */
-  telemetryCacheTtlMs?: number;
+  /** Telemetry polling interval in milliseconds (default: 60000) */
+  telemetryPollIntervalMs?: number;
 }
 
 /**
  * Simplified telemetry operations for product use
  */
 export interface TelemetryOperations {
-  /** Get telemetry data for a PEM, with cache fallback when offline */
+  /** Start polling telemetry using pemId from installed certificate */
+  startPollingAuto: () => Promise<string | null>;
+  /** Start polling telemetry for a specific PEM */
+  startPolling: (pemId: string) => void;
+  /** Stop polling telemetry */
+  stopPolling: () => void;
+  /** Get telemetry state for a specific PEM (starts polling if not already) */
   getTelemetry: (pemId: string) => Promise<TelemetryState>;
-  /** Force refresh telemetry data from server */
+  /** Refresh telemetry for a specific PEM */
   refreshTelemetry: (pemId: string) => Promise<TelemetryState>;
-  /** Clear cached telemetry for a PEM */
-  clearCache: (pemId: string) => Promise<void>;
+  /** Manually trigger a telemetry sync */
+  triggerSync: () => Promise<TelemetryState>;
+  /** Clear current telemetry data */
+  clearTelemetry: () => void;
+  /** Get the pemId from the installed certificate */
+  getPemId: () => Promise<string | null>;
 }
 
 /**
@@ -54,7 +62,6 @@ export interface TelemetryOperations {
  * Exposes only what product developers need
  */
 export interface ManagedServices {
-  // Business repositories
   receipts: IReceiptRepository;
   merchants: IMerchantRepository;
   cashiers: ICashierRepository;
@@ -64,17 +71,11 @@ export interface ManagedServices {
   pems: IPemRepository;
   dailyReports: IDailyReportRepository;
   journals: IJournalRepository;
-
-  // Simplified telemetry operations
   telemetry: TelemetryOperations;
-
-  // Auth operations
   login: (credentials: AuthCredentials) => Promise<User>;
   logout: () => Promise<void>;
   getCurrentUser: () => Promise<User | null>;
   isAuthenticated: () => Promise<boolean>;
-
-  // Certificate operations
   storeCertificate: (
     certificate: string,
     privateKey: string,
@@ -82,8 +83,6 @@ export interface ManagedServices {
   ) => Promise<void>;
   hasCertificate: () => Promise<boolean>;
   clearCertificate: () => Promise<void>;
-
-  // Network status
   isOnline: () => boolean;
 }
 
@@ -101,7 +100,7 @@ export interface SDKManagerEvents extends SDKEvents {
  * Provides:
  * - Single initialization point
  * - Observable app state (NORMAL, WARNING, BLOCKED, OFFLINE)
- * - Observable telemetry state
+ * - Observable telemetry state with polling
  * - Simplified services for product use
  *
  * @example
@@ -110,6 +109,7 @@ export interface SDKManagerEvents extends SDKEvents {
  * SDKManager.configure({
  *   environment: 'sandbox',
  *   notificationPollIntervalMs: 30000,
+ *   telemetryPollIntervalMs: 60000,
  * });
  *
  * // Initialize
@@ -119,6 +119,14 @@ export interface SDKManagerEvents extends SDKEvents {
  * const manager = SDKManager.getInstance();
  * manager.appState$.subscribe(state => {
  *   console.log('App mode:', state.mode);
+ * });
+ *
+ * // Start telemetry polling for a specific PEM
+ * manager.startTelemetryPolling('PEM-123');
+ *
+ * // Subscribe to telemetry updates
+ * manager.telemetry$.subscribe(telemetry => {
+ *   console.log('Telemetry:', telemetry);
  * });
  *
  * // Cleanup
@@ -194,45 +202,34 @@ export class SDKManager {
    * Must be called after configure()
    */
   async initialize(): Promise<void> {
-    if (this.isInitialized) {
-      return;
-    }
+    if (this.isInitialized) return;
 
-    // Create and initialize SDK
     this.sdk = new ACubeSDK(this.config, this.adapters, this.events);
     await this.sdk.initialize();
 
-    // Get required adapters
     const adaptersRef = this.sdk.getAdapters();
     if (!adaptersRef) {
       throw new ACubeSDKError('ADAPTERS_NOT_AVAILABLE', 'Platform adapters not available');
     }
 
     const networkPort = adaptersRef.networkMonitor as INetworkPort;
-    const storagePort = adaptersRef.storage as IStoragePort;
-
-    // Get repositories from SDK
     const notificationRepo = this.sdk.notifications;
     const telemetryRepo = this.sdk.telemetry;
 
-    // Create NotificationService
     this.notificationService = new NotificationService(notificationRepo, networkPort, {
       pollIntervalMs: this.config.notificationPollIntervalMs ?? 30000,
       defaultPageSize: this.config.notificationPageSize ?? 30,
     });
 
-    // Create TelemetryService
-    this.telemetryService = new TelemetryService(telemetryRepo, storagePort, networkPort, {
-      cacheTtlMs: this.config.telemetryCacheTtlMs ?? 300000,
+    this.telemetryService = new TelemetryService(telemetryRepo, networkPort, {
+      pollIntervalMs: this.config.telemetryPollIntervalMs ?? 60000,
     });
 
-    // Create AppStateService
     this.appStateService = new AppStateService(
       this.notificationService.notifications$,
       networkPort
     );
 
-    // Subscribe to state changes for events
     if (this.events?.onAppStateChanged) {
       this.appStateService.state$.subscribe(this.events.onAppStateChanged);
     }
@@ -240,10 +237,9 @@ export class SDKManager {
       this.telemetryService.state$.subscribe(this.events.onTelemetryStateChanged);
     }
 
-    // Start notification polling
-    this.notificationService.startPolling();
-
     this.isInitialized = true;
+    this.notificationService.startPolling();
+    this.startTelemetryPollingAuto();
   }
 
   /**
@@ -281,11 +277,53 @@ export class SDKManager {
   }
 
   /**
-   * Observable stream of telemetry state
+   * Observable stream of telemetry state (data, isLoading, isCached, error)
    */
   get telemetryState$(): Observable<TelemetryState> {
     this.ensureInitialized();
     return this.telemetryService!.state$;
+  }
+
+  /**
+   * Get the pemId from the installed certificate
+   */
+  async getPemId(): Promise<string | null> {
+    this.ensureInitialized();
+    try {
+      const certInfo = await this.sdk!.getCertificatesInfo();
+      return certInfo?.pemId ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Start polling telemetry using the pemId from installed certificate
+   * Returns the pemId if successful, null if no certificate is installed
+   */
+  async startTelemetryPollingAuto(): Promise<string | null> {
+    this.ensureInitialized();
+    const pemId = await this.getPemId();
+    if (pemId) {
+      this.telemetryService!.startPolling(pemId);
+    }
+    return pemId;
+  }
+
+  /**
+   * Start polling telemetry for a specific PEM
+   */
+  startTelemetryPolling(pemId: string): void {
+    this.ensureInitialized();
+    this.telemetryService!.startPolling(pemId);
+  }
+
+  /**
+   * Stop telemetry polling
+   */
+  stopTelemetryPolling(): void {
+    this.ensureInitialized();
+    this.telemetryService!.stopPolling();
   }
 
   /**
@@ -298,7 +336,6 @@ export class SDKManager {
     const telemetryService = this.telemetryService!;
 
     return {
-      // Business repositories
       receipts: sdk.receipts,
       merchants: sdk.merchants,
       cashiers: sdk.cashiers,
@@ -308,23 +345,22 @@ export class SDKManager {
       pems: sdk.pems,
       dailyReports: sdk.dailyReports,
       journals: sdk.journals,
-
-      // Simplified telemetry operations
       telemetry: {
+        startPollingAuto: (): Promise<string | null> => this.startTelemetryPollingAuto(),
+        startPolling: (pemId: string): void => telemetryService.startPolling(pemId),
+        stopPolling: (): void => telemetryService.stopPolling(),
         getTelemetry: (pemId: string): Promise<TelemetryState> =>
           telemetryService.getTelemetry(pemId),
         refreshTelemetry: (pemId: string): Promise<TelemetryState> =>
           telemetryService.refreshTelemetry(pemId),
-        clearCache: (pemId: string): Promise<void> => telemetryService.clearCache(pemId),
+        triggerSync: (): Promise<TelemetryState> => telemetryService.triggerSync(),
+        clearTelemetry: (): void => telemetryService.clearTelemetry(),
+        getPemId: (): Promise<string | null> => this.getPemId(),
       },
-
-      // Auth operations
       login: (credentials: AuthCredentials): Promise<User> => sdk.login(credentials),
       logout: (): Promise<void> => sdk.logout(),
       getCurrentUser: (): Promise<User | null> => sdk.getCurrentUser(),
       isAuthenticated: (): Promise<boolean> => sdk.isAuthenticated(),
-
-      // Certificate operations
       storeCertificate: (
         certificate: string,
         privateKey: string,
@@ -332,8 +368,6 @@ export class SDKManager {
       ): Promise<void> => sdk.storeCertificate(certificate, privateKey, options),
       hasCertificate: (): Promise<boolean> => sdk.hasCertificate(),
       clearCertificate: (): Promise<void> => sdk.clearCertificate(),
-
-      // Network status
       isOnline: (): boolean => sdk.isOnline(),
     };
   }
@@ -347,12 +381,11 @@ export class SDKManager {
   }
 
   /**
-   * Get telemetry for a specific PEM
+   * Manually trigger a telemetry sync
    */
-  async getTelemetry(pemId: string): Promise<Telemetry | null> {
+  async syncTelemetry(): Promise<TelemetryState> {
     this.ensureInitialized();
-    const state = await this.telemetryService!.getTelemetry(pemId);
-    return state.data;
+    return this.telemetryService!.triggerSync();
   }
 
   /**

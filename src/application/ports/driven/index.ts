@@ -1,6 +1,7 @@
 export * from './storage.port';
 export * from './network.port';
 export * from './cache.port';
+export * from './cache-key.port';
 export * from './mtls.port';
 export * from './compression.port';
 export * from './http.port';

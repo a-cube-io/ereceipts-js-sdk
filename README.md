@@ -32,6 +32,16 @@ yarn add @a-cube-io/ereceipts-js-sdk
 expo install expo-secure-store @react-native-async-storage/async-storage
 ```
 
+### Dipendenza mTLS (per operazioni fiscali)
+
+Per utilizzare l'autenticazione mTLS (richiesta per creare scontrini, annulli, PEM, ecc.):
+
+```bash
+npx expo install @a-cube-io/expo-mutual-tls
+```
+
+> **Nota**: mTLS richiede un development build, non funziona con Expo Go.
+
 ### Utilizzo con SDKManager (Raccomandato)
 
 ```typescript
