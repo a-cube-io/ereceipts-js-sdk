@@ -8,6 +8,8 @@ SDK ufficiale per l'integrazione con la piattaforma ACube eReceipt in applicazio
 - Autenticazione JWT e mTLS
 - Supporto offline con sincronizzazione automatica
 - Gestione stati app (NORMAL, WARNING, BLOCKED, OFFLINE)
+- **Polling automatico** - Notifiche e telemetria con polling configurabile
+- **Caching intelligente** - Cache per GET con TTL per risorsa e invalidazione automatica
 - TypeScript first con tipizzazione completa
 - Ottimizzato per Expo e React Native
 
@@ -110,6 +112,11 @@ console.log('Scontrino creato:', receipt.documentNumber);
 ### Esempi
 - [Esempi Base](./examples/basic-usage.md)
 - [Notifiche e Telemetria](./examples/notifications-telemetry.md) - Esempio Expo completo
+
+### Advanced
+- [Caching](./advanced/caching.md) - Sistema di cache automatico
+- [Offline Mode](./advanced/offline-mode.md) - Supporto offline
+- [Error Handling](./advanced/error-handling.md) - Gestione errori
 
 ### Troubleshooting
 - [Problemi Comuni](./troubleshooting/common-issues.md)

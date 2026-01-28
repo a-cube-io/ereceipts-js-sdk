@@ -26,10 +26,12 @@ import { OfflineManager, QueueEvents } from '@/infrastructure/driven/offline';
 import { createACubeMTLSConfig, loadPlatformAdapters } from '@/infrastructure/loaders';
 import { ConfigManager } from '@/shared/config';
 import { ACubeSDKError, AuthCredentials, SDKConfig, User } from '@/shared/types';
-import { logger } from '@/shared/utils';
+import { createPrefixedLogger, logger } from '@/shared/utils';
 
 import { DIContainer, DI_TOKENS } from './di-container';
 import { SDKFactory, SDKFactoryConfig } from './sdk-factory';
+
+const log = createPrefixedLogger('SDK');
 
 export interface SDKEvents {
   onUserChanged?: (user: User | null) => void;
@@ -65,11 +67,19 @@ export class ACubeSDK {
 
   async initialize(): Promise<void> {
     if (this.isInitialized) {
+      log.debug('SDK already initialized, skipping');
       return;
     }
 
+    log.info('Initializing SDK', {
+      apiUrl: this.config.getApiUrl(),
+      authUrl: this.config.getAuthUrl(),
+      debugEnabled: this.config.isDebugEnabled(),
+    });
+
     try {
       if (!this.adapters) {
+        log.debug('Loading platform adapters');
         const mtlsConfig = createACubeMTLSConfig(
           this.config.getApiUrl(),
           this.config.getTimeout(),
@@ -79,6 +89,12 @@ export class ACubeSDK {
         this.adapters = loadPlatformAdapters({
           mtlsConfig,
         });
+        log.info('Platform adapters loaded', {
+          hasCache: !!this.adapters.cache,
+          hasNetworkMonitor: !!this.adapters.networkMonitor,
+          hasMtls: !!this.adapters.mtls,
+          hasSecureStorage: !!this.adapters.secureStorage,
+        });
       }
 
       const factoryConfig: SDKFactoryConfig = {
@@ -87,15 +103,34 @@ export class ACubeSDK {
         timeout: this.config.getTimeout(),
         debugEnabled: this.config.isDebugEnabled(),
       };
+
+      log.debug('Creating DI container');
       this.container = SDKFactory.createContainer(factoryConfig);
 
+      log.debug('Registering auth services');
       SDKFactory.registerAuthServices(this.container, this.adapters.secureStorage, factoryConfig);
 
+      if (this.adapters.cache) {
+        log.info('Registering cache services', {
+          hasNetworkMonitor: !!this.adapters.networkMonitor,
+        });
+        SDKFactory.registerCacheServices(
+          this.container,
+          this.adapters.cache,
+          this.adapters.networkMonitor
+        );
+      } else {
+        log.debug('No cache adapter available, caching disabled');
+      }
+
+      log.debug('Initializing certificate service');
       this.certificateService = new CertificateService(this.adapters.secureStorage);
 
       const tokenStorage = this.container.get<ITokenStoragePort>(DI_TOKENS.TOKEN_STORAGE_PORT);
       const httpPort = this.container.get<IHttpPort>(DI_TOKENS.HTTP_PORT);
+      const baseHttpPort = this.container.get<IHttpPort>(DI_TOKENS.BASE_HTTP_PORT);
 
+      log.debug('Initializing authentication service');
       this.authService = new AuthenticationService(
         httpPort,
         tokenStorage,
@@ -111,6 +146,7 @@ export class ACubeSDK {
         }
       );
 
+      log.debug('Initializing offline manager');
       const queueEvents: QueueEvents = {
         onOperationAdded: (operation) => {
           this.events.onOfflineOperationAdded?.(operation.id);
@@ -138,9 +174,7 @@ export class ACubeSDK {
         this.events.onNetworkStatusChanged?.(online);
 
         if (online && this.offlineManager) {
-          this.offlineManager.sync().catch(() => {
-            // Sync errors are handled internally by OfflineManager
-          });
+          this.offlineManager.sync().catch(() => {});
         }
       });
 
@@ -151,14 +185,14 @@ export class ACubeSDK {
         }
       }
 
-      // Connect mTLS adapter to HTTP port for /mf1 and /mf2 requests
-      if (this.adapters?.mtls && 'setMTLSAdapter' in httpPort) {
-        const httpWithMtls = httpPort as { setMTLSAdapter: (adapter: IMTLSPort) => void };
+      if (this.adapters?.mtls && 'setMTLSAdapter' in baseHttpPort) {
+        log.debug('Connecting mTLS adapter to HTTP port');
+        const httpWithMtls = baseHttpPort as { setMTLSAdapter: (adapter: IMTLSPort) => void };
         httpWithMtls.setMTLSAdapter(this.adapters.mtls);
       }
 
-      // Create and connect AuthStrategy
-      if ('setAuthStrategy' in httpPort) {
+      if ('setAuthStrategy' in baseHttpPort) {
+        log.debug('Configuring auth strategy');
         const jwtHandler = new JwtAuthHandler(tokenStorage);
         const certificatePort: ICertificatePort | null = this.certificateService
           ? {
@@ -201,7 +235,9 @@ export class ACubeSDK {
           this.adapters?.mtls || null
         );
 
-        const httpWithStrategy = httpPort as { setAuthStrategy: (strategy: AuthStrategy) => void };
+        const httpWithStrategy = baseHttpPort as {
+          setAuthStrategy: (strategy: AuthStrategy) => void;
+        };
         httpWithStrategy.setAuthStrategy(authStrategy);
       }
 
@@ -220,13 +256,22 @@ export class ACubeSDK {
               });
             }
           }
-        } catch {
-          // Certificate auto-configuration failed, will retry on demand
+        } catch (certError) {
+          log.warn('Certificate auto-configuration failed, will retry on demand', {
+            error: certError instanceof Error ? certError.message : certError,
+          });
         }
       }
 
       this.isInitialized = true;
+      log.info('SDK initialized successfully', {
+        hasCache: !!this.adapters.cache,
+        hasMtls: !!this.adapters.mtls,
+      });
     } catch (error) {
+      log.error('SDK initialization failed', {
+        error: error instanceof Error ? error.message : error,
+      });
       throw new ACubeSDKError(
         'SDK_INITIALIZATION_ERROR',
         `Failed to initialize SDK: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -297,12 +342,15 @@ export class ACubeSDK {
 
   async login(credentials: AuthCredentials): Promise<User> {
     this.ensureInitialized();
+    log.info('Login attempt', { email: credentials.email });
 
     const user = await this.authService!.login(credentials);
+    log.info('Login successful', { roles: user.roles });
 
     const token = await this.authService!.getAccessToken();
     if (token) {
       this.httpPort.setAuthToken(token);
+      log.debug('Auth token set on HTTP port');
     }
 
     return user as User;
@@ -310,6 +358,7 @@ export class ACubeSDK {
 
   async logout(): Promise<void> {
     this.ensureInitialized();
+    log.info('Logout');
 
     await this.authService!.logout();
     this.httpPort.setAuthToken(null);
@@ -422,11 +471,7 @@ export class ACubeSDK {
     this.ensureInitialized();
 
     if (this.adapters?.mtls) {
-      try {
-        await this.adapters.mtls.removeCertificate();
-      } catch {
-        // No certificate to remove
-      }
+      await this.adapters.mtls.removeCertificate().catch(() => {});
     }
 
     if (this.certificateService) {

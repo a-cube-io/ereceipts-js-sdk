@@ -50,7 +50,7 @@ export class ReceiptRepositoryImpl implements IReceiptRepository {
     if (format === 'pdf') {
       const response = await this.http.get<string>(`/mf1/receipts/${receiptUuid}/details`, {
         headers: { Accept: 'application/pdf' },
-        responseType: 'blob',
+        responseType: 'arraybuffer',
       });
       return response.data;
     }
