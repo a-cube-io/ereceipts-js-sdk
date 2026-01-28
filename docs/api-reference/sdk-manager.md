@@ -14,7 +14,8 @@ import { SDKManager, type SDKManagerConfig, type ManagedServices } from '@a-cube
 - **Singleton pattern** - un unico punto di inizializzazione
 - **Observable app state** - stato dell'app (NORMAL, WARNING, BLOCKED, OFFLINE)
 - **Observable telemetry** - dati telemetria con polling automatico
-- **Auto-polling** - notifiche e telemetria partono automaticamente
+- **Auto-polling basato su ruolo** - notifiche e telemetria attivi solo per MERCHANT/CASHIER
+- **Network state per tutti** - rilevamento OFFLINE attivo per tutti gli utenti (incluso SUPPLIER)
 - **Servizi semplificati** - API pulita per uso in produzione
 
 ## Configurazione
@@ -52,8 +53,12 @@ SDKManager.configure({
 ```typescript
 const manager = SDKManager.getInstance();
 await manager.initialize();
-// Notifiche polling: parte automaticamente
-// Telemetria polling: parte automaticamente se certificato installato
+// Per MERCHANT/CASHIER:
+//   - Notifiche polling: parte automaticamente
+//   - Telemetria polling: parte automaticamente se certificato installato
+// Per SUPPLIER:
+//   - Polling disabilitato (evita errori 401)
+//   - Network state (OFFLINE) sempre attivo
 ```
 
 ### 3. Utilizzo
@@ -204,12 +209,16 @@ manager.telemetryState$.subscribe(state => {
 
 ### initialize()
 
-Inizializza SDK e tutti i servizi. Avvia automaticamente:
-- Polling notifiche (ogni 30s default)
-- Polling telemetria (ogni 60s default, se certificato installato)
+Inizializza SDK e tutti i servizi. Il polling viene avviato in base al ruolo utente:
+
+- **MERCHANT/CASHIER**: Polling notifiche (ogni 30s) e telemetria (ogni 60s, se certificato)
+- **SUPPLIER**: Nessun polling (evita errori 401)
+- **Tutti**: AppStateService attivo per rilevamento OFFLINE
 
 ```typescript
 await manager.initialize();
+// Polling attivo solo per MERCHANT/CASHIER
+// Network state attivo per tutti
 ```
 
 ### getPemId()
@@ -419,24 +428,61 @@ SDKManager.destroy();
 
 ## Auto-Polling Behavior
 
-All'inizializzazione, SDKManager:
+All'inizializzazione, SDKManager verifica il ruolo dell'utente per determinare se attivare il polling:
 
-1. **Notifiche**: Polling parte sempre automaticamente
-2. **Telemetria**: Polling parte automaticamente SE:
-   - Un certificato mTLS è installato
-   - Il certificato contiene un `pemId` valido
+### Ruoli e Polling
 
+| Ruolo | Notifiche | Telemetria | Network State |
+|-------|-----------|------------|---------------|
+| **MERCHANT** | Attivo | Attivo (se certificato) | Attivo |
+| **CASHIER** | Attivo | Attivo (se certificato) | Attivo |
+| **SUPPLIER** | Non attivo | Non attivo | Attivo |
+| **Non autenticato** | Non attivo | Non attivo | Attivo |
+
+> **Nota**: Gli utenti SUPPLIER non hanno accesso agli endpoint di notifiche e telemetria. Il polling viene disabilitato automaticamente per evitare errori 401.
+
+### Logica di Inizializzazione
+
+```typescript
+await manager.initialize();
+
+// L'SDK verifica automaticamente:
+// 1. L'utente e' autenticato?
+// 2. L'utente ha ruolo MERCHANT o CASHIER?
+// 3. Se si, avvia polling notifiche e telemetria
+// 4. Se no (SUPPLIER o non autenticato), skip polling
+// 5. AppStateService (network OFFLINE) resta attivo per TUTTI gli utenti
+```
+
+### Comportamento per Ruolo
+
+**MERCHANT / CASHIER:**
 ```typescript
 await manager.initialize();
 // Notifiche: polling attivo
 // Telemetria: polling attivo se certificato presente
+// Network state: attivo (OFFLINE detection)
+```
 
-// Verifica stato
+**SUPPLIER:**
+```typescript
+await manager.initialize();
+// Notifiche: NON attivo (nessuna chiamata API)
+// Telemetria: NON attivo (nessuna chiamata API)
+// Network state: attivo (OFFLINE detection funziona)
+```
+
+### Verifica Stato Polling
+
+```typescript
 const pemId = await manager.getPemId();
+const user = await manager.getServices().getCurrentUser();
+
+console.log('User role:', user?.roles);
 console.log('Telemetry polling:', pemId ? 'attivo' : 'non attivo');
 
-// Avvia manualmente se necessario
-if (!pemId) {
+// Avvia manualmente se necessario (solo MERCHANT/CASHIER)
+if (!pemId && user) {
   // Installa certificato prima
   await services.storeCertificate(cert, key);
   // Poi avvia polling

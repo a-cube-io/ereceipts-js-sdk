@@ -19,6 +19,7 @@ import { IPemRepository } from '@/domain/repositories/pem.repository';
 import { IPointOfSaleRepository } from '@/domain/repositories/point-of-sale.repository';
 import { IReceiptRepository } from '@/domain/repositories/receipt.repository';
 import { ISupplierRepository } from '@/domain/repositories/supplier.repository';
+import { hasAnyRole } from '@/domain/value-objects/role.vo';
 import { ACubeSDKError, AuthCredentials, SDKConfig, User } from '@/shared/types';
 
 import { ACubeSDK, SDKEvents } from './acube-sdk';
@@ -238,8 +239,16 @@ export class SDKManager {
     }
 
     this.isInitialized = true;
-    this.notificationService.startPolling();
-    this.startTelemetryPollingAuto();
+
+    // Only start polling for MERCHANT/CASHIER users (SUPPLIER gets 401 on these endpoints)
+    const user = await this.sdk.getCurrentUser();
+    const canPoll = user && hasAnyRole(user.roles, ['ROLE_MERCHANT', 'ROLE_CASHIER']);
+
+    if (canPoll) {
+      this.notificationService.startPolling();
+      await this.startTelemetryPollingAuto();
+    }
+    // AppStateService remains active for all users (handles OFFLINE network state)
   }
 
   /**
