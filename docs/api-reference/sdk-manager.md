@@ -490,6 +490,36 @@ if (!pemId && user) {
 }
 ```
 
+### Gestione Logout e Re-Login
+
+L'SDK gestisce automaticamente il ciclo di vita del polling:
+
+**Logout:**
+```typescript
+await services.logout();
+// Polling notifiche: FERMATO automaticamente
+// Polling telemetria: FERMATO automaticamente
+// Dati telemetria: CANCELLATI
+// Network state: resta attivo
+```
+
+**Re-Login (MERCHANT/CASHIER):**
+```typescript
+await services.login({ email, password });
+// L'SDK rileva il nuovo utente
+// Se MERCHANT/CASHIER: polling riparte automaticamente
+// Se SUPPLIER: polling resta disabilitato
+```
+
+**Token Scaduto:**
+```typescript
+// Quando il token JWT scade:
+// 1. SDK rileva scadenza al prossimo check
+// 2. Evento onUserChanged(null) viene emesso
+// 3. Polling viene fermato automaticamente
+// 4. Utente deve ri-autenticarsi
+```
+
 ## Utilizzo con React
 
 Vedi [Esempio React](../examples/notifications-telemetry.md) per un'implementazione completa con:

@@ -142,12 +142,42 @@ export class SDKManager {
   private telemetryService: TelemetryService | null = null;
   private appStateService: AppStateService | null = null;
   private isInitialized = false;
+  private isPollingActive = false;
 
   private constructor(
     private readonly config: SDKManagerConfig,
     private readonly adapters?: PlatformAdapters,
     private readonly events?: SDKManagerEvents
   ) {}
+
+  /**
+   * Handle user state changes (login/logout/token expiration)
+   * Manages polling lifecycle based on user role
+   */
+  private handleUserChanged = async (user: User | null): Promise<void> => {
+    // Always call user's event handler first
+    this.events?.onUserChanged?.(user);
+
+    if (!this.isInitialized) return;
+
+    if (user) {
+      // User logged in - check role and start polling if allowed
+      const canPoll = hasAnyRole(user.roles, ['ROLE_MERCHANT', 'ROLE_CASHIER']);
+      if (canPoll && !this.isPollingActive) {
+        this.notificationService?.startPolling();
+        await this.startTelemetryPollingAuto();
+        this.isPollingActive = true;
+      }
+    } else {
+      // User logged out or token expired - stop polling
+      if (this.isPollingActive) {
+        this.notificationService?.stopPolling();
+        this.telemetryService?.stopPolling();
+        this.telemetryService?.clearTelemetry();
+        this.isPollingActive = false;
+      }
+    }
+  };
 
   /**
    * Configure the SDKManager singleton
@@ -205,7 +235,13 @@ export class SDKManager {
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
-    this.sdk = new ACubeSDK(this.config, this.adapters, this.events);
+    // Wrap events to intercept onUserChanged for polling lifecycle management
+    const wrappedEvents: SDKManagerEvents = {
+      ...this.events,
+      onUserChanged: this.handleUserChanged,
+    };
+
+    this.sdk = new ACubeSDK(this.config, this.adapters, wrappedEvents);
     await this.sdk.initialize();
 
     const adaptersRef = this.sdk.getAdapters();
@@ -247,6 +283,7 @@ export class SDKManager {
     if (canPoll) {
       this.notificationService.startPolling();
       await this.startTelemetryPollingAuto();
+      this.isPollingActive = true;
     }
     // AppStateService remains active for all users (handles OFFLINE network state)
   }
@@ -423,6 +460,7 @@ export class SDKManager {
     this.appStateService = null;
     this.sdk = null;
     this.isInitialized = false;
+    this.isPollingActive = false;
   }
 
   private ensureInitialized(): void {
