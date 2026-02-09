@@ -14,20 +14,18 @@ export class PemRepositoryImpl implements IPemRepository {
 
   async create(input: PemCreateInput): Promise<PemCreateOutput> {
     const apiInput = PemMapper.toCreateApiInput(input);
-    const response = await this.http.post<PemCreateApiOutput>('/mf2/point-of-sales', apiInput);
+    const response = await this.http.post<PemCreateApiOutput>('/mf2/pems', apiInput);
     return PemMapper.fromCreateApiOutput(response.data);
   }
 
   async findBySerialNumber(serialNumber: string): Promise<PointOfSaleMf2> {
-    const response = await this.http.get<PointOfSaleMf2ApiOutput>(
-      `/mf2/point-of-sales/${serialNumber}`
-    );
+    const response = await this.http.get<PointOfSaleMf2ApiOutput>(`/mf2/pems/${serialNumber}`);
     return PemMapper.fromPointOfSaleMf2ApiOutput(response.data);
   }
 
   async findAllByMerchant(merchantUuid: string, page?: number): Promise<PointOfSaleMf2[]> {
     const response = await this.http.get<PointOfSaleMf2ApiOutput[]>(
-      `/mf2/merchants/${merchantUuid}/point-of-sales`,
+      `/mf2/merchants/${merchantUuid}/pems`,
       { params: { page } }
     );
     return PemMapper.pageFromApi(response.data);
@@ -35,7 +33,7 @@ export class PemRepositoryImpl implements IPemRepository {
 
   async getCertificates(serialNumber: string): Promise<PemCertificates> {
     const response = await this.http.get<PemCertificatesApiOutput>(
-      `/mf2/point-of-sales/${serialNumber}/certificates`
+      `/mf2/pems/${serialNumber}/certificates`
     );
     return PemMapper.fromCertificatesApiOutput(response.data);
   }

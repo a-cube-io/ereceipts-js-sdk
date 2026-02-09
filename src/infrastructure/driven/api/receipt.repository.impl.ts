@@ -38,7 +38,7 @@ export class ReceiptRepositoryImpl implements IReceiptRepository {
   async findAll(params: ReceiptListParams): Promise<Page<Receipt>> {
     const queryParams = ReceiptMapper.toListParams(params);
     const response = await this.http.get<Page<ReceiptApiOutput>>(
-      `/mf1/point-of-sales/${params.serialNumber}/receipts`,
+      `/mf1/pems/${params.serialNumber}/receipts`,
       { params: queryParams }
     );
     return ReceiptMapper.pageFromApi(response.data);

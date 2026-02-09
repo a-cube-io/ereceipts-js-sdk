@@ -158,6 +158,6 @@ export class AuthStrategy {
   }
 
   private isTelemetryEndpoint(url: string): boolean {
-    return !!url.match(/\/mf1\/point-of-sales\/[^/]+\/telemetry/);
+    return !!url.match(/\/mf1\/pems\/[^/]+\/telemetry/);
   }
 }
