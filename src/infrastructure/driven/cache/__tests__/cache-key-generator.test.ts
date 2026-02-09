@@ -25,7 +25,7 @@ describe('CacheKeyGenerator', () => {
     });
 
     it('should generate list key for point-of-sale receipts', () => {
-      const key = generator.generate('/mf1/point-of-sales/SN123/receipts', { page: 0 });
+      const key = generator.generate('/mf1/pems/SN123/receipts', { page: 0 });
       expect(key).toBe('receipt:list:point-of-sale=SN123&page=0');
     });
 
@@ -65,12 +65,12 @@ describe('CacheKeyGenerator', () => {
     });
 
     it('should generate key for point of sale', () => {
-      const key = generator.generate('/mf1/point-of-sales/pos-uuid');
+      const key = generator.generate('/mf1/pems/pos-uuid');
       expect(key).toBe('point-of-sale:pos-uuid');
     });
 
     it('should generate key for telemetry', () => {
-      const key = generator.generate('/mf1/point-of-sales/pos-uuid/telemetry');
+      const key = generator.generate('/mf1/pems/pos-uuid/telemetry');
       expect(key).toBe('telemetry:pos-uuid');
     });
 
@@ -117,7 +117,7 @@ describe('CacheKeyGenerator', () => {
     });
 
     it('should return 1 min TTL for telemetry', () => {
-      expect(generator.getTTL('/mf1/point-of-sales/abc/telemetry')).toBe(1 * 60 * 1000);
+      expect(generator.getTTL('/mf1/pems/abc/telemetry')).toBe(1 * 60 * 1000);
     });
 
     it('should return default TTL for unknown URL', () => {

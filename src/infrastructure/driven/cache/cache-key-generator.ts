@@ -29,7 +29,7 @@ const URL_PATTERNS: UrlPattern[] = [
   },
   { pattern: /^\/mf1\/receipts\/([^/]+)$/, resource: 'receipt' },
   {
-    pattern: /^\/mf1\/point-of-sales\/([^/]+)\/receipts$/,
+    pattern: /^\/mf1\/pems\/([^/]+)\/receipts$/,
     resource: 'receipt',
     parent: 'point-of-sale',
     isList: true,
@@ -50,8 +50,8 @@ const URL_PATTERNS: UrlPattern[] = [
   { pattern: /^\/mf1\/cash-registers$/, resource: 'cash-register', isList: true },
 
   // Point of Sale (mf1)
-  { pattern: /^\/mf1\/point-of-sales\/([^/]+)$/, resource: 'point-of-sale' },
-  { pattern: /^\/mf1\/point-of-sales$/, resource: 'point-of-sale', isList: true },
+  { pattern: /^\/mf1\/pems\/([^/]+)$/, resource: 'point-of-sale' },
+  { pattern: /^\/mf1\/pems$/, resource: 'point-of-sale', isList: true },
 
   // Nested resources under merchant (mf2)
   {
@@ -80,16 +80,16 @@ const URL_PATTERNS: UrlPattern[] = [
 
   // PEM (mf2)
   {
-    pattern: /^\/mf2\/point-of-sales\/([^/]+)\/certificates$/,
+    pattern: /^\/mf2\/pems\/([^/]+)\/certificates$/,
     resource: 'pem',
     action: 'certificates',
   },
-  { pattern: /^\/mf2\/point-of-sales\/([^/]+)$/, resource: 'pem' },
+  { pattern: /^\/mf2\/pems\/([^/]+)$/, resource: 'pem' },
 
   // Others
   { pattern: /^\/mf1\/notifications/, resource: 'notification', isList: true },
   {
-    pattern: /^\/mf1\/point-of-sales\/([^/]+)\/telemetry$/,
+    pattern: /^\/mf1\/pems\/([^/]+)\/telemetry$/,
     resource: 'telemetry',
   },
 ];
