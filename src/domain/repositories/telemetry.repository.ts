@@ -7,7 +7,7 @@ import { Telemetry } from '@/domain/entities/telemetry.entity';
 export interface ITelemetryRepository {
   /**
    * Get telemetry snapshot for a PEM
-   * Endpoint: GET /mf1/point-of-sales/{pem_id}/telemetry (mTLS, port 444)
+   * Endpoint: GET /mf1/pems/{pem_id}/telemetry (mTLS, port 444)
    */
   getTelemetry(pemId: string): Promise<Telemetry>;
 }
