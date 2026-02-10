@@ -101,11 +101,34 @@ export class AuthenticationService {
   }
 
   async getCurrentUser(): Promise<User | null> {
+    // Always verify token is valid before returning user
+    const token = await this.tokenStorage.getAccessToken();
+    if (!token) {
+      // No token - clear any stale user state
+      if (this.userSubject.value) {
+        this.userSubject.next(null);
+        this.authStateSubject.next('idle');
+      }
+      return null;
+    }
+
+    const jwtPayload = parseJwt(token);
+    if (isTokenExpired(jwtPayload)) {
+      // Token expired - clear everything
+      await this.tokenStorage.clearTokens();
+      this.userSubject.next(null);
+      this.authStateSubject.next('idle');
+      this.events.onUserChanged?.(null);
+      return null;
+    }
+
+    // Token is valid - return cached user if available
     const currentUser = this.userSubject.value;
     if (currentUser) {
       return currentUser;
     }
 
+    // Check stored user
     const storedUser = await this.tokenStorage.getUser<User>();
     if (storedUser) {
       this.userSubject.next(storedUser);
@@ -113,17 +136,7 @@ export class AuthenticationService {
       return storedUser;
     }
 
-    const token = await this.tokenStorage.getAccessToken();
-    if (!token) {
-      return null;
-    }
-
-    const jwtPayload = parseJwt(token);
-    if (isTokenExpired(jwtPayload)) {
-      await this.tokenStorage.clearTokens();
-      return null;
-    }
-
+    // Create user from token
     const user = this.createUserFromPayload(jwtPayload);
     await this.tokenStorage.saveUser(user);
     this.userSubject.next(user);
