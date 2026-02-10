@@ -6,7 +6,8 @@ import { clearObject, createPrefixedLogger } from '@/shared/utils';
 
 import { AuthStrategy } from './auth-strategy';
 
-const log = createPrefixedLogger('HTTP-MTLS');
+const logJwt = createPrefixedLogger('HTTP-JWT');
+const logMtls = createPrefixedLogger('HTTP-MTLS');
 
 export interface AxiosHttpAdapterConfig {
   baseUrl: string;
@@ -35,27 +36,34 @@ export class AxiosHttpAdapter implements IHttpPort {
 
   setMTLSAdapter(adapter: IMTLSPort | null): void {
     this.mtlsAdapter = adapter;
-    log.debug('mTLS adapter configured:', !!adapter);
+    logMtls.debug('mTLS adapter configured:', !!adapter);
   }
 
   setAuthStrategy(strategy: AuthStrategy | null): void {
     this.authStrategy = strategy;
-    log.debug('Auth strategy configured:', !!strategy);
+    logJwt.debug('Auth strategy configured:', !!strategy);
   }
 
   private async shouldUseMTLS(url: string, method: string): Promise<boolean> {
     if (!this.mtlsAdapter) {
+      logJwt.debug(`No mTLS adapter, using JWT for ${method} ${url}`);
       return false;
     }
 
     if (this.authStrategy) {
       const config = await this.authStrategy.determineAuthConfig(url, method);
-      log.debug(`Auth config for ${method} ${url}:`, config);
+      const logger = config.mode === 'mtls' ? logMtls : logJwt;
+      logger.debug(`Auth config for ${method} ${url}:`, config);
       return config.mode === 'mtls';
     }
 
     // Fallback: use mTLS for mf1/mf2 endpoints if no strategy
-    return url.startsWith('/mf1') || url.startsWith('/mf2');
+    // This should rarely happen - only before SDK is fully initialized
+    const useMtls = url.startsWith('/mf1') || url.startsWith('/mf2');
+    if (useMtls) {
+      logMtls.warn(`No auth strategy set, falling back to mTLS for ${method} ${url}`);
+    }
+    return useMtls;
   }
 
   private async makeMTLSRequest<T>(
@@ -77,9 +85,9 @@ export class AxiosHttpAdapter implements IHttpPort {
 
     if (this.authToken) {
       headers['Authorization'] = `Bearer ${this.authToken}`;
-      log.debug('JWT token present for mTLS request');
+      logMtls.debug('JWT token present for mTLS request');
     } else {
-      log.warn('No JWT token for mTLS request');
+      logMtls.warn('No JWT token for mTLS request');
     }
 
     const mtlsConfig: MTLSRequestConfig = {
@@ -90,16 +98,16 @@ export class AxiosHttpAdapter implements IHttpPort {
       timeout: config?.timeout,
     };
 
-    log.debug(`mTLS ${method} ${fullUrl}`);
+    logMtls.debug(`mTLS ${method} ${fullUrl}`);
     if (data) {
-      log.debug('Request body:', data);
+      logMtls.debug('Request body:', data);
     }
 
     try {
       const response: MTLSResponse<T> = await this.mtlsAdapter.request<T>(mtlsConfig);
-      log.debug(`mTLS Response ${response.status} from ${fullUrl}`);
+      logMtls.debug(`mTLS Response ${response.status} from ${fullUrl}`);
       if (response.data) {
-        log.debug('Response body:', response.data);
+        logMtls.debug('Response body:', response.data);
       }
       return {
         data: response.data,
@@ -107,11 +115,11 @@ export class AxiosHttpAdapter implements IHttpPort {
         headers: response.headers,
       };
     } catch (error) {
-      log.error(`mTLS Response error from ${fullUrl}:`, error);
+      logMtls.error(`mTLS Response error from ${fullUrl}:`, error);
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as { response?: { data?: unknown; status?: number } };
         if (axiosError.response?.data) {
-          log.error('Response body:', axiosError.response.data);
+          logMtls.error('Response body:', axiosError.response.data);
         }
       }
       throw error;
@@ -129,26 +137,37 @@ export class AxiosHttpAdapter implements IHttpPort {
       (config) => {
         if (this.authToken) {
           config.headers.Authorization = `Bearer ${this.authToken}`;
-          log.debug('Adding JWT token to request');
+          logJwt.debug('Adding JWT token to request', {
+            tokenPrefix: this.authToken.substring(0, 30) + '...',
+            tokenLength: this.authToken.length,
+          });
         } else {
-          log.warn('No JWT token available for request:', { url: config.url });
+          logJwt.warn('No JWT token available for request:', { url: config.url });
         }
 
         const method = config.method?.toUpperCase() ?? 'UNKNOWN';
-        log.debug(`→ ${method} ${config.url}`);
+        const authHeader = config.headers.Authorization;
+
+        // Log full request details for debugging
+        logJwt.info(`→ ${method} ${config.url}`, {
+          baseURL: config.baseURL,
+          fullURL: `${config.baseURL}${config.url}`,
+          hasAuthHeader: !!authHeader,
+          authHeaderValue: authHeader ? `${String(authHeader).substring(0, 50)}...` : 'MISSING',
+        });
 
         if (config.params && Object.keys(config.params as object).length > 0) {
-          log.debug('Request params:', config.params);
+          logJwt.debug('Request params:', config.params);
         }
 
         if (config.data) {
-          log.debug('Request body:', config.data);
+          logJwt.debug('Request body:', config.data);
         }
 
         return config;
       },
       (error) => {
-        log.error('Request error:', error);
+        logJwt.error('Request error:', error);
         return Promise.reject(error);
       }
     );
@@ -156,22 +175,22 @@ export class AxiosHttpAdapter implements IHttpPort {
     this.client.interceptors.response.use(
       (response) => {
         const method = response.config.method?.toUpperCase() ?? 'UNKNOWN';
-        log.debug(`← ${method} ${response.status} ${response.config.url}`);
+        logJwt.debug(`← ${method} ${response.status} ${response.config.url}`);
 
         if (response.data) {
-          log.debug('Response body:', response.data);
+          logJwt.debug('Response body:', response.data);
         }
 
         return response;
       },
       (error) => {
         const method = error.config?.method?.toUpperCase() ?? 'UNKNOWN';
-        log.error(
+        logJwt.error(
           `← ${method} ${error.response?.status ?? 'ERR'} ${error.config?.url ?? 'unknown'}`
         );
 
         if (error.response?.data) {
-          log.error('Response body:', error.response.data);
+          logJwt.error('Response body:', error.response.data);
         }
 
         return Promise.reject(error);
@@ -256,7 +275,10 @@ export class AxiosHttpAdapter implements IHttpPort {
   }
 
   setAuthToken(token: string | null): void {
-    log.info('setAuthToken called:', { hasToken: !!token, tokenPrefix: token?.substring(0, 20) });
+    logJwt.info('setAuthToken called:', {
+      hasToken: !!token,
+      tokenPrefix: token?.substring(0, 20),
+    });
     this.authToken = token;
   }
 
