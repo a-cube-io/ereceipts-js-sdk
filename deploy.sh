@@ -180,7 +180,7 @@ fi
 echo -e "New version: ${GREEN}$NEW_VERSION${NC}"
 
 # Git commit and tag
-git add package.json
+git add package.json package-lock.json bun.lock
 git commit -m "Release $NEW_VERSION"
 git tag "$NEW_VERSION"
 

@@ -1,9 +1,12 @@
 import { AuthConfig, AuthMode } from '@/application/ports/driven/auth-handler.port';
 import { IMTLSPort } from '@/application/ports/driven/mtls.port';
 import { UserRoles, hasRole } from '@/domain/value-objects';
+import { createPrefixedLogger } from '@/shared';
 
 import { JwtAuthHandler } from './jwt-auth.handler';
 import { MtlsAuthHandler } from './mtls-auth.handler';
+
+const log = createPrefixedLogger('AUTH-STRATEGY');
 
 export interface IUserProvider {
   getCurrentUser(): Promise<{ roles: UserRoles } | null>;
@@ -30,6 +33,15 @@ export class AuthStrategy {
     const platform = this.detectPlatform();
     const userRole = await this.getUserRole();
     const isReceiptEndpoint = this.isReceiptEndpoint(url);
+
+    log.debug('Determining auth config', {
+      url,
+      method,
+      platform,
+      userRole,
+      isReceiptEndpoint,
+      explicitMode,
+    });
 
     if (userRole === 'SUPPLIER') {
       return { mode: 'jwt', usePort444: false };

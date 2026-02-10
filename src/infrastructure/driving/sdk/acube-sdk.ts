@@ -130,6 +130,12 @@ export class ACubeSDK {
       const httpPort = this.container.get<IHttpPort>(DI_TOKENS.HTTP_PORT);
       const baseHttpPort = this.container.get<IHttpPort>(DI_TOKENS.BASE_HTTP_PORT);
 
+      log.debug('HTTP ports initialized', {
+        httpPortType: httpPort.constructor.name,
+        baseHttpPortType: baseHttpPort.constructor.name,
+        areSameInstance: httpPort === baseHttpPort,
+      });
+
       log.debug('Initializing authentication service');
       this.authService = new AuthenticationService(
         httpPort,
@@ -178,11 +184,21 @@ export class ACubeSDK {
         }
       });
 
-      if (await this.authService.isAuthenticated()) {
+      const isAuth = await this.authService.isAuthenticated();
+      log.debug('Checking authentication status during init', { isAuthenticated: isAuth });
+
+      if (isAuth) {
         const token = await this.authService.getAccessToken();
+        log.debug('Token retrieved during init', {
+          hasToken: !!token,
+          tokenPrefix: token?.substring(0, 20),
+        });
         if (token) {
           httpPort.setAuthToken(token);
+          log.info('Auth token set on HTTP port during initialization');
         }
+      } else {
+        log.warn('User not authenticated during SDK init - token will be set after login');
       }
 
       if (this.adapters?.mtls && 'setMTLSAdapter' in baseHttpPort) {
