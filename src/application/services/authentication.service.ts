@@ -5,6 +5,9 @@ import { IHttpPort } from '@/application/ports/driven/http.port';
 import { ITokenStoragePort } from '@/application/ports/driven/token-storage.port';
 import { JwtPayload, isTokenExpired, parseJwt } from '@/domain/services/jwt-parser.service';
 import { UserRoles } from '@/domain/value-objects';
+import { createPrefixedLogger } from '@/shared/utils';
+
+const log = createPrefixedLogger('AUTH-SERVICE');
 
 export interface User {
   id: string;
@@ -68,6 +71,11 @@ export class AuthenticationService {
   async login(credentials: AuthCredentials): Promise<User> {
     this.authStateSubject.next('authenticating');
 
+    log.info('Login attempt', {
+      authUrl: this.config.authUrl,
+      email: credentials.email,
+    });
+
     try {
       const response = await this.httpPort.post<TokenResponse>(`${this.config.authUrl}/login`, {
         email: credentials.email,
@@ -76,6 +84,12 @@ export class AuthenticationService {
 
       const jwtPayload = parseJwt(response.data.token);
       const expiresAt = jwtPayload.exp * 1000;
+
+      log.info('Login successful', {
+        authUrl: this.config.authUrl,
+        tokenPrefix: response.data.token.substring(0, 30) + '...',
+        expiresAt: new Date(expiresAt).toISOString(),
+      });
 
       await this.tokenStorage.saveAccessToken(response.data.token, expiresAt);
 
@@ -105,6 +119,7 @@ export class AuthenticationService {
     const token = await this.tokenStorage.getAccessToken();
     if (!token) {
       // No token - clear any stale user state
+      log.debug('getCurrentUser: No token in storage');
       if (this.userSubject.value) {
         this.userSubject.next(null);
         this.authStateSubject.next('idle');
@@ -112,9 +127,15 @@ export class AuthenticationService {
       return null;
     }
 
+    log.debug('getCurrentUser: Token found', {
+      tokenPrefix: token.substring(0, 30) + '...',
+      tokenLength: token.length,
+    });
+
     const jwtPayload = parseJwt(token);
     if (isTokenExpired(jwtPayload)) {
       // Token expired - clear everything
+      log.warn('getCurrentUser: Token expired');
       await this.tokenStorage.clearTokens();
       this.userSubject.next(null);
       this.authStateSubject.next('idle');
@@ -125,6 +146,10 @@ export class AuthenticationService {
     // Token is valid - return cached user if available
     const currentUser = this.userSubject.value;
     if (currentUser) {
+      log.debug('getCurrentUser: Returning cached user', {
+        email: currentUser.email,
+        roles: currentUser.roles,
+      });
       return currentUser;
     }
 
@@ -148,11 +173,18 @@ export class AuthenticationService {
   async isAuthenticated(): Promise<boolean> {
     const token = await this.tokenStorage.getAccessToken();
     if (!token) {
+      log.debug('isAuthenticated: No token in storage');
       return false;
     }
 
     const jwtPayload = parseJwt(token);
-    return !isTokenExpired(jwtPayload);
+    const expired = isTokenExpired(jwtPayload);
+    log.debug('isAuthenticated: Token check', {
+      hasToken: true,
+      expired,
+      expiresAt: new Date(jwtPayload.exp * 1000).toISOString(),
+    });
+    return !expired;
   }
 
   async getAccessToken(): Promise<string | null> {

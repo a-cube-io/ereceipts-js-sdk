@@ -236,7 +236,11 @@ export class CachingHttpDecorator implements IHttpPort {
   }
 
   setAuthToken(token: string | null): void {
-    log.debug('Auth token updated:', { hasToken: !!token });
+    log.debug('CachingHttpDecorator.setAuthToken called:', {
+      hasToken: !!token,
+      tokenPrefix: token?.substring(0, 20),
+      underlyingHttpType: this.http.constructor.name,
+    });
     this.authToken = token;
     this.http.setAuthToken(token);
   }
