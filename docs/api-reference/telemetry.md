@@ -174,7 +174,6 @@ telemetryService.state$.subscribe((state) => {
     console.error('Errore:', state.error);
   } else if (state.data) {
     console.log('Telemetria:', state.data);
-    console.log('Da cache:', state.isCached);
     console.log('Ultimo fetch:', new Date(state.lastFetchedAt));
   }
 });
@@ -182,10 +181,10 @@ telemetryService.state$.subscribe((state) => {
 // Avvia polling automatico
 telemetryService.startPolling('pem-uuid');
 
-// Fetch con cache (avvia polling se non attivo)
+// Fetch (avvia polling se non attivo)
 const state = await telemetryService.getTelemetry('pem-uuid');
 
-// Force refresh (ignora cache)
+// Force refresh
 const freshState = await telemetryService.refreshTelemetry('pem-uuid');
 
 // Trigger sync manuale
@@ -206,7 +205,6 @@ telemetryService.destroy();
 ```typescript
 interface TelemetryState {
   data: Telemetry | null;
-  isCached: boolean;
   isLoading: boolean;
   lastFetchedAt: number | null;  // timestamp in ms
   error?: string;

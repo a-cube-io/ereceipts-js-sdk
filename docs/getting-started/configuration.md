@@ -108,16 +108,6 @@ const sdk = await createACubeSDK(
     onNetworkStatusChanged: (online) => {
       console.log('Online:', online);
     },
-
-    // Operazione offline aggiunta
-    onOfflineOperationAdded: (operationId) => {
-      console.log('Operazione in coda:', operationId);
-    },
-
-    // Operazione offline completata
-    onOfflineOperationCompleted: (operationId, success) => {
-      console.log('Operazione completata:', operationId, success);
-    },
   }
 );
 ```

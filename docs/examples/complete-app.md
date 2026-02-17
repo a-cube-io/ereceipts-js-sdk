@@ -82,15 +82,6 @@ export const SDKProvider: React.FC<Props> = ({ children }) => {
                   : 'Modalita offline attiva',
               });
             },
-            onOfflineOperationCompleted: (_, success) => {
-              if (success) {
-                Toast.show({
-                  type: 'success',
-                  text1: 'Sincronizzato',
-                  text2: 'Operazione completata',
-                });
-              }
-            },
           }
         );
 
@@ -428,22 +419,20 @@ export default function ReceiptScreen({ navigation, route }) {
       }
 
       if (!isOnline) {
-        // Accoda per sincronizzazione offline
-        const offlineManager = sdk.getOfflineManager();
-        await offlineManager.queueReceiptCreation({ items: validItems });
         Toast.show({
-          type: 'info',
-          text1: 'Salvato Offline',
-          text2: 'Verra sincronizzato automaticamente',
+          type: 'error',
+          text1: 'Offline',
+          text2: 'Connessione necessaria per creare scontrini',
         });
-      } else {
-        const receipt = await sdk.receipts.create({ items: validItems });
-        Toast.show({
-          type: 'success',
-          text1: 'Scontrino Creato',
-          text2: receipt.documentNumber,
-        });
+        return;
       }
+
+      const receipt = await sdk.receipts.create({ items: validItems });
+      Toast.show({
+        type: 'success',
+        text1: 'Scontrino Creato',
+        text2: receipt.documentNumber,
+      });
 
       navigation.goBack();
     } catch (error) {

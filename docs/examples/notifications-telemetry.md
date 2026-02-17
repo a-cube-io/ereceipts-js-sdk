@@ -23,7 +23,7 @@ Esempio completo di un'applicazione Expo che utilizza il sistema di notifiche e 
 │  ├──────────────────────────────────────────────────────────┤  │
 │  │  NORMAL          WARNING           BLOCKED      OFFLINE   │  │
 │  │  ┌─────┐        ┌─────────┐       ┌────────┐   ┌───────┐ │  │
-│  │  │ App │        │ Banner  │       │Telemetry│  │Cached │ │  │
+│  │  │ App │        │ Banner  │       │Telemetry│  │ Last  │ │  │
 │  │  │Full │        │ Warning │       │  Only   │  │Telemetry│ │  │
 │  │  │     │        ├─────────┤       │  View   │  │ View  │ │  │
 │  │  │     │        │   App   │       │         │  │       │ │  │
@@ -40,7 +40,7 @@ Esempio completo di un'applicazione Expo che utilizza il sistema di notifiche e 
 | `NORMAL` | SYS-I-01 o default | App completa | Tutto |
 | `WARNING` | SYS-W-01 | Banner countdown + App | Tutto |
 | `BLOCKED` | SYS-C-01 | Solo Telemetry fullscreen | Solo lettura telemetry |
-| `OFFLINE` | No network | Telemetry cached | Solo lettura |
+| `OFFLINE` | No network | Ultimo stato disponibile | Solo lettura |
 
 ## Implementazione con SDKManager
 
@@ -76,7 +76,7 @@ export function ACubeProvider({ children }: { children: ReactNode }) {
       SDKManager.configure({
         environment: 'sandbox',
         notificationPollIntervalMs: 30000,
-        telemetryCacheTtlMs: 300000,
+        telemetryPollIntervalMs: 60000,
       });
     }
 
@@ -173,7 +173,6 @@ export function useTelemetry() {
   return {
     state: telemetryState,
     data: telemetryState?.data ?? null,
-    isCached: telemetryState?.isCached ?? false,
     isLoading: telemetryState?.isLoading ?? false,
     error: telemetryState?.error,
     fetchTelemetry: (pemId: string) => services?.telemetry.getTelemetry(pemId),
@@ -278,7 +277,7 @@ interface Props {
 }
 
 export function BlockedScreen({ pemId }: Props) {
-  const { data, isLoading, isCached, error, fetchTelemetry, refreshTelemetry } = useTelemetry();
+  const { data, isLoading, error, fetchTelemetry, refreshTelemetry } = useTelemetry();
 
   useEffect(() => {
     fetchTelemetry?.(pemId);
@@ -302,14 +301,6 @@ export function BlockedScreen({ pemId }: Props) {
           />
         }
       >
-        {isCached && (
-          <View style={styles.cacheBanner}>
-            <Text style={styles.cacheText}>
-              Dati dalla cache - Ultimo aggiornamento disponibile
-            </Text>
-          </View>
-        )}
-
         {error && (
           <View style={styles.errorBanner}>
             <Text style={styles.errorText}>Errore: {error}</Text>
@@ -363,8 +354,6 @@ const styles = StyleSheet.create({
   blockedTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
   blockedMessage: { color: '#fecaca', textAlign: 'center' },
   content: { flex: 1, padding: 16 },
-  cacheBanner: { backgroundColor: '#fef3c7', padding: 12, borderRadius: 8, marginBottom: 16 },
-  cacheText: { color: '#92400e', textAlign: 'center' },
   errorBanner: { backgroundColor: '#fee2e2', padding: 12, borderRadius: 8, marginBottom: 16 },
   errorText: { color: '#dc2626', textAlign: 'center' },
   loader: { marginTop: 40 },
@@ -406,7 +395,7 @@ export function OfflineScreen({ pemId }: Props) {
         <Text style={styles.title}>Offline</Text>
         <Text style={styles.message}>
           Nessuna connessione di rete.{'\n'}
-          Visualizzazione dati dalla cache.
+          Ultimo stato disponibile.
         </Text>
       </View>
 
@@ -422,7 +411,7 @@ export function OfflineScreen({ pemId }: Props) {
             <Text style={styles.info}>Totale: EUR {data.pendingReceipts.totalAmount}</Text>
           </View>
         ) : (
-          <Text style={styles.noData}>Nessun dato in cache disponibile</Text>
+          <Text style={styles.noData}>Nessun dato disponibile</Text>
         )}
       </View>
     </SafeAreaView>
@@ -548,8 +537,7 @@ src/
 2. **Polling automatico**: Dopo `initialize()`:
    - Notifiche: polling parte sempre (default 30s)
    - Telemetria: polling parte automaticamente se certificato installato (default 60s)
-3. La telemetria usa cache automatica quando offline
-4. Gli observable emettono `distinctUntilChanged` per evitare re-render inutili
+3. Gli observable emettono `distinctUntilChanged` per evitare re-render inutili
 5. **mTLS Required**: Le API richiedono certificato mTLS:
    ```typescript
    const services = SDKManager.getInstance().getServices();

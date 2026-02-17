@@ -26,12 +26,6 @@ const sdk = await createACubeSDK(
     onNetworkStatusChanged: (online) => {
       console.log('Stato rete:', online ? 'online' : 'offline');
     },
-    onOfflineOperationAdded: (operationId) => {
-      console.log('Operazione aggiunta:', operationId);
-    },
-    onOfflineOperationCompleted: (operationId, success) => {
-      console.log('Operazione completata:', operationId, success);
-    },
   }
 );
 ```
@@ -111,50 +105,6 @@ onNetworkStatusChanged: (online) => {
 }
 ```
 
-### onOfflineOperationAdded
-
-Emesso quando un'operazione viene aggiunta alla coda offline.
-
-```typescript
-onOfflineOperationAdded?: (operationId: string) => void;
-```
-
-**Parametri:**
-- `operationId` - ID univoco dell'operazione
-
-**Esempio:**
-
-```typescript
-onOfflineOperationAdded: (operationId) => {
-  console.log('Nuova operazione offline:', operationId);
-  // Aggiorna contatore UI
-}
-```
-
-### onOfflineOperationCompleted
-
-Emesso quando un'operazione offline viene completata (con successo o fallimento).
-
-```typescript
-onOfflineOperationCompleted?: (operationId: string, success: boolean) => void;
-```
-
-**Parametri:**
-- `operationId` - ID dell'operazione
-- `success` - `true` se completata con successo
-
-**Esempio:**
-
-```typescript
-onOfflineOperationCompleted: (operationId, success) => {
-  if (success) {
-    console.log('Operazione sincronizzata:', operationId);
-  } else {
-    console.log('Operazione fallita:', operationId);
-  }
-}
-```
-
 ## Tipi
 
 ### SDKEvents
@@ -164,8 +114,6 @@ interface SDKEvents {
   onUserChanged?: (user: User | null) => void;
   onAuthError?: (error: ACubeSDKError) => void;
   onNetworkStatusChanged?: (online: boolean) => void;
-  onOfflineOperationAdded?: (operationId: string) => void;
-  onOfflineOperationCompleted?: (operationId: string, success: boolean) => void;
 }
 ```
 
@@ -215,21 +163,7 @@ const initSDK = async () => {
         if (!online) {
           Alert.alert(
             'Connessione Persa',
-            'Le operazioni verranno salvate e sincronizzate automaticamente.'
-          );
-        }
-      },
-
-      onOfflineOperationAdded: () => {
-        // Aggiorna badge notifiche
-        updateOfflineBadge();
-      },
-
-      onOfflineOperationCompleted: (_, success) => {
-        if (!success) {
-          Alert.alert(
-            'Sincronizzazione Fallita',
-            'Alcune operazioni non sono state sincronizzate.'
+            'Nessuna connessione di rete disponibile.'
           );
         }
       },
@@ -256,12 +190,6 @@ const sdk = await createACubeSDK(
     onNetworkStatusChanged: (online) => {
       console.log('[SDK Event] Network:', online ? 'online' : 'offline');
     },
-    onOfflineOperationAdded: (id) => {
-      console.log('[SDK Event] Operation queued:', id);
-    },
-    onOfflineOperationCompleted: (id, success) => {
-      console.log('[SDK Event] Operation completed:', id, success);
-    },
   }
 );
 ```
@@ -269,4 +197,3 @@ const sdk = await createACubeSDK(
 ## Prossimi Passi
 
 - [Gestione Errori](./error-handling.md)
-- [Offline Mode](./offline-mode.md)

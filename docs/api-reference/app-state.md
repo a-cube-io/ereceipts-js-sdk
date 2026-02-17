@@ -37,7 +37,7 @@ type AppMode = 'NORMAL' | 'WARNING' | 'BLOCKED' | 'OFFLINE';
 | `NORMAL` | Default o SYS-I-01 | App funziona normalmente |
 | `WARNING` | SYS-W-01 | Banner avviso con countdown |
 | `BLOCKED` | SYS-C-01 | Solo visualizzazione telemetria |
-| `OFFLINE` | No network | Dati dalla cache |
+| `OFFLINE` | No network | Ultimo stato disponibile |
 
 ### WarningState
 
@@ -99,7 +99,7 @@ appStateService.mode$.subscribe((mode: AppMode) => {
       showTelemetryOnly();
       break;
     case 'OFFLINE':
-      showCachedData();
+      showOfflineMessage();
       break;
   }
 });

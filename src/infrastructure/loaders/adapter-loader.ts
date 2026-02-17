@@ -1,7 +1,6 @@
 import { PlatformAdapters } from '@/application/ports/driven';
 import { createPrefixedLogger, detectPlatform } from '@/shared/utils';
 
-import { loadCacheAdapter } from './cache-loader';
 import { loadMTLSAdapter } from './mtls-loader';
 import { loadNetworkMonitor } from './network-loader';
 import { loadStorageAdapters } from './storage-loader';
@@ -28,7 +27,6 @@ export function loadPlatformAdapters(options: PlatformAdapterOptions = {}): Plat
 
   const storageAdapters = loadStorageAdapters(platform);
   const networkMonitor = loadNetworkMonitor(platform);
-  const cache = loadCacheAdapter(platform);
   const mtls = loadMTLSAdapter(platform, mtlsConfig);
 
   log.debug('Adapters loaded:', {
@@ -36,14 +34,12 @@ export function loadPlatformAdapters(options: PlatformAdapterOptions = {}): Plat
     hasStorage: !!storageAdapters.storage,
     hasSecureStorage: !!storageAdapters.secureStorage,
     hasNetworkMonitor: !!networkMonitor,
-    hasCache: !!cache,
     hasMTLS: !!mtls,
   });
 
   return {
     ...storageAdapters,
     networkMonitor,
-    cache,
     mtls: mtls || undefined,
   };
 }
