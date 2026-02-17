@@ -352,7 +352,7 @@ export class SDKManager {
   }
 
   /**
-   * Observable stream of telemetry state (data, isLoading, isCached, error)
+   * Observable stream of telemetry state (data, isLoading, error)
    */
   get telemetryState$(): Observable<TelemetryState> {
     this.ensureInitialized();

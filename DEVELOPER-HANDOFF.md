@@ -14,10 +14,9 @@
 5. [Platform Adapters (Node, Web, React Native)](#5-platform-adapters-node-web-react-native)
 6. [Domain Layer (Entities, Value Objects, Services)](#6-domain-layer)
 7. [Data Flow: DTOs e Zod Validation](#7-data-flow-dtos-e-zod-validation)
-8. [HTTP Client, Cache e Error Handling](#8-http-client-cache-e-error-handling)
-9. [Offline Queue System](#9-offline-queue-system)
-10. [Testing e Quality](#10-testing-e-quality)
-11. [Guida Pratica: Come Fare Modifiche](#11-guida-pratica-come-fare-modifiche)
+8. [HTTP Client e Error Handling](#8-http-client-e-error-handling)
+9. [Testing e Quality](#9-testing-e-quality)
+10. [Guida Pratica: Come Fare Modifiche](#10-guida-pratica-come-fare-modifiche)
 
 ---
 
@@ -25,7 +24,7 @@
 
 ### Cos'e'
 
-SDK TypeScript multi-piattaforma per le API ACube di scontrini elettronici. Supporta **Node.js**, **React Native (Expo)** e **Web browser**. Fornisce autenticazione mTLS, supporto offline-first e operazioni API type-safe.
+SDK TypeScript multi-piattaforma per le API ACube di scontrini elettronici. Supporta **Node.js**, **React Native (Expo)** e **Web browser**. Fornisce autenticazione mTLS e operazioni API type-safe.
 
 ### Stack Tecnologico
 
@@ -120,7 +119,7 @@ import { IHttpPort } from '@/application/ports/driven';
                     ┌──────────────┴──────────────────┐
                     │      INFRASTRUCTURE LAYER        │
                     │  driven: api, http, platforms,   │
-                    │          cache, storage, offline │
+                    │          storage                 │
                     │  driving: sdk, react             │
                     └──────────────▲──────────────────┘
                                    │
@@ -146,7 +145,7 @@ src/
 │
 ├── application/                     # Use cases e orchestrazione
 │   ├── ports/
-│   │   └── driven/                  # Secondary ports (HTTP, Storage, mTLS, Cache, Network, Auth)
+│   │   └── driven/                  # Secondary ports (HTTP, Storage, mTLS, Network, Auth)
 │   ├── services/                    # AuthenticationService, CertificateService, AppStateService
 │   └── dto/                         # Data Transfer Objects (camelCase <-> snake_case)
 │
@@ -155,9 +154,7 @@ src/
 │   │   ├── api/                     # Repository implementations (HTTP calls)
 │   │   ├── http/                    # AxiosHttpAdapter, AuthStrategy, error handling
 │   │   ├── platforms/               # Node.js, Web, React Native adapters
-│   │   ├── cache/                   # CachingHttpDecorator, CacheKeyGenerator, CacheManager
-│   │   ├── storage/                 # TokenStorageAdapter
-│   │   └── offline/                 # OfflineManager, OperationQueue, SyncManager
+│   │   └── storage/                 # TokenStorageAdapter
 │   ├── driving/
 │   │   └── sdk/                     # ACubeSDK, SDKFactory, SDKManager, DIContainer
 │   └── loaders/                     # Platform adapter auto-loading
@@ -175,7 +172,6 @@ src/
 | Pattern | Dove | Scopo |
 |---------|------|-------|
 | **Repository** | `domain/repositories/` → `infrastructure/driven/api/` | Interface in domain, implementazione in infrastructure |
-| **Decorator** | `CachingHttpDecorator` wraps `AxiosHttpAdapter` | Aggiunge cache trasparente all'HTTP client |
 | **Observer** | RxJS `BehaviorSubject` | Auth state, app state, network state reattivi |
 | **DI Container** | `DIContainer` con Symbol tokens | Dependency injection custom senza framework |
 | **Factory** | `SDKFactory.createContainer()` | Setup lazy delle dipendenze |
@@ -196,13 +192,10 @@ I token sono `Symbol` usati come chiavi per il container. Ogni dipendenza ha il 
 // src/infrastructure/driving/sdk/di-container.ts
 export const DI_TOKENS = {
   // --- Infrastruttura (ports) ---
-  HTTP_PORT: Symbol('HTTP_PORT'),           // HTTP client (potenzialmente decorato con cache)
-  BASE_HTTP_PORT: Symbol('BASE_HTTP_PORT'), // HTTP client raw (mai decorato)
+  HTTP_PORT: Symbol('HTTP_PORT'),
   STORAGE_PORT: Symbol('STORAGE_PORT'),
   SECURE_STORAGE_PORT: Symbol('SECURE_STORAGE_PORT'),
   NETWORK_PORT: Symbol('NETWORK_PORT'),
-  CACHE_PORT: Symbol('CACHE_PORT'),
-  CACHE_KEY_GENERATOR: Symbol('CACHE_KEY_GENERATOR'),
   MTLS_PORT: Symbol('MTLS_PORT'),
   TOKEN_STORAGE_PORT: Symbol('TOKEN_STORAGE_PORT'),
 
@@ -224,7 +217,6 @@ export const DI_TOKENS = {
   AUTH_SERVICE: Symbol('AUTH_SERVICE'),
   AUTHENTICATION_SERVICE: Symbol('AUTHENTICATION_SERVICE'),
   CERTIFICATE_SERVICE: Symbol('CERTIFICATE_SERVICE'),
-  OFFLINE_SERVICE: Symbol('OFFLINE_SERVICE'),
   NOTIFICATION_SERVICE: Symbol('NOTIFICATION_SERVICE'),
   TELEMETRY_SERVICE: Symbol('TELEMETRY_SERVICE'),
 } as const;
@@ -280,19 +272,17 @@ La registrazione avviene in fasi progressive dentro `sdk-factory.ts`:
 ```
 SDKFactory.createContainer(config)        ← Fase 1: HTTP + Repository factories
 SDKFactory.registerAuthServices(...)      ← Fase 2: Token storage + Auth service
-SDKFactory.registerCacheServices(...)     ← Fase 3: Cache decorator (opzionale)
 ```
 
 **Fase 1 — `createContainer()`**: Crea HTTP adapter e registra tutti i repository come factory:
 
 ```typescript
-// Istanze immediate
-container.register(DI_TOKENS.BASE_HTTP_PORT, httpAdapter);  // sempre il raw Axios
-container.register(DI_TOKENS.HTTP_PORT, httpAdapter);        // inizialmente = BASE, poi sostituito
+// Istanza immediata
+container.register(DI_TOKENS.HTTP_PORT, httpAdapter);
 
 // Factory lazy — il repository viene creato solo quando qualcuno lo chiede
 container.registerFactory(DI_TOKENS.RECEIPT_REPOSITORY, () => {
-  const http = container.get<IHttpPort>(DI_TOKENS.HTTP_PORT);  // ← risolve HTTP_PORT qui
+  const http = container.get<IHttpPort>(DI_TOKENS.HTTP_PORT);
   return new ReceiptRepositoryImpl(http);
 });
 // ... stesso pattern per tutti gli 11 repository
@@ -309,51 +299,7 @@ container.registerFactory(DI_TOKENS.AUTHENTICATION_SERVICE, () => {
 });
 ```
 
-**Fase 3 — `registerCacheServices()`**: Wrappa l'HTTP port con il caching decorator:
-
-```typescript
-container.register(DI_TOKENS.CACHE_PORT, cache);
-container.register(DI_TOKENS.CACHE_KEY_GENERATOR, keyGenerator);
-
-const baseHttp = container.get<IHttpPort>(DI_TOKENS.BASE_HTTP_PORT);    // raw Axios
-const cachingHttp = new CachingHttpDecorator(baseHttp, cache, keyGenerator, network);
-container.register(DI_TOKENS.HTTP_PORT, cachingHttp);  // ← SOVRASCRIVE HTTP_PORT!
-```
-
-#### 4. Il Trucco Critico: HTTP_PORT Swap
-
-Questo e' il punto piu' importante da capire:
-
-```
-Stato dopo Fase 1:
-  BASE_HTTP_PORT → AxiosHttpAdapter  (raw)
-  HTTP_PORT      → AxiosHttpAdapter  (stessa istanza)
-
-Stato dopo Fase 3 (se cache disponibile):
-  BASE_HTTP_PORT → AxiosHttpAdapter  (raw, invariato)
-  HTTP_PORT      → CachingHttpDecorator(AxiosHttpAdapter)  ← SOSTITUITO!
-```
-
-**Perche' funziona?** Tutti i repository usano factory lazy che risolvono `HTTP_PORT` solo al primo `get()`. Siccome le factory vengono eseguite **dopo** la Fase 3, i repository ricevono automaticamente la versione cached. L'ordine delle fasi e' quindi critico.
-
-```
-Ordine di registrazione:              Ordine di risoluzione (al primo accesso):
-┌──────────────────────┐              ┌────────────────────────────────────┐
-│ Fase 1: register     │              │ sdk.receipts  (primo accesso)      │
-│   BASE_HTTP = Axios  │              │  └→ factory eseguita               │
-│   HTTP = Axios       │              │      └→ get(HTTP_PORT)             │
-│   repos = factories  │              │          └→ CachingHttpDecorator ✓ │
-│                      │              │                                    │
-│ Fase 2: register     │              │ sdk.merchants (primo accesso)      │
-│   TOKEN_STORAGE      │              │  └→ factory eseguita               │
-│   AUTH_SERVICE(f)    │              │      └→ get(HTTP_PORT)             │
-│                      │              │          └→ stessa istanza cached  │
-│ Fase 3: register     │              │                                    │
-│   HTTP = Caching(Ax) │ ← swap      │ Tutti i repo hanno cache gratis    │
-└──────────────────────┘              └────────────────────────────────────┘
-```
-
-#### 5. Recupero Servizi: `getServices()`
+#### 4. Recupero Servizi: `getServices()`
 
 Alla fine dell'init, `SDKFactory.getServices(container)` risolve tutti i token e restituisce un oggetto tipato:
 
@@ -371,17 +317,15 @@ static getServices(container: DIContainer): SDKServices {
 
 A questo punto tutte le factory vengono eseguite e ogni repository diventa singleton.
 
-#### 6. Gotchas e Regole Pratiche
+#### 5. Gotchas e Regole Pratiche
 
 | Regola | Motivazione |
 |--------|-------------|
-| **Mai risolvere un repository prima della Fase 3** | Riceverebbe `AxiosHttpAdapter` raw invece di `CachingHttpDecorator` |
-| **Usare `registerFactory` per tutto cio' che dipende da `HTTP_PORT`** | Garantisce che la risoluzione avvenga dopo lo swap |
-| **`BASE_HTTP_PORT` e' l'escape hatch** | Se servono chiamate HTTP senza cache (es. auth), usare `BASE_HTTP_PORT` |
+| **Usare `registerFactory` per tutto cio' che dipende da `HTTP_PORT`** | Garantisce lazy initialization |
 | **Il container NON gestisce cicli** | Non tentare di creare dipendenze circolari — non c'e' protezione |
 | **`clear()` distrugge tutto** | Usato nel `destroy()` dell'SDK per cleanup completo |
 
-#### 7. Come Aggiungere un Nuovo Servizio
+#### 6. Come Aggiungere un Nuovo Servizio
 
 ```typescript
 // 1. Aggiungi il token in di-container.ts
@@ -426,33 +370,29 @@ createACubeSDK(config)
  └─> new ACubeSDK(config) + initialize()
      │
      ├─ 1. Load Platform Adapters (auto-detect Node/Web/RN)
-     │     └─> loadPlatformAdapters() → storage, secureStorage, network, cache, mtls
+     │     └─> loadPlatformAdapters() → storage, secureStorage, network, mtls
      │
      ├─ 2. Create DI Container
-     │     └─> SDKFactory.createContainer() → registra HTTP_PORT, BASE_HTTP_PORT, tutti i repository factories
+     │     └─> SDKFactory.createContainer() → registra HTTP_PORT, tutti i repository factories
      │
      ├─ 3. Register Auth Services
      │     └─> TokenStorageAdapter wraps secureStorage
      │
-     ├─ 4. Register Cache Services (se cache adapter disponibile)
-     │     └─> HTTP_PORT sostituito con CachingHttpDecorator(BASE_HTTP_PORT)
-     │
-     ├─ 5. Initialize Services
+     ├─ 4. Initialize Services
      │     ├─> CertificateService(secureStorage)
-     │     ├─> AuthenticationService(httpPort, tokenStorage, config, events)
-     │     └─> OfflineManager(storage, httpPort, networkMonitor, config, events)
+     │     └─> AuthenticationService(httpPort, tokenStorage, config, events)
      │
-     ├─ 6. Subscribe to Network Status
-     │     └─> offline→online transition triggers auto-sync
+     ├─ 5. Subscribe to Network Status
+     │     └─> onNetworkStatusChanged event
      │
-     ├─ 7. Restore Auth Token (se autenticato)
+     ├─ 6. Restore Auth Token (se autenticato)
      │     └─> setAuthToken() su HTTP port
      │
-     ├─ 8. Configure mTLS Adapter + Auth Strategy
-     │     ├─> baseHttpPort.setMTLSAdapter(mtlsAdapter)
-     │     └─> baseHttpPort.setAuthStrategy(new AuthStrategy(jwt, mtls, userProvider, mtls))
+     ├─ 7. Configure mTLS Adapter + Auth Strategy
+     │     ├─> httpPort.setMTLSAdapter(mtlsAdapter)
+     │     └─> httpPort.setAuthStrategy(new AuthStrategy(jwt, mtls, userProvider, mtls))
      │
-     └─ 9. Auto-configure Certificate (se gia' stored)
+     └─ 8. Auto-configure Certificate (se gia' stored)
            └─> mtlsAdapter.configureCertificate(storedCert)
 ```
 
@@ -497,8 +437,7 @@ sdk.getCertificateInfo(): Promise<CertificateInfo | null>
 sdk.clearCertificate(): Promise<void>
 sdk.getMTLSStatus(): Promise<MTLSStatus>
 
-// Offline
-sdk.getOfflineManager(): OfflineManager
+// Network Status
 sdk.isOnline(): boolean
 
 // Lifecycle
@@ -654,7 +593,6 @@ All'inizializzazione SDK, `loadPlatformAdapters()` carica automaticamente:
 | **Storage** | In-memory Map (solo test!) | localStorage | AsyncStorage |
 | **Secure Storage** | In-memory Map (solo test!) | XOR obfuscation (non sicura!) | expo-secure-store / react-native-keychain |
 | **Network Monitor** | Network interfaces check | `window.online/offline` events | `@react-native-community/netinfo` |
-| **Cache** | - | IndexedDB (`idb` library) | SQLite (expo-sqlite / rn-sqlite-storage) |
 | **mTLS** | `https.Agent` nativo | NOT SUPPORTED (fallback JWT) | `@a-cube-io/expo-mutual-tls` native module |
 
 ### mTLS per Piattaforma — Dettagli
@@ -687,25 +625,6 @@ File: `src/infrastructure/driven/platforms/web/mtls.ts`
 - Il browser gestisce i certificati client via settings, non programmaticamente
 - `AuthStrategy` fa automaticamente fallback a JWT per piattaforma web
 
-### Cache per Piattaforma
-
-#### Web: IndexedDB
-
-File: `src/infrastructure/driven/platforms/web/cache.ts`
-
-- DB `acube_cache`, store `cache_entries`
-- Compressione opzionale per item > 1KB
-- Gestione conflitti multi-tab (version conflict → delete + recreate DB)
-- Il cache **non scade mai** a livello storage (TTL gestito dal decorator)
-
-#### React Native: SQLite
-
-File: `src/infrastructure/driven/platforms/react-native/cache.ts`
-
-- Supporta `expo-sqlite` e `react-native-sqlite-storage`
-- Migration automatica per colonna `compressed`
-- Fallback `MemoryCacheAdapter` se SQLite non disponibile (no persistenza tra restart)
-
 ### Storage Security Summary
 
 | Piattaforma | Storage Normale | Storage Sicuro | Livello Sicurezza |
@@ -719,8 +638,6 @@ File: `src/infrastructure/driven/platforms/react-native/cache.ts`
 - `src/infrastructure/loaders/adapter-loader.ts` — auto-loading
 - `src/infrastructure/driven/platforms/react-native/mtls.ts` — il piu' complesso
 - `src/infrastructure/driven/platforms/react-native/storage.ts` — secure storage
-- `src/infrastructure/driven/platforms/web/cache.ts` — IndexedDB
-- `src/infrastructure/driven/platforms/react-native/cache.ts` — SQLite
 
 ---
 
@@ -924,7 +841,7 @@ z.object({
 
 ---
 
-## 8. HTTP Client, Cache e Error Handling
+## 8. HTTP Client e Error Handling
 
 ### HTTP Client (AxiosHttpAdapter)
 
@@ -935,60 +852,6 @@ File: `src/infrastructure/driven/http/axios-http.adapter.ts`
 - Request interceptor: attach JWT token + log completo (metodo, URL, params, body)
 - Response interceptor: log risposta + dettagli errore
 - `clearObject()` rimuove campi `undefined`/`null` dal body prima dell'invio
-
-### Cache Layer
-
-#### CachingHttpDecorator
-
-File: `src/infrastructure/driven/cache/caching-http-decorator.ts`
-
-Wraps HTTP client con cache intelligente:
-
-```
-GET Request Flow:
-  1. Caching globalmente disabilitato? → bypass
-  2. URL cacheable? → bypass se in exclude list
-  3. Genera cache key
-  4. Check cache:
-     ├─ Valido (dentro TTL) → return cached    [x-cache: HIT]
-     ├─ Scaduto + offline → return stale        [x-cache: STALE]
-     ├─ Scaduto + online → fetch + update cache [x-cache: MISS]
-     └─ Assente + offline → throw error
-  5. Mutations (POST/PUT/DELETE) → invalidateRelated()
-```
-
-#### Cache Key Generator
-
-File: `src/infrastructure/driven/cache/cache-key-generator.ts`
-
-URL patterns → cache keys:
-- `/mf1/receipts/abc-123` → `receipt:abc-123`
-- `/mf1/receipts/abc-123/details` → `receipt:abc-123:details`
-- `/mf1/cashiers/me` → `cashier:me`
-
-#### TTL per Resource
-
-| Resource | TTL | Cache List? | Cache Item? |
-|----------|-----|-------------|-------------|
-| merchant | 30 min | No | Si |
-| point-of-sale | 30 min | No | Si |
-| cash-register | 30 min | No | Si |
-| cashier | 10 min | No | Si |
-| supplier | 10 min | No | Si |
-| receipt | 5 min | No | Si |
-| notification | 1 min | No | No |
-| telemetry | 1 min | No | No |
-
-> **Nota**: Le **liste NON sono cached** di default (performance). Solo gli item singoli.
-
-#### Cache Manager
-
-File: `src/infrastructure/driven/cache/cache-manager.ts`
-
-- Cleanup automatico ogni 5 min
-- Trigger se memory > 70% o entries > 70% max
-- Strategie: LRU (least recently used) o age-based
-- Rimuove il 30% piu' vecchio/meno usato
 
 ### Error Handling
 
@@ -1022,103 +885,7 @@ File: `src/infrastructure/driven/http/error-classifier.ts`
 
 ---
 
-## 9. Offline Queue System
-
-### Architettura a 3 Componenti
-
-```
-┌────────────────────────────────────────────────┐
-│              OfflineManager (Facade)            │
-│  - queue$: Observable<QueuedOperation[]>       │
-│  - syncStatus$: Observable<SyncStatus>         │
-│  - queueReceiptCreation(), sync(), retryFailed │
-└──────────┬─────────────────────┬───────────────┘
-           │                     │
-    ┌──────▼──────┐      ┌──────▼──────┐
-    │ Operation   │      │   Sync      │
-    │   Queue     │      │  Manager    │
-    │             │      │             │
-    │ - priority  │      │ - RxJS      │
-    │ - persist   │◄────►│ - batch     │
-    │ - crash     │      │ - retry     │
-    │   recovery  │      │ - backoff   │
-    └─────────────┘      └─────────────┘
-```
-
-### OfflineManager (Facade)
-
-File: `src/infrastructure/driven/offline/offline-manager.ts`
-
-```typescript
-// Observables reattivi
-manager.queue$       // lista operazioni pending
-manager.syncStatus$  // stato sync (online/processing/stats)
-
-// Queue con priorita'
-manager.queueReceiptCreation(data)  // priority 2
-manager.queueReceiptVoid(data)      // priority 3 (piu' urgente)
-manager.queueReceiptReturn(data)    // priority 3
-
-// Controlli manuali
-manager.sync()            // trigger sync immediato
-manager.retryFailed()     // resetta failed → pending
-manager.clearCompleted()  // pulizia
-```
-
-### OperationQueue
-
-File: `src/infrastructure/driven/offline/queue.ts`
-
-- Storage key: `acube_operation_queue`
-- **Persistente**: salvato dopo OGNI modifica (attenzione: storage thrashing per alta frequenza)
-- Priority queue: **higher number = sync prima** (counterintuitive)
-- Max size: 1000, evicts lowest priority quando pieno
-- **Crash recovery**: al caricamento, operazioni `processing` → `pending`
-
-Struttura operazione:
-
-```typescript
-{
-  id: string,                // timestamp-random
-  type: 'CREATE'|'UPDATE'|'DELETE',
-  resource: 'receipt'|'cashier'|...,
-  endpoint: string,          // API path
-  method: 'POST'|'PUT'|...,
-  data?: unknown,
-  status: 'pending'|'processing'|'completed'|'failed',
-  retryCount: number,
-  maxRetries: number,        // default 3
-  priority: number,          // higher = prima
-}
-```
-
-### SyncManager
-
-File: `src/infrastructure/driven/offline/sync-manager.ts`
-
-- **Auto-sync**: rileva transizioni `offline → online` via RxJS, triggera sync
-- **Batch processing**: `Promise.allSettled` (continua anche su failure parziali)
-- **Retry con exponential backoff**: `retryDelay * backoffMultiplier^retryCount`, cap a 60s
-- Errori retryable: network, 5xx, 429, timeout
-- 500ms delay tra batch
-
-### Config Defaults
-
-```typescript
-{
-  maxRetries: 3,
-  retryDelay: 1000,       // 1s base
-  maxRetryDelay: 30000,   // 30s cap
-  backoffMultiplier: 2,   // 1s → 2s → 4s → 8s...
-  maxQueueSize: 1000,
-  batchSize: 10,
-  syncInterval: 30000     // check ogni 30s
-}
-```
-
----
-
-## 10. Testing e Quality
+## 9. Testing e Quality
 
 ### Setup
 
@@ -1166,18 +933,6 @@ it('should transform 401 to AUTH_ERROR', () => {
 });
 ```
 
-#### 4. Decorator Test (Cache)
-
-```typescript
-// src/infrastructure/driven/cache/__tests__/caching-http-decorator.test.ts
-it('should return HIT from cache within TTL', async () => {
-  mockCache.get.mockResolvedValue(cachedData);
-  const result = await decorator.get('/receipts/123');
-  expect(result.headers['x-cache']).toBe('HIT');
-  expect(mockHttp.get).not.toHaveBeenCalled();
-});
-```
-
 ### Mocking Pattern Standard
 
 ```typescript
@@ -1205,7 +960,7 @@ Pre-commit hook esegue entrambi. Non puoi committare codice che non compila o ch
 
 ---
 
-## 11. Guida Pratica: Come Fare Modifiche
+## 10. Guida Pratica: Come Fare Modifiche
 
 ### Come Aggiungere un Nuovo Repository
 
@@ -1303,13 +1058,11 @@ Se serve validazione client-side, aggiungi Zod schema in `src/shared/validation/
 | 4 | **Web non supporta mTLS** programmatico → fallback JWT | Auth silently diversa |
 | 5 | Node.js storage e' **solo in-memory** (per test, non production) | Dati persi al restart |
 | 6 | Web secure storage usa **XOR** (non vera encryption) | Sicurezza limitata |
-| 7 | Offline queue: **higher priority = sync prima** | Ordine controintuitivo |
-| 8 | JWT expiry ha **5 minuti di buffer** | Token "scade" prima |
+| 7 | JWT expiry ha **5 minuti di buffer** | Token "scade" prima |
 | 9 | Due API PEM diverse: **MF1** (operativo) vs **MF2** (creazione) | Confusione endpoint |
 | 10 | `null` = "cancella campo", `undefined` = "non cambiare" | Bug su update |
-| 11 | `BASE_HTTP_PORT` vs `HTTP_PORT` — il secondo puo' essere cached | Comportamento diverso |
-| 12 | Request mTLS includono **anche JWT** nell'header | Doppia auth |
-| 13 | `IMerchantRepository.findAll()` ritorna `Merchant[]`, non `Page<Merchant>` | Inconsistenza API |
+| 11 | Request mTLS includono **anche JWT** nell'header | Doppia auth |
+| 12 | `IMerchantRepository.findAll()` ritorna `Merchant[]`, non `Page<Merchant>` | Inconsistenza API |
 
 ---
 
@@ -1349,8 +1102,6 @@ Se serve validazione client-side, aggiungi Zod schema in `src/shared/validation/
 |------|---------|
 | `src/infrastructure/driven/http/axios-http.adapter.ts` | HTTP dual-mode |
 | `src/infrastructure/driven/http/mtls-auth.handler.ts` | mTLS dedup e retry |
-| `src/infrastructure/driven/cache/caching-http-decorator.ts` | Cache decorator |
-| `src/infrastructure/driven/offline/sync-manager.ts` | Offline sync |
 | `src/infrastructure/driven/platforms/react-native/mtls.ts` | mTLS nativo |
 
 ### Build e Config

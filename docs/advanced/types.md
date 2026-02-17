@@ -184,113 +184,6 @@ interface SDKEvents {
   onUserChanged?: (user: User | null) => void;
   onAuthError?: (error: ACubeSDKError) => void;
   onNetworkStatusChanged?: (online: boolean) => void;
-  onOfflineOperationAdded?: (operationId: string) => void;
-  onOfflineOperationCompleted?: (operationId: string, success: boolean) => void;
-}
-```
-
-## Offline
-
-### OperationType
-
-```typescript
-type OperationType = 'CREATE' | 'UPDATE' | 'DELETE';
-```
-
-### ResourceType
-
-```typescript
-type ResourceType =
-  | 'receipt'
-  | 'cashier'
-  | 'point-of-sale'
-  | 'cash-register'
-  | 'merchant'
-  | 'pem';
-```
-
-### OperationStatus
-
-```typescript
-type OperationStatus = 'pending' | 'processing' | 'completed' | 'failed';
-```
-
-### QueuedOperation
-
-```typescript
-interface QueuedOperation {
-  id: string;
-  type: OperationType;
-  resource: ResourceType;
-  endpoint: string;
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  data?: unknown;
-  headers?: Record<string, string>;
-  status: OperationStatus;
-  createdAt: number;
-  updatedAt: number;
-  retryCount: number;
-  maxRetries: number;
-  error?: string;
-  priority: number;
-}
-```
-
-### SyncResult
-
-```typescript
-interface SyncResult {
-  operation: QueuedOperation;
-  success: boolean;
-  error?: string;
-  response?: unknown;
-}
-```
-
-### BatchSyncResult
-
-```typescript
-interface BatchSyncResult {
-  totalOperations: number;
-  successCount: number;
-  failureCount: number;
-  results: SyncResult[];
-}
-```
-
-### QueueStats
-
-```typescript
-interface QueueStats {
-  total: number;
-  pending: number;
-  processing: number;
-  completed: number;
-  failed: number;
-}
-```
-
-### SyncStatus
-
-```typescript
-interface SyncStatus {
-  isOnline: boolean;
-  isProcessing: boolean;
-  queueStats: QueueStats;
-}
-```
-
-### QueueConfig
-
-```typescript
-interface QueueConfig {
-  maxRetries: number;
-  retryDelay: number;
-  maxRetryDelay: number;
-  backoffMultiplier: number;
-  maxQueueSize: number;
-  batchSize: number;
-  syncInterval: number;
 }
 ```
 
@@ -354,16 +247,9 @@ import {
   // Value Objects
   Address,
   VatRateCode,
-
-  // Offline
-  QueuedOperation,
-  SyncResult,
-  BatchSyncResult,
-  QueueStats,
 } from '@acube/ereceipt-sdk';
 ```
 
 ## Prossimi Passi
 
 - [Gestione Errori](./error-handling.md)
-- [Offline Mode](./offline-mode.md)

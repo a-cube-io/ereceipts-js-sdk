@@ -124,7 +124,7 @@ try {
   await sdk.receipts.findAll({ serialNumber: 'POS-001' });
 } catch (error) {
   if (error instanceof ACubeSDKError && error.type === 'NETWORK_ERROR') {
-    // Usa dati cached o mostra messaggio
+    // Mostra messaggio di errore
     console.log('Impossibile connettersi al server');
   }
 }

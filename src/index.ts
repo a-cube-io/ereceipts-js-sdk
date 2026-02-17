@@ -48,7 +48,6 @@ export type { Domain, UserRole, UserRoles } from './domain/value-objects';
 export * from './application/ports/driven';
 export { MTLSError, MTLSErrorType } from './domain/errors';
 export { CertificateValidator, parseJwt, isTokenExpired, extractRoles } from './domain/services';
-export * from './infrastructure/driven/offline';
 export * from './shared/validation';
 export * from './shared/utils';
 

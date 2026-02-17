@@ -67,9 +67,8 @@ Nessuna connessione internet o server non raggiungibile.
 ```typescript
 // Verifica connessione
 if (!sdk.isOnline()) {
-  // Usa modalita offline
-  const offlineManager = sdk.getOfflineManager();
-  await offlineManager.queueReceiptCreation({ items: [...] });
+  // Mostra avviso all'utente
+  console.log('Nessuna connessione disponibile');
 }
 
 // Implementa retry
@@ -174,36 +173,6 @@ if (!status.hasCertificate) {
 }
 ```
 
-## Operazioni Offline Non Sincronizzate
-
-### Problema
-Le operazioni in coda offline non vengono sincronizzate.
-
-### Verifica
-```typescript
-const offlineManager = sdk.getOfflineManager();
-const stats = offlineManager.getQueueStats();
-
-console.log('Pending:', stats.pending);
-console.log('Failed:', stats.failed);
-```
-
-### Soluzione
-```typescript
-// Forza sincronizzazione manuale
-if (sdk.isOnline()) {
-  const result = await offlineManager.sync();
-  console.log('Sincronizzate:', result?.successCount);
-  console.log('Fallite:', result?.failureCount);
-}
-
-// Riprova operazioni fallite
-await offlineManager.retryFailed();
-
-// Pulisci operazioni vecchie
-await offlineManager.clearCompleted();
-```
-
 ## Token Scaduto Durante Operazione
 
 ### Problema
@@ -240,10 +209,6 @@ Storage sicuro pieno o non disponibile.
 ```typescript
 // Pulisci dati vecchi
 await sdk.clearCertificate();
-
-// Pulisci coda offline
-const offlineManager = sdk.getOfflineManager();
-await offlineManager.clearAll();
 
 // Riprova
 await sdk.storeCertificate(certificate, privateKey);

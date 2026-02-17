@@ -7,6 +7,5 @@ export * from './supplier.entity';
 export * from './pem.entity';
 export * from './daily-report.entity';
 export * from './journal.entity';
-export * from './offline.entity';
 export * from './notification.entity';
 export * from './telemetry.entity';

@@ -11,7 +11,6 @@ Funzionalita' disponibili in Expo Go:
 - Autenticazione JWT
 - Tutte le operazioni CRUD
 - Modalita' offline
-- Cache locale
 
 ### Development Build (Richiesto per mTLS)
 

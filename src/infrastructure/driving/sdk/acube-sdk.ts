@@ -22,7 +22,6 @@ import { ITelemetryRepository } from '@/domain/repositories/telemetry.repository
 import { AuthStrategy, IUserProvider } from '@/infrastructure/driven/http/auth-strategy';
 import { JwtAuthHandler } from '@/infrastructure/driven/http/jwt-auth.handler';
 import { MtlsAuthHandler } from '@/infrastructure/driven/http/mtls-auth.handler';
-import { OfflineManager, QueueEvents } from '@/infrastructure/driven/offline';
 import { createACubeMTLSConfig, loadPlatformAdapters } from '@/infrastructure/loaders';
 import { ConfigManager } from '@/shared/config';
 import { ACubeSDKError, AuthCredentials, SDKConfig, User } from '@/shared/types';
@@ -37,15 +36,12 @@ export interface SDKEvents {
   onUserChanged?: (user: User | null) => void;
   onAuthError?: (error: ACubeSDKError) => void;
   onNetworkStatusChanged?: (online: boolean) => void;
-  onOfflineOperationAdded?: (operationId: string) => void;
-  onOfflineOperationCompleted?: (operationId: string, success: boolean) => void;
 }
 
 export class ACubeSDK {
   private config: ConfigManager;
   private adapters?: PlatformAdapters;
   private authService?: AuthenticationService;
-  private offlineManager?: OfflineManager;
   private certificateService?: CertificateService;
   private container?: DIContainer;
   private isInitialized = false;
@@ -90,7 +86,6 @@ export class ACubeSDK {
           mtlsConfig,
         });
         log.info('Platform adapters loaded', {
-          hasCache: !!this.adapters.cache,
           hasNetworkMonitor: !!this.adapters.networkMonitor,
           hasMtls: !!this.adapters.mtls,
           hasSecureStorage: !!this.adapters.secureStorage,
@@ -110,31 +105,11 @@ export class ACubeSDK {
       log.debug('Registering auth services');
       SDKFactory.registerAuthServices(this.container, this.adapters.secureStorage, factoryConfig);
 
-      if (this.adapters.cache) {
-        log.info('Registering cache services', {
-          hasNetworkMonitor: !!this.adapters.networkMonitor,
-        });
-        SDKFactory.registerCacheServices(
-          this.container,
-          this.adapters.cache,
-          this.adapters.networkMonitor
-        );
-      } else {
-        log.debug('No cache adapter available, caching disabled');
-      }
-
       log.debug('Initializing certificate service');
       this.certificateService = new CertificateService(this.adapters.secureStorage);
 
       const tokenStorage = this.container.get<ITokenStoragePort>(DI_TOKENS.TOKEN_STORAGE_PORT);
       const httpPort = this.container.get<IHttpPort>(DI_TOKENS.HTTP_PORT);
-      const baseHttpPort = this.container.get<IHttpPort>(DI_TOKENS.BASE_HTTP_PORT);
-
-      log.debug('HTTP ports initialized', {
-        httpPortType: httpPort.constructor.name,
-        baseHttpPortType: baseHttpPort.constructor.name,
-        areSameInstance: httpPort === baseHttpPort,
-      });
 
       log.debug('Initializing authentication service');
       this.authService = new AuthenticationService(
@@ -152,36 +127,9 @@ export class ACubeSDK {
         }
       );
 
-      log.debug('Initializing offline manager');
-      const queueEvents: QueueEvents = {
-        onOperationAdded: (operation) => {
-          this.events.onOfflineOperationAdded?.(operation.id);
-        },
-        onOperationCompleted: (result) => {
-          this.events.onOfflineOperationCompleted?.(result.operation.id, result.success);
-        },
-        onOperationFailed: (result) => {
-          this.events.onOfflineOperationCompleted?.(result.operation.id, false);
-        },
-      };
-
-      this.offlineManager = new OfflineManager(
-        this.adapters.storage,
-        httpPort,
-        this.adapters.networkMonitor,
-        {
-          syncInterval: 30000,
-        },
-        queueEvents
-      );
-
       this.networkSubscription = this.adapters.networkMonitor.online$.subscribe((online) => {
         this.currentOnlineState = online;
         this.events.onNetworkStatusChanged?.(online);
-
-        if (online && this.offlineManager) {
-          this.offlineManager.sync().catch(() => {});
-        }
       });
 
       const isAuth = await this.authService.isAuthenticated();
@@ -201,13 +149,13 @@ export class ACubeSDK {
         log.warn('User not authenticated during SDK init - token will be set after login');
       }
 
-      if (this.adapters?.mtls && 'setMTLSAdapter' in baseHttpPort) {
+      if (this.adapters?.mtls && 'setMTLSAdapter' in httpPort) {
         log.debug('Connecting mTLS adapter to HTTP port');
-        const httpWithMtls = baseHttpPort as { setMTLSAdapter: (adapter: IMTLSPort) => void };
+        const httpWithMtls = httpPort as { setMTLSAdapter: (adapter: IMTLSPort) => void };
         httpWithMtls.setMTLSAdapter(this.adapters.mtls);
       }
 
-      if ('setAuthStrategy' in baseHttpPort) {
+      if ('setAuthStrategy' in httpPort) {
         log.debug('Configuring auth strategy');
         const jwtHandler = new JwtAuthHandler(tokenStorage);
         const certificatePort: ICertificatePort | null = this.certificateService
@@ -251,7 +199,7 @@ export class ACubeSDK {
           this.adapters?.mtls || null
         );
 
-        const httpWithStrategy = baseHttpPort as {
+        const httpWithStrategy = httpPort as {
           setAuthStrategy: (strategy: AuthStrategy) => void;
         };
         httpWithStrategy.setAuthStrategy(authStrategy);
@@ -281,7 +229,6 @@ export class ACubeSDK {
 
       this.isInitialized = true;
       log.info('SDK initialized successfully', {
-        hasCache: !!this.adapters.cache,
         hasMtls: !!this.adapters.mtls,
       });
     } catch (error) {
@@ -394,11 +341,6 @@ export class ACubeSDK {
   async isAuthenticated(): Promise<boolean> {
     this.ensureInitialized();
     return await this.authService!.isAuthenticated();
-  }
-
-  getOfflineManager(): OfflineManager {
-    this.ensureInitialized();
-    return this.offlineManager!;
   }
 
   isOnline(): boolean {
@@ -589,7 +531,6 @@ export class ACubeSDK {
 
   destroy(): void {
     this.networkSubscription?.unsubscribe();
-    this.offlineManager?.destroy();
     this.container?.clear();
     this.isInitialized = false;
   }

@@ -307,30 +307,6 @@ const returnReceipt = await sdk.receipts.returnWithProof({
 });
 ```
 
-## Gestione Offline
-
-```typescript
-const offlineManager = sdk.getOfflineManager();
-
-if (!sdk.isOnline()) {
-  // Accoda creazione per sincronizzazione
-  const operationId = await offlineManager.queueReceiptCreation({
-    items: [...],
-  });
-
-  // Accoda annullamento
-  await offlineManager.queueReceiptVoid({
-    documentNumber: '0001-0001-0001',
-  });
-
-  // Accoda reso
-  await offlineManager.queueReceiptReturn({
-    documentNumber: '0001-0001-0001',
-    items: [...],
-  });
-}
-```
-
 ## Prossimi Passi
 
 - [Attivazione POS](./pos-activation.md)

@@ -19,7 +19,7 @@ Guida completa per installare l'ACube eReceipt SDK in un progetto Expo.
 
 - Connessione internet per operazioni online
 - Storage sicuro per token e certificati
-- Accesso al filesystem per cache offline
+- Accesso al filesystem per storage locale
 
 ## Installazione SDK
 
