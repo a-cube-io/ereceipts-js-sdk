@@ -1,12 +1,12 @@
-import { createPrefixedLogger } from '@/shared/utils';
+import { createPrefixedLogger, detectPlatform } from '@/shared/utils';
 
-import { IMTLSPort, PlatformDetector } from '../../../application/ports/driven/mtls.port';
+import { IMTLSPort } from '../../../application/ports/driven/mtls.port';
 
 const log = createPrefixedLogger('MTLS-FACTORY');
 
 export class MTLSAdapterFactory {
   static async createAdapter(): Promise<IMTLSPort | null> {
-    const platform = PlatformDetector.detectPlatform();
+    const { platform } = detectPlatform();
 
     log.debug('Creating adapter for platform:', platform);
 
@@ -37,7 +37,7 @@ export class MTLSAdapterFactory {
   }
 
   static getPlatform(): string {
-    return PlatformDetector.detectPlatform();
+    return detectPlatform().platform;
   }
 
   static async isMTLSSupported(): Promise<boolean> {
