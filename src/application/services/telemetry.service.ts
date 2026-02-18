@@ -7,7 +7,6 @@ import { ITelemetryRepository } from '@/domain/repositories/telemetry.repository
 
 export interface TelemetryState {
   data: Telemetry | null;
-  isCached: boolean;
   isLoading: boolean;
   lastFetchedAt: number | null;
   error?: string;
@@ -29,7 +28,6 @@ const DEFAULT_CONFIG: TelemetryServiceConfig = {
 export class TelemetryService {
   private readonly stateSubject = new BehaviorSubject<TelemetryState>({
     data: null,
-    isCached: false,
     isLoading: false,
     lastFetchedAt: null,
   });
@@ -134,7 +132,6 @@ export class TelemetryService {
 
       const newState: TelemetryState = {
         data,
-        isCached: false,
         isLoading: false,
         lastFetchedAt: Date.now(),
       };
@@ -163,7 +160,6 @@ export class TelemetryService {
   clearTelemetry(): void {
     this.stateSubject.next({
       data: null,
-      isCached: false,
       isLoading: false,
       lastFetchedAt: null,
     });

@@ -210,16 +210,6 @@ sdk.updateConfig({ debug: true });
 
 **Ritorna:** `void`
 
-### getOfflineManager()
-
-Ottiene il gestore operazioni offline.
-
-```typescript
-const offlineManager = sdk.getOfflineManager();
-```
-
-**Ritorna:** `OfflineManager`
-
 ### destroy()
 
 Distrugge l'istanza SDK e libera risorse.
@@ -240,8 +230,6 @@ const sdk = await createACubeSDK(
     onUserChanged: (user) => { },
     onAuthError: (error) => { },
     onNetworkStatusChanged: (online) => { },
-    onOfflineOperationAdded: (operationId) => { },
-    onOfflineOperationCompleted: (operationId, success) => { },
   }
 );
 ```
@@ -251,8 +239,6 @@ const sdk = await createACubeSDK(
 | `onUserChanged` | `user: User \| null` | Utente cambiato |
 | `onAuthError` | `error: ACubeSDKError` | Errore autenticazione |
 | `onNetworkStatusChanged` | `online: boolean` | Stato rete cambiato |
-| `onOfflineOperationAdded` | `operationId: string` | Operazione offline aggiunta |
-| `onOfflineOperationCompleted` | `operationId: string, success: boolean` | Operazione completata |
 
 ## Tipi Comuni
 

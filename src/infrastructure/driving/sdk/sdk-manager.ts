@@ -1,6 +1,7 @@
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 
-import { PlatformAdapters } from '@/application/ports/driven';
+import { CertificateInfo, PlatformAdapters } from '@/application/ports/driven';
+import { StoredCertificate } from '@/application/ports/driven/certificate.port';
 import { INetworkPort } from '@/application/ports/driven/network.port';
 import {
   AppMode,
@@ -15,14 +16,18 @@ import { ICashierRepository } from '@/domain/repositories/cashier.repository';
 import { IDailyReportRepository } from '@/domain/repositories/daily-report.repository';
 import { IJournalRepository } from '@/domain/repositories/journal.repository';
 import { IMerchantRepository } from '@/domain/repositories/merchant.repository';
+import { INotificationRepository } from '@/domain/repositories/notification.repository';
 import { IPemRepository } from '@/domain/repositories/pem.repository';
 import { IPointOfSaleRepository } from '@/domain/repositories/point-of-sale.repository';
 import { IReceiptRepository } from '@/domain/repositories/receipt.repository';
 import { ISupplierRepository } from '@/domain/repositories/supplier.repository';
 import { hasAnyRole } from '@/domain/value-objects/role.vo';
 import { ACubeSDKError, AuthCredentials, SDKConfig, User } from '@/shared/types';
+import { createPrefixedLogger } from '@/shared/utils';
 
 import { ACubeSDK, SDKEvents } from './acube-sdk';
+
+const log = createPrefixedLogger('SDK-MANAGER');
 
 /**
  * Configuration for SDKManager
@@ -84,6 +89,9 @@ export interface ManagedServices {
   ) => Promise<void>;
   hasCertificate: () => Promise<boolean>;
   clearCertificate: () => Promise<void>;
+  getCertificate: () => Promise<StoredCertificate | null>;
+  getCertificatesInfo: () => Promise<CertificateInfo | null>;
+  notifications: INotificationRepository;
   isOnline: () => boolean;
 }
 
@@ -143,6 +151,7 @@ export class SDKManager {
   private appStateService: AppStateService | null = null;
   private isInitialized = false;
   private isPollingActive = false;
+  private readonly certificateMissingSubject = new BehaviorSubject<boolean>(false);
 
   private constructor(
     private readonly config: SDKManagerConfig,
@@ -161,9 +170,14 @@ export class SDKManager {
     if (!this.isInitialized) return;
 
     if (user) {
-      // User logged in - check role and start polling if allowed
+      // User logged in - check role and certificate before starting polling
       const canPoll = hasAnyRole(user.roles, ['ROLE_MERCHANT', 'ROLE_CASHIER']);
       if (canPoll && !this.isPollingActive) {
+        const hasCert = await this.checkCertificate();
+        if (!hasCert) {
+          log.warn('Certificate missing — polling blocked until certificate is installed');
+          return;
+        }
         this.notificationService?.startPolling();
         await this.startTelemetryPollingAuto();
         this.isPollingActive = true;
@@ -176,6 +190,7 @@ export class SDKManager {
         this.telemetryService?.clearTelemetry();
         this.isPollingActive = false;
       }
+      this.certificateMissingSubject.next(false);
     }
   };
 
@@ -264,7 +279,8 @@ export class SDKManager {
 
     this.appStateService = new AppStateService(
       this.notificationService.notifications$,
-      networkPort
+      networkPort,
+      this.certificateMissingSubject.asObservable()
     );
 
     if (this.events?.onAppStateChanged) {
@@ -281,9 +297,14 @@ export class SDKManager {
     const canPoll = user && hasAnyRole(user.roles, ['ROLE_MERCHANT', 'ROLE_CASHIER']);
 
     if (canPoll) {
-      this.notificationService.startPolling();
-      await this.startTelemetryPollingAuto();
-      this.isPollingActive = true;
+      const hasCert = await this.checkCertificate();
+      if (hasCert) {
+        this.notificationService.startPolling();
+        await this.startTelemetryPollingAuto();
+        this.isPollingActive = true;
+      } else {
+        log.warn('Certificate missing at init — polling blocked until certificate is installed');
+      }
     }
     // AppStateService remains active for all users (handles OFFLINE network state)
   }
@@ -323,7 +344,15 @@ export class SDKManager {
   }
 
   /**
-   * Observable stream of telemetry state (data, isLoading, isCached, error)
+   * Observable stream indicating if certificate is missing
+   * When true, polling is blocked and the user should install a certificate
+   */
+  get certificateMissing$(): Observable<boolean> {
+    return this.certificateMissingSubject.asObservable();
+  }
+
+  /**
+   * Observable stream of telemetry state (data, isLoading, error)
    */
   get telemetryState$(): Observable<TelemetryState> {
     this.ensureInitialized();
@@ -407,13 +436,41 @@ export class SDKManager {
       logout: (): Promise<void> => sdk.logout(),
       getCurrentUser: (): Promise<User | null> => sdk.getCurrentUser(),
       isAuthenticated: (): Promise<boolean> => sdk.isAuthenticated(),
-      storeCertificate: (
+      storeCertificate: async (
         certificate: string,
         privateKey: string,
         options?: { format?: 'pem' | 'p12' }
-      ): Promise<void> => sdk.storeCertificate(certificate, privateKey, options),
+      ): Promise<void> => {
+        await sdk.storeCertificate(certificate, privateKey, options);
+        this.certificateMissingSubject.next(false);
+        // Start polling if user can poll and polling is not active
+        if (!this.isPollingActive) {
+          const user = await sdk.getCurrentUser();
+          const canPoll = user && hasAnyRole(user.roles, ['ROLE_MERCHANT', 'ROLE_CASHIER']);
+          if (canPoll) {
+            log.info('Certificate installed — starting polling');
+            this.notificationService?.startPolling();
+            await this.startTelemetryPollingAuto();
+            this.isPollingActive = true;
+          }
+        }
+      },
       hasCertificate: (): Promise<boolean> => sdk.hasCertificate(),
-      clearCertificate: (): Promise<void> => sdk.clearCertificate(),
+      clearCertificate: async (): Promise<void> => {
+        await sdk.clearCertificate();
+        this.certificateMissingSubject.next(true);
+        // Stop polling since certificate is required
+        if (this.isPollingActive) {
+          log.info('Certificate removed — stopping polling');
+          this.notificationService?.stopPolling();
+          this.telemetryService?.stopPolling();
+          this.telemetryService?.clearTelemetry();
+          this.isPollingActive = false;
+        }
+      },
+      getCertificate: (): Promise<StoredCertificate | null> => sdk.getCertificate(),
+      getCertificatesInfo: (): Promise<CertificateInfo | null> => sdk.getCertificatesInfo(),
+      notifications: sdk.notifications,
       isOnline: (): boolean => sdk.isOnline(),
     };
   }
@@ -447,6 +504,21 @@ export class SDKManager {
   getSDK(): ACubeSDK {
     this.ensureInitialized();
     return this.sdk!;
+  }
+
+  /**
+   * Check certificate availability and update certificateMissing state.
+   * Returns true if certificate is available, false otherwise.
+   */
+  private async checkCertificate(): Promise<boolean> {
+    try {
+      const hasCert = await this.sdk!.hasCertificate();
+      this.certificateMissingSubject.next(!hasCert);
+      return hasCert;
+    } catch {
+      this.certificateMissingSubject.next(true);
+      return false;
+    }
   }
 
   private cleanup(): void {

@@ -1,4 +1,4 @@
-import { BehaviorSubject, Observable, Subject, combineLatest } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, combineLatest, of } from 'rxjs';
 import { distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
 
 import { INetworkPort } from '@/application/ports/driven/network.port';
@@ -17,6 +17,7 @@ export interface AppState {
   isOnline: boolean;
   warning: WarningState;
   lastNotification: Notification | null;
+  certificateMissing: boolean;
 }
 
 const INITIAL_STATE: AppState = {
@@ -28,6 +29,7 @@ const INITIAL_STATE: AppState = {
     remainingMs: 0,
   },
   lastNotification: null,
+  certificateMissing: false,
 };
 
 export class AppStateService {
@@ -57,28 +59,41 @@ export class AppStateService {
     );
   }
 
+  get certificateMissing$(): Observable<boolean> {
+    return this.state$.pipe(
+      map((s) => s.certificateMissing),
+      distinctUntilChanged()
+    );
+  }
+
   constructor(
     private readonly notifications$: Observable<Notification[]>,
-    private readonly networkPort: INetworkPort
+    private readonly networkPort: INetworkPort,
+    private readonly certificateMissingInput$: Observable<boolean> = of(false)
   ) {
     this.setupSubscriptions();
   }
 
   private setupSubscriptions(): void {
-    combineLatest([this.notifications$, this.networkPort.online$])
+    combineLatest([this.notifications$, this.networkPort.online$, this.certificateMissingInput$])
       .pipe(takeUntil(this.destroy$))
-      .subscribe(([notifications, isOnline]) => {
-        this.processState(notifications, isOnline);
+      .subscribe(([notifications, isOnline, certificateMissing]) => {
+        this.processState(notifications, isOnline, certificateMissing);
       });
   }
 
-  private processState(notifications: Notification[], isOnline: boolean): void {
+  private processState(
+    notifications: Notification[],
+    isOnline: boolean,
+    certificateMissing: boolean
+  ): void {
     if (!isOnline) {
       this.updateState({
         mode: 'OFFLINE',
         isOnline: false,
         warning: { active: false, blockAt: null, remainingMs: 0 },
         lastNotification: null,
+        certificateMissing,
       });
       this.stopWarningTimer();
       return;
@@ -145,6 +160,7 @@ export class AppStateService {
       isOnline: true,
       warning: warningState,
       lastNotification,
+      certificateMissing,
     });
   }
 

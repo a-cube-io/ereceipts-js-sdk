@@ -199,7 +199,6 @@ manager.telemetryState$.subscribe(state => {
     console.log('PEM Status:', state.data.pemStatus);
     console.log('Ultimo fetch:', new Date(state.lastFetchedAt));
   }
-  console.log('Cached:', state.isCached);
 });
 ```
 
@@ -533,5 +532,4 @@ Vedi [Esempio React](../examples/notifications-telemetry.md) per un'implementazi
 - [App State API](./app-state.md)
 - [Notifications API](./notifications.md)
 - [Telemetry API](./telemetry.md)
-- [Caching](../advanced/caching.md)
 - [Esempio Completo](../examples/notifications-telemetry.md)
