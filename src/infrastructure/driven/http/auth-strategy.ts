@@ -47,6 +47,14 @@ export class AuthStrategy {
       return { mode: 'jwt', usePort444: false };
     }
 
+    if (url.includes('/download-data')) {
+      if (platform === 'mobile') {
+        return { mode: 'mtls', usePort444: true };
+      } else {
+        return { mode: 'jwt', usePort444: true };
+      }
+    }
+
     if (userRole === 'CASHIER') {
       if (!isReceiptEndpoint) {
         return { mode: 'jwt', usePort444: false };

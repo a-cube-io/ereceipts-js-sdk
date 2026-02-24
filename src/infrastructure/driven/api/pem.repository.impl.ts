@@ -37,4 +37,11 @@ export class PemRepositoryImpl implements IPemRepository {
     );
     return PemMapper.fromCertificatesApiOutput(response.data);
   }
+
+  async downloadData(serialNumber: string): Promise<ArrayBuffer> {
+    const response = await this.http.get<ArrayBuffer>(`/mf1/pems/${serialNumber}/download-data`, {
+      responseType: 'arraybuffer',
+    });
+    return response.data;
+  }
 }

@@ -6,4 +6,5 @@ export interface IPemRepository {
   findBySerialNumber(serialNumber: string): Promise<PointOfSaleMf2>;
   findAllByMerchant(merchantUuid: string, page?: number): Promise<PointOfSaleMf2[]>;
   getCertificates(serialNumber: string): Promise<PemCertificates>;
+  downloadData(serialNumber: string): Promise<ArrayBuffer>;
 }
