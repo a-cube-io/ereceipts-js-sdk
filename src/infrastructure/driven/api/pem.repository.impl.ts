@@ -9,6 +9,7 @@ import { PemCertificates, PemCreateInput, PemCreateOutput } from '@/domain/entit
 import { PointOfSaleMf2 } from '@/domain/entities/point-of-sale.entity';
 import { IPemRepository } from '@/domain/repositories/pem.repository';
 
+// this repository is used for MF2 endpoints
 export class PemRepositoryImpl implements IPemRepository {
   constructor(private readonly http: IHttpPort) {}
 
@@ -36,12 +37,5 @@ export class PemRepositoryImpl implements IPemRepository {
       `/mf2/pems/${serialNumber}/certificates`
     );
     return PemMapper.fromCertificatesApiOutput(response.data);
-  }
-
-  async downloadData(serialNumber: string): Promise<ArrayBuffer> {
-    const response = await this.http.get<ArrayBuffer>(`/mf1/pems/${serialNumber}/download-data`, {
-      responseType: 'arraybuffer',
-    });
-    return response.data;
   }
 }

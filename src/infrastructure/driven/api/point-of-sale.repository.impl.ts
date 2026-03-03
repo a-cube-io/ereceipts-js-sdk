@@ -14,6 +14,7 @@ import {
 import { IPointOfSaleRepository } from '@/domain/repositories/point-of-sale.repository';
 import { Page } from '@/domain/value-objects/page.vo';
 
+// this repository is used for MF1 endpoints
 export class PointOfSaleRepositoryImpl implements IPointOfSaleRepository {
   constructor(private readonly http: IHttpPort) {}
 
@@ -49,5 +50,12 @@ export class PointOfSaleRepositoryImpl implements IPointOfSaleRepository {
   async communicateOffline(serialNumber: string, input: PEMStatusOfflineRequest): Promise<void> {
     const apiInput = PointOfSaleMapper.toOfflineApiInput(input);
     await this.http.post(`/mf1/pems/${serialNumber}/communicate-offline`, apiInput);
+  }
+
+  async downloadData(serialNumber: string): Promise<ArrayBuffer> {
+    const response = await this.http.get<ArrayBuffer>(`/mf1/pems/${serialNumber}/download-data`, {
+      responseType: 'arraybuffer',
+    });
+    return response.data;
   }
 }

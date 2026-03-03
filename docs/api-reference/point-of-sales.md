@@ -107,7 +107,7 @@ interface PointOfSale {
   serialNumber: string;
   status: PEMStatus;
   address: Address;
-  operationalStatus: string;
+  journalStatus: string;
 }
 ```
 

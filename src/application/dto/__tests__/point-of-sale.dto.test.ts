@@ -50,7 +50,7 @@ describe('PointOfSaleMapper', () => {
           city: 'Roma',
           province: 'RM',
         },
-        operational_status: 'operational',
+        journal_status: 'operational',
       };
 
       const result = PointOfSaleMapper.fromApiOutput(output);
@@ -65,7 +65,7 @@ describe('PointOfSaleMapper', () => {
           city: 'Roma',
           province: 'RM',
         },
-        operationalStatus: 'operational',
+        journalStatus: 'operational',
       });
     });
 
@@ -90,7 +90,7 @@ describe('PointOfSaleMapper', () => {
             city: 'City',
             province: 'PR',
           },
-          operational_status: 'status',
+          journal_status: 'status',
         };
 
         const result = PointOfSaleMapper.fromApiOutput(output);
@@ -111,7 +111,7 @@ describe('PointOfSaleMapper', () => {
           city: 'Milano',
           province: 'MI',
         },
-        operational_status: 'pending',
+        journal_status: 'pending',
         registration_key: 'REG-KEY-ABC123',
       };
 
@@ -132,7 +132,7 @@ describe('PointOfSaleMapper', () => {
           city: 'Test',
           province: 'TE',
         },
-        operational_status: 'new',
+        journal_status: 'new',
       };
 
       const result = PointOfSaleMapper.fromDetailedApiOutput(output);
@@ -155,7 +155,7 @@ describe('PointOfSaleMapper', () => {
               city: 'City1',
               province: 'C1',
             },
-            operational_status: 'active',
+            journal_status: 'active',
           },
           {
             serial_number: 'SN2',
@@ -167,7 +167,7 @@ describe('PointOfSaleMapper', () => {
               city: 'City2',
               province: 'C2',
             },
-            operational_status: 'maintenance',
+            journal_status: 'maintenance',
           },
         ],
         total: 50,
@@ -180,7 +180,7 @@ describe('PointOfSaleMapper', () => {
 
       expect(result.members).toHaveLength(2);
       expect(result.members[0].serialNumber).toBe('SN1');
-      expect(result.members[1].operationalStatus).toBe('maintenance');
+      expect(result.members[1].journalStatus).toBe('maintenance');
       expect(result.total).toBe(50);
       expect(result.page).toBe(2);
     });

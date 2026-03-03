@@ -13,7 +13,7 @@ export interface PointOfSaleApiOutput {
   serial_number: string;
   status: PEMStatus;
   address: AddressApiOutput;
-  operational_status: string;
+  journal_status: string;
 }
 
 export interface PointOfSaleDetailedApiOutput extends PointOfSaleApiOutput {
@@ -48,7 +48,7 @@ export class PointOfSaleMapper {
       serialNumber: output.serial_number,
       status: output.status,
       address: AddressMapper.fromApi(output.address),
-      operationalStatus: output.operational_status,
+      journalStatus: output.journal_status,
     };
   }
 
