@@ -14,4 +14,5 @@ export interface IPointOfSaleRepository {
   closeJournal(serialNumber: string): Promise<void>;
   createInactivity(serialNumber: string): Promise<void>;
   communicateOffline(serialNumber: string, input: PEMStatusOfflineRequest): Promise<void>;
+  downloadData(serialNumber: string): Promise<ArrayBuffer>;
 }

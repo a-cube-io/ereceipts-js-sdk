@@ -8,7 +8,7 @@ export interface PointOfSale {
   serialNumber: string;
   status: PEMStatus;
   address: Address;
-  operationalStatus: string;
+  journalStatus: string;
 }
 
 export interface PointOfSaleDetailed extends PointOfSale {

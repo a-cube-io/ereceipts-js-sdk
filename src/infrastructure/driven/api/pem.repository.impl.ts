@@ -9,6 +9,7 @@ import { PemCertificates, PemCreateInput, PemCreateOutput } from '@/domain/entit
 import { PointOfSaleMf2 } from '@/domain/entities/point-of-sale.entity';
 import { IPemRepository } from '@/domain/repositories/pem.repository';
 
+// this repository is used for MF2 endpoints
 export class PemRepositoryImpl implements IPemRepository {
   constructor(private readonly http: IHttpPort) {}
 
