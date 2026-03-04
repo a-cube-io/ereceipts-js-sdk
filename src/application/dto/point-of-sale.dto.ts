@@ -1,5 +1,6 @@
 import {
   ActivationRequest,
+  PEMInactivityPeriodInput,
   PEMStatus,
   PEMStatusOfflineRequest,
   PointOfSale,
@@ -27,6 +28,11 @@ export interface ActivationRequestApiInput {
 export interface PEMStatusOfflineRequestApiInput {
   timestamp: string;
   reason: string;
+}
+
+export interface PEMInactivityInputApiInput {
+  start_at: string;
+  end_at: string;
 }
 
 export class PointOfSaleMapper {
@@ -66,6 +72,12 @@ export class PointOfSaleMapper {
       page: response.page,
       size: response.size,
       pages: response.pages,
+    };
+  }
+  static toInactivityApiInput(input: PEMInactivityPeriodInput): PEMInactivityInputApiInput {
+    return {
+      start_at: input.startAt,
+      end_at: input.endAt,
     };
   }
 }

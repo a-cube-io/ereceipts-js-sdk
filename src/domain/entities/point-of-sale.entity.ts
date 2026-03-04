@@ -36,3 +36,8 @@ export interface PEMStatusOfflineRequest {
   timestamp: string;
   reason: string;
 }
+
+export interface PEMInactivityPeriodInput {
+  startAt: string;
+  endAt: string;
+}

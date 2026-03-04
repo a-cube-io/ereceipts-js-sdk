@@ -1,5 +1,6 @@
 import {
   ActivationRequest,
+  PEMInactivityPeriodInput,
   PEMStatusOfflineRequest,
   PointOfSale,
   PointOfSaleDetailed,
@@ -12,7 +13,7 @@ export interface IPointOfSaleRepository {
   findAll(params?: PointOfSaleListParams): Promise<Page<PointOfSale>>;
   activate(serialNumber: string, input: ActivationRequest): Promise<void>;
   closeJournal(serialNumber: string): Promise<void>;
-  createInactivity(serialNumber: string): Promise<void>;
+  createInactivityPeriod(serialNumber: string, input: PEMInactivityPeriodInput): Promise<void>;
   communicateOffline(serialNumber: string, input: PEMStatusOfflineRequest): Promise<void>;
   downloadData(serialNumber: string): Promise<ArrayBuffer>;
 }

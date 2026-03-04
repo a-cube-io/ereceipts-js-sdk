@@ -48,6 +48,12 @@ export class AuthStrategy {
     }
 
     if (userRole === 'CASHIER') {
+      if (url.includes('/inactivity-period')) {
+        if (platform === 'mobile') {
+          return { mode: 'mtls', usePort444: true };
+        }
+        return { mode: 'jwt', usePort444: true };
+      }
       if (!isReceiptEndpoint) {
         return { mode: 'jwt', usePort444: false };
       }
