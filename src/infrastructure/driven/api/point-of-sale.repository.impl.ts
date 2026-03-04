@@ -44,7 +44,10 @@ export class PointOfSaleRepositoryImpl implements IPointOfSaleRepository {
     await this.http.post(`/mf1/pems/${serialNumber}/close`);
   }
 
-  async createInactivityPeriod(serialNumber: string, input: PEMInactivityPeriodInput): Promise<void> {
+  async createInactivityPeriod(
+    serialNumber: string,
+    input: PEMInactivityPeriodInput
+  ): Promise<void> {
     const apiInput = PointOfSaleMapper.toInactivityApiInput(input);
     await this.http.post(`/mf1/pems/${serialNumber}/inactivity-period`, apiInput);
   }
