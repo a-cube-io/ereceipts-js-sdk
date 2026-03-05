@@ -6,6 +6,7 @@ import {
 import { IHttpPort } from '@/application/ports/driven/http.port';
 import {
   ActivationRequest,
+  PEMInactivityPeriodInput,
   PEMStatusOfflineRequest,
   PointOfSale,
   PointOfSaleDetailed,
@@ -43,8 +44,12 @@ export class PointOfSaleRepositoryImpl implements IPointOfSaleRepository {
     await this.http.post(`/mf1/pems/${serialNumber}/close`);
   }
 
-  async createInactivity(serialNumber: string): Promise<void> {
-    await this.http.post(`/mf1/pems/${serialNumber}/inactivity`);
+  async createInactivityPeriod(
+    serialNumber: string,
+    input: PEMInactivityPeriodInput
+  ): Promise<void> {
+    const apiInput = PointOfSaleMapper.toInactivityApiInput(input);
+    await this.http.post(`/mf1/pems/${serialNumber}/inactivity-period`, apiInput);
   }
 
   async communicateOffline(serialNumber: string, input: PEMStatusOfflineRequest): Promise<void> {
