@@ -42,7 +42,6 @@ export interface PEMInactivityPeriodInput {
   endAt: string;
 }
 
-
 export interface EmergencyReportInput {
   datetime: string;
   documentsCount: number;
