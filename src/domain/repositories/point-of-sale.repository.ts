@@ -1,5 +1,6 @@
 import {
   ActivationRequest,
+  EmergencyReportInput,
   PEMInactivityPeriodInput,
   PEMStatusOfflineRequest,
   PointOfSale,
@@ -15,5 +16,6 @@ export interface IPointOfSaleRepository {
   closeJournal(serialNumber: string): Promise<void>;
   createInactivityPeriod(serialNumber: string, input: PEMInactivityPeriodInput): Promise<void>;
   communicateOffline(serialNumber: string, input: PEMStatusOfflineRequest): Promise<void>;
+  uploadEmergencyReport(serialNumber: string, input: EmergencyReportInput): Promise<void>;
   downloadData(serialNumber: string): Promise<ArrayBuffer>;
 }
