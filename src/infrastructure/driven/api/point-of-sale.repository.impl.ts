@@ -6,6 +6,7 @@ import {
 import { IHttpPort } from '@/application/ports/driven/http.port';
 import {
   ActivationRequest,
+  EmergencyReportInput,
   PEMInactivityPeriodInput,
   PEMStatusOfflineRequest,
   PointOfSale,
@@ -50,6 +51,11 @@ export class PointOfSaleRepositoryImpl implements IPointOfSaleRepository {
   ): Promise<void> {
     const apiInput = PointOfSaleMapper.toInactivityApiInput(input);
     await this.http.post(`/mf1/pems/${serialNumber}/inactivity-period`, apiInput);
+  }
+
+  async uploadEmergencyReport(serialNumber: string, input: EmergencyReportInput): Promise<void> {
+    const apiInput = PointOfSaleMapper.toEmergencyReportApiInput(input);
+    await this.http.post(`/mf1/pems/${serialNumber}/emergency-report`, apiInput);
   }
 
   async communicateOffline(serialNumber: string, input: PEMStatusOfflineRequest): Promise<void> {

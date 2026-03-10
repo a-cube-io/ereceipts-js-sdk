@@ -41,3 +41,29 @@ export interface PEMInactivityPeriodInput {
   startAt: string;
   endAt: string;
 }
+
+export interface EmergencyReportInput {
+  datetime: string;
+  documentsCount: number;
+  cashPaymentAmount: string;
+  electronicPaymentAmount: string;
+  discount?: string;
+  ticketRestaurantPaymentAmount: string;
+  ticketRestaurantQuantity: number;
+  entries: DailyReportEntry[];
+}
+
+export interface DailyReportEntry {
+  vatRateCode: string;
+  vatAmount: string;
+  simplifiedVatAllocation: boolean;
+  partialAmount: string;
+  totalReturnedAmount?: string;
+  totalVoidedAmount?: string;
+  totalPrepaidOrVoucherAmount?: string;
+  totalUncollectedServices?: string;
+  totalUncollectedInvoiced?: string;
+  totalUncollectedDcrToSsn?: string;
+  totalUncollectedComplimentary?: string;
+  atecoCode?: string;
+}
