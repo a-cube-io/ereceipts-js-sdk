@@ -38,7 +38,8 @@ export interface Receipt {
   documentDatetime?: string;
   isReturnable: boolean;
   isVoidable: boolean;
-  pdfUrl?: string;
+  pdfUrl: string;
+  status: ReceiptStatus;
   parentReceiptUuid?: string;
 }
 

@@ -54,8 +54,9 @@ export interface ReceiptApiOutput {
   document_datetime?: string;
   is_returnable: boolean;
   is_voidable: boolean;
-  pdf_url?: string;
+  pdf_url: string;
   parent_receipt_uuid?: string;
+  status: 'ready' | 'sent';
 }
 
 export interface ReceiptDetailsApiOutput extends ReceiptApiOutput {
@@ -161,6 +162,7 @@ export class ReceiptMapper {
       isReturnable: output.is_returnable,
       isVoidable: output.is_voidable,
       pdfUrl: output.pdf_url,
+      status: output.status,
       parentReceiptUuid: output.parent_receipt_uuid,
     };
   }
