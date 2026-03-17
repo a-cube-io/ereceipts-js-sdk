@@ -30,7 +30,8 @@ export class CashierRepositoryImpl implements ICashierRepository {
     return CashierMapper.pageFromApi(response.data);
   }
 
-  async delete(uuid: string): Promise<void> {
-    await this.http.delete(`/mf1/cashiers/${uuid}`);
+  async disable(uuid: string): Promise<Cashier> {
+    const response = await this.http.put<CashierApiOutput>(`/mf1/cashiers/${uuid}/disable`);
+    return CashierMapper.fromApiOutput(response.data);
   }
 }
