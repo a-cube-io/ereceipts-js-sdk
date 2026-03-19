@@ -64,7 +64,6 @@ export interface ReceiptDetailsApiOutput extends ReceiptApiOutput {
   vat_number: string;
   total_taxable_amount: string;
   total_uncollected_amount: string;
-  deductible_amount: string;
   total_vat_amount: string;
   total_discount: string;
   total_gross_discount: string;
@@ -174,7 +173,6 @@ export class ReceiptMapper {
       vatNumber: output.vat_number,
       totalTaxableAmount: output.total_taxable_amount,
       totalUncollectedAmount: output.total_uncollected_amount,
-      deductibleAmount: output.deductible_amount,
       totalVatAmount: output.total_vat_amount,
       totalDiscount: output.total_discount,
       totalGrossDiscount: output.total_gross_discount,
