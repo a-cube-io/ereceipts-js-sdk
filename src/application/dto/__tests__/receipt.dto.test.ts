@@ -6,7 +6,6 @@ import {
   ReceiptReturnItem,
   VoidReceiptInput,
 } from '../../../domain/entities/receipt.entity';
-
 import {
   ReceiptApiOutput,
   ReceiptDetailsApiOutput,
