@@ -5,8 +5,7 @@ import {
   ReceiptReturnInput,
   ReceiptReturnItem,
   VoidReceiptInput,
-} from '@/domain/entities/receipt.entity';
-
+} from '../../../domain/entities/receipt.entity';
 import {
   ReceiptApiOutput,
   ReceiptDetailsApiOutput,
@@ -244,7 +243,6 @@ describe('ReceiptMapper', () => {
         vat_number: 'IT12345678901',
         total_taxable_amount: '100.00',
         total_uncollected_amount: '0.00',
-        deductible_amount: '22.00',
         total_vat_amount: '22.00',
         total_discount: '10.00',
         total_gross_discount: '12.20',
@@ -267,7 +265,6 @@ describe('ReceiptMapper', () => {
       expect(result.vatNumber).toBe('IT12345678901');
       expect(result.totalTaxableAmount).toBe('100.00');
       expect(result.totalUncollectedAmount).toBe('0.00');
-      expect(result.deductibleAmount).toBe('22.00');
       expect(result.totalVatAmount).toBe('22.00');
       expect(result.totalDiscount).toBe('10.00');
       expect(result.totalGrossDiscount).toBe('12.20');
@@ -288,7 +285,6 @@ describe('ReceiptMapper', () => {
         vat_number: 'IT12345678901',
         total_taxable_amount: '81.97',
         total_uncollected_amount: '0.00',
-        deductible_amount: '18.03',
         total_vat_amount: '18.03',
         total_discount: '0.00',
         total_gross_discount: '0.00',

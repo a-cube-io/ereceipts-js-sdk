@@ -48,7 +48,6 @@ export interface ReceiptDetails extends Receipt {
   vatNumber: string;
   totalTaxableAmount: string;
   totalUncollectedAmount: string;
-  deductibleAmount: string;
   totalVatAmount: string;
   totalDiscount: string;
   totalGrossDiscount: string;
