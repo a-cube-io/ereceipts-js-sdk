@@ -31,4 +31,4 @@ export interface PemUpdateInput {
   logo?: string;
 }
 
-export type PemUpdateOutput = Omit<PemUpdateInput, 'logo'>;
+export type PemConfigurationOutput = Omit<PemUpdateInput, 'logo'>;

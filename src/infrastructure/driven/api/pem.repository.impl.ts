@@ -1,5 +1,6 @@
 import {
   PemCertificatesApiOutput,
+  PemConfigurationApiOutput,
   PemCreateApiOutput,
   PemMapper,
   PemUpdateApiOutput,
@@ -11,7 +12,7 @@ import {
   PemCreateInput,
   PemCreateOutput,
   PemUpdateInput,
-  PemUpdateOutput,
+  PemConfigurationOutput,
 } from '@/domain/entities/pem.entity';
 import { PointOfSaleMf2 } from '@/domain/entities/point-of-sale.entity';
 import { IPemRepository } from '@/domain/repositories/pem.repository';
@@ -46,12 +47,29 @@ export class PemRepositoryImpl implements IPemRepository {
     return PemMapper.fromCertificatesApiOutput(response.data);
   }
 
-  async updateConfiguration(serialNumber: string, input: PemUpdateInput): Promise<PemUpdateOutput> {
+  async updateConfiguration(
+    serialNumber: string,
+    input: PemUpdateInput
+  ): Promise<PemConfigurationOutput> {
     const apiInput = PemMapper.toUpdateApiInput(input);
     const response = await this.http.put<PemUpdateApiOutput>(
       `/mf2/pems/${serialNumber}/configuration`,
       apiInput
     );
     return PemMapper.fromUpdateApiOutput(response.data);
+  }
+
+  async getPEMConfiguration(serialNumber: string): Promise<PemConfigurationOutput> {
+    const response = await this.http.get<PemConfigurationApiOutput>(
+      `/mf2/pems/${serialNumber}/configuration`
+    );
+    return PemMapper.fromUpdateApiOutput(response.data);
+  }
+
+  async getLogo(serialNumber: string): Promise<ArrayBuffer> {
+    const response = await this.http.get<ArrayBuffer>(`/mf2/pems/${serialNumber}/configuration/logo`, {
+      responseType: 'arraybuffer',
+    });
+    return response.data;
   }
 }

@@ -3,7 +3,7 @@ import {
   PemCreateInput,
   PemCreateOutput,
   PemUpdateInput,
-  PemUpdateOutput,
+  PemConfigurationOutput,
 } from '@/domain/entities/pem.entity';
 import { PointOfSaleMf2 } from '@/domain/entities/point-of-sale.entity';
 
@@ -44,6 +44,8 @@ export interface PemUpdateApiOutput {
   receipt_header?: string;
   footer_text?: string;
 }
+
+export type PemConfigurationApiOutput = PemUpdateApiOutput;
 
 export interface PointOfSaleMf2ApiOutput {
   serial_number: string;
@@ -95,7 +97,7 @@ export class PemMapper {
     };
   }
 
-  static fromUpdateApiOutput(output: PemUpdateApiOutput): PemUpdateOutput {
+  static fromUpdateApiOutput(output: PemUpdateApiOutput): PemConfigurationOutput {
     return {
       receiptFormat: output.receipt_format,
       displayCashierName: output.display_cashier_name,
