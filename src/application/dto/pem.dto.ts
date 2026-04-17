@@ -1,4 +1,10 @@
-import { PemCertificates, PemCreateInput, PemCreateOutput } from '@/domain/entities/pem.entity';
+import {
+  PemCertificates,
+  PemCreateInput,
+  PemCreateOutput,
+  PemUpdateInput,
+  PemUpdateOutput,
+} from '@/domain/entities/pem.entity';
 import { PointOfSaleMf2 } from '@/domain/entities/point-of-sale.entity';
 
 import { AddressApiOutput } from './merchant.dto';
@@ -22,6 +28,21 @@ export interface PemCreateApiOutput {
 export interface PemCertificatesApiOutput {
   mtls_certificate: string;
   activation_xml_response?: string;
+}
+
+export interface PemUpdateApiInput {
+  receipt_format: 'standard' | 'narrow';
+  display_cashier_name: boolean;
+  receipt_header?: string;
+  footer_text?: string;
+  logo?: string;
+}
+
+export interface PemUpdateApiOutput {
+  receipt_format: 'standard' | 'narrow';
+  display_cashier_name: boolean;
+  receipt_header?: string;
+  footer_text?: string;
 }
 
 export interface PointOfSaleMf2ApiOutput {
@@ -61,6 +82,25 @@ export class PemMapper {
     return {
       mtlsCertificate: output.mtls_certificate,
       activationXmlResponse: output.activation_xml_response,
+    };
+  }
+
+  static toUpdateApiInput(input: PemUpdateInput): PemUpdateApiInput {
+    return {
+      receipt_format: input.receiptFormat,
+      display_cashier_name: input.displayCashierName,
+      receipt_header: input.receiptHeader,
+      footer_text: input.footerText,
+      logo: input.logo,
+    };
+  }
+
+  static fromUpdateApiOutput(output: PemUpdateApiOutput): PemUpdateOutput {
+    return {
+      receiptFormat: output.receipt_format,
+      displayCashierName: output.display_cashier_name,
+      receiptHeader: output.receipt_header,
+      footerText: output.footer_text,
     };
   }
 

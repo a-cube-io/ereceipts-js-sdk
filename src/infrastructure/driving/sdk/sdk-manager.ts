@@ -16,6 +16,7 @@ import { ICashierRepository } from '@/domain/repositories/cashier.repository';
 import { IDailyReportRepository } from '@/domain/repositories/daily-report.repository';
 import { IJournalRepository } from '@/domain/repositories/journal.repository';
 import { IMerchantRepository } from '@/domain/repositories/merchant.repository';
+import { IMf2EmergencyReportRepository } from '@/domain/repositories/mf2-emergency-report';
 import { INotificationRepository } from '@/domain/repositories/notification.repository';
 import { IPemRepository } from '@/domain/repositories/pem.repository';
 import { IPointOfSaleRepository } from '@/domain/repositories/point-of-sale.repository';
@@ -77,6 +78,7 @@ export interface ManagedServices {
   pems: IPemRepository;
   dailyReports: IDailyReportRepository;
   journals: IJournalRepository;
+  mf2EmergencyReports: IMf2EmergencyReportRepository;
   telemetry: TelemetryOperations;
   login: (credentials: AuthCredentials) => Promise<User>;
   logout: () => Promise<void>;
@@ -420,6 +422,7 @@ export class SDKManager {
       pems: sdk.pems,
       dailyReports: sdk.dailyReports,
       journals: sdk.journals,
+      mf2EmergencyReports: sdk.mf2EmergencyReports,
       telemetry: {
         startPollingAuto: (): Promise<string | null> => this.startTelemetryPollingAuto(),
         startPolling: (pemId: string): void => telemetryService.startPolling(pemId),

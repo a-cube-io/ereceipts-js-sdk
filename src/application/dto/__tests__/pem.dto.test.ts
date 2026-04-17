@@ -1,9 +1,10 @@
-import { PemCreateInput } from '@/domain/entities/pem.entity';
+import { PemCreateInput, PemUpdateInput } from '@/domain/entities/pem.entity';
 
 import {
   PemCertificatesApiOutput,
   PemCreateApiOutput,
   PemMapper,
+  PemUpdateApiOutput,
   PointOfSaleMf2ApiOutput,
 } from '../pem.dto';
 
@@ -95,6 +96,81 @@ describe('PemMapper', () => {
 
       expect(result.mtlsCertificate).toBe('cert-content');
       expect(result.activationXmlResponse).toBeUndefined();
+    });
+  });
+
+  describe('toUpdateApiInput', () => {
+    it('should map update configuration fields to snake_case', () => {
+      const input: PemUpdateInput = {
+        receiptFormat: 'standard',
+        displayCashierName: true,
+        receiptHeader: 'Header',
+        footerText: 'Footer',
+        logo: 'base64-logo',
+      };
+
+      const result = PemMapper.toUpdateApiInput(input);
+
+      expect(result).toEqual({
+        receipt_format: 'standard',
+        display_cashier_name: true,
+        receipt_header: 'Header',
+        footer_text: 'Footer',
+        logo: 'base64-logo',
+      });
+    });
+
+    it('should keep optional fields undefined when not provided', () => {
+      const input: PemUpdateInput = {
+        receiptFormat: 'narrow',
+        displayCashierName: false,
+      };
+
+      const result = PemMapper.toUpdateApiInput(input);
+
+      expect(result).toEqual({
+        receipt_format: 'narrow',
+        display_cashier_name: false,
+        receipt_header: undefined,
+        footer_text: undefined,
+        logo: undefined,
+      });
+    });
+  });
+
+  describe('fromUpdateApiOutput', () => {
+    it('should map update configuration response to camelCase', () => {
+      const output: PemUpdateApiOutput = {
+        receipt_format: 'standard',
+        display_cashier_name: true,
+        receipt_header: 'Header',
+        footer_text: 'Footer',
+      };
+
+      const result = PemMapper.fromUpdateApiOutput(output);
+
+      expect(result).toEqual({
+        receiptFormat: 'standard',
+        displayCashierName: true,
+        receiptHeader: 'Header',
+        footerText: 'Footer',
+      });
+    });
+
+    it('should handle optional fields when missing', () => {
+      const output: PemUpdateApiOutput = {
+        receipt_format: 'narrow',
+        display_cashier_name: false,
+      };
+
+      const result = PemMapper.fromUpdateApiOutput(output);
+
+      expect(result).toEqual({
+        receiptFormat: 'narrow',
+        displayCashierName: false,
+        receiptHeader: undefined,
+        footerText: undefined,
+      });
     });
   });
 

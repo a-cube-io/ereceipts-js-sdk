@@ -1,4 +1,10 @@
-import { PemCertificates, PemCreateInput, PemCreateOutput } from '@/domain/entities/pem.entity';
+import {
+  PemCertificates,
+  PemCreateInput,
+  PemCreateOutput,
+  PemUpdateInput,
+  PemUpdateOutput,
+} from '@/domain/entities/pem.entity';
 import { PointOfSaleMf2 } from '@/domain/entities/point-of-sale.entity';
 
 export interface IPemRepository {
@@ -6,4 +12,5 @@ export interface IPemRepository {
   findBySerialNumber(serialNumber: string): Promise<PointOfSaleMf2>;
   findAllByMerchant(merchantUuid: string, page?: number): Promise<PointOfSaleMf2[]>;
   getCertificates(serialNumber: string): Promise<PemCertificates>;
+  updateConfiguration(serialNumber: string, input: PemUpdateInput): Promise<PemUpdateOutput>;
 }
