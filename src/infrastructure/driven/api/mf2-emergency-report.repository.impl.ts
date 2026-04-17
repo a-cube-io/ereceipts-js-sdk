@@ -3,7 +3,10 @@ import {
   EmergencyReportMapper,
 } from '@/application/dto/emergency-report.dto';
 import { IHttpPort } from '@/application/ports/driven/http.port';
-import { EmergencyReportInput, EmergencyReportOutput } from '@/domain/entities/point-of-sale.entity';
+import {
+  EmergencyReportInput,
+  EmergencyReportOutput,
+} from '@/domain/entities/point-of-sale.entity';
 import { IMf2EmergencyReportRepository } from '@/domain/repositories/mf2-emergency-report';
 import { Page } from '@/domain/value-objects/page.vo';
 

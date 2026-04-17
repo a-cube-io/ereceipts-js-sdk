@@ -1,4 +1,7 @@
-import { EmergencyReportInput, EmergencyReportOutput } from '@/domain/entities/point-of-sale.entity';
+import {
+  EmergencyReportInput,
+  EmergencyReportOutput,
+} from '@/domain/entities/point-of-sale.entity';
 import { Page } from '@/domain/value-objects/page.vo';
 
 export interface IMf2EmergencyReportRepository {

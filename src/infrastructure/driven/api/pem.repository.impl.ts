@@ -46,10 +46,7 @@ export class PemRepositoryImpl implements IPemRepository {
     return PemMapper.fromCertificatesApiOutput(response.data);
   }
 
-  async updateConfiguration(
-    serialNumber: string,
-    input: PemUpdateInput
-  ): Promise<PemUpdateOutput> {
+  async updateConfiguration(serialNumber: string, input: PemUpdateInput): Promise<PemUpdateOutput> {
     const apiInput = PemMapper.toUpdateApiInput(input);
     const response = await this.http.put<PemUpdateApiOutput>(
       `/mf2/pems/${serialNumber}/configuration`,
