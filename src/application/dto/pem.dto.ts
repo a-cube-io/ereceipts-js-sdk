@@ -1,9 +1,9 @@
 import {
   PemCertificates,
+  PemConfigurationOutput,
   PemCreateInput,
   PemCreateOutput,
   PemUpdateInput,
-  PemConfigurationOutput,
 } from '@/domain/entities/pem.entity';
 import { PointOfSaleMf2 } from '@/domain/entities/point-of-sale.entity';
 

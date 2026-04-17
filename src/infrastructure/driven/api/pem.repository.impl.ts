@@ -9,10 +9,10 @@ import {
 import { IHttpPort } from '@/application/ports/driven/http.port';
 import {
   PemCertificates,
+  PemConfigurationOutput,
   PemCreateInput,
   PemCreateOutput,
   PemUpdateInput,
-  PemConfigurationOutput,
 } from '@/domain/entities/pem.entity';
 import { PointOfSaleMf2 } from '@/domain/entities/point-of-sale.entity';
 import { IPemRepository } from '@/domain/repositories/pem.repository';
@@ -67,9 +67,12 @@ export class PemRepositoryImpl implements IPemRepository {
   }
 
   async getLogo(serialNumber: string): Promise<ArrayBuffer> {
-    const response = await this.http.get<ArrayBuffer>(`/mf2/pems/${serialNumber}/configuration/logo`, {
-      responseType: 'arraybuffer',
-    });
+    const response = await this.http.get<ArrayBuffer>(
+      `/mf2/pems/${serialNumber}/configuration/logo`,
+      {
+        responseType: 'arraybuffer',
+      }
+    );
     return response.data;
   }
 }
