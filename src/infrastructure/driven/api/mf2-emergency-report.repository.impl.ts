@@ -1,5 +1,6 @@
 import {
   EmergencyReportApiOutput,
+  EmergencyReportListApiResponse,
   EmergencyReportMapper,
 } from '@/application/dto/emergency-report.dto';
 import { IHttpPort } from '@/application/ports/driven/http.port';
@@ -8,7 +9,6 @@ import {
   EmergencyReportOutput,
 } from '@/domain/entities/point-of-sale.entity';
 import { IMf2EmergencyReportRepository } from '@/domain/repositories/mf2-emergency-report';
-import { Page } from '@/domain/value-objects/page.vo';
 
 // this repository is used for MF2 emergency report endpoints
 export class Mf2EmergencyReportRepositoryImpl implements IMf2EmergencyReportRepository {
@@ -26,12 +26,12 @@ export class Mf2EmergencyReportRepositoryImpl implements IMf2EmergencyReportRepo
   async findAllBySerialNumber(
     serialNumber: string,
     page?: number
-  ): Promise<Page<EmergencyReportOutput>> {
-    const response = await this.http.get<Page<EmergencyReportApiOutput>>(
+  ): Promise<EmergencyReportOutput[]> {
+    const response = await this.http.get<EmergencyReportListApiResponse>(
       `/mf2/pems/${serialNumber}/emergency-reports`,
-      { params: { page } }
+      { params: { page }, headers: { Accept: 'application/json' } }
     );
-    return EmergencyReportMapper.pageFromApi(response.data);
+    return EmergencyReportMapper.listFromApi(response.data);
   }
 
   async findById(serialNumber: string, id: number): Promise<EmergencyReportOutput> {

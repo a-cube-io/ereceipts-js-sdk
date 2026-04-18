@@ -3,7 +3,12 @@ import {
   EmergencyReportInput,
   EmergencyReportOutput,
 } from '@/domain/entities/point-of-sale.entity';
-import { Page } from '@/domain/value-objects/page.vo';
+import { LdJsonPage, Page } from '@/domain/value-objects/page.vo';
+
+export type EmergencyReportListApiResponse =
+  | EmergencyReportApiOutput[]
+  | Page<EmergencyReportApiOutput>
+  | LdJsonPage<EmergencyReportApiOutput>;
 
 export interface EmergencyReportCreateApiInput {
   datetime: string;
@@ -57,14 +62,20 @@ export class EmergencyReportMapper {
     };
   }
 
-  static pageFromApi(response: Page<EmergencyReportApiOutput>): Page<EmergencyReportOutput> {
-    return {
-      members: response.members.map((item) => EmergencyReportMapper.fromApiOutput(item)),
-      total: response.total,
-      page: response.page,
-      size: response.size,
-      pages: response.pages,
-    };
+  static listFromApi(response: EmergencyReportListApiResponse): EmergencyReportOutput[] {
+    let rawItems: EmergencyReportApiOutput[];
+
+    if (Array.isArray(response)) {
+      rawItems = response;
+    } else if ('members' in response && Array.isArray(response.members)) {
+      rawItems = response.members;
+    } else if ('member' in response && Array.isArray(response.member)) {
+      rawItems = response.member;
+    } else {
+      rawItems = [];
+    }
+
+    return rawItems.map((item) => EmergencyReportMapper.fromApiOutput(item));
   }
 
   static toEntryApiInput(input: DailyReportEntry): DailyReportEntryApiInput {
