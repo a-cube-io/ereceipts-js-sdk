@@ -7,6 +7,7 @@ import { ICashierRepository } from '@/domain/repositories/cashier.repository';
 import { IDailyReportRepository } from '@/domain/repositories/daily-report.repository';
 import { IJournalRepository } from '@/domain/repositories/journal.repository';
 import { IMerchantRepository } from '@/domain/repositories/merchant.repository';
+import { IMf2EmergencyReportRepository } from '@/domain/repositories/mf2-emergency-report';
 import { INotificationRepository } from '@/domain/repositories/notification.repository';
 import { IPemRepository } from '@/domain/repositories/pem.repository';
 import { IPointOfSaleRepository } from '@/domain/repositories/point-of-sale.repository';
@@ -19,6 +20,7 @@ import {
   DailyReportRepositoryImpl,
   JournalRepositoryImpl,
   MerchantRepositoryImpl,
+  Mf2EmergencyReportRepositoryImpl,
   NotificationRepositoryImpl,
   PemRepositoryImpl,
   PointOfSaleRepositoryImpl,
@@ -53,6 +55,7 @@ export interface SDKServices {
   journals: IJournalRepository;
   notifications: INotificationRepository;
   telemetry: ITelemetryRepository;
+  mf2EmergencyReports: IMf2EmergencyReportRepository;
 }
 
 export class SDKFactory {
@@ -121,6 +124,11 @@ export class SDKFactory {
       return new TelemetryRepositoryImpl(http);
     });
 
+    container.registerFactory(DI_TOKENS.MF2_EMERGENCY_REPORT_REPOSITORY, () => {
+      const http = container.get<IHttpPort>(DI_TOKENS.HTTP_PORT);
+      return new Mf2EmergencyReportRepositoryImpl(http);
+    });
+
     return container;
   }
 
@@ -156,6 +164,9 @@ export class SDKFactory {
       journals: container.get<IJournalRepository>(DI_TOKENS.JOURNAL_REPOSITORY),
       notifications: container.get<INotificationRepository>(DI_TOKENS.NOTIFICATION_REPOSITORY),
       telemetry: container.get<ITelemetryRepository>(DI_TOKENS.TELEMETRY_REPOSITORY),
+      mf2EmergencyReports: container.get<IMf2EmergencyReportRepository>(
+        DI_TOKENS.MF2_EMERGENCY_REPORT_REPOSITORY
+      ),
     };
 
     if (container.has(DI_TOKENS.TOKEN_STORAGE_PORT)) {

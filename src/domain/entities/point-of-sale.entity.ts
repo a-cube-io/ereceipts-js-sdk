@@ -53,6 +53,11 @@ export interface EmergencyReportInput {
   entries: DailyReportEntry[];
 }
 
+export interface EmergencyReportOutput {
+  id: number;
+  closedAt: string;
+}
+
 export interface DailyReportEntry {
   vatRateCode: string;
   vatAmount: string;

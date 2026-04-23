@@ -13,6 +13,7 @@ import { ICashierRepository } from '@/domain/repositories/cashier.repository';
 import { IDailyReportRepository } from '@/domain/repositories/daily-report.repository';
 import { IJournalRepository } from '@/domain/repositories/journal.repository';
 import { IMerchantRepository } from '@/domain/repositories/merchant.repository';
+import { IMf2EmergencyReportRepository } from '@/domain/repositories/mf2-emergency-report';
 import { INotificationRepository } from '@/domain/repositories/notification.repository';
 import { IPemRepository } from '@/domain/repositories/pem.repository';
 import { IPointOfSaleRepository } from '@/domain/repositories/point-of-sale.repository';
@@ -301,6 +302,13 @@ export class ACubeSDK {
   get telemetry(): ITelemetryRepository {
     this.ensureInitialized();
     return this.container!.get<ITelemetryRepository>(DI_TOKENS.TELEMETRY_REPOSITORY);
+  }
+
+  get mf2EmergencyReports(): IMf2EmergencyReportRepository {
+    this.ensureInitialized();
+    return this.container!.get<IMf2EmergencyReportRepository>(
+      DI_TOKENS.MF2_EMERGENCY_REPORT_REPOSITORY
+    );
   }
 
   async login(credentials: AuthCredentials): Promise<User> {
