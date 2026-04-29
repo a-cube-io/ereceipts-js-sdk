@@ -70,17 +70,17 @@ export class ReceiptRepositoryImpl implements IReceiptRepository {
 
   async voidReceipt(input: VoidReceiptInput): Promise<void> {
     const apiInput = ReceiptMapper.voidInputToApi(input);
-    await this.http.delete('/mf1/receipts', { data: apiInput });
+    await this.http.post('/mf1/receipts/void', { data: apiInput });
   }
 
   async voidViaDifferentDevice(input: VoidViaDifferentDeviceInput): Promise<void> {
     const apiInput = ReceiptMapper.voidViaDifferentDeviceToApi(input);
-    await this.http.delete('/mf1/receipts/void-via-different-device', { data: apiInput });
+    await this.http.post('/mf1/receipts/void-via-different-device', { data: apiInput });
   }
 
   async voidWithProof(input: VoidWithProofInput): Promise<void> {
     const apiInput = ReceiptMapper.voidWithProofToApi(input);
-    await this.http.delete('/mf1/receipts/void-with-proof', { data: apiInput });
+    await this.http.post('/mf1/receipts/void-with-proof', { data: apiInput });
   }
 
   async returnItems(input: ReceiptReturnInput): Promise<Receipt> {

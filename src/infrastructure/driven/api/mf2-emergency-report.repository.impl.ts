@@ -17,7 +17,7 @@ export class Mf2EmergencyReportRepositoryImpl implements IMf2EmergencyReportRepo
   async upload(serialNumber: string, input: EmergencyReportInput): Promise<EmergencyReportOutput> {
     const apiInput = EmergencyReportMapper.toCreateApiInput(input);
     const response = await this.http.post<EmergencyReportApiOutput>(
-      `/mf2/pems/${serialNumber}/upload-emergency-report`,
+      `/mf2/pems/${serialNumber}/upload-emergency-reports`,
       apiInput
     );
     return EmergencyReportMapper.fromApiOutput(response.data);
