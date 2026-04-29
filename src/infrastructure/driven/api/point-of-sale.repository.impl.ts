@@ -55,7 +55,7 @@ export class PointOfSaleRepositoryImpl implements IPointOfSaleRepository {
 
   async uploadEmergencyReport(serialNumber: string, input: EmergencyReportInput): Promise<void> {
     const apiInput = PointOfSaleMapper.toEmergencyReportApiInput(input);
-    await this.http.post(`/mf1/pems/${serialNumber}/emergency-report`, apiInput);
+    await this.http.post(`/mf1/pems/${serialNumber}/emergency-reports`, apiInput);
   }
 
   async communicateOffline(serialNumber: string, input: PEMStatusOfflineRequest): Promise<void> {
