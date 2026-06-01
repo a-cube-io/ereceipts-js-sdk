@@ -89,10 +89,7 @@ export interface ManagedServices {
     privateKey: string,
     options?: { format?: 'pem' | 'p12'; browserManaged?: boolean }
   ) => Promise<void>;
-  registerBrowserCertificate: (options?: {
-    format?: 'p12';
-    verify?: boolean;
-  }) => Promise<void>;
+  registerBrowserCertificate: (options?: { format?: 'p12'; verify?: boolean }) => Promise<void>;
   hasCertificate: () => Promise<boolean>;
   clearCertificate: () => Promise<void>;
   getCertificate: () => Promise<StoredCertificate | null>;
@@ -462,9 +459,10 @@ export class SDKManager {
           }
         }
       },
-      registerBrowserCertificate: async (
-        options?: { format?: 'p12'; verify?: boolean }
-      ): Promise<void> => {
+      registerBrowserCertificate: async (options?: {
+        format?: 'p12';
+        verify?: boolean;
+      }): Promise<void> => {
         await sdk.registerBrowserCertificate(options);
         this.certificateMissingSubject.next(false);
         if (!this.isPollingActive) {

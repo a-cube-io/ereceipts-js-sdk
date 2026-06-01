@@ -138,11 +138,7 @@ export class WebMTLSAdapter implements IMTLSAdapter {
       log.error('mTLS request failed:', error);
 
       if (error instanceof DOMException && error.name === 'AbortError') {
-        throw new MTLSError(
-          MTLSErrorType.CONNECTION_FAILED,
-          'mTLS request timed out',
-          error
-        );
+        throw new MTLSError(MTLSErrorType.CONNECTION_FAILED, 'mTLS request timed out', error);
       }
 
       const message =

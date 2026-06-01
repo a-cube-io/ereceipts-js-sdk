@@ -93,10 +93,7 @@ export class AxiosHttpAdapter implements IHttpPort {
     config?: HttpRequestConfig
   ): Promise<HttpResponse<T>> {
     if (!this.mtlsAdapter) {
-      throw new MTLSError(
-        MTLSErrorType.CONFIGURATION_ERROR,
-        'mTLS adapter not available'
-      );
+      throw new MTLSError(MTLSErrorType.CONFIGURATION_ERROR, 'mTLS adapter not available');
     }
 
     const fullUrl = this.constructMtlsUrl(url);

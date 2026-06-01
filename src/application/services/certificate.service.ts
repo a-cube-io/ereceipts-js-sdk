@@ -76,7 +76,6 @@ export class CertificateService implements ICertificatePort {
     this.stateSubject.next('stored');
   }
 
-
   async storeBrowserManagedCertificate(format: 'pem' | 'p12' = 'p12'): Promise<void> {
     // Placeholder record: material is in the browser store; getCertificate() skips empty fields when browserManaged.
     const certData: StoredCertificate = {
