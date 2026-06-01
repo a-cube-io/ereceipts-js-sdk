@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import { HttpRequestConfig, HttpResponse, IHttpPort } from '@/application/ports/driven/http.port';
 import { IMTLSPort, MTLSRequestConfig, MTLSResponse } from '@/application/ports/driven/mtls.port';
+import { MTLSError, MTLSErrorType } from '@/domain/errors';
 import { clearObject, createPrefixedLogger } from '@/shared/utils';
 
 import { AuthStrategy } from './auth-strategy';
@@ -45,25 +46,44 @@ export class AxiosHttpAdapter implements IHttpPort {
   }
 
   private async shouldUseMTLS(url: string, method: string): Promise<boolean> {
-    if (!this.mtlsAdapter) {
-      logJwt.debug(`No mTLS adapter, using JWT for ${method} ${url}`);
-      return false;
-    }
-
     if (this.authStrategy) {
       const config = await this.authStrategy.determineAuthConfig(url, method);
       const logger = config.mode === 'mtls' ? logMtls : logJwt;
       logger.debug(`Auth config for ${method} ${url}:`, config);
-      return config.mode === 'mtls';
+      if (config.mode === 'mtls') {
+        // Required mTLS: verify adapter + certificate, then route to makeMTLSRequest (not Axios).
+        await this.assertMtlsReady(url, method);
+        return true;
+      }
+      // JWT path: standard Axios client with Authorization header.
+      return false;
     }
 
     // Fallback: use mTLS for mf1/mf2 endpoints if no strategy
     // This should rarely happen - only before SDK is fully initialized
     const useMtls = url.startsWith('/mf1') || url.startsWith('/mf2');
     if (useMtls) {
-      logMtls.warn(`No auth strategy set, falling back to mTLS for ${method} ${url}`);
+      logMtls.warn(`No auth strategy set, using mTLS for ${method} ${url}`);
+      await this.assertMtlsReady(url, method);
     }
     return useMtls;
+  }
+
+  private async assertMtlsReady(url: string, method: string): Promise<void> {
+    if (!this.mtlsAdapter) {
+      throw new MTLSError(
+        MTLSErrorType.CONFIGURATION_ERROR,
+        `mTLS is required for ${method} ${url} but no mTLS adapter is configured`
+      );
+    }
+
+    const hasCert = await this.mtlsAdapter.hasCertificate();
+    if (!hasCert) {
+      throw new MTLSError(
+        MTLSErrorType.CERTIFICATE_NOT_FOUND,
+        `mTLS is required for ${method} ${url} but no client certificate is configured`
+      );
+    }
   }
 
   private async makeMTLSRequest<T>(
@@ -73,7 +93,10 @@ export class AxiosHttpAdapter implements IHttpPort {
     config?: HttpRequestConfig
   ): Promise<HttpResponse<T>> {
     if (!this.mtlsAdapter) {
-      throw new Error('mTLS adapter not available');
+      throw new MTLSError(
+        MTLSErrorType.CONFIGURATION_ERROR,
+        'mTLS adapter not available'
+      );
     }
 
     const fullUrl = this.constructMtlsUrl(url);

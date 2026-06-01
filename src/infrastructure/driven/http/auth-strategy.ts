@@ -1,5 +1,4 @@
 import { AuthConfig, AuthMode } from '@/application/ports/driven/auth-handler.port';
-import { IMTLSPort } from '@/application/ports/driven/mtls.port';
 import { UserRoles, hasRole } from '@/domain/value-objects';
 import { createPrefixedLogger } from '@/shared';
 
@@ -17,8 +16,7 @@ export class AuthStrategy {
   constructor(
     private readonly jwtHandler: JwtAuthHandler,
     private readonly mtlsHandler: MtlsAuthHandler,
-    private readonly userProvider: IUserProvider | null,
-    private readonly mtlsAdapter: IMTLSPort | null
+    private readonly userProvider: IUserProvider | null
   ) {}
 
   async determineAuthConfig(
@@ -30,14 +28,12 @@ export class AuthStrategy {
       return { mode: 'mtls', usePort444: true };
     }
 
-    const platform = this.detectPlatform();
     const userRole = await this.getUserRole();
     const isReceiptEndpoint = this.isReceiptEndpoint(url);
 
     log.debug('Determining auth config', {
       url,
       method,
-      platform,
       userRole,
       isReceiptEndpoint,
       explicitMode,
@@ -49,18 +45,12 @@ export class AuthStrategy {
 
     if (userRole === 'CASHIER') {
       if (url.includes('/inactivity-period')) {
-        if (platform === 'mobile') {
-          return { mode: 'mtls', usePort444: true };
-        }
-        return { mode: 'jwt', usePort444: true };
+        return { mode: 'mtls', usePort444: true };
       }
       if (!isReceiptEndpoint) {
         return { mode: 'jwt', usePort444: false };
       }
-      if (platform === 'mobile') {
-        return { mode: 'mtls', usePort444: true };
-      }
-      return { mode: 'jwt', usePort444: true };
+      return { mode: 'mtls', usePort444: true };
     }
 
     if (userRole === 'MERCHANT') {
@@ -74,19 +64,13 @@ export class AuthStrategy {
 
       if (method === 'GET') {
         if (this.isDetailedReceiptEndpoint(url)) {
-          if (platform === 'mobile') {
-            return { mode: 'mtls', usePort444: true };
-          }
-          return { mode: 'jwt', usePort444: true };
+          return { mode: 'mtls', usePort444: true };
         }
         return { mode: 'jwt', usePort444: false };
       }
 
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-        if (platform === 'mobile') {
-          return { mode: 'mtls', usePort444: true };
-        }
-        return { mode: 'jwt', usePort444: true };
+        return { mode: 'mtls', usePort444: true };
       }
 
       return { mode: 'jwt', usePort444: false };
@@ -98,15 +82,11 @@ export class AuthStrategy {
       }
       return {
         mode: explicitMode,
-        usePort444: explicitMode === 'mtls' || (platform === 'web' && isReceiptEndpoint),
+        usePort444: explicitMode === 'mtls',
       };
     }
 
-    if (platform === 'web') {
-      return { mode: 'jwt', usePort444: isReceiptEndpoint };
-    }
-
-    if (isReceiptEndpoint && platform === 'mobile') {
+    if (isReceiptEndpoint) {
       return { mode: 'mtls', usePort444: true };
     }
 
@@ -123,14 +103,6 @@ export class AuthStrategy {
 
   getJwtHandler(): JwtAuthHandler {
     return this.jwtHandler;
-  }
-
-  private detectPlatform(): 'web' | 'mobile' {
-    if (!this.mtlsAdapter) {
-      return 'web';
-    }
-    const platformInfo = this.mtlsAdapter.getPlatformInfo();
-    return platformInfo.platform === 'web' ? 'web' : 'mobile';
   }
 
   private async getUserRole(): Promise<'SUPPLIER' | 'MERCHANT' | 'CASHIER' | null> {

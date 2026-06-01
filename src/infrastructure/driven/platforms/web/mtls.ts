@@ -1,7 +1,9 @@
 /**
  * Web mTLS Adapter Implementation
- * Web browsers do not support client certificate configuration via JavaScript
- * This adapter provides graceful fallback with clear error messages
+ *
+ * Client certificates must be imported manually into the browser keystore (P12).
+ * The SDK registers that import and performs mTLS requests via fetch(); the browser
+ * attaches the client certificate during the TLS handshake.
  */
 import {
   CertificateData,
@@ -16,149 +18,265 @@ import { createPrefixedLogger } from '@/shared/utils';
 
 const log = createPrefixedLogger('WEB-MTLS');
 
-/**
- * Web mTLS Adapter - Graceful fallback for web browsers
- *
- * Web browsers handle client certificates through:
- * 1. Browser certificate store (managed by user)
- * 2. TLS handshake (automatic, not script-controlled)
- * 3. User prompts for certificate selection
- *
- * JavaScript cannot programmatically configure client certificates
- * due to security restrictions in the browser sandbox.
- */
 export class WebMTLSAdapter implements IMTLSAdapter {
-  constructor() {
-    log.warn('Web browsers do not support programmatic mTLS configuration');
-    log.info('Use JWT authentication or configure client certificates in browser settings');
-  }
+  private config: MTLSConnectionConfig | null = null;
+  private browserCertificateConfigured = false;
 
   async isMTLSSupported(): Promise<boolean> {
-    // mTLS is not supported programmatically in web browsers
-    const supported = false;
+    const supported = WebMTLSAdapter.isWebEnvironment() && typeof fetch !== 'undefined';
 
     log.debug('mTLS support check:', {
       supported,
-      platform: this.getPlatformInfo().platform,
-      reason: 'Browser security model prevents programmatic certificate configuration',
-      alternatives: ['JWT authentication', 'Browser-managed certificates', 'Server-side proxy'],
+      platform: 'web',
+      certificateStorage: 'browser-managed',
     });
 
     return supported;
   }
 
   async initialize(config: MTLSConnectionConfig): Promise<void> {
-    log.warn('Initialized but mTLS not available in web browsers:', {
+    this.config = config;
+
+    log.debug('Initialized with config:', {
       baseUrl: config.baseUrl,
       port: config.port,
-      recommendation: 'Use standard HTTPS with JWT authentication',
+      timeout: config.timeout,
     });
   }
 
   async configureCertificate(certificateData: CertificateData): Promise<void> {
-    log.error('Certificate configuration attempted:', {
-      format: certificateData.format,
-      reason: 'Not supported in web browsers',
-      alternatives: [
-        'Import certificate into browser certificate store',
-        'Use JWT authentication instead',
-        'Configure server-side proxy for certificate handling',
-      ],
-    });
+    if (!this.config) {
+      throw new MTLSError(
+        MTLSErrorType.CONFIGURATION_ERROR,
+        'Adapter not initialized. Call initialize() first.'
+      );
+    }
 
-    throw new MTLSError(
-      MTLSErrorType.NOT_SUPPORTED,
-      'mTLS client certificate configuration is not supported in web browsers. ' +
-        'Web browsers manage client certificates through the browser certificate store. ' +
-        'Please use JWT authentication or import certificates manually into your browser.'
-    );
+    if (!certificateData.browserManaged) {
+      throw new MTLSError(
+        MTLSErrorType.NOT_SUPPORTED,
+        'Web mTLS requires a P12 certificate imported manually into the browser certificate store. ' +
+          'Use registerBrowserCertificate() after importing the certificate.'
+      );
+    }
+
+    if (certificateData.format !== 'P12') {
+      throw new MTLSError(
+        MTLSErrorType.CERTIFICATE_INVALID,
+        'Web browser-managed mTLS only supports P12 certificates'
+      );
+    }
+
+    this.browserCertificateConfigured = true;
+
+    log.info('Browser-managed client certificate registered', {
+      format: certificateData.format,
+      note: 'Ensure the P12 certificate is imported in your browser certificate store',
+    });
   }
 
   async hasCertificate(): Promise<boolean> {
-    // We cannot detect if the browser has certificates configured
-    log.debug(
-      'Certificate availability check: Cannot detect browser certificates programmatically'
-    );
-
-    return false;
+    log.debug('Certificate availability check:', this.browserCertificateConfigured);
+    return this.browserCertificateConfigured;
   }
 
   async getCertificateInfo(): Promise<CertificateInfo | null> {
-    log.debug('Certificate info requested: Not accessible in web browsers');
-
     return null;
   }
 
   async request<T>(requestConfig: MTLSRequestConfig): Promise<MTLSResponse<T>> {
-    log.error('mTLS request attempted:', {
+    if (!this.config) {
+      throw new MTLSError(
+        MTLSErrorType.CONFIGURATION_ERROR,
+        'Adapter not initialized. Call initialize() first.'
+      );
+    }
+
+    if (!this.browserCertificateConfigured) {
+      throw new MTLSError(
+        MTLSErrorType.CERTIFICATE_NOT_FOUND,
+        'No browser-managed certificate registered. Import a P12 into your browser and call registerBrowserCertificate().'
+      );
+    }
+
+    log.debug('Making mTLS request:', {
       method: requestConfig.method,
       url: requestConfig.url,
-      reason: 'Not supported in web browsers',
-      alternatives: [
-        'Use standard fetch() or XMLHttpRequest',
-        'Configure JWT authentication',
-        'Rely on browser-managed certificates (if configured by user)',
-      ],
+      hasData: !!requestConfig.data,
     });
 
-    throw new MTLSError(
-      MTLSErrorType.NOT_SUPPORTED,
-      'mTLS requests are not supported in web browsers via JavaScript. ' +
-        'Use standard HTTP client with JWT authentication, or ensure client certificates ' +
-        'are properly configured in the browser certificate store.'
-    );
+    try {
+      const response = await this.fetchWithTimeout(requestConfig);
+      const data = await this.parseResponseBody<T>(response, requestConfig.responseType);
+
+      log.debug('mTLS request completed:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: requestConfig.url,
+      });
+
+      if (response.status >= 500) {
+        throw new MTLSError(
+          MTLSErrorType.CONNECTION_FAILED,
+          `mTLS request failed: ${response.statusText} (${response.status})`,
+          undefined,
+          response.status
+        );
+      }
+
+      return {
+        data,
+        status: response.status,
+        statusText: response.statusText,
+        headers: this.normalizeHeaders(response.headers),
+      };
+    } catch (error) {
+      if (error instanceof MTLSError) {
+        throw error;
+      }
+
+      log.error('mTLS request failed:', error);
+
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new MTLSError(
+          MTLSErrorType.CONNECTION_FAILED,
+          'mTLS request timed out',
+          error
+        );
+      }
+
+      const message =
+        error instanceof TypeError
+          ? 'Network error during mTLS request. Verify the certificate is imported in your browser.'
+          : 'mTLS request failed';
+
+      throw new MTLSError(
+        MTLSErrorType.CONNECTION_FAILED,
+        message,
+        error instanceof Error ? error : undefined
+      );
+    }
   }
 
   async testConnection(): Promise<boolean> {
-    log.debug('Connection test: mTLS not available in web browsers');
+    if (!this.browserCertificateConfigured) {
+      return false;
+    }
 
-    return false;
+    return true;
   }
 
   async removeCertificate(): Promise<void> {
-    log.debug('Remove certificate: No certificates to remove (not supported in web browsers)');
-
-    // No-op - cannot remove certificates programmatically in browsers
+    this.browserCertificateConfigured = false;
+    log.debug('Browser-managed certificate registration cleared');
   }
 
-  /**
-   * Get the configured mTLS base URL
-   * Always returns null for web browsers as mTLS is not supported
-   */
   getBaseUrl(): string | null {
-    log.debug('Base URL requested: Not supported in web browsers');
-    return null;
+    return this.config?.baseUrl || null;
   }
 
   getPlatformInfo() {
     return {
       platform: 'web' as const,
-      mtlsSupported: false,
+      mtlsSupported: true,
       certificateStorage: 'browser-managed' as const,
-      fallbackToJWT: true,
-      limitations: [
-        'Browser security model prevents programmatic certificate access',
-        'Client certificates managed through browser UI only',
-        'TLS handshake handled automatically by browser',
-        'Certificate selection prompts managed by browser',
-      ],
-      recommendations: [
-        'Use JWT authentication for API access',
-        'Configure client certificates in browser settings if required',
-        'Consider server-side proxy for certificate handling',
-        'Use standard fetch API with browser-managed certificates',
-      ],
+      fallbackToJWT: false,
     };
   }
 
-  /**
-   * Check if running in web browser environment
-   */
   static isWebEnvironment(): boolean {
     return (
       typeof window !== 'undefined' &&
       typeof document !== 'undefined' &&
       typeof navigator !== 'undefined'
     );
+  }
+
+  /**
+   * Web cannot attach PEM/P12 to fetch programmatically — the browser picks the client cert
+   * from its keystore during TLS. This wrapper still mirrors Node/RN: timeout, JSON body, JWT headers.
+   */
+  private async fetchWithTimeout(requestConfig: MTLSRequestConfig): Promise<Response> {
+    // fetch() has no timeout option; AbortController matches axios timeout on other platforms.
+    const controller = new AbortController();
+    const timeoutMs = requestConfig.timeout || this.config?.timeout || 30000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    const headers = new Headers(requestConfig.headers || {});
+    const hasBody = requestConfig.data !== undefined && requestConfig.data !== null;
+    const method = requestConfig.method || 'GET';
+
+    if (hasBody && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+
+    try {
+      return await fetch(requestConfig.url, {
+        method,
+        headers,
+        body: hasBody
+          ? typeof requestConfig.data === 'string'
+            ? requestConfig.data
+            : JSON.stringify(requestConfig.data)
+          : undefined,
+        // Required so the browser may offer the imported client certificate on this origin.
+        credentials: 'include',
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  /**
+   * Maps the Fetch API Response to typed `data` for MTLSResponse (axios does this on Node/RN).
+   * Response bodies are single-use: we read once via text/blob/arraybuffer.
+   */
+  private async parseResponseBody<T>(
+    response: Response,
+    responseType?: MTLSRequestConfig['responseType']
+  ): Promise<T> {
+    if (responseType === 'blob') {
+      return (await response.blob()) as T;
+    }
+
+    if (responseType === 'arraybuffer') {
+      return (await response.arrayBuffer()) as T;
+    }
+
+    if (responseType === 'text') {
+      return (await response.text()) as T;
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    const text = await response.text();
+
+    if (!text) {
+      return undefined as T;
+    }
+
+    // Default: JSON when declared or parseable; otherwise plain text (same tolerance as axios paths).
+    if (responseType === 'json' || contentType.includes('application/json')) {
+      try {
+        return JSON.parse(text) as T;
+      } catch {
+        return text as T;
+      }
+    }
+
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return text as T;
+    }
+  }
+
+  /** IMTLSPort expects plain header objects; browser fetch returns a Headers instance. */
+  private normalizeHeaders(headers: Headers): Record<string, string> {
+    const normalized: Record<string, string> = {};
+    headers.forEach((value, key) => {
+      normalized[key] = value;
+    });
+    return normalized;
   }
 }

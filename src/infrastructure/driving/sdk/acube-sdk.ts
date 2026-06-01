@@ -164,6 +164,10 @@ export class ACubeSDK {
               storeCertificate: this.certificateService.storeCertificate.bind(
                 this.certificateService
               ),
+              storeBrowserManagedCertificate:
+                this.certificateService.storeBrowserManagedCertificate.bind(
+                  this.certificateService
+                ),
               getCertificate: this.certificateService.getCertificate.bind(this.certificateService),
               getCertificateInfo: this.certificateService.getCertificateInfo.bind(
                 this.certificateService
@@ -193,12 +197,7 @@ export class ACubeSDK {
           },
         };
 
-        const authStrategy = new AuthStrategy(
-          jwtHandler,
-          mtlsHandler,
-          userProvider,
-          this.adapters?.mtls || null
-        );
+        const authStrategy = new AuthStrategy(jwtHandler, mtlsHandler, userProvider);
 
         const httpWithStrategy = httpPort as {
           setAuthStrategy: (strategy: AuthStrategy) => void;
@@ -218,6 +217,7 @@ export class ACubeSDK {
                 certificate: storedCert.certificate,
                 privateKey: storedCert.privateKey,
                 format: storedCert.format.toUpperCase() as 'PEM' | 'P12',
+                browserManaged: storedCert.browserManaged,
               });
             }
           }
@@ -375,6 +375,7 @@ export class ACubeSDK {
       name?: string;
       format?: 'pem' | 'p12' | 'pkcs12';
       password?: string;
+      browserManaged?: boolean;
     } = {}
   ): Promise<void> {
     this.ensureInitialized();
@@ -387,14 +388,54 @@ export class ACubeSDK {
     }
 
     const format = (options.format || 'pem') as 'pem' | 'p12';
-    await this.certificateService.storeCertificate(certificate, privateKey, format);
+
+    if (options.browserManaged) {
+      await this.certificateService.storeBrowserManagedCertificate(format);
+    } else {
+      await this.certificateService.storeCertificate(certificate, privateKey, format);
+    }
 
     if (this.adapters?.mtls) {
       await this.adapters.mtls.configureCertificate({
-        certificate,
-        privateKey,
+        certificate: options.browserManaged ? '' : certificate,
+        privateKey: options.browserManaged ? '' : privateKey,
         format: format.toUpperCase() as 'PEM' | 'P12',
+        password: options.password,
+        browserManaged: options.browserManaged,
       });
+    }
+  }
+
+  /**
+   * Register a client certificate that was imported manually into the browser keystore (P12).
+   * Call this after the user imports the certificate via browser settings.
+   *
+   * @param options.verify - If true, calls testMTLSConnection(). On web this only checks local
+   *   registration (no remote probe — CORS blocks cross-origin calls to port 444).
+   */
+  async registerBrowserCertificate(
+    options: {
+      format?: 'p12';
+      verify?: boolean;
+    } = {}
+  ): Promise<void> {
+    this.ensureInitialized();
+
+    const format = options.format || 'p12';
+    await this.storeCertificate('', '', {
+      format,
+      browserManaged: true,
+    });
+
+    if (options.verify) {
+      const connectionOk = await this.testMTLSConnection();
+      if (!connectionOk) {
+        await this.clearCertificate();
+        throw new ACubeSDKError(
+          'STORAGE_CERTIFICATE_ERROR',
+          'Browser mTLS connection test failed. Ensure the P12 certificate is imported in your browser and try again.'
+        );
+      }
     }
   }
 
@@ -412,12 +453,14 @@ export class ACubeSDK {
     }
 
     const hasCertificate = (await this.certificateService?.hasCertificate()) || false;
+    const adapterHasCertificate = await this.adapters.mtls.hasCertificate();
     const certificateInfo = (await this.certificateService?.getCertificateInfo()) || null;
+    const mtlsSupported = await this.adapters.mtls.isMTLSSupported();
 
     return {
       adapterAvailable: true,
-      isReady: hasCertificate,
-      hasCertificate,
+      isReady: hasCertificate && adapterHasCertificate && mtlsSupported,
+      hasCertificate: hasCertificate && adapterHasCertificate,
       certificateInfo,
       platformInfo: this.adapters.mtls.getPlatformInfo(),
     };
@@ -525,6 +568,7 @@ export class ACubeSDK {
         certificate: storedCert.certificate,
         privateKey: storedCert.privateKey,
         format: storedCert.format.toUpperCase() as 'PEM' | 'P12',
+        browserManaged: storedCert.browserManaged,
       });
 
       return await this.getCertificatesInfo(true);

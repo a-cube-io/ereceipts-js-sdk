@@ -45,7 +45,8 @@ export class CertificateService implements ICertificatePort {
     }
 
     const certData = JSON.parse(stored) as StoredCertificate;
-    if (!certData.certificate || !certData.privateKey) {
+    const isBrowserManaged = certData.browserManaged === true;
+    if (!isBrowserManaged && (!certData.certificate || !certData.privateKey)) {
       this.stateSubject.next('idle');
       return null;
     }
@@ -75,18 +76,37 @@ export class CertificateService implements ICertificatePort {
     this.stateSubject.next('stored');
   }
 
+
+  async storeBrowserManagedCertificate(format: 'pem' | 'p12' = 'p12'): Promise<void> {
+    // Placeholder record: material is in the browser store; getCertificate() skips empty fields when browserManaged.
+    const certData: StoredCertificate = {
+      certificate: '',
+      privateKey: '',
+      format,
+      storedAt: Date.now(),
+      browserManaged: true,
+    };
+
+    // Persist so registration survives reload / next app start (getCertificate reads this key).
+    await this.secureStorage.set(CERTIFICATE_KEY, JSON.stringify(certData));
+    // Notify in-memory subscribers (certificate$, hasCertificate$) without re-reading storage.
+    this.certificateSubject.next(certData);
+    // Mark the certificate flow as complete (state$ → 'stored' for UI / loaders).
+    this.stateSubject.next('stored');
+  }
+
   async clearCertificate(): Promise<void> {
     await this.secureStorage.remove(CERTIFICATE_KEY);
     this.certificateSubject.next(null);
     this.stateSubject.next('idle');
   }
 
-  async getCertificateInfo(): Promise<{ format: string } | null> {
+  async getCertificateInfo(): Promise<{ format: string; browserManaged?: boolean } | null> {
     const cert = await this.getCertificate();
     if (!cert) {
       return null;
     }
-    return { format: cert.format };
+    return { format: cert.format, browserManaged: cert.browserManaged };
   }
 
   destroy(): void {

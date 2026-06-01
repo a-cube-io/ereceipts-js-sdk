@@ -12,6 +12,7 @@ import {
 } from '@/application/ports/driven';
 import { MTLSError, MTLSErrorType } from '@/domain/errors';
 import { CertificateValidator } from '@/domain/services';
+import { buildMtlsDiagnosticProbeUrl } from '@/infrastructure/driven/platforms/shared/mtls-probe';
 import { createPrefixedLogger } from '@/shared/utils';
 
 import {
@@ -587,9 +588,11 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
         return false;
       }
 
-      log.debug('Running diagnostic test (may fail even if mTLS works):', this.config.baseUrl);
+      const diagnosticUrl = buildMtlsDiagnosticProbeUrl(this.config.baseUrl);
 
-      const result = await this.expoMTLS.testConnection(this.config.baseUrl);
+      log.debug('Running diagnostic test (may fail even if mTLS works):', diagnosticUrl);
+
+      const result = await this.expoMTLS.testConnection(diagnosticUrl);
 
       log.debug('Diagnostic test result (NOT validation):', {
         success: result.success,
@@ -675,7 +678,7 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
       platform: 'react-native' as const,
       mtlsSupported: this.expoMTLS !== null,
       certificateStorage: 'keychain' as const,
-      fallbackToJWT: true,
+      fallbackToJWT: false,
       configured: this.isConfigured,
     };
   }

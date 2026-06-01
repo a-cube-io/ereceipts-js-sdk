@@ -27,10 +27,10 @@ export class MtlsAuthHandler implements IAuthHandler {
   }
 
   async isMtlsReady(): Promise<boolean> {
-    if (!this.mtlsAdapter || !this.certificatePort) {
+    if (!this.mtlsAdapter) {
       return false;
     }
-    return this.certificatePort.hasCertificate();
+    return this.mtlsAdapter.hasCertificate();
   }
 
   async getCertificate(): Promise<StoredCertificate | null> {
@@ -196,6 +196,7 @@ export class MtlsAuthHandler implements IAuthHandler {
       certificate: certificate.certificate,
       privateKey: certificate.privateKey,
       format: certificate.format.toUpperCase() as 'PEM' | 'P12',
+      browserManaged: certificate.browserManaged,
     };
 
     await this.mtlsAdapter.configureCertificate(certificateData);
@@ -204,7 +205,7 @@ export class MtlsAuthHandler implements IAuthHandler {
   async storeCertificate(
     certificate: string,
     privateKey: string,
-    options: { format?: 'pem' | 'p12' | 'pkcs12' } = {}
+    options: { format?: 'pem' | 'p12' | 'pkcs12'; browserManaged?: boolean } = {}
   ): Promise<void> {
     if (!this.certificatePort) {
       throw new Error('Certificate port not available');
@@ -219,13 +220,24 @@ export class MtlsAuthHandler implements IAuthHandler {
     }
 
     const format = (options.format || 'pem') as 'pem' | 'p12';
-    await this.certificatePort.storeCertificate(certificate, privateKey, format);
 
+    // Step 1 — Persist certificate state for the app layer (CertificateService / secure storage).
+    if (options.browserManaged) {
+      // Web: the P12 lives in the browser keystore (manual import). We only store a flag + format.
+      await this.certificatePort.storeBrowserManagedCertificate(format);
+    } else {
+      // Mobile/Node: store actual PEM/P12 material (cert + private key strings).
+      await this.certificatePort.storeCertificate(certificate, privateKey, format);
+    }
+
+    // Step 2 — Configure the platform mTLS adapter so hasCertificate() and requests stay in sync.
     if (this.mtlsAdapter) {
       const certificateData: CertificateData = {
-        certificate,
-        privateKey,
+        // Web browser-managed: no cert bytes in the SDK; WebMTLSAdapter only needs browserManaged + P12.
+        certificate: options.browserManaged ? '' : certificate,
+        privateKey: options.browserManaged ? '' : privateKey,
         format: format.toUpperCase() as 'PEM' | 'P12',
+        browserManaged: options.browserManaged,
       };
       await this.mtlsAdapter.configureCertificate(certificateData);
     }

@@ -100,9 +100,9 @@ export const MTLS_CONFIG_BY_PLATFORM = {
     defaultTimeout: 30000,
   },
   web: {
-    mtlsSupported: false,
+    mtlsSupported: true,
     certificateStorage: 'browser-managed',
-    fallbackToJWT: true,
+    fallbackToJWT: false,
     defaultTimeout: 30000,
   },
 } as const;
