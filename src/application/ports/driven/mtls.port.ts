@@ -3,6 +3,8 @@ export interface CertificateData {
   privateKey: string;
   format: 'PEM' | 'P12';
   password?: string;
+  /** Web: certificate imported manually into the browser keystore */
+  browserManaged?: boolean;
 }
 
 export interface MTLSConnectionConfig {

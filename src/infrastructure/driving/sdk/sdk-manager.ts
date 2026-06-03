@@ -87,8 +87,9 @@ export interface ManagedServices {
   storeCertificate: (
     certificate: string,
     privateKey: string,
-    options?: { format?: 'pem' | 'p12' }
+    options?: { format?: 'pem' | 'p12'; browserManaged?: boolean }
   ) => Promise<void>;
+  registerBrowserCertificate: (options?: { format?: 'p12'; verify?: boolean }) => Promise<void>;
   hasCertificate: () => Promise<boolean>;
   clearCertificate: () => Promise<void>;
   getCertificate: () => Promise<StoredCertificate | null>;
@@ -442,7 +443,7 @@ export class SDKManager {
       storeCertificate: async (
         certificate: string,
         privateKey: string,
-        options?: { format?: 'pem' | 'p12' }
+        options?: { format?: 'pem' | 'p12'; browserManaged?: boolean }
       ): Promise<void> => {
         await sdk.storeCertificate(certificate, privateKey, options);
         this.certificateMissingSubject.next(false);
@@ -452,6 +453,23 @@ export class SDKManager {
           const canPoll = user && hasAnyRole(user.roles, ['ROLE_MERCHANT', 'ROLE_CASHIER']);
           if (canPoll) {
             log.info('Certificate installed — starting polling');
+            this.notificationService?.startPolling();
+            await this.startTelemetryPollingAuto();
+            this.isPollingActive = true;
+          }
+        }
+      },
+      registerBrowserCertificate: async (options?: {
+        format?: 'p12';
+        verify?: boolean;
+      }): Promise<void> => {
+        await sdk.registerBrowserCertificate(options);
+        this.certificateMissingSubject.next(false);
+        if (!this.isPollingActive) {
+          const user = await sdk.getCurrentUser();
+          const canPoll = user && hasAnyRole(user.roles, ['ROLE_MERCHANT', 'ROLE_CASHIER']);
+          if (canPoll) {
+            log.info('Browser certificate registered — starting polling');
             this.notificationService?.startPolling();
             await this.startTelemetryPollingAuto();
             this.isPollingActive = true;
