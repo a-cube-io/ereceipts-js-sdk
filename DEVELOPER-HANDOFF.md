@@ -487,7 +487,7 @@ Questo file e' il **cervello** dell'autenticazione. Metodo `determineAuthConfig(
 | **MERCHANT** | Receipt mutations | Web | JWT | 444 |
 | **MERCHANT** | Returnable items | Qualsiasi | **mTLS** | **444** |
 | Qualsiasi | `/mf1/notifications` | Qualsiasi | **mTLS** | **444** |
-| Qualsiasi | `/mf1/pems/*/telemetry` | Qualsiasi | **mTLS** | **444** |
+| Qualsiasi | `/mf1/pems/telemetry` | Qualsiasi | **mTLS** | **444** |
 
 ### Flusso di una Richiesta HTTP
 

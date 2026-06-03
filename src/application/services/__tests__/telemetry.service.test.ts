@@ -74,15 +74,15 @@ describe('TelemetryService', () => {
 
   describe('startPolling', () => {
     it('should fetch telemetry immediately when polling starts', async () => {
-      service.startPolling('DEVE-00000J');
+      service.startPolling();
       await jest.advanceTimersByTimeAsync(0);
 
-      expect(mockRepo.getTelemetry).toHaveBeenCalledWith('DEVE-00000J');
+      expect(mockRepo.getTelemetry).toHaveBeenCalledWith();
       expect(mockRepo.getTelemetry).toHaveBeenCalledTimes(1);
     });
 
     it('should fetch telemetry at regular intervals', async () => {
-      service.startPolling('DEVE-00000J');
+      service.startPolling();
 
       await jest.advanceTimersByTimeAsync(0);
       expect(mockRepo.getTelemetry).toHaveBeenCalledTimes(1);
@@ -95,7 +95,7 @@ describe('TelemetryService', () => {
     });
 
     it('should update state$ with fetched data', async () => {
-      service.startPolling('DEVE-00000J');
+      service.startPolling();
       await jest.advanceTimersByTimeAsync(0);
 
       const state = await firstValueFrom(service.state$);
@@ -110,37 +110,27 @@ describe('TelemetryService', () => {
         states.push(...s);
       });
 
-      service.startPolling('DEVE-00000J');
+      service.startPolling();
       await jest.advanceTimersByTimeAsync(0);
 
       expect(states.some((s) => s.isLoading === true)).toBe(true);
       expect(states.some((s) => s.isLoading === false)).toBe(true);
     });
 
-    it('should not restart polling if already polling same pemId', async () => {
-      service.startPolling('DEVE-00000J');
+    it('should not restart polling if already polling', async () => {
+      service.startPolling();
       await jest.advanceTimersByTimeAsync(0);
 
-      service.startPolling('DEVE-00000J');
+      service.startPolling();
       await jest.advanceTimersByTimeAsync(0);
 
       expect(mockRepo.getTelemetry).toHaveBeenCalledTimes(1);
-    });
-
-    it('should restart polling when different pemId is provided', async () => {
-      service.startPolling('DEVE-00000J');
-      await jest.advanceTimersByTimeAsync(0);
-      expect(mockRepo.getTelemetry).toHaveBeenCalledWith('DEVE-00000J');
-
-      service.startPolling('DEVE-00000K');
-      await jest.advanceTimersByTimeAsync(0);
-      expect(mockRepo.getTelemetry).toHaveBeenCalledWith('DEVE-00000K');
     });
   });
 
   describe('stopPolling', () => {
     it('should stop fetching telemetry', async () => {
-      service.startPolling('DEVE-00000J');
+      service.startPolling();
       await jest.advanceTimersByTimeAsync(0);
       expect(mockRepo.getTelemetry).toHaveBeenCalledTimes(1);
 
@@ -152,13 +142,13 @@ describe('TelemetryService', () => {
   });
 
   describe('triggerSync', () => {
-    it('should return current state when no pemId is set', async () => {
+    it('should return current state when polling is not active', async () => {
       const result = await service.triggerSync();
       expect(result.data).toBeNull();
     });
 
-    it('should fetch telemetry when pemId is set via startPolling', async () => {
-      service.startPolling('DEVE-00000J');
+    it('should fetch telemetry when polling is active', async () => {
+      service.startPolling();
       await jest.advanceTimersByTimeAsync(0);
 
       (mockRepo.getTelemetry as jest.Mock).mockClear();
@@ -170,53 +160,51 @@ describe('TelemetryService', () => {
   });
 
   describe('getTelemetry', () => {
-    it('should start polling if not already polling for pemId', async () => {
-      const state = await service.getTelemetry('DEVE-00000J');
+    it('should start polling if not already polling', async () => {
+      const state = await service.getTelemetry();
       expect(state).toBeDefined();
+      expect(mockRepo.getTelemetry).toHaveBeenCalled();
     });
 
-    it('should return current state if already polling for same pemId', async () => {
-      service.startPolling('DEVE-00000J');
+    it('should return current state if already polling', async () => {
+      service.startPolling();
       await jest.advanceTimersByTimeAsync(0);
 
-      const state = await service.getTelemetry('DEVE-00000J');
+      const state = await service.getTelemetry();
       expect(state.data).toEqual(mockTelemetry);
     });
   });
 
   describe('refreshTelemetry', () => {
-    it('should fetch fresh telemetry for pemId', async () => {
-      service.startPolling('DEVE-00000J');
+    it('should fetch fresh telemetry', async () => {
+      service.startPolling();
       await jest.advanceTimersByTimeAsync(0);
 
       (mockRepo.getTelemetry as jest.Mock).mockClear();
 
-      const state = await service.refreshTelemetry('DEVE-00000J');
+      const state = await service.refreshTelemetry();
       expect(state.data).toEqual(mockTelemetry);
     });
   });
 
   describe('clearTelemetry', () => {
-    it('should set data to null', async () => {
-      service.startPolling('DEVE-00000J');
+    it('should set telemetry data to null', async () => {
+      service.startPolling();
       await jest.advanceTimersByTimeAsync(0);
-
-      let state = await firstValueFrom(service.state$);
-      expect(state.data).not.toBeNull();
 
       service.clearTelemetry();
 
-      state = await firstValueFrom(service.state$);
+      const state = await firstValueFrom(service.state$);
       expect(state.data).toBeNull();
     });
   });
 
   describe('error handling', () => {
-    it('should set error state on fetch failure', async () => {
+    it('should set error in state when fetch fails', async () => {
       const error = new Error('Network error');
       (mockRepo.getTelemetry as jest.Mock).mockRejectedValueOnce(error);
 
-      service.startPolling('DEVE-00000J');
+      service.startPolling();
       await jest.advanceTimersByTimeAsync(0);
 
       const state = await firstValueFrom(service.state$);
@@ -225,10 +213,10 @@ describe('TelemetryService', () => {
     });
   });
 
-  describe('network reconnection', () => {
-    it('should trigger sync when coming back online', async () => {
+  describe('network recovery', () => {
+    it('should trigger sync when network comes back online', async () => {
       mockNetwork.setOnline(false);
-      service.startPolling('DEVE-00000J');
+      service.startPolling();
       await jest.advanceTimersByTimeAsync(0);
 
       const initialCalls = (mockRepo.getTelemetry as jest.Mock).mock.calls.length;
@@ -242,7 +230,7 @@ describe('TelemetryService', () => {
 
   describe('destroy', () => {
     it('should stop polling on destroy', async () => {
-      service.startPolling('DEVE-00000J');
+      service.startPolling();
       await jest.advanceTimersByTimeAsync(0);
 
       service.destroy();

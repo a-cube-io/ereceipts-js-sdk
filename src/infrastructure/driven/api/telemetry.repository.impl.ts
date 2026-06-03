@@ -6,8 +6,8 @@ import { ITelemetryRepository } from '@/domain/repositories/telemetry.repository
 export class TelemetryRepositoryImpl implements ITelemetryRepository {
   constructor(private readonly http: IHttpPort) {}
 
-  async getTelemetry(pemId: string): Promise<Telemetry> {
-    const response = await this.http.get<TelemetryApiOutput>(`/mf1/pems/${pemId}/telemetry`);
+  async getTelemetry(): Promise<Telemetry> {
+    const response = await this.http.get<TelemetryApiOutput>('/mf1/pems/telemetry');
     return TelemetryMapper.fromApiOutput(response.data);
   }
 }
