@@ -361,7 +361,7 @@ if (telemetry.lottery.secretRequest?.requestedAt) {
 
 ## Note Tecniche
 
-- Endpoint: `GET /mf1/pems/{pemId}/telemetry`
+- Endpoint: `GET /mf1/pems/telemetry`
 - Autenticazione: mTLS (porta 444)
 - I dati sono uno snapshot in tempo reale
 - Molti campi sono nullable e richiedono controlli appropriati

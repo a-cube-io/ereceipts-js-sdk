@@ -46,16 +46,16 @@ export interface SDKManagerConfig extends SDKConfig {
  * Simplified telemetry operations for product use
  */
 export interface TelemetryOperations {
-  /** Start polling telemetry using pemId from installed certificate */
-  startPollingAuto: () => Promise<string | null>;
-  /** Start polling telemetry for a specific PEM */
-  startPolling: (pemId: string) => void;
+  /** Start polling when a certificate is installed (PEM resolved server-side via mTLS) */
+  startPollingAuto: () => Promise<boolean>;
+  /** Start polling telemetry */
+  startPolling: () => void;
   /** Stop polling telemetry */
   stopPolling: () => void;
-  /** Get telemetry state for a specific PEM (starts polling if not already) */
-  getTelemetry: (pemId: string) => Promise<TelemetryState>;
-  /** Refresh telemetry for a specific PEM */
-  refreshTelemetry: (pemId: string) => Promise<TelemetryState>;
+  /** Get telemetry state (starts polling if not already) */
+  getTelemetry: () => Promise<TelemetryState>;
+  /** Refresh telemetry snapshot */
+  refreshTelemetry: () => Promise<TelemetryState>;
   /** Manually trigger a telemetry sync */
   triggerSync: () => Promise<TelemetryState>;
   /** Clear current telemetry data */
@@ -134,7 +134,7 @@ export interface SDKManagerEvents extends SDKEvents {
  * });
  *
  * // Start telemetry polling for a specific PEM
- * manager.startTelemetryPolling('PEM-123');
+ * manager.startTelemetryPolling();
  *
  * // Subscribe to telemetry updates
  * manager.telemetry$.subscribe(telemetry => {
@@ -376,24 +376,23 @@ export class SDKManager {
   }
 
   /**
-   * Start polling telemetry using the pemId from installed certificate
-   * Returns the pemId if successful, null if no certificate is installed
+   * Start polling telemetry when a client certificate is available.
    */
-  async startTelemetryPollingAuto(): Promise<string | null> {
+  async startTelemetryPollingAuto(): Promise<boolean> {
     this.ensureInitialized();
-    const pemId = await this.getPemId();
-    if (pemId) {
-      this.telemetryService!.startPolling(pemId);
+    const hasCert = await this.sdk!.hasCertificate();
+    if (hasCert) {
+      this.telemetryService!.startPolling();
     }
-    return pemId;
+    return hasCert;
   }
 
   /**
-   * Start polling telemetry for a specific PEM
+   * Start polling telemetry
    */
-  startTelemetryPolling(pemId: string): void {
+  startTelemetryPolling(): void {
     this.ensureInitialized();
-    this.telemetryService!.startPolling(pemId);
+    this.telemetryService!.startPolling();
   }
 
   /**
@@ -425,13 +424,11 @@ export class SDKManager {
       journals: sdk.journals,
       mf2EmergencyReports: sdk.mf2EmergencyReports,
       telemetry: {
-        startPollingAuto: (): Promise<string | null> => this.startTelemetryPollingAuto(),
-        startPolling: (pemId: string): void => telemetryService.startPolling(pemId),
+        startPollingAuto: (): Promise<boolean> => this.startTelemetryPollingAuto(),
+        startPolling: (): void => telemetryService.startPolling(),
         stopPolling: (): void => telemetryService.stopPolling(),
-        getTelemetry: (pemId: string): Promise<TelemetryState> =>
-          telemetryService.getTelemetry(pemId),
-        refreshTelemetry: (pemId: string): Promise<TelemetryState> =>
-          telemetryService.refreshTelemetry(pemId),
+        getTelemetry: (): Promise<TelemetryState> => telemetryService.getTelemetry(),
+        refreshTelemetry: (): Promise<TelemetryState> => telemetryService.refreshTelemetry(),
         triggerSync: (): Promise<TelemetryState> => telemetryService.triggerSync(),
         clearTelemetry: (): void => telemetryService.clearTelemetry(),
         getPemId: (): Promise<string | null> => this.getPemId(),

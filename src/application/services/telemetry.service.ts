@@ -35,7 +35,7 @@ export class TelemetryService {
   private pollingSubscription?: Subscription;
   private networkSubscription?: Subscription;
   private readonly config: TelemetryServiceConfig;
-  private currentPemId?: string;
+  private isPolling = false;
 
   get state$(): Observable<TelemetryState> {
     return this.stateSubject.asObservable();
@@ -64,17 +64,12 @@ export class TelemetryService {
       });
   }
 
-  startPolling(pemId: string): void {
-    if (this.pollingSubscription) {
-      // If already polling for same pemId, do nothing
-      if (this.currentPemId === pemId) {
-        return;
-      }
-      // If polling for different pemId, stop and restart
-      this.stopPolling();
+  startPolling(): void {
+    if (this.isPolling) {
+      return;
     }
 
-    this.currentPemId = pemId;
+    this.isPolling = true;
 
     this.pollingSubscription = interval(this.config.pollIntervalMs)
       .pipe(
@@ -88,28 +83,26 @@ export class TelemetryService {
   stopPolling(): void {
     this.pollingSubscription?.unsubscribe();
     this.pollingSubscription = undefined;
-    this.currentPemId = undefined;
+    this.isPolling = false;
   }
 
   async triggerSync(): Promise<TelemetryState> {
-    if (!this.currentPemId) {
+    if (!this.isPolling) {
       return this.stateSubject.value;
     }
     return this.fetchTelemetry();
   }
 
-  async getTelemetry(pemId: string): Promise<TelemetryState> {
-    // Start polling if not already polling for this pemId
-    if (this.currentPemId !== pemId) {
-      this.startPolling(pemId);
+  async getTelemetry(): Promise<TelemetryState> {
+    if (!this.isPolling) {
+      this.startPolling();
     }
     return this.stateSubject.value;
   }
 
-  async refreshTelemetry(pemId: string): Promise<TelemetryState> {
-    // Update pemId and fetch immediately
-    if (this.currentPemId !== pemId) {
-      this.startPolling(pemId);
+  async refreshTelemetry(): Promise<TelemetryState> {
+    if (!this.isPolling) {
+      this.startPolling();
     } else {
       return this.fetchTelemetry();
     }
@@ -117,10 +110,6 @@ export class TelemetryService {
   }
 
   private async fetchTelemetry(): Promise<TelemetryState> {
-    if (!this.currentPemId) {
-      return this.stateSubject.value;
-    }
-
     this.stateSubject.next({
       ...this.stateSubject.value,
       isLoading: true,
@@ -128,7 +117,7 @@ export class TelemetryService {
     });
 
     try {
-      const data = await this.repository.getTelemetry(this.currentPemId);
+      const data = await this.repository.getTelemetry();
 
       const newState: TelemetryState = {
         data,
