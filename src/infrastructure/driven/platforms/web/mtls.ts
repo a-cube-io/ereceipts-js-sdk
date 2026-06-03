@@ -109,12 +109,6 @@ export class WebMTLSAdapter implements IMTLSAdapter {
       const response = await this.fetchWithTimeout(requestConfig);
       const data = await this.parseResponseBody<T>(response, requestConfig.responseType);
 
-      log.debug('mTLS request completed:', {
-        status: response.status,
-        statusText: response.statusText,
-        url: requestConfig.url,
-      });
-
       if (response.status >= 500) {
         throw new MTLSError(
           MTLSErrorType.CONNECTION_FAILED,
