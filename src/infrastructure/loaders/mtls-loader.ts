@@ -39,7 +39,7 @@ export function loadMTLSAdapter(
     if (config?.autoInitialize && config.baseUrl) {
       const mtlsConfig: MTLSConnectionConfig = {
         baseUrl: config.baseUrl,
-        port: config.port || 444,
+        port: config.port || 443,
         timeout: config.timeout || 30000,
         validateCertificate: config.validateCertificate ?? true,
       };

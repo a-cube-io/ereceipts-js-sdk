@@ -411,7 +411,7 @@ export class ACubeSDK {
    * Call this after the user imports the certificate via browser settings.
    *
    * @param options.verify - If true, calls testMTLSConnection(). On web this only checks local
-   *   registration (no remote probe — CORS blocks cross-origin calls to port 444).
+   *   registration (no remote probe).
    */
   async registerBrowserCertificate(
     options: {
