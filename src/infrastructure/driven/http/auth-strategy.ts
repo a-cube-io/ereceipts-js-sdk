@@ -25,7 +25,7 @@ export class AuthStrategy {
     explicitMode?: AuthMode
   ): Promise<AuthConfig> {
     if (this.isNotificationEndpoint(url) || this.isTelemetryEndpoint(url)) {
-      return { mode: 'mtls', usePort444: true };
+      return { mode: 'mtls' };
     }
 
     const userRole = await this.getUserRole();
@@ -40,57 +40,56 @@ export class AuthStrategy {
     });
 
     if (userRole === 'SUPPLIER') {
-      return { mode: 'jwt', usePort444: false };
+      return { mode: 'jwt' };
     }
 
     if (userRole === 'CASHIER') {
       if (url.includes('/inactivity-period')) {
-        return { mode: 'mtls', usePort444: true };
+        return { mode: 'mtls' };
       }
       if (!isReceiptEndpoint) {
-        return { mode: 'jwt', usePort444: false };
+        return { mode: 'jwt' };
       }
-      return { mode: 'mtls', usePort444: true };
+      return { mode: 'mtls' };
     }
 
     if (userRole === 'MERCHANT') {
       if (!isReceiptEndpoint) {
-        return { mode: 'jwt', usePort444: false };
+        return { mode: 'jwt' };
       }
 
       if (this.isReturnableItemsEndpoint(url)) {
-        return { mode: 'mtls', usePort444: true };
+        return { mode: 'mtls' };
       }
 
       if (method === 'GET') {
         if (this.isDetailedReceiptEndpoint(url)) {
-          return { mode: 'mtls', usePort444: true };
+          return { mode: 'mtls' };
         }
-        return { mode: 'jwt', usePort444: false };
+        return { mode: 'jwt' };
       }
 
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-        return { mode: 'mtls', usePort444: true };
+        return { mode: 'mtls' };
       }
 
-      return { mode: 'jwt', usePort444: false };
+      return { mode: 'jwt' };
     }
 
     if (explicitMode) {
       if (userRole === 'SUPPLIER' && explicitMode === 'mtls') {
-        return { mode: 'jwt', usePort444: false };
+        return { mode: 'jwt' };
       }
       return {
         mode: explicitMode,
-        usePort444: explicitMode === 'mtls',
       };
     }
 
     if (isReceiptEndpoint) {
-      return { mode: 'mtls', usePort444: true };
+      return { mode: 'mtls' };
     }
 
-    return { mode: 'jwt', usePort444: false };
+    return { mode: 'jwt' };
   }
 
   async getAuthHeaders(): Promise<Record<string, string>> {

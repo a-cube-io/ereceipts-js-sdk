@@ -1,4 +1,5 @@
 import {
+  PaymentDetail,
   Receipt,
   ReceiptDetails,
   ReceiptInput,
@@ -26,23 +27,25 @@ export interface ReceiptItemApiInput {
   vat_rate_code?: VatRateCode;
   simplified_vat_allocation?: boolean;
   discount?: string;
-  is_down_payment_or_voucher_redemption?: boolean;
+  surcharge?: string;
+  prepaid_or_voucher?: boolean;
   complimentary?: boolean;
+}
+
+export interface PaymentDetailApiInput {
+  type: PaymentDetail['type'];
+  description: string;
+  amount: string;
+  ticket_quantity?: number;
 }
 
 export interface ReceiptApiInput {
   items: ReceiptItemApiInput[];
   customer_tax_code?: string;
   customer_lottery_code?: string;
-  discount?: string;
+  payment_details?: PaymentDetailApiInput[];
   invoice_issuing?: boolean;
   uncollected_dcr_to_ssn?: boolean;
-  services_uncollected_amount?: string;
-  goods_uncollected_amount?: string;
-  cash_payment_amount?: string;
-  electronic_payment_amount?: string;
-  ticket_restaurant_payment_amount?: string;
-  ticket_restaurant_quantity?: number;
 }
 
 export interface ReceiptApiOutput {
@@ -124,15 +127,18 @@ export class ReceiptMapper {
       items: input.items.map((item) => this.itemToApiInput(item)),
       customer_tax_code: input.customerTaxCode,
       customer_lottery_code: input.customerLotteryCode,
-      discount: formatDecimal(input.discount),
+      payment_details: input.paymentDetails?.map((detail) => this.paymentDetailToApiInput(detail)),
       invoice_issuing: input.invoiceIssuing,
       uncollected_dcr_to_ssn: input.uncollectedDcrToSsn,
-      services_uncollected_amount: formatDecimal(input.servicesUncollectedAmount),
-      goods_uncollected_amount: formatDecimal(input.goodsUncollectedAmount),
-      cash_payment_amount: formatDecimal(input.cashPaymentAmount),
-      electronic_payment_amount: formatDecimal(input.electronicPaymentAmount),
-      ticket_restaurant_payment_amount: formatDecimal(input.ticketRestaurantPaymentAmount),
-      ticket_restaurant_quantity: input.ticketRestaurantQuantity,
+    };
+  }
+
+  static paymentDetailToApiInput(detail: PaymentDetail): PaymentDetailApiInput {
+    return {
+      type: detail.type,
+      description: detail.description,
+      amount: formatDecimal(detail.amount) as string,
+      ticket_quantity: detail.ticketQuantity,
     };
   }
 
@@ -145,7 +151,8 @@ export class ReceiptMapper {
       vat_rate_code: item.vatRateCode,
       simplified_vat_allocation: item.simplifiedVatAllocation,
       discount: formatDecimal(item.discount),
-      is_down_payment_or_voucher_redemption: item.isDownPaymentOrVoucherRedemption,
+      surcharge: formatDecimal(item.surcharge),
+      prepaid_or_voucher: item.prepaidOrVoucher,
       complimentary: item.complimentary,
     };
   }
@@ -190,7 +197,8 @@ export class ReceiptMapper {
       vatRateCode: item.vat_rate_code,
       simplifiedVatAllocation: item.simplified_vat_allocation,
       discount: item.discount,
-      isDownPaymentOrVoucherRedemption: item.is_down_payment_or_voucher_redemption,
+      surcharge: item.surcharge,
+      prepaidOrVoucher: item.prepaid_or_voucher,
       complimentary: item.complimentary,
     };
   }

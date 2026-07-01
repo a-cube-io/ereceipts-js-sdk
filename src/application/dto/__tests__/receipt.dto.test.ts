@@ -24,7 +24,8 @@ describe('ReceiptMapper', () => {
         vatRateCode: '22.00',
         simplifiedVatAllocation: true,
         discount: '1',
-        isDownPaymentOrVoucherRedemption: false,
+        surcharge: '0.5',
+        prepaidOrVoucher: false,
         complimentary: false,
       };
 
@@ -38,7 +39,8 @@ describe('ReceiptMapper', () => {
         vat_rate_code: '22.00',
         simplified_vat_allocation: true,
         discount: '1.00',
-        is_down_payment_or_voucher_redemption: false,
+        surcharge: '0.50',
+        prepaid_or_voucher: false,
         complimentary: false,
       });
     });
@@ -56,7 +58,8 @@ describe('ReceiptMapper', () => {
       expect(result.vat_rate_code).toBeUndefined();
       expect(result.simplified_vat_allocation).toBeUndefined();
       expect(result.discount).toBeUndefined();
-      expect(result.is_down_payment_or_voucher_redemption).toBeUndefined();
+      expect(result.surcharge).toBeUndefined();
+      expect(result.prepaid_or_voucher).toBeUndefined();
       expect(result.complimentary).toBeUndefined();
     });
 
@@ -86,15 +89,26 @@ describe('ReceiptMapper', () => {
         ],
         customerTaxCode: 'TAX123',
         customerLotteryCode: undefined,
-        discount: '5',
+        paymentDetails: [
+          {
+            type: 'cash',
+            description: 'Cash payment',
+            amount: '100',
+          },
+          {
+            type: 'electronic',
+            description: 'Card payment',
+            amount: '50',
+          },
+          {
+            type: 'ticket',
+            description: 'Meal vouchers',
+            amount: '25',
+            ticketQuantity: 2,
+          },
+        ],
         invoiceIssuing: true,
         uncollectedDcrToSsn: false,
-        servicesUncollectedAmount: '10',
-        goodsUncollectedAmount: '20',
-        cashPaymentAmount: '100',
-        electronicPaymentAmount: '50',
-        ticketRestaurantPaymentAmount: '25',
-        ticketRestaurantQuantity: 2,
       };
 
       const result = ReceiptMapper.toApiInput(input);
@@ -102,28 +116,38 @@ describe('ReceiptMapper', () => {
       expect(result.items).toHaveLength(1);
       expect(result.customer_tax_code).toBe('TAX123');
       expect(result.customer_lottery_code).toBeUndefined();
-      expect(result.discount).toBe('5.00');
+      expect(result.payment_details).toEqual([
+        {
+          type: 'cash',
+          description: 'Cash payment',
+          amount: '100.00',
+          ticket_quantity: undefined,
+        },
+        {
+          type: 'electronic',
+          description: 'Card payment',
+          amount: '50.00',
+          ticket_quantity: undefined,
+        },
+        {
+          type: 'ticket',
+          description: 'Meal vouchers',
+          amount: '25.00',
+          ticket_quantity: 2,
+        },
+      ]);
       expect(result.invoice_issuing).toBe(true);
       expect(result.uncollected_dcr_to_ssn).toBe(false);
-      expect(result.services_uncollected_amount).toBe('10.00');
-      expect(result.goods_uncollected_amount).toBe('20.00');
-      expect(result.cash_payment_amount).toBe('100.00');
-      expect(result.electronic_payment_amount).toBe('50.00');
-      expect(result.ticket_restaurant_payment_amount).toBe('25.00');
-      expect(result.ticket_restaurant_quantity).toBe(2);
     });
 
-    it('should preserve undefined for optional payment fields', () => {
+    it('should preserve undefined for optional payment details', () => {
       const input: ReceiptInput = {
         items: [{ quantity: '1', description: 'Test', unitPrice: '10' }],
-        cashPaymentAmount: '10',
       };
 
       const result = ReceiptMapper.toApiInput(input);
 
-      expect(result.electronic_payment_amount).toBeUndefined();
-      expect(result.ticket_restaurant_payment_amount).toBeUndefined();
-      expect(result.ticket_restaurant_quantity).toBeUndefined();
+      expect(result.payment_details).toBeUndefined();
     });
 
     it('should map multiple items correctly', () => {
@@ -133,7 +157,13 @@ describe('ReceiptMapper', () => {
           { quantity: '2', description: 'Item 2', unitPrice: '20' },
           { quantity: '3', description: 'Item 3', unitPrice: '30' },
         ],
-        cashPaymentAmount: '140',
+        paymentDetails: [
+          {
+            type: 'cash',
+            description: 'Cash payment',
+            amount: '140',
+          },
+        ],
       };
 
       const result = ReceiptMapper.toApiInput(input);

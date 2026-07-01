@@ -19,7 +19,7 @@ export class MtlsAuthHandler implements IAuthHandler {
   ) {}
 
   async getAuthConfig(_url: string, _method: string): Promise<AuthConfig> {
-    return { mode: 'mtls', usePort444: true };
+    return { mode: 'mtls' };
   }
 
   async getAuthHeaders(): Promise<Record<string, string>> {

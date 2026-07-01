@@ -5,7 +5,7 @@ export class JwtAuthHandler implements IAuthHandler {
   constructor(private readonly tokenStorage: ITokenStoragePort) {}
 
   async getAuthConfig(_url: string, _method: string): Promise<AuthConfig> {
-    return { mode: 'jwt', usePort444: false };
+    return { mode: 'jwt' };
   }
 
   async getAuthHeaders(): Promise<Record<string, string>> {

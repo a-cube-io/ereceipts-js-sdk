@@ -47,15 +47,11 @@ export function loadPlatformAdapters(options: PlatformAdapterOptions = {}): Plat
 export function createACubeMTLSConfig(
   baseUrl: string,
   timeout?: number,
-  autoInitialize = true,
-  forcePort444 = true
+  autoInitialize = true
 ): MTLSAdapterConfig {
-  const mtlsBaseUrl =
-    forcePort444 && !baseUrl.includes(':444') ? baseUrl.replace(/:\d+$/, '') + ':444' : baseUrl;
-
   return {
-    baseUrl: mtlsBaseUrl,
-    port: 444,
+    baseUrl,
+    port: 443,
     timeout: timeout || 30000,
     validateCertificate: true,
     autoInitialize,

@@ -2,6 +2,24 @@ import { GoodOrService, VatRateCode } from '@/domain/value-objects/vat-code.vo';
 
 export type ReceiptType = 'sale' | 'return' | 'void';
 
+export type PaymentType =
+  | 'cash'
+  | 'electronic'
+  | 'ticket'
+  | 'discount'
+  | 'credit'
+  | 'uncollected_goods'
+  | 'uncollected_services'
+  | 'rounding_up'
+  | 'rounding_down';
+
+export interface PaymentDetail {
+  type: PaymentType;
+  description: string;
+  amount: string;
+  ticketQuantity?: number;
+}
+
 export interface ReceiptItem {
   type?: GoodOrService;
   quantity: string;
@@ -10,7 +28,8 @@ export interface ReceiptItem {
   vatRateCode?: VatRateCode;
   simplifiedVatAllocation?: boolean;
   discount?: string;
-  isDownPaymentOrVoucherRedemption?: boolean;
+  surcharge?: string;
+  prepaidOrVoucher?: boolean;
   complimentary?: boolean;
 }
 
@@ -59,15 +78,9 @@ export interface ReceiptInput {
   items: ReceiptItem[];
   customerTaxCode?: string;
   customerLotteryCode?: string;
-  discount?: string;
+  paymentDetails?: PaymentDetail[];
   invoiceIssuing?: boolean;
   uncollectedDcrToSsn?: boolean;
-  servicesUncollectedAmount?: string;
-  goodsUncollectedAmount?: string;
-  cashPaymentAmount?: string;
-  electronicPaymentAmount?: string;
-  ticketRestaurantPaymentAmount?: string;
-  ticketRestaurantQuantity?: number;
 }
 
 export interface ReceiptReturnInput {
