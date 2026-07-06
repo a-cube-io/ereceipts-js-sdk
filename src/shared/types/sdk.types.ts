@@ -1,6 +1,6 @@
 import type { UserRoles } from '@/domain/value-objects';
 
-export type Environment = 'production' | 'development' | 'sandbox';
+export type Environment = 'production' | 'development' | 'rch' | 'sandbox';
 
 export interface CertificateConfig {
   storagePrefix?: string;

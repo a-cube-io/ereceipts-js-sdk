@@ -35,6 +35,8 @@ export class ConfigManager {
         return 'https://ereceipts-it.acubeapi.com';
       case 'development':
         return 'https://ereceipts-it.dev.acubeapi.com';
+      case 'rch':
+        return 'https://ereceipts-it-rch-api.dev.acubeapi.com';
       case 'sandbox':
       default:
         return 'https://ereceipts-it-sandbox.acubeapi.com';
