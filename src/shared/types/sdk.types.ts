@@ -1,14 +1,13 @@
 import type { UserRoles } from '@/domain/value-objects';
 
-export type Environment = 'production' | 'development' | 'rch' | 'sandbox';
-
 export interface CertificateConfig {
   storagePrefix?: string;
   metadataKey?: string;
 }
 
 export interface SDKConfig {
-  environment: Environment;
+  apiUrl: string;
+  authUrl: string;
   debug?: boolean;
 }
 

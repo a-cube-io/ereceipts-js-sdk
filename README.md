@@ -49,7 +49,8 @@ import { SDKManager } from '@a-cube-io/ereceipts-js-sdk';
 
 // 1. Configura (una volta all'avvio)
 SDKManager.configure({
-  environment: 'sandbox',
+  apiUrl: 'https://ereceipts-it-sandbox.acubeapi.com',
+  authUrl: 'https://common-sandbox.api.acubeapi.com',
   notificationPollIntervalMs: 30000,
 });
 
@@ -78,7 +79,8 @@ import { createACubeSDK } from '@a-cube-io/ereceipts-js-sdk';
 
 // Inizializza SDK
 const sdk = await createACubeSDK({
-  environment: 'sandbox',
+  apiUrl: 'https://ereceipts-it-sandbox.acubeapi.com',
+  authUrl: 'https://common-sandbox.api.acubeapi.com',
 });
 
 // Login

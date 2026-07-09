@@ -66,7 +66,7 @@ export type { PlatformAdapters } from './application/ports/driven/platform-adapt
 
 // Shared
 export { ACubeSDKError, ConfigManager } from './shared';
-export type { SDKConfig, Environment, User, AuthCredentials, JWTPayload } from './shared/types';
+export type { SDKConfig, User, AuthCredentials, JWTPayload } from './shared/types';
 export type { Domain, UserRole, UserRoles } from './domain/value-objects';
 export { logger, createPrefixedLogger } from './shared/utils/logger';
 

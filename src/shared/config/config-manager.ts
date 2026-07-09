@@ -1,7 +1,6 @@
-import { Environment, SDKConfig } from '@/shared/types';
+import { SDKConfig } from '@/shared/types';
 
 interface InternalConfig {
-  environment: Environment;
   apiUrl: string;
   authUrl: string;
   timeout: number;
@@ -19,9 +18,8 @@ export class ConfigManager {
 
   private buildConfig(userConfig: SDKConfig): InternalConfig {
     return {
-      environment: userConfig.environment,
-      apiUrl: this.getDefaultApiUrl(userConfig.environment),
-      authUrl: this.getDefaultAuthUrl(userConfig.environment),
+      apiUrl: userConfig.apiUrl,
+      authUrl: userConfig.authUrl,
       timeout: 30000,
       retryAttempts: 3,
       debug: userConfig.debug ?? false,
@@ -29,34 +27,10 @@ export class ConfigManager {
     };
   }
 
-  private getDefaultApiUrl(environment: Environment): string {
-    switch (environment) {
-      case 'production':
-        return 'https://ereceipts-it.acubeapi.com';
-      case 'development':
-        return 'https://ereceipts-it.dev.acubeapi.com';
-      case 'rch':
-        return 'https://ereceipts-it-rch-api.dev.acubeapi.com';
-      case 'sandbox':
-      default:
-        return 'https://ereceipts-it-sandbox.acubeapi.com';
-    }
-  }
-
-  private getDefaultAuthUrl(environment: Environment): string {
-    switch (environment) {
-      case 'production':
-        return 'https://common.api.acubeapi.com';
-      case 'development':
-      case 'sandbox':
-      default:
-        return 'https://common-sandbox.api.acubeapi.com';
-    }
-  }
-
   getConfig(): SDKConfig {
     return {
-      environment: this.config.environment,
+      apiUrl: this.config.apiUrl,
+      authUrl: this.config.authUrl,
       debug: this.config.debug,
     };
   }
@@ -67,10 +41,6 @@ export class ConfigManager {
 
   getAuthUrl(): string {
     return this.config.authUrl;
-  }
-
-  getEnvironment(): Environment {
-    return this.config.environment;
   }
 
   isDebugEnabled(): boolean {
@@ -90,10 +60,11 @@ export class ConfigManager {
   }
 
   updateConfig(updates: Partial<SDKConfig>): void {
-    if (updates.environment) {
-      this.config.environment = updates.environment;
-      this.config.apiUrl = this.getDefaultApiUrl(updates.environment);
-      this.config.authUrl = this.getDefaultAuthUrl(updates.environment);
+    if (updates.apiUrl) {
+      this.config.apiUrl = updates.apiUrl;
+    }
+    if (updates.authUrl) {
+      this.config.authUrl = updates.authUrl;
     }
     if (updates.debug !== undefined) {
       this.config.debug = updates.debug;
