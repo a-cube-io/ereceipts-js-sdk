@@ -119,7 +119,8 @@ export interface SDKManagerEvents extends SDKEvents {
  * ```typescript
  * // Configure once at app startup
  * SDKManager.configure({
- *   environment: 'sandbox',
+ *   apiUrl: 'https://ereceipts-it-sandbox.acubeapi.com',
+ *   authUrl: 'https://common-sandbox.api.acubeapi.com',
  *   notificationPollIntervalMs: 30000,
  *   telemetryPollIntervalMs: 60000,
  * });
