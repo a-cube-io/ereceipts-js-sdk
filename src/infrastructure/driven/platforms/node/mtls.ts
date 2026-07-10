@@ -297,6 +297,10 @@ export class NodeMTLSAdapter implements IMTLSAdapter {
     } catch (error: unknown) {
       log.error('mTLS request failed:', error);
 
+      if (axios.isAxiosError(error) && error.response) {
+        throw error;
+      }
+
       const errorCode = (error as { code?: string })?.code;
 
       // Handle specific Node.js/axios errors

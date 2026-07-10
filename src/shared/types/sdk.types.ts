@@ -85,16 +85,19 @@ export type SDKError =
 
 export class ACubeSDKError extends Error {
   public violations?: APIViolation[];
+  public responseData?: unknown;
 
   constructor(
     public type: SDKError,
     message: string,
     public originalError?: unknown,
     public statusCode?: number,
-    violations?: APIViolation[]
+    violations?: APIViolation[],
+    responseData?: unknown
   ) {
     super(message);
     this.name = 'ACubeSDKError';
     this.violations = violations;
+    this.responseData = responseData;
   }
 }
