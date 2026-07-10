@@ -6,8 +6,8 @@ import { MTLSError, MTLSErrorType } from '@/domain/errors';
 import { clearObject, createPrefixedLogger } from '@/shared/utils';
 
 import { AuthStrategy } from './auth-strategy';
-import { createHttpApiError } from './http-api.error';
 import { transformError } from './error-transformer';
+import { createHttpApiError } from './http-api.error';
 
 const logJwt = createPrefixedLogger('HTTP-JWT');
 const logMtls = createPrefixedLogger('HTTP-MTLS');

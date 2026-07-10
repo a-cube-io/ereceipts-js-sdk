@@ -52,9 +52,7 @@ function createACubeSDKErrorFromResponse(
 ): ACubeSDKError {
   const violations = extractViolations(data);
   const message =
-    extractApiErrorMessage(data) ??
-    extractErrorMessage(originalError) ??
-    'Unknown error occurred';
+    extractApiErrorMessage(data) ?? extractErrorMessage(originalError) ?? 'Unknown error occurred';
 
   return new ACubeSDKError(
     mapStatusToErrorType(status),
@@ -77,11 +75,7 @@ export function transformError(error: unknown): ACubeSDKError {
 
   const httpResponse = extractHttpResponse(error);
   if (httpResponse) {
-    return createACubeSDKErrorFromResponse(
-      httpResponse.status,
-      httpResponse.data,
-      error
-    );
+    return createACubeSDKErrorFromResponse(httpResponse.status, httpResponse.data, error);
   }
 
   if (error instanceof MTLSError) {

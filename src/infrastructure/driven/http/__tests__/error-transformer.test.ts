@@ -2,8 +2,8 @@ import axios, { AxiosError } from 'axios';
 
 import { ACubeSDKError } from '@/shared/types';
 
-import { createHttpApiError } from '../http-api.error';
 import { transformError } from '../error-transformer';
+import { createHttpApiError } from '../http-api.error';
 
 jest.mock('axios', () => ({
   ...jest.requireActual('axios'),
