@@ -527,15 +527,6 @@ export class ReactNativeMTLSAdapter implements IMTLSAdapter {
 
       log.debug('mTLS request successful:', response);
 
-      if (!response.success) {
-        throw new MTLSError(
-          MTLSErrorType.CONNECTION_FAILED,
-          `mTLS request failed: ${response.statusMessage} (${response.statusCode})`,
-          undefined,
-          response.statusCode
-        );
-      }
-
       let data: string | Record<string, unknown> = response.body;
       // only parse if responseType is 'json' or if Content-Type header indicates JSON
       const contentType =

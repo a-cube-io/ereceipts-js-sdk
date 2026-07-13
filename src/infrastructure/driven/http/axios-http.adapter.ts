@@ -6,6 +6,8 @@ import { MTLSError, MTLSErrorType } from '@/domain/errors';
 import { clearObject, createPrefixedLogger } from '@/shared/utils';
 
 import { AuthStrategy } from './auth-strategy';
+import { transformError } from './error-transformer';
+import { createHttpApiError } from './http-api.error';
 
 const logJwt = createPrefixedLogger('HTTP-JWT');
 const logMtls = createPrefixedLogger('HTTP-MTLS');
@@ -129,6 +131,11 @@ export class AxiosHttpAdapter implements IHttpPort {
       if (response.data) {
         logMtls.debug('Response body:', response.data);
       }
+
+      if (response.status >= 400) {
+        throw transformError(createHttpApiError(response.status, response.data));
+      }
+
       return {
         data: response.data,
         status: response.status,
@@ -142,7 +149,7 @@ export class AxiosHttpAdapter implements IHttpPort {
           logMtls.error('Response body:', axiosError.response.data);
         }
       }
-      throw error;
+      throw transformError(error);
     }
   }
 
@@ -213,7 +220,7 @@ export class AxiosHttpAdapter implements IHttpPort {
           logJwt.error('Response body:', error.response.data);
         }
 
-        return Promise.reject(error);
+        return Promise.reject(transformError(error));
       }
     );
   }

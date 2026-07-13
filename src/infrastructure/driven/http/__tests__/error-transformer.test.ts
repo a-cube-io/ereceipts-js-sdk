@@ -3,6 +3,7 @@ import axios, { AxiosError } from 'axios';
 import { ACubeSDKError } from '@/shared/types';
 
 import { transformError } from '../error-transformer';
+import { createHttpApiError } from '../http-api.error';
 
 jest.mock('axios', () => ({
   ...jest.requireActual('axios'),
@@ -33,6 +34,7 @@ describe('transformError', () => {
       expect(result.type).toBe('VALIDATION_ERROR');
       expect(result.message).toBe('Bad request');
       expect(result.statusCode).toBe(400);
+      expect(result.responseData).toEqual({ detail: 'Bad request' });
     });
 
     it('should return AUTH_ERROR for status 401', () => {
@@ -205,6 +207,10 @@ describe('transformError', () => {
 
       expect(result.violations).toEqual(violations);
       expect(result.violations).toHaveLength(2);
+      expect(result.responseData).toEqual({
+        detail: 'Validation failed',
+        violations,
+      });
     });
 
     it('should handle undefined violations', () => {
@@ -241,6 +247,37 @@ describe('transformError', () => {
     });
   });
 
+  describe('HttpApiError handling', () => {
+    it('should transform HttpApiError into ACubeSDKError with backend payload', () => {
+      mockedIsAxiosError.mockReturnValue(false);
+      const error = createHttpApiError(422, {
+        detail: 'Validation failed',
+        violations: [{ propertyPath: 'email', message: 'Invalid email' }],
+      });
+
+      const result = transformError(error);
+
+      expect(result.type).toBe('VALIDATION_ERROR');
+      expect(result.message).toBe('Validation failed');
+      expect(result.statusCode).toBe(422);
+      expect(result.violations).toEqual([{ propertyPath: 'email', message: 'Invalid email' }]);
+      expect(result.responseData).toEqual({
+        detail: 'Validation failed',
+        violations: [{ propertyPath: 'email', message: 'Invalid email' }],
+      });
+    });
+  });
+
+  describe('ACubeSDKError passthrough', () => {
+    it('should return the same ACubeSDKError instance', () => {
+      const existing = new ACubeSDKError('AUTH_ERROR', 'Already transformed');
+
+      const result = transformError(existing);
+
+      expect(result).toBe(existing);
+    });
+  });
+
   describe('Non-Axios errors', () => {
     it('should return UNKNOWN_ERROR for generic Error', () => {
       mockedIsAxiosError.mockReturnValue(false);
@@ -249,7 +286,7 @@ describe('transformError', () => {
       const result = transformError(error);
 
       expect(result.type).toBe('UNKNOWN_ERROR');
-      expect(result.message).toBe('Unknown error occurred');
+      expect(result.message).toBe('Generic error');
     });
 
     it('should return UNKNOWN_ERROR for string error', () => {
