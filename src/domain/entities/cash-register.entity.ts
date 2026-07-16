@@ -4,9 +4,18 @@ export interface CashRegister {
   name: string;
 }
 
-export interface CashRegisterDetailed extends CashRegister {
-  mtlsCertificate: string;
+export interface MtlsCertificatePem {
+  certificate: string;
   privateKey: string;
+}
+
+export interface MtlsCertificate {
+  pem: MtlsCertificatePem;
+  pkcs12: string;
+}
+
+export interface CashRegisterDetailed extends CashRegister {
+  mtlsCertificate: MtlsCertificate;
 }
 
 export interface CashRegisterCreateInput {

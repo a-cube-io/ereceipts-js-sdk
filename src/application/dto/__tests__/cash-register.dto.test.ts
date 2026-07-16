@@ -65,8 +65,13 @@ describe('CashRegisterMapper', () => {
         uuid: 'register-uuid',
         pem_serial_number: 'PEM-SN-002',
         name: 'Detailed Register',
-        mtls_certificate: '-----BEGIN CERTIFICATE-----\nMIIC...',
-        private_key: '-----BEGIN PRIVATE KEY-----\nMIIE...',
+        mtls_certificate: {
+          pem: {
+            certificate: '-----BEGIN CERTIFICATE-----\nMIIC...',
+            private_key: '-----BEGIN PRIVATE KEY-----\nMIIE...',
+          },
+          pkcs12: 'base64-pkcs12-content',
+        },
       };
 
       const result = CashRegisterMapper.fromDetailedApiOutput(output);
@@ -75,8 +80,13 @@ describe('CashRegisterMapper', () => {
         uuid: 'register-uuid',
         pemSerialNumber: 'PEM-SN-002',
         name: 'Detailed Register',
-        mtlsCertificate: '-----BEGIN CERTIFICATE-----\nMIIC...',
-        privateKey: '-----BEGIN PRIVATE KEY-----\nMIIE...',
+        mtlsCertificate: {
+          pem: {
+            certificate: '-----BEGIN CERTIFICATE-----\nMIIC...',
+            privateKey: '-----BEGIN PRIVATE KEY-----\nMIIE...',
+          },
+          pkcs12: 'base64-pkcs12-content',
+        },
       });
     });
 
@@ -85,8 +95,13 @@ describe('CashRegisterMapper', () => {
         uuid: 'uuid',
         pem_serial_number: 'SN',
         name: 'Name',
-        mtls_certificate: 'cert',
-        private_key: 'key',
+        mtls_certificate: {
+          pem: {
+            certificate: 'cert',
+            private_key: 'key',
+          },
+          pkcs12: 'p12',
+        },
       };
 
       const result = CashRegisterMapper.fromDetailedApiOutput(output);
@@ -94,8 +109,9 @@ describe('CashRegisterMapper', () => {
       expect(result.uuid).toBe('uuid');
       expect(result.pemSerialNumber).toBe('SN');
       expect(result.name).toBe('Name');
-      expect(result.mtlsCertificate).toBe('cert');
-      expect(result.privateKey).toBe('key');
+      expect(result.mtlsCertificate.pem.certificate).toBe('cert');
+      expect(result.mtlsCertificate.pem.privateKey).toBe('key');
+      expect(result.mtlsCertificate.pkcs12).toBe('p12');
     });
   });
 

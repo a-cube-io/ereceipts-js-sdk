@@ -12,9 +12,18 @@ export interface CashRegisterApiOutput {
   name: string;
 }
 
-export interface CashRegisterDetailedApiOutput extends CashRegisterApiOutput {
-  mtls_certificate: string;
+export interface MtlsCertificatePemApiOutput {
+  certificate: string;
   private_key: string;
+}
+
+export interface MtlsCertificateApiOutput {
+  pem: MtlsCertificatePemApiOutput;
+  pkcs12: string;
+}
+
+export interface CashRegisterDetailedApiOutput extends CashRegisterApiOutput {
+  mtls_certificate: MtlsCertificateApiOutput;
 }
 
 export interface CashRegisterCreateApiInput {
@@ -51,8 +60,13 @@ export class CashRegisterMapper {
   static fromDetailedApiOutput(output: CashRegisterDetailedApiOutput): CashRegisterDetailed {
     return {
       ...this.fromApiOutput(output),
-      mtlsCertificate: output.mtls_certificate,
-      privateKey: output.private_key,
+      mtlsCertificate: {
+        pem: {
+          certificate: output.mtls_certificate.pem.certificate,
+          privateKey: output.mtls_certificate.pem.private_key,
+        },
+        pkcs12: output.mtls_certificate.pkcs12,
+      },
     };
   }
 
