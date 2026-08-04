@@ -13,9 +13,9 @@ export interface TelemetrySupplier {
 }
 
 export interface TelemetrySoftwareVersion {
-  version: string | null;
-  swid: string | null;
-  installedAt: string | null;
+  id: string | null;
+  swidTagId: string | null;
+  date: string | null;
   status: SoftwareVersionStatus;
 }
 
@@ -23,7 +23,13 @@ export interface TelemetrySoftware {
   code: string | null;
   name: string | null;
   approvalReference: string | null;
-  versionInfo: TelemetrySoftwareVersion | null;
+  version: TelemetrySoftwareVersion | null;
+  availableVersion: TelemetrySoftwareVersion | null;
+}
+
+export interface TelemetryCashRegister {
+  uuid: string;
+  name: string | null;
 }
 
 export interface PendingReceipts {
@@ -58,6 +64,7 @@ export interface Telemetry {
   merchant: TelemetryMerchant;
   supplier: TelemetrySupplier;
   software: TelemetrySoftware;
+  cashRegister: TelemetryCashRegister;
   lastCommunicationAt: string | null;
   pendingReceipts: PendingReceipts | null;
   lastReceiptTransmission: TransmissionAttemptInfo | null;
