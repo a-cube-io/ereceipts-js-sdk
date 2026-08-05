@@ -30,6 +30,7 @@ export interface ReceiptItem {
   surcharge?: string;
   prepaidOrVoucher?: boolean;
   complimentary?: boolean;
+  atecoCode?: string;
 }
 
 export interface ReceiptReturnItem {
