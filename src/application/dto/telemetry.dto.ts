@@ -5,6 +5,7 @@ import {
   PendingReceipts,
   SoftwareVersionStatus,
   Telemetry,
+  TelemetryCashRegister,
   TelemetryMerchant,
   TelemetrySoftware,
   TelemetrySoftwareVersion,
@@ -25,9 +26,9 @@ export interface TelemetrySupplierApiOutput {
 }
 
 export interface TelemetrySoftwareVersionApiOutput {
-  version: string | null;
-  swid: string | null;
-  installed_at: string | null;
+  id: string | null;
+  swid_tag_id: string | null;
+  date: string | null;
   status: string;
 }
 
@@ -35,7 +36,13 @@ export interface TelemetrySoftwareApiOutput {
   code: string | null;
   name: string | null;
   approval_reference: string | null;
-  version_info: TelemetrySoftwareVersionApiOutput | null;
+  version: TelemetrySoftwareVersionApiOutput | null;
+  available_version: TelemetrySoftwareVersionApiOutput | null;
+}
+
+export interface TelemetryCashRegisterApiOutput {
+  uuid: string;
+  name: string | null;
 }
 
 export interface PendingReceiptsApiOutput {
@@ -70,6 +77,7 @@ export interface TelemetryApiOutput {
   merchant: TelemetryMerchantApiOutput;
   supplier: TelemetrySupplierApiOutput;
   software: TelemetrySoftwareApiOutput;
+  cash_register: TelemetryCashRegisterApiOutput;
   last_communication_at: string | null;
   pending_receipts: PendingReceiptsApiOutput | null;
   last_receipt_transmission: TransmissionAttemptApiOutput | null;
@@ -88,6 +96,7 @@ export class TelemetryMapper {
       merchant: this.merchantFromApi(output.merchant),
       supplier: this.supplierFromApi(output.supplier),
       software: this.softwareFromApi(output.software),
+      cashRegister: this.cashRegisterFromApi(output.cash_register),
       lastCommunicationAt: output.last_communication_at,
       pendingReceipts: output.pending_receipts
         ? this.pendingReceiptsFromApi(output.pending_receipts)
@@ -128,9 +137,9 @@ export class TelemetryMapper {
     output: TelemetrySoftwareVersionApiOutput
   ): TelemetrySoftwareVersion {
     return {
-      version: output.version,
-      swid: output.swid,
-      installedAt: output.installed_at,
+      id: output.id,
+      swidTagId: output.swid_tag_id,
+      date: output.date,
       status: output.status as SoftwareVersionStatus,
     };
   }
@@ -140,7 +149,19 @@ export class TelemetryMapper {
       code: output.code,
       name: output.name,
       approvalReference: output.approval_reference,
-      versionInfo: output.version_info ? this.softwareVersionFromApi(output.version_info) : null,
+      version: output.version ? this.softwareVersionFromApi(output.version) : null,
+      availableVersion: output.available_version
+        ? this.softwareVersionFromApi(output.available_version)
+        : null,
+    };
+  }
+
+  private static cashRegisterFromApi(
+    output: TelemetryCashRegisterApiOutput
+  ): TelemetryCashRegister {
+    return {
+      uuid: output.uuid,
+      name: output.name,
     };
   }
 

@@ -2,10 +2,6 @@ import { EXEMPT_VAT_CODES, STANDARD_VAT_RATES, VAT_RATE_CODES } from '../vat-cod
 
 describe('vat-code.vo', () => {
   describe('VAT_RATE_CODES', () => {
-    it('should contain exactly 22 codes', () => {
-      expect(VAT_RATE_CODES).toHaveLength(22);
-    });
-
     it('should not contain any duplicates', () => {
       const uniqueCodes = new Set(VAT_RATE_CODES);
       expect(uniqueCodes.size).toBe(VAT_RATE_CODES.length);

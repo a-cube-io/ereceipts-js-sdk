@@ -40,6 +40,7 @@ interface Telemetry {
   merchant: TelemetryMerchant;
   supplier: TelemetrySupplier;
   software: TelemetrySoftware;
+  cashRegister: TelemetryCashRegister;
   lastCommunicationAt: string | null;
   pendingReceipts: PendingReceipts | null;
   lastReceiptTransmission: TransmissionAttemptInfo | null;
@@ -86,17 +87,29 @@ interface TelemetrySoftware {
   code: string | null;
   name: string | null;
   approvalReference: string | null;
-  versionInfo: TelemetrySoftwareVersion | null;
+  version: TelemetrySoftwareVersion | null;
+  availableVersion: TelemetrySoftwareVersion | null;
 }
 
 interface TelemetrySoftwareVersion {
-  version: string | null;
-  swid: string | null;
-  installedAt: string | null;
+  id: string | null;
+  swidTagId: string | null;
+  date: string | null;
   status: SoftwareVersionStatus;
 }
 
 type SoftwareVersionStatus = 'active';
+```
+
+### TelemetryCashRegister
+
+Informazioni sul registratore di cassa associato al PEM.
+
+```typescript
+interface TelemetryCashRegister {
+  uuid: string;
+  name: string | null;
+}
 ```
 
 ### PendingReceipts
@@ -345,11 +358,11 @@ if (telemetry.lastReceiptTransmission?.outcome === 'failed') {
 }
 
 // Info software (con null check)
-if (telemetry.software.name && telemetry.software.versionInfo?.version) {
+if (telemetry.software.name && telemetry.software.version?.id) {
   console.log(
     'Software:',
     telemetry.software.name,
-    'v' + telemetry.software.versionInfo.version
+    'v' + telemetry.software.version.id
   );
 }
 

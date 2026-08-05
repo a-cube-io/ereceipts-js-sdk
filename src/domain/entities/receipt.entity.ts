@@ -7,14 +7,14 @@ export type PaymentType =
   | 'electronic'
   | 'ticket'
   | 'discount'
-  | 'credit'
+  | 'uncollected_goods'
   | 'uncollected_services'
   | 'rounding_up'
   | 'rounding_down';
 
 export interface PaymentDetail {
   type: PaymentType;
-  description: string;
+  description?: string;
   amount: string;
   ticketQuantity?: number;
 }
@@ -30,6 +30,7 @@ export interface ReceiptItem {
   surcharge?: string;
   prepaidOrVoucher?: boolean;
   complimentary?: boolean;
+  atecoCode?: string;
 }
 
 export interface ReceiptReturnItem {
