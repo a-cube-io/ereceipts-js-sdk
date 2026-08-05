@@ -7,7 +7,7 @@ export type PaymentType =
   | 'electronic'
   | 'ticket'
   | 'discount'
-  | 'credit'
+  | 'uncollected_goods'
   | 'uncollected_services'
   | 'rounding_up'
   | 'rounding_down';
