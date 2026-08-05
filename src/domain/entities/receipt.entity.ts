@@ -14,7 +14,7 @@ export type PaymentType =
 
 export interface PaymentDetail {
   type: PaymentType;
-  description: string;
+  description?: string;
   amount: string;
   ticketQuantity?: number;
 }

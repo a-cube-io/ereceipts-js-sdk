@@ -34,7 +34,7 @@ export interface ReceiptItemApiInput {
 
 export interface PaymentDetailApiInput {
   type: PaymentDetail['type'];
-  description: string;
+  description?: string;
   amount: string;
   ticket_quantity?: number;
 }
