@@ -95,10 +95,7 @@ interface TelemetrySoftwareVersion {
   id: string | null;
   swidTagId: string | null;
   date: string | null;
-  status: SoftwareVersionStatus;
 }
-
-type SoftwareVersionStatus = 'active';
 ```
 
 ### TelemetryCashRegister

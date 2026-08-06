@@ -3,7 +3,6 @@ import {
   LotteryTelemetry,
   MessageInfo,
   PendingReceipts,
-  SoftwareVersionStatus,
   Telemetry,
   TelemetryCashRegister,
   TelemetryMerchant,
@@ -29,7 +28,6 @@ export interface TelemetrySoftwareVersionApiOutput {
   id: string | null;
   swid_tag_id: string | null;
   date: string | null;
-  status: string;
 }
 
 export interface TelemetrySoftwareApiOutput {
@@ -140,7 +138,6 @@ export class TelemetryMapper {
       id: output.id,
       swidTagId: output.swid_tag_id,
       date: output.date,
-      status: output.status as SoftwareVersionStatus,
     };
   }
 
