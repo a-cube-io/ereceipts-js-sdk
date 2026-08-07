@@ -32,3 +32,9 @@ export interface MerchantUpdateInput {
 export interface MerchantsParams {
   page?: number;
 }
+
+export interface MerchantAteco {
+  atecoCodes: string[];
+}
+
+export type MerchantAtecoInput = MerchantAteco;
