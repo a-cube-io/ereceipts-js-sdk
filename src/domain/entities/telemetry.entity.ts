@@ -1,5 +1,3 @@
-export type SoftwareVersionStatus = 'active';
-
 export interface TelemetryMerchant {
   vatNumber: string | null;
   fiscalCode: string | null;
@@ -16,7 +14,6 @@ export interface TelemetrySoftwareVersion {
   id: string | null;
   swidTagId: string | null;
   date: string | null;
-  status: SoftwareVersionStatus;
 }
 
 export interface TelemetrySoftware {
