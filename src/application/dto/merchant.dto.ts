@@ -45,7 +45,7 @@ export interface MerchantUpdateApiInput {
 }
 
 export interface MerchantAtecoApiOutput {
-  atecoCodes: string[];
+  ateco_codes: string[];
 }
 
 export type MerchantAtecoApiInput = MerchantAtecoApiOutput;
@@ -113,10 +113,10 @@ export class MerchantMapper {
   }
 
   static toAtecoApiInput(input: MerchantAtecoInput): MerchantAtecoApiInput {
-    return { atecoCodes: input.atecoCodes };
+    return { ateco_codes: input.atecoCodes };
   }
 
   static atecoFromApiOutput(output: MerchantAtecoApiOutput): MerchantAteco {
-    return { atecoCodes: output.atecoCodes };
+    return { atecoCodes: output.ateco_codes };
   }
 }
