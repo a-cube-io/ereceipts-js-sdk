@@ -1,7 +1,7 @@
 import {
   Merchant,
-  MerchantAtecoInput,
   MerchantAteco,
+  MerchantAtecoInput,
   MerchantCreateInput,
   MerchantUpdateInput,
 } from '@/domain/entities/merchant.entity';

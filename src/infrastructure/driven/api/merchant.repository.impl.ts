@@ -1,4 +1,8 @@
-import { MerchantApiOutput, MerchantAtecoApiOutput, MerchantMapper } from '@/application/dto/merchant.dto';
+import {
+  MerchantApiOutput,
+  MerchantAtecoApiOutput,
+  MerchantMapper,
+} from '@/application/dto/merchant.dto';
 import { IHttpPort } from '@/application/ports/driven/http.port';
 import {
   Merchant,
@@ -39,7 +43,7 @@ export class MerchantRepositoryImpl implements IMerchantRepository {
 
   async getAtecoCodes(uuid: string): Promise<MerchantAteco> {
     const response = await this.http.get<MerchantAtecoApiOutput>(
-      `/mf2/merchants/${uuid}/ateco-codes`,
+      `/mf2/merchants/${uuid}/ateco-codes`
     );
     return MerchantMapper.atecoFromApiOutput(response.data);
   }
@@ -48,7 +52,7 @@ export class MerchantRepositoryImpl implements IMerchantRepository {
     const apiInput = MerchantMapper.toAtecoApiInput(input);
     const response = await this.http.put<MerchantAtecoApiOutput>(
       `/mf2/merchants/${uuid}/ateco-codes`,
-      apiInput,
+      apiInput
     );
     return MerchantMapper.atecoFromApiOutput(response.data);
   }
