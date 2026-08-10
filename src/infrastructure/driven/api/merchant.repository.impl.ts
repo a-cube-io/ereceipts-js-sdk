@@ -1,7 +1,13 @@
-import { MerchantApiOutput, MerchantMapper } from '@/application/dto/merchant.dto';
+import {
+  MerchantApiOutput,
+  MerchantAtecoApiOutput,
+  MerchantMapper,
+} from '@/application/dto/merchant.dto';
 import { IHttpPort } from '@/application/ports/driven/http.port';
 import {
   Merchant,
+  MerchantAteco,
+  MerchantAtecoInput,
   MerchantCreateInput,
   MerchantUpdateInput,
   MerchantsParams,
@@ -33,5 +39,21 @@ export class MerchantRepositoryImpl implements IMerchantRepository {
     const apiInput = MerchantMapper.toUpdateApiInput(input);
     const response = await this.http.put<MerchantApiOutput>(`/mf2/merchants/${uuid}`, apiInput);
     return MerchantMapper.fromApiOutput(response.data);
+  }
+
+  async getAtecoCodes(uuid: string): Promise<MerchantAteco> {
+    const response = await this.http.get<MerchantAtecoApiOutput>(
+      `/mf2/merchants/${uuid}/ateco-codes`
+    );
+    return MerchantMapper.atecoFromApiOutput(response.data);
+  }
+
+  async updateAtecoCodes(uuid: string, input: MerchantAtecoInput): Promise<MerchantAteco> {
+    const apiInput = MerchantMapper.toAtecoApiInput(input);
+    const response = await this.http.put<MerchantAtecoApiOutput>(
+      `/mf2/merchants/${uuid}/ateco-codes`,
+      apiInput
+    );
+    return MerchantMapper.atecoFromApiOutput(response.data);
   }
 }

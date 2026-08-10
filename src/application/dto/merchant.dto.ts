@@ -1,5 +1,7 @@
 import {
   Merchant,
+  MerchantAteco,
+  MerchantAtecoInput,
   MerchantCreateInput,
   MerchantUpdateInput,
 } from '@/domain/entities/merchant.entity';
@@ -41,6 +43,12 @@ export interface MerchantUpdateApiInput {
   last_name?: string | null;
   address?: AddressApiOutput | null;
 }
+
+export interface MerchantAtecoApiOutput {
+  ateco_codes: string[];
+}
+
+export type MerchantAtecoApiInput = MerchantAtecoApiOutput;
 
 export class AddressMapper {
   static toApi(address: Address): AddressApiOutput {
@@ -102,5 +110,13 @@ export class MerchantMapper {
 
   static pageFromApi(response: MerchantApiOutput[]): Merchant[] {
     return response.map((m) => this.fromApiOutput(m));
+  }
+
+  static toAtecoApiInput(input: MerchantAtecoInput): MerchantAtecoApiInput {
+    return { ateco_codes: input.atecoCodes };
+  }
+
+  static atecoFromApiOutput(output: MerchantAtecoApiOutput): MerchantAteco {
+    return { atecoCodes: output.ateco_codes };
   }
 }
