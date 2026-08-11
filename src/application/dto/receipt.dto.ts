@@ -30,6 +30,7 @@ export interface ReceiptItemApiInput {
   surcharge?: string;
   prepaid_or_voucher?: boolean;
   complimentary?: boolean;
+  ateco_code?: string;
 }
 
 export interface PaymentDetailApiInput {
@@ -154,6 +155,7 @@ export class ReceiptMapper {
       surcharge: formatDecimal(item.surcharge),
       prepaid_or_voucher: item.prepaidOrVoucher,
       complimentary: item.complimentary,
+      ateco_code: item.atecoCode,
     };
   }
 
@@ -200,6 +202,7 @@ export class ReceiptMapper {
       surcharge: item.surcharge,
       prepaidOrVoucher: item.prepaid_or_voucher,
       complimentary: item.complimentary,
+      atecoCode: item.ateco_code,
     };
   }
 
