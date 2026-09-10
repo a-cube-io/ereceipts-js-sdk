@@ -2,6 +2,7 @@ import {
   CashRegisterApiOutput,
   CashRegisterDetailedApiOutput,
   CashRegisterMapper,
+  CashRegisterMeApiOutput,
 } from '@/application/dto/cash-register.dto';
 import { IHttpPort } from '@/application/ports/driven/http.port';
 import {
@@ -9,6 +10,7 @@ import {
   CashRegisterCreateInput,
   CashRegisterDetailed,
   CashRegisterListParams,
+  CashRegisterMe,
   CashRegisterUpdateInput,
 } from '@/domain/entities/cash-register.entity';
 import { ICashRegisterRepository } from '@/domain/repositories/cash-register.repository';
@@ -24,6 +26,11 @@ export class CashRegisterRepositoryImpl implements ICashRegisterRepository {
       apiInput
     );
     return CashRegisterMapper.fromDetailedApiOutput(response.data);
+  }
+
+  async findMe(): Promise<CashRegisterMe> {
+    const response = await this.http.get<CashRegisterMeApiOutput>('/mf1/cash-registers/me');
+    return CashRegisterMapper.fromMeApiOutput(response.data);
   }
 
   async findById(uuid: string): Promise<CashRegister> {

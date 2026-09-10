@@ -32,3 +32,9 @@ export interface CashRegisterListParams {
   size?: number;
   pemId?: string;
 }
+
+export interface CashRegisterMe {
+  pemSerialNumber: string;
+  cashRegisterName: string;
+  atecoCodes: string[];
+}

@@ -2,6 +2,7 @@ import {
   CashRegister,
   CashRegisterCreateInput,
   CashRegisterDetailed,
+  CashRegisterMe,
   CashRegisterUpdateInput,
 } from '@/domain/entities/cash-register.entity';
 import { Page } from '@/domain/value-objects/page.vo';
@@ -33,6 +34,12 @@ export interface CashRegisterCreateApiInput {
 
 export interface CashRegisterUpdateApiInput {
   name: string;
+}
+
+export interface CashRegisterMeApiOutput {
+  pem_serial_number: string;
+  cash_register_name: string;
+  ateco_codes: string[];
 }
 
 export class CashRegisterMapper {
@@ -77,6 +84,14 @@ export class CashRegisterMapper {
       page: response.page,
       size: response.size,
       pages: response.pages,
+    };
+  }
+
+  static fromMeApiOutput(output: CashRegisterMeApiOutput): CashRegisterMe {
+    return {
+      pemSerialNumber: output.pem_serial_number,
+      cashRegisterName: output.cash_register_name,
+      atecoCodes: output.ateco_codes,
     };
   }
 }
