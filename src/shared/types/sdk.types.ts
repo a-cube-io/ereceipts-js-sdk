@@ -9,6 +9,8 @@ export interface SDKConfig {
   apiUrl: string;
   authUrl: string;
   debug?: boolean;
+  /** Enable PEM telemetry (GET /mf1/pems/telemetry). Default: false */
+  telemetryEnabled?: boolean;
 }
 
 export interface AuthCredentials {
@@ -81,7 +83,8 @@ export type SDKError =
   | 'ADAPTERS_NOT_AVAILABLE'
   | 'API_CLIENT_NOT_INITIALIZED'
   | 'MTLS_ADAPTER_NOT_AVAILABLE'
-  | 'CERTIFICATE_INFO_ERROR';
+  | 'CERTIFICATE_INFO_ERROR'
+  | 'TELEMETRY_DISABLED';
 
 export class ACubeSDKError extends Error {
   public violations?: APIViolation[];

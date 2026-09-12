@@ -2,6 +2,11 @@
 
 Accesso ai dati di telemetria per monitorare lo stato e le prestazioni dei Point of Sale (PEM).
 
+> **Disattivata di default.** La telemetria è controllata dal flag `telemetryEnabled` in `SDKConfig`/
+> `SDKManagerConfig` e vale **`false` di default**. Finché non viene impostato esplicitamente a `true`,
+> ogni chiamata a `sdk.telemetry.getTelemetry()` (o al polling gestito da `SDKManager`) rigetta
+> immediatamente con l'errore `TELEMETRY_DISABLED`, senza effettuare alcuna richiesta di rete.
+
 ## Repository
 
 ```typescript

@@ -98,6 +98,7 @@ export class ACubeSDK {
         authUrl: this.config.getAuthUrl(),
         timeout: this.config.getTimeout(),
         debugEnabled: this.config.isDebugEnabled(),
+        telemetryEnabled: this.config.isTelemetryEnabled(),
       };
 
       log.debug('Creating DI container');

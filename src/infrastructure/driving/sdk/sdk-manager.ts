@@ -381,6 +381,9 @@ export class SDKManager {
    */
   async startTelemetryPollingAuto(): Promise<boolean> {
     this.ensureInitialized();
+    if (!this.config.telemetryEnabled) {
+      return false;
+    }
     const hasCert = await this.sdk!.hasCertificate();
     if (hasCert) {
       this.telemetryService!.startPolling();
