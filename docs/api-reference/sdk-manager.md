@@ -37,12 +37,6 @@ interface SDKManagerConfig {
 }
 ```
 
-> **Nota:** la telemetria PEM (`GET /mf1/pems/telemetry`) è **disattivata di default** (`telemetryEnabled: false`).
-> Finché non viene impostata esplicitamente a `true`, nessuna chiamata all'endpoint di telemetria viene
-> effettuata — né dal polling automatico di `SDKManager`, né tramite l'accessor di basso livello
-> `sdk.telemetry`/`ACubeSDK.telemetry`. Ogni tentativo di lettura risolve/rigetta immediatamente con
-> l'errore `TELEMETRY_DISABLED`, senza contattare la rete.
-
 ## Ciclo di Vita
 
 ### 1. Configurazione (una volta all'avvio)

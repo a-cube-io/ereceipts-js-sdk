@@ -24,7 +24,11 @@ export class AuthStrategy {
     method: string,
     explicitMode?: AuthMode
   ): Promise<AuthConfig> {
-    if (this.isNotificationEndpoint(url) || this.isTelemetryEndpoint(url)) {
+    if (
+      this.isNotificationEndpoint(url) ||
+      this.isTelemetryEndpoint(url) ||
+      this.isCashRegisterMeEndpoint(url)
+    ) {
       return { mode: 'mtls' };
     }
 
@@ -148,5 +152,9 @@ export class AuthStrategy {
 
   private isTelemetryEndpoint(url: string): boolean {
     return url.includes('/mf1/pems/telemetry');
+  }
+
+  private isCashRegisterMeEndpoint(url: string): boolean {
+    return url.includes('/mf1/cash-registers/me');
   }
 }
