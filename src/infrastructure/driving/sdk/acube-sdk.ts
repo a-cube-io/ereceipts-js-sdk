@@ -8,6 +8,7 @@ import { IHttpPort } from '@/application/ports/driven/http.port';
 import { ITokenStoragePort } from '@/application/ports/driven/token-storage.port';
 import { AuthenticationService } from '@/application/services/authentication.service';
 import { CertificateService } from '@/application/services/certificate.service';
+import { IBackofficeReportRepository } from '@/domain/repositories/backoffice-report.repository';
 import { ICashRegisterRepository } from '@/domain/repositories/cash-register.repository';
 import { ICashierRepository } from '@/domain/repositories/cashier.repository';
 import { IDailyReportRepository } from '@/domain/repositories/daily-report.repository';
@@ -310,6 +311,11 @@ export class ACubeSDK {
     return this.container!.get<IMf2EmergencyReportRepository>(
       DI_TOKENS.MF2_EMERGENCY_REPORT_REPOSITORY
     );
+  }
+
+  get backofficeReports(): IBackofficeReportRepository {
+    this.ensureInitialized();
+    return this.container!.get<IBackofficeReportRepository>(DI_TOKENS.BACKOFFICE_REPORT_REPOSITORY);
   }
 
   async login(credentials: AuthCredentials): Promise<User> {

@@ -1,4 +1,5 @@
 export * from './receipt.dto';
+export * from './backoffice-report.dto';
 export * from './merchant.dto';
 export * from './cashier.dto';
 export * from './cash-register.dto';

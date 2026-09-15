@@ -169,3 +169,4 @@ if (openJournals.members.length > 0) {
 
 - [Daily Report API](./daily-reports.md)
 - [Point of Sale API](./point-of-sales.md)
+- [Back-office Report API](./backoffice-reports.md)

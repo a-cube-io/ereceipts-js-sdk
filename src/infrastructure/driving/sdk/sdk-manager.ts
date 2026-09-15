@@ -11,6 +11,7 @@ import {
 } from '@/application/services/app-state.service';
 import { NotificationService } from '@/application/services/notification.service';
 import { TelemetryService, TelemetryState } from '@/application/services/telemetry.service';
+import { IBackofficeReportRepository } from '@/domain/repositories/backoffice-report.repository';
 import { ICashRegisterRepository } from '@/domain/repositories/cash-register.repository';
 import { ICashierRepository } from '@/domain/repositories/cashier.repository';
 import { IDailyReportRepository } from '@/domain/repositories/daily-report.repository';
@@ -79,6 +80,7 @@ export interface ManagedServices {
   dailyReports: IDailyReportRepository;
   journals: IJournalRepository;
   mf2EmergencyReports: IMf2EmergencyReportRepository;
+  backofficeReports: IBackofficeReportRepository;
   telemetry: TelemetryOperations;
   login: (credentials: AuthCredentials) => Promise<User>;
   logout: () => Promise<void>;
@@ -427,6 +429,7 @@ export class SDKManager {
       dailyReports: sdk.dailyReports,
       journals: sdk.journals,
       mf2EmergencyReports: sdk.mf2EmergencyReports,
+      backofficeReports: sdk.backofficeReports,
       telemetry: {
         startPollingAuto: (): Promise<boolean> => this.startTelemetryPollingAuto(),
         startPolling: (): void => telemetryService.startPolling(),

@@ -51,6 +51,9 @@ export class AuthStrategy {
       if (url.includes('/inactivity-period')) {
         return { mode: 'mtls' };
       }
+      if (this.isBackofficeReportEndpoint(url)) {
+        return { mode: 'mtls' };
+      }
       if (!isReceiptEndpoint) {
         return { mode: 'jwt' };
       }
@@ -156,5 +159,9 @@ export class AuthStrategy {
 
   private isCashRegisterMeEndpoint(url: string): boolean {
     return url.includes('/mf1/cash-registers/me');
+  }
+
+  private isBackofficeReportEndpoint(url: string): boolean {
+    return url.includes('/backoffice-reports');
   }
 }
