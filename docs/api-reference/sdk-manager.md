@@ -32,6 +32,7 @@ interface SDKManagerConfig {
   notificationPageSize?: number;        // default: 30
 
   // Configurazione telemetria
+  telemetryEnabled?: boolean;           // default: false (disattivata)
   telemetryPollIntervalMs?: number;     // default: 60000 (60 sec)
 }
 ```
@@ -44,6 +45,7 @@ interface SDKManagerConfig {
 SDKManager.configure({
   environment: 'sandbox',
   notificationPollIntervalMs: 30000,
+  telemetryEnabled: false, // default; impostare a true per riattivare la telemetria
   telemetryPollIntervalMs: 60000,
 });
 ```
@@ -55,7 +57,7 @@ const manager = SDKManager.getInstance();
 await manager.initialize();
 // Per MERCHANT/CASHIER:
 //   - Notifiche polling: parte automaticamente
-//   - Telemetria polling: parte automaticamente se certificato installato
+//   - Telemetria polling: parte automaticamente se telemetryEnabled: true (default: false) e certificato installato
 // Per SUPPLIER:
 //   - Polling disabilitato (evita errori 401)
 //   - Network state (OFFLINE) sempre attivo
@@ -396,6 +398,7 @@ SDKManager.configure(
   {
     environment: 'production',
     notificationPollIntervalMs: 30000,
+    telemetryEnabled: false, // default; telemetria disattivata
     telemetryPollIntervalMs: 60000,
   },
   undefined,  // auto-detect adapters

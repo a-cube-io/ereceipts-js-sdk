@@ -6,6 +6,7 @@ interface InternalConfig {
   timeout: number;
   retryAttempts: number;
   debug: boolean;
+  telemetryEnabled: boolean;
   customHeaders: Record<string, string>;
 }
 
@@ -23,6 +24,7 @@ export class ConfigManager {
       timeout: 30000,
       retryAttempts: 3,
       debug: userConfig.debug ?? false,
+      telemetryEnabled: userConfig.telemetryEnabled ?? false,
       customHeaders: {},
     };
   }
@@ -32,6 +34,7 @@ export class ConfigManager {
       apiUrl: this.config.apiUrl,
       authUrl: this.config.authUrl,
       debug: this.config.debug,
+      telemetryEnabled: this.config.telemetryEnabled,
     };
   }
 
@@ -45,6 +48,10 @@ export class ConfigManager {
 
   isDebugEnabled(): boolean {
     return this.config.debug;
+  }
+
+  isTelemetryEnabled(): boolean {
+    return this.config.telemetryEnabled;
   }
 
   getTimeout(): number {

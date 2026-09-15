@@ -21,6 +21,7 @@ import {
   JournalRepositoryImpl,
   MerchantRepositoryImpl,
   Mf2EmergencyReportRepositoryImpl,
+  NoopTelemetryRepository,
   NotificationRepositoryImpl,
   PemRepositoryImpl,
   PointOfSaleRepositoryImpl,
@@ -38,6 +39,7 @@ export interface SDKFactoryConfig {
   authUrl?: string;
   timeout?: number;
   debugEnabled?: boolean;
+  telemetryEnabled?: boolean;
 }
 
 export interface SDKServices {
@@ -120,6 +122,9 @@ export class SDKFactory {
     });
 
     container.registerFactory(DI_TOKENS.TELEMETRY_REPOSITORY, () => {
+      if (!config.telemetryEnabled) {
+        return new NoopTelemetryRepository();
+      }
       const http = container.get<IHttpPort>(DI_TOKENS.HTTP_PORT);
       return new TelemetryRepositoryImpl(http);
     });

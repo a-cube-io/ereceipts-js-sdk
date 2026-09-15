@@ -27,6 +27,16 @@ const cashRegister = await sdk.cashRegisters.create({
 
 La risposta include il certificato mTLS e la chiave privata per configurare il dispositivo.
 
+### findMe()
+
+Ottiene il registratore di cassa associato al certificato mTLS corrente.
+
+```typescript
+const me = await sdk.cashRegisters.findMe();
+```
+
+**Ritorna:** `Promise<CashRegisterMe>`
+
 ### findById(uuid)
 
 Ottiene un registratore di cassa per UUID.
@@ -117,6 +127,16 @@ interface CashRegisterListParams {
   page?: number;
   size?: number;
   pemId?: string;
+}
+```
+
+### CashRegisterMe
+
+```typescript
+interface CashRegisterMe {
+  pemSerialNumber: string;
+  cashRegisterName: string;
+  atecoCodes: string[];
 }
 ```
 
