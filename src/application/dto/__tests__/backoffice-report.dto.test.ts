@@ -1,9 +1,14 @@
 import {
+  BackofficeReportRequestsParams,
   BackofficeReportsParams,
   QueueReceiptsBackofficeReportInput,
 } from '@/domain/entities/backoffice-report.entity';
 
-import { BackofficeReportApiOutput, BackofficeReportMapper } from '../backoffice-report.dto';
+import {
+  BackofficeReportApiOutput,
+  BackofficeReportMapper,
+  BackofficeReportRequestApiOutput,
+} from '../backoffice-report.dto';
 
 describe('BackofficeReportMapper', () => {
   describe('fromApiOutput', () => {
@@ -14,7 +19,9 @@ describe('BackofficeReportMapper', () => {
         issuance_datetime: '2025-10-08 16:20:42',
         type: 'journal_reading',
         document_number: '0002-0008',
-        journal_progressive_number: 4,
+        journal_id: 4,
+        request_uuid: 'request-uuid-123',
+        request_datetime: '2025-10-08 16:20:40',
       };
 
       const result = BackofficeReportMapper.fromApiOutput(output);
@@ -25,32 +32,88 @@ describe('BackofficeReportMapper', () => {
         issuanceDatetime: '2025-10-08 16:20:42',
         type: 'journal_reading',
         documentNumber: '0002-0008',
-        journalProgressiveNumber: 4,
+        journalId: 4,
+        requestUuid: 'request-uuid-123',
+        requestDatetime: '2025-10-08 16:20:40',
       });
     });
 
-    it('should handle null document_number and journal_progressive_number', () => {
+    it('should handle null document_number and journal_id', () => {
       const output: BackofficeReportApiOutput = {
         uuid: 'report-uuid',
         status: 'queued',
         issuance_datetime: '2025-10-08 16:20:42',
         type: 'details',
         document_number: null,
-        journal_progressive_number: null,
+        journal_id: null,
+        request_uuid: 'request-uuid',
+        request_datetime: '2025-10-08 16:20:40',
       };
 
       const result = BackofficeReportMapper.fromApiOutput(output);
 
       expect(result.documentNumber).toBeNull();
-      expect(result.journalProgressiveNumber).toBeNull();
+      expect(result.journalId).toBeNull();
     });
   });
 
-  describe('queuedFromApiOutput', () => {
-    it('should map uuid', () => {
-      const result = BackofficeReportMapper.queuedFromApiOutput({ uuid: 'queued-uuid' });
+  describe('requestQueuedFromApiOutput', () => {
+    it('should map request_uuid to requestUuid', () => {
+      const result = BackofficeReportMapper.requestQueuedFromApiOutput({
+        request_uuid: 'queued-request-uuid',
+      });
 
-      expect(result).toEqual({ uuid: 'queued-uuid' });
+      expect(result).toEqual({ requestUuid: 'queued-request-uuid' });
+    });
+  });
+
+  describe('requestReportsFromApiOutput', () => {
+    it('should map ready_count to readyCount', () => {
+      const result = BackofficeReportMapper.requestReportsFromApiOutput({
+        ready: false,
+        count: 3,
+        ready_count: 1,
+      });
+
+      expect(result).toEqual({ ready: false, count: 3, readyCount: 1 });
+    });
+  });
+
+  describe('requestFromApiOutput', () => {
+    it('should map snake_case to camelCase including nested reports', () => {
+      const output: BackofficeReportRequestApiOutput = {
+        request_uuid: 'request-uuid-123',
+        type: 'details',
+        filter_by: { document_number: '1234-5678' },
+        status: 'processed',
+        request_datetime: '2025-10-08 16:20:40',
+        reports: { ready: true, count: 1, ready_count: 1 },
+      };
+
+      const result = BackofficeReportMapper.requestFromApiOutput(output);
+
+      expect(result).toEqual({
+        requestUuid: 'request-uuid-123',
+        type: 'details',
+        filterBy: { document_number: '1234-5678' },
+        status: 'processed',
+        requestDatetime: '2025-10-08 16:20:40',
+        reports: { ready: true, count: 1, readyCount: 1 },
+      });
+    });
+
+    it('should handle null/undefined reports', () => {
+      const output: BackofficeReportRequestApiOutput = {
+        request_uuid: 'request-uuid',
+        type: 'journal_reading',
+        status: 'queued',
+        request_datetime: '2025-10-08 16:20:40',
+        reports: null,
+      };
+
+      const result = BackofficeReportMapper.requestFromApiOutput(output);
+
+      expect(result.reports).toBeNull();
     });
   });
 
@@ -102,6 +165,14 @@ describe('BackofficeReportMapper', () => {
       expect(result.getAll('type')).toEqual(['journal_reading', 'telemetry']);
     });
 
+    it('should map requestUuid to request_uuid', () => {
+      const params: BackofficeReportsParams = { requestUuid: 'request-uuid-123' };
+
+      const result = BackofficeReportMapper.toListSearchParams(params);
+
+      expect(result.get('request_uuid')).toBe('request-uuid-123');
+    });
+
     it('should map issuance datetime filters to bracket notation', () => {
       const params: BackofficeReportsParams = {
         issuanceDatetimeBefore: '2024-01-31T23:59:59Z',
@@ -129,13 +200,17 @@ describe('BackofficeReportMapper', () => {
             issuance_datetime: '2025-10-08 16:20:42',
             type: 'journal_reading' as const,
             document_number: '0001-0001',
-            journal_progressive_number: 1,
+            journal_id: 1,
+            request_uuid: 'req-1',
+            request_datetime: '2025-10-08 16:20:40',
           },
           {
             uuid: 'r2',
             status: 'queued' as const,
             issuance_datetime: '2025-10-08 17:00:00',
             type: 'telemetry' as const,
+            request_uuid: 'req-2',
+            request_datetime: '2025-10-08 16:59:59',
           },
         ],
         total: 2,
@@ -147,7 +222,8 @@ describe('BackofficeReportMapper', () => {
       const result = BackofficeReportMapper.pageFromApi(data);
 
       expect(result.members).toHaveLength(2);
-      expect(result.members[0].journalProgressiveNumber).toBe(1);
+      expect(result.members[0].journalId).toBe(1);
+      expect(result.members[1].requestUuid).toBe('req-2');
       expect(result.members[1].status).toBe('queued');
       expect(result.total).toBe(2);
     });
@@ -156,6 +232,66 @@ describe('BackofficeReportMapper', () => {
       const data = { members: [], total: 0, page: 1, size: 30, pages: 0 };
 
       const result = BackofficeReportMapper.pageFromApi(data);
+
+      expect(result.members).toEqual([]);
+    });
+  });
+
+  describe('toRequestsListSearchParams', () => {
+    it('should return empty params for undefined params', () => {
+      const result = BackofficeReportMapper.toRequestsListSearchParams(undefined);
+
+      expect(result.toString()).toBe('');
+    });
+
+    it('should map page and size', () => {
+      const params: BackofficeReportRequestsParams = { page: 2, size: 10 };
+
+      const result = BackofficeReportMapper.toRequestsListSearchParams(params);
+
+      expect(result.get('page')).toBe('2');
+      expect(result.get('size')).toBe('10');
+    });
+  });
+
+  describe('requestsPageFromApi', () => {
+    it('should map paginated response', () => {
+      const data = {
+        members: [
+          {
+            request_uuid: 'req-1',
+            type: 'details' as const,
+            filter_by: { document_number: '0001-0001' },
+            status: 'processed' as const,
+            request_datetime: '2025-10-08 16:20:40',
+            reports: { ready: true, count: 1, ready_count: 1 },
+          },
+          {
+            request_uuid: 'req-2',
+            type: 'telemetry' as const,
+            status: 'queued' as const,
+            request_datetime: '2025-10-08 16:59:59',
+            reports: null,
+          },
+        ],
+        total: 2,
+        page: 1,
+        size: 30,
+        pages: 1,
+      };
+
+      const result = BackofficeReportMapper.requestsPageFromApi(data);
+
+      expect(result.members).toHaveLength(2);
+      expect(result.members[0].reports).toEqual({ ready: true, count: 1, readyCount: 1 });
+      expect(result.members[1].status).toBe('queued');
+      expect(result.total).toBe(2);
+    });
+
+    it('should handle empty page', () => {
+      const data = { members: [], total: 0, page: 1, size: 30, pages: 0 };
+
+      const result = BackofficeReportMapper.requestsPageFromApi(data);
 
       expect(result.members).toEqual([]);
     });

@@ -1,12 +1,15 @@
 import {
   BackofficeReportApiOutput,
   BackofficeReportMapper,
-  BackofficeReportQueuedApiOutput,
+  BackofficeReportRequestApiOutput,
+  BackofficeReportRequestQueuedApiOutput,
 } from '@/application/dto/backoffice-report.dto';
 import { IHttpPort } from '@/application/ports/driven/http.port';
 import {
   BackofficeReport,
-  BackofficeReportQueued,
+  BackofficeReportRequest,
+  BackofficeReportRequestQueued,
+  BackofficeReportRequestsParams,
   BackofficeReportsParams,
   QueueReceiptsBackofficeReportInput,
 } from '@/domain/entities/backoffice-report.entity';
@@ -26,6 +29,16 @@ export class BackofficeReportRepositoryImpl implements IBackofficeReportReposito
     return BackofficeReportMapper.pageFromApi(response.data);
   }
 
+  async findAllRequests(
+    serialNumber: string,
+    params?: BackofficeReportRequestsParams
+  ): Promise<Page<BackofficeReportRequest>> {
+    const queryString = BackofficeReportMapper.toRequestsListSearchParams(params).toString();
+    const url = `/mf1/pems/${serialNumber}/backoffice-reports/requests${queryString ? `?${queryString}` : ''}`;
+    const response = await this.http.get<Page<BackofficeReportRequestApiOutput>>(url);
+    return BackofficeReportMapper.requestsPageFromApi(response.data);
+  }
+
   async downloadPdf(serialNumber: string, reportUuid: string): Promise<string> {
     const response = await this.http.get<string>(
       `/mf1/pems/${serialNumber}/backoffice-reports/${reportUuid}/pdf`,
@@ -37,29 +50,29 @@ export class BackofficeReportRepositoryImpl implements IBackofficeReportReposito
     return response.data;
   }
 
-  async queueJournalReading(serialNumber: string): Promise<BackofficeReportQueued> {
-    const response = await this.http.post<BackofficeReportQueuedApiOutput>(
+  async queueJournalReading(serialNumber: string): Promise<BackofficeReportRequestQueued> {
+    const response = await this.http.post<BackofficeReportRequestQueuedApiOutput>(
       `/mf1/pems/${serialNumber}/backoffice-reports/journal-reading`
     );
-    return BackofficeReportMapper.queuedFromApiOutput(response.data);
+    return BackofficeReportMapper.requestQueuedFromApiOutput(response.data);
   }
 
-  async queueTelemetry(serialNumber: string): Promise<BackofficeReportQueued> {
-    const response = await this.http.post<BackofficeReportQueuedApiOutput>(
+  async queueTelemetry(serialNumber: string): Promise<BackofficeReportRequestQueued> {
+    const response = await this.http.post<BackofficeReportRequestQueuedApiOutput>(
       `/mf1/pems/${serialNumber}/backoffice-reports/telemetry`
     );
-    return BackofficeReportMapper.queuedFromApiOutput(response.data);
+    return BackofficeReportMapper.requestQueuedFromApiOutput(response.data);
   }
 
   async queueReceiptsReport(
     serialNumber: string,
     input: QueueReceiptsBackofficeReportInput
-  ): Promise<BackofficeReportQueued> {
+  ): Promise<BackofficeReportRequestQueued> {
     const apiInput = BackofficeReportMapper.toQueueReceiptsApiInput(input);
-    const response = await this.http.post<BackofficeReportQueuedApiOutput>(
+    const response = await this.http.post<BackofficeReportRequestQueuedApiOutput>(
       `/mf1/pems/${serialNumber}/backoffice-reports/receipts`,
       apiInput
     );
-    return BackofficeReportMapper.queuedFromApiOutput(response.data);
+    return BackofficeReportMapper.requestQueuedFromApiOutput(response.data);
   }
 }
