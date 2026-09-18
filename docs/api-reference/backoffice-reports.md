@@ -38,6 +38,8 @@ Lista le richieste di generazione di back-office report per un PEM.
 
 ```typescript
 const requests = await sdk.backofficeReports.findAllRequests('PEM-SN-001', {
+  type: 'journal_reading',
+  requestDatetimeAfter: '2024-01-01T00:00:00Z',
   page: 1,
   size: 30,
 });
@@ -212,6 +214,11 @@ interface BackofficeReportRequestReports {
 interface BackofficeReportRequestsParams {
   page?: number;
   size?: number;
+  type?: BackofficeReportType | BackofficeReportType[];
+  requestDatetimeBefore?: string;
+  requestDatetimeStrictlyBefore?: string;
+  requestDatetimeAfter?: string;
+  requestDatetimeStrictlyAfter?: string;
 }
 ```
 

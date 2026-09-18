@@ -280,6 +280,40 @@ describe('BackofficeReportMapper', () => {
       expect(result.get('page')).toBe('2');
       expect(result.get('size')).toBe('10');
     });
+
+    it('should append a single type as one query param', () => {
+      const params: BackofficeReportRequestsParams = { type: 'telemetry' };
+
+      const result = BackofficeReportMapper.toRequestsListSearchParams(params);
+
+      expect(result.getAll('type')).toEqual(['telemetry']);
+    });
+
+    it('should append multiple types as repeated query params', () => {
+      const params: BackofficeReportRequestsParams = {
+        type: ['journal_reading', 'telemetry'],
+      };
+
+      const result = BackofficeReportMapper.toRequestsListSearchParams(params);
+
+      expect(result.getAll('type')).toEqual(['journal_reading', 'telemetry']);
+    });
+
+    it('should map request datetime filters to bracket notation', () => {
+      const params: BackofficeReportRequestsParams = {
+        requestDatetimeBefore: '2024-01-31T23:59:59Z',
+        requestDatetimeStrictlyBefore: '2024-01-31T00:00:00Z',
+        requestDatetimeAfter: '2024-01-01T00:00:00Z',
+        requestDatetimeStrictlyAfter: '2024-01-01T00:00:01Z',
+      };
+
+      const result = BackofficeReportMapper.toRequestsListSearchParams(params);
+
+      expect(result.get('request_datetime[before]')).toBe('2024-01-31T23:59:59Z');
+      expect(result.get('request_datetime[strictly_before]')).toBe('2024-01-31T00:00:00Z');
+      expect(result.get('request_datetime[after]')).toBe('2024-01-01T00:00:00Z');
+      expect(result.get('request_datetime[strictly_after]')).toBe('2024-01-01T00:00:01Z');
+    });
   });
 
   describe('requestsPageFromApi', () => {

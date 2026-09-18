@@ -200,6 +200,24 @@ export class BackofficeReportMapper {
     if (params.page !== undefined) searchParams.set('page', String(params.page));
     if (params.size !== undefined) searchParams.set('size', String(params.size));
 
+    if (params.type !== undefined) {
+      const types = Array.isArray(params.type) ? params.type : [params.type];
+      types.forEach((type) => searchParams.append('type', type));
+    }
+
+    if (params.requestDatetimeBefore !== undefined) {
+      searchParams.set('request_datetime[before]', params.requestDatetimeBefore);
+    }
+    if (params.requestDatetimeStrictlyBefore !== undefined) {
+      searchParams.set('request_datetime[strictly_before]', params.requestDatetimeStrictlyBefore);
+    }
+    if (params.requestDatetimeAfter !== undefined) {
+      searchParams.set('request_datetime[after]', params.requestDatetimeAfter);
+    }
+    if (params.requestDatetimeStrictlyAfter !== undefined) {
+      searchParams.set('request_datetime[strictly_after]', params.requestDatetimeStrictlyAfter);
+    }
+
     return searchParams;
   }
 

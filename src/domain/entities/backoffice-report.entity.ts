@@ -48,6 +48,11 @@ export interface BackofficeReportRequest {
 export interface BackofficeReportRequestsParams {
   page?: number;
   size?: number;
+  type?: BackofficeReportType | BackofficeReportType[];
+  requestDatetimeBefore?: string;
+  requestDatetimeStrictlyBefore?: string;
+  requestDatetimeAfter?: string;
+  requestDatetimeStrictlyAfter?: string;
 }
 
 export interface BackofficeReportRequestQueued {
