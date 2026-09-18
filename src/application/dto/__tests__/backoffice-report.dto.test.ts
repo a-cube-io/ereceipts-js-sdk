@@ -118,7 +118,7 @@ describe('BackofficeReportMapper', () => {
   });
 
   describe('toQueueReceiptsApiInput', () => {
-    it('should map filterBy.documentNumber to filter_by.document_number', () => {
+    it('should map a DocumentNumberFilter', () => {
       const input: QueueReceiptsBackofficeReportInput = {
         type: 'details',
         filterBy: { documentNumber: '1234-5678' },
@@ -129,6 +129,34 @@ describe('BackofficeReportMapper', () => {
       expect(result).toEqual({
         type: 'details',
         filter_by: { document_number: '1234-5678' },
+      });
+    });
+
+    it('should map a DocumentNumberRangeFilter', () => {
+      const input: QueueReceiptsBackofficeReportInput = {
+        type: 'details',
+        filterBy: { documentNumbers: { start: '0001-0001', end: '0001-0009' } },
+      };
+
+      const result = BackofficeReportMapper.toQueueReceiptsApiInput(input);
+
+      expect(result).toEqual({
+        type: 'details',
+        filter_by: { document_numbers: { start: '0001-0001', end: '0001-0009' } },
+      });
+    });
+
+    it('should map a DateIntervalFilter', () => {
+      const input: QueueReceiptsBackofficeReportInput = {
+        type: 'details',
+        filterBy: { startingDate: '2025-12-31', endingDate: '2026-02-15' },
+      };
+
+      const result = BackofficeReportMapper.toQueueReceiptsApiInput(input);
+
+      expect(result).toEqual({
+        type: 'details',
+        filter_by: { starting_date: '2025-12-31', ending_date: '2026-02-15' },
       });
     });
   });

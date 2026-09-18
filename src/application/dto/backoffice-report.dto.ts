@@ -8,6 +8,7 @@ import {
   BackofficeReportStatus,
   BackofficeReportType,
   BackofficeReportsParams,
+  QueueReceiptsBackofficeReportFilter,
   QueueReceiptsBackofficeReportInput,
 } from '@/domain/entities/backoffice-report.entity';
 import { Page } from '@/domain/value-objects/page.vo';
@@ -46,9 +47,28 @@ export interface DocumentNumberFilterApiInput {
   document_number: string;
 }
 
+export interface DocumentNumberRangeApiInput {
+  start: string;
+  end: string;
+}
+
+export interface DocumentNumberRangeFilterApiInput {
+  document_numbers: DocumentNumberRangeApiInput;
+}
+
+export interface DateIntervalFilterApiInput {
+  starting_date: string;
+  ending_date: string;
+}
+
+export type QueueReceiptsBackofficeReportFilterApiInput =
+  | DocumentNumberFilterApiInput
+  | DocumentNumberRangeFilterApiInput
+  | DateIntervalFilterApiInput;
+
 export interface QueueReceiptsBackofficeReportApiInput {
   type: 'details';
-  filter_by: DocumentNumberFilterApiInput;
+  filter_by: QueueReceiptsBackofficeReportFilterApiInput;
 }
 
 export class BackofficeReportMapper {
@@ -101,9 +121,27 @@ export class BackofficeReportMapper {
   ): QueueReceiptsBackofficeReportApiInput {
     return {
       type: input.type,
-      filter_by: {
-        document_number: input.filterBy.documentNumber,
-      },
+      filter_by: BackofficeReportMapper.filterByToApiInput(input.filterBy),
+    };
+  }
+
+  static filterByToApiInput(
+    filterBy: QueueReceiptsBackofficeReportFilter
+  ): QueueReceiptsBackofficeReportFilterApiInput {
+    if ('documentNumber' in filterBy) {
+      return { document_number: filterBy.documentNumber };
+    }
+    if ('documentNumbers' in filterBy) {
+      return {
+        document_numbers: {
+          start: filterBy.documentNumbers.start,
+          end: filterBy.documentNumbers.end,
+        },
+      };
+    }
+    return {
+      starting_date: filterBy.startingDate,
+      ending_date: filterBy.endingDate,
     };
   }
 

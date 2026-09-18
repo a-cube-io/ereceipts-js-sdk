@@ -58,10 +58,29 @@ export interface DocumentNumberFilter {
   documentNumber: string;
 }
 
+export interface DocumentNumberRange {
+  start: string;
+  end: string;
+}
+
+export interface DocumentNumberRangeFilter {
+  documentNumbers: DocumentNumberRange;
+}
+
+export interface DateIntervalFilter {
+  startingDate: string;
+  endingDate: string;
+}
+
+export type QueueReceiptsBackofficeReportFilter =
+  | DocumentNumberFilter
+  | DocumentNumberRangeFilter
+  | DateIntervalFilter;
+
 /**
- * `details` is currently the only implemented report flavour/filter combination.
+ * `details` is currently the only implemented report flavour.
  */
 export interface QueueReceiptsBackofficeReportInput {
   type: 'details';
-  filterBy: DocumentNumberFilter;
+  filterBy: QueueReceiptsBackofficeReportFilter;
 }

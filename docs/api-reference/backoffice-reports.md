@@ -91,13 +91,31 @@ const queued = await sdk.backofficeReports.queueTelemetry('PEM-SN-001');
 
 ### queueReceiptsReport(serialNumber, input)
 
-Mette in coda la generazione di un report su uno o più scontrini.
+Mette in coda la generazione di un report su uno o più scontrini. `filterBy` accetta uno tra tre filtri: un singolo scontrino (`DocumentNumberFilter`), un range di numeri documento (`DocumentNumberRangeFilter`) o un intervallo di date (`DateIntervalFilter`).
 
 ```typescript
+// Un singolo scontrino
 const queued = await sdk.backofficeReports.queueReceiptsReport('PEM-SN-001', {
   type: 'details',
   filterBy: {
     documentNumber: '1234-5678',
+  },
+});
+
+// Un range di numeri documento
+const queuedRange = await sdk.backofficeReports.queueReceiptsReport('PEM-SN-001', {
+  type: 'details',
+  filterBy: {
+    documentNumbers: { start: '0001-0001', end: '0001-0009' },
+  },
+});
+
+// Un intervallo di date
+const queuedInterval = await sdk.backofficeReports.queueReceiptsReport('PEM-SN-001', {
+  type: 'details',
+  filterBy: {
+    startingDate: '2025-12-31',
+    endingDate: '2026-02-15',
   },
 });
 ```
@@ -210,8 +228,13 @@ interface BackofficeReportRequestQueued {
 ```typescript
 interface QueueReceiptsBackofficeReportInput {
   type: 'details';
-  filterBy: DocumentNumberFilter;
+  filterBy: QueueReceiptsBackofficeReportFilter;
 }
+
+type QueueReceiptsBackofficeReportFilter =
+  | DocumentNumberFilter
+  | DocumentNumberRangeFilter
+  | DateIntervalFilter;
 ```
 
 ### DocumentNumberFilter
@@ -219,6 +242,28 @@ interface QueueReceiptsBackofficeReportInput {
 ```typescript
 interface DocumentNumberFilter {
   documentNumber: string;
+}
+```
+
+### DocumentNumberRangeFilter
+
+```typescript
+interface DocumentNumberRangeFilter {
+  documentNumbers: DocumentNumberRange;
+}
+
+interface DocumentNumberRange {
+  start: string;
+  end: string;
+}
+```
+
+### DateIntervalFilter
+
+```typescript
+interface DateIntervalFilter {
+  startingDate: string;
+  endingDate: string;
 }
 ```
 
