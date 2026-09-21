@@ -1,4 +1,5 @@
 export * from './receipt.repository';
+export * from './backoffice-report.repository';
 export * from './merchant.repository';
 export * from './cashier.repository';
 export * from './cash-register.repository';

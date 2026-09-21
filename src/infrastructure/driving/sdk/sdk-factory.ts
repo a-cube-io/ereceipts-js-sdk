@@ -2,6 +2,7 @@ import { IHttpPort } from '@/application/ports/driven/http.port';
 import { ISecureStoragePort } from '@/application/ports/driven/storage.port';
 import { ITokenStoragePort } from '@/application/ports/driven/token-storage.port';
 import { AuthenticationService } from '@/application/services/authentication.service';
+import { IBackofficeReportRepository } from '@/domain/repositories/backoffice-report.repository';
 import { ICashRegisterRepository } from '@/domain/repositories/cash-register.repository';
 import { ICashierRepository } from '@/domain/repositories/cashier.repository';
 import { IDailyReportRepository } from '@/domain/repositories/daily-report.repository';
@@ -15,6 +16,7 @@ import { IReceiptRepository } from '@/domain/repositories/receipt.repository';
 import { ISupplierRepository } from '@/domain/repositories/supplier.repository';
 import { ITelemetryRepository } from '@/domain/repositories/telemetry.repository';
 import {
+  BackofficeReportRepositoryImpl,
   CashRegisterRepositoryImpl,
   CashierRepositoryImpl,
   DailyReportRepositoryImpl,
@@ -58,6 +60,7 @@ export interface SDKServices {
   notifications: INotificationRepository;
   telemetry: ITelemetryRepository;
   mf2EmergencyReports: IMf2EmergencyReportRepository;
+  backofficeReports: IBackofficeReportRepository;
 }
 
 export class SDKFactory {
@@ -134,6 +137,11 @@ export class SDKFactory {
       return new Mf2EmergencyReportRepositoryImpl(http);
     });
 
+    container.registerFactory(DI_TOKENS.BACKOFFICE_REPORT_REPOSITORY, () => {
+      const http = container.get<IHttpPort>(DI_TOKENS.HTTP_PORT);
+      return new BackofficeReportRepositoryImpl(http);
+    });
+
     return container;
   }
 
@@ -171,6 +179,9 @@ export class SDKFactory {
       telemetry: container.get<ITelemetryRepository>(DI_TOKENS.TELEMETRY_REPOSITORY),
       mf2EmergencyReports: container.get<IMf2EmergencyReportRepository>(
         DI_TOKENS.MF2_EMERGENCY_REPORT_REPOSITORY
+      ),
+      backofficeReports: container.get<IBackofficeReportRepository>(
+        DI_TOKENS.BACKOFFICE_REPORT_REPOSITORY
       ),
     };
 

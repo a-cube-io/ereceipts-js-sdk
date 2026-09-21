@@ -319,3 +319,4 @@ console.log('Scontrini:', page.items.length);
 
 - [Merchant API](./merchants.md)
 - [Cashier API](./cashiers.md)
+- [Back-office Report API](./backoffice-reports.md)

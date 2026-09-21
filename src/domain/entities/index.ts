@@ -1,4 +1,5 @@
 export * from './receipt.entity';
+export * from './backoffice-report.entity';
 export * from './merchant.entity';
 export * from './cashier.entity';
 export * from './cash-register.entity';
