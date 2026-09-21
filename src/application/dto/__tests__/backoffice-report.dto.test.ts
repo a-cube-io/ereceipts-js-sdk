@@ -55,6 +55,24 @@ describe('BackofficeReportMapper', () => {
       expect(result.documentNumber).toBeNull();
       expect(result.journalId).toBeNull();
     });
+
+    it('should map filter_by to filterBy', () => {
+      const output: BackofficeReportApiOutput = {
+        uuid: 'report-uuid',
+        status: 'ready',
+        issuance_datetime: '2025-10-08 16:20:42',
+        type: 'details',
+        document_number: '0002-0008',
+        journal_id: 4,
+        request_uuid: 'request-uuid',
+        request_datetime: '2025-10-08 16:20:40',
+        filter_by: { document_number: '0002-0008' },
+      };
+
+      const result = BackofficeReportMapper.fromApiOutput(output);
+
+      expect(result.filterBy).toEqual({ document_number: '0002-0008' });
+    });
   });
 
   describe('requestQueuedFromApiOutput', () => {

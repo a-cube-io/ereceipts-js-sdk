@@ -13,6 +13,7 @@ export interface BackofficeReport {
   journalId?: number | null;
   requestUuid: string;
   requestDatetime: string;
+  filterBy?: Record<string, unknown> | null;
 }
 
 export interface BackofficeReportsParams {

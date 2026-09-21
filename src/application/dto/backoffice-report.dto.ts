@@ -22,6 +22,7 @@ export interface BackofficeReportApiOutput {
   journal_id?: number | null;
   request_uuid: string;
   request_datetime: string;
+  filter_by?: Record<string, unknown> | null;
 }
 
 export interface BackofficeReportRequestReportsApiOutput {
@@ -82,6 +83,7 @@ export class BackofficeReportMapper {
       journalId: output.journal_id,
       requestUuid: output.request_uuid,
       requestDatetime: output.request_datetime,
+      filterBy: output.filter_by,
     };
   }
 
