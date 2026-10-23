@@ -28,7 +28,11 @@ export interface PemUpdateInput {
   displayCashierName: boolean;
   receiptHeader?: string;
   footerText?: string;
-  logo?: string;
+  mealVouchersInvoicedToIssuer: boolean;
 }
 
-export type PemConfigurationOutput = Omit<PemUpdateInput, 'logo'>;
+export type PemConfigurationOutput = PemUpdateInput;
+
+export interface PemLogoInput {
+  logo: string;
+}

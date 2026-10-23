@@ -1,4 +1,4 @@
-import { PemCreateInput, PemUpdateInput } from '@/domain/entities/pem.entity';
+import { PemCreateInput, PemLogoInput, PemUpdateInput } from '@/domain/entities/pem.entity';
 
 import {
   PemCertificatesApiOutput,
@@ -106,7 +106,7 @@ describe('PemMapper', () => {
         displayCashierName: true,
         receiptHeader: 'Header',
         footerText: 'Footer',
-        logo: 'base64-logo',
+        mealVouchersInvoicedToIssuer: true,
       };
 
       const result = PemMapper.toUpdateApiInput(input);
@@ -116,7 +116,7 @@ describe('PemMapper', () => {
         display_cashier_name: true,
         receipt_header: 'Header',
         footer_text: 'Footer',
-        logo: 'base64-logo',
+        meal_vouchers_invoiced_to_issuer: true,
       });
     });
 
@@ -124,6 +124,7 @@ describe('PemMapper', () => {
       const input: PemUpdateInput = {
         receiptFormat: 'narrow',
         displayCashierName: false,
+        mealVouchersInvoicedToIssuer: false,
       };
 
       const result = PemMapper.toUpdateApiInput(input);
@@ -133,7 +134,7 @@ describe('PemMapper', () => {
         display_cashier_name: false,
         receipt_header: undefined,
         footer_text: undefined,
-        logo: undefined,
+        meal_vouchers_invoiced_to_issuer: false,
       });
     });
   });
@@ -145,6 +146,7 @@ describe('PemMapper', () => {
         display_cashier_name: true,
         receipt_header: 'Header',
         footer_text: 'Footer',
+        meal_vouchers_invoiced_to_issuer: true,
       };
 
       const result = PemMapper.fromUpdateApiOutput(output);
@@ -154,6 +156,7 @@ describe('PemMapper', () => {
         displayCashierName: true,
         receiptHeader: 'Header',
         footerText: 'Footer',
+        mealVouchersInvoicedToIssuer: true,
       });
     });
 
@@ -161,6 +164,7 @@ describe('PemMapper', () => {
       const output: PemUpdateApiOutput = {
         receipt_format: 'narrow',
         display_cashier_name: false,
+        meal_vouchers_invoiced_to_issuer: false,
       };
 
       const result = PemMapper.fromUpdateApiOutput(output);
@@ -170,6 +174,21 @@ describe('PemMapper', () => {
         displayCashierName: false,
         receiptHeader: undefined,
         footerText: undefined,
+        mealVouchersInvoicedToIssuer: false,
+      });
+    });
+  });
+
+  describe('toLogoApiInput', () => {
+    it('should map logo to api input', () => {
+      const input: PemLogoInput = {
+        logo: 'base64-logo',
+      };
+
+      const result = PemMapper.toLogoApiInput(input);
+
+      expect(result).toEqual({
+        logo: 'base64-logo',
       });
     });
   });

@@ -3,6 +3,7 @@ import {
   PemConfigurationOutput,
   PemCreateInput,
   PemCreateOutput,
+  PemLogoInput,
   PemUpdateInput,
 } from '@/domain/entities/pem.entity';
 import { PointOfSaleMf2 } from '@/domain/entities/point-of-sale.entity';
@@ -35,7 +36,7 @@ export interface PemUpdateApiInput {
   display_cashier_name: boolean;
   receipt_header?: string;
   footer_text?: string;
-  logo?: string;
+  meal_vouchers_invoiced_to_issuer: boolean;
 }
 
 export interface PemUpdateApiOutput {
@@ -43,6 +44,11 @@ export interface PemUpdateApiOutput {
   display_cashier_name: boolean;
   receipt_header?: string;
   footer_text?: string;
+  meal_vouchers_invoiced_to_issuer: boolean;
+}
+
+export interface PemLogoApiInput {
+  logo: string;
 }
 
 export type PemConfigurationApiOutput = PemUpdateApiOutput;
@@ -93,7 +99,7 @@ export class PemMapper {
       display_cashier_name: input.displayCashierName,
       receipt_header: input.receiptHeader,
       footer_text: input.footerText,
-      logo: input.logo,
+      meal_vouchers_invoiced_to_issuer: input.mealVouchersInvoicedToIssuer,
     };
   }
 
@@ -103,6 +109,13 @@ export class PemMapper {
       displayCashierName: output.display_cashier_name,
       receiptHeader: output.receipt_header,
       footerText: output.footer_text,
+      mealVouchersInvoicedToIssuer: output.meal_vouchers_invoiced_to_issuer,
+    };
+  }
+
+  static toLogoApiInput(input: PemLogoInput): PemLogoApiInput {
+    return {
+      logo: input.logo,
     };
   }
 
