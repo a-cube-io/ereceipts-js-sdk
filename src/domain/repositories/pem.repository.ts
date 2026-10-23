@@ -3,6 +3,7 @@ import {
   PemConfigurationOutput,
   PemCreateInput,
   PemCreateOutput,
+  PemLogoInput,
   PemUpdateInput,
 } from '@/domain/entities/pem.entity';
 import { PointOfSaleMf2 } from '@/domain/entities/point-of-sale.entity';
@@ -15,4 +16,6 @@ export interface IPemRepository {
   updateConfiguration(serialNumber: string, input: PemUpdateInput): Promise<PemConfigurationOutput>;
   getPEMConfiguration(serialNumber: string): Promise<PemConfigurationOutput>;
   getLogo(serialNumber: string): Promise<ArrayBuffer>;
+  updateLogo(serialNumber: string, input: PemLogoInput): Promise<void>;
+  deleteLogo(serialNumber: string): Promise<void>;
 }

@@ -12,6 +12,7 @@ import {
   PemConfigurationOutput,
   PemCreateInput,
   PemCreateOutput,
+  PemLogoInput,
   PemUpdateInput,
 } from '@/domain/entities/pem.entity';
 import { PointOfSaleMf2 } from '@/domain/entities/point-of-sale.entity';
@@ -74,5 +75,14 @@ export class PemRepositoryImpl implements IPemRepository {
       }
     );
     return response.data;
+  }
+
+  async updateLogo(serialNumber: string, input: PemLogoInput): Promise<void> {
+    const apiInput = PemMapper.toLogoApiInput(input);
+    await this.http.put(`/mf2/pems/${serialNumber}/configuration/logo`, apiInput);
+  }
+
+  async deleteLogo(serialNumber: string): Promise<void> {
+    await this.http.delete(`/mf2/pems/${serialNumber}/configuration/logo`);
   }
 }
