@@ -5,6 +5,8 @@ export interface HttpRequestConfig {
   authMode?: 'jwt' | 'mtls' | 'auto';
   responseType?: 'json' | 'blob' | 'text' | 'arraybuffer';
   data?: unknown;
+  // send null and empty values as-is instead of stripping them from the body
+  preserveEmptyValues?: boolean;
 }
 
 export interface HttpResponse<T> {

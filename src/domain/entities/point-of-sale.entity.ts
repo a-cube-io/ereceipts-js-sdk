@@ -13,6 +13,9 @@ export interface PointOfSale {
 
 export interface PointOfSaleDetailed extends PointOfSale {
   registrationKey?: string;
+  mealVouchersInvoicedToIssuer: boolean;
+  mealVouchersItiEffectiveAt?: string;
+  mealVouchersItiChangedAt?: string;
 }
 
 export interface PointOfSaleMf2 {

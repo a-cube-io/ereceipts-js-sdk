@@ -34,16 +34,18 @@ export interface PemCertificatesApiOutput {
 export interface PemUpdateApiInput {
   receipt_format: 'standard' | 'narrow';
   display_cashier_name: boolean;
-  receipt_header?: string;
-  footer_text?: string;
+  display_cash_register_name: boolean;
+  receipt_header: string;
+  footer_text: string | null;
   meal_vouchers_invoiced_to_issuer: boolean;
 }
 
 export interface PemUpdateApiOutput {
   receipt_format: 'standard' | 'narrow';
   display_cashier_name: boolean;
-  receipt_header?: string;
-  footer_text?: string;
+  display_cash_register_name: boolean;
+  receipt_header: string;
+  footer_text?: string | null;
   meal_vouchers_invoiced_to_issuer: boolean;
 }
 
@@ -97,8 +99,9 @@ export class PemMapper {
     return {
       receipt_format: input.receiptFormat,
       display_cashier_name: input.displayCashierName,
+      display_cash_register_name: input.displayCashRegisterName,
       receipt_header: input.receiptHeader,
-      footer_text: input.footerText,
+      footer_text: input.footerText ?? null,
       meal_vouchers_invoiced_to_issuer: input.mealVouchersInvoicedToIssuer,
     };
   }
@@ -107,8 +110,9 @@ export class PemMapper {
     return {
       receiptFormat: output.receipt_format,
       displayCashierName: output.display_cashier_name,
+      displayCashRegisterName: output.display_cash_register_name,
       receiptHeader: output.receipt_header,
-      footerText: output.footer_text,
+      footerText: output.footer_text ?? undefined,
       mealVouchersInvoicedToIssuer: output.meal_vouchers_invoiced_to_issuer,
     };
   }
