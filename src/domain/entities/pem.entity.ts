@@ -26,7 +26,8 @@ export interface PemCertificates {
 export interface PemUpdateInput {
   receiptFormat: ReceiptFormat;
   displayCashierName: boolean;
-  receiptHeader?: string;
+  displayCashRegisterName: boolean;
+  receiptHeader: string;
   footerText?: string;
   mealVouchersInvoicedToIssuer: boolean;
 }

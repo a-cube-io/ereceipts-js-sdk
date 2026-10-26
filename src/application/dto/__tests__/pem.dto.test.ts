@@ -104,6 +104,7 @@ describe('PemMapper', () => {
       const input: PemUpdateInput = {
         receiptFormat: 'standard',
         displayCashierName: true,
+        displayCashRegisterName: true,
         receiptHeader: 'Header',
         footerText: 'Footer',
         mealVouchersInvoicedToIssuer: true,
@@ -114,16 +115,19 @@ describe('PemMapper', () => {
       expect(result).toEqual({
         receipt_format: 'standard',
         display_cashier_name: true,
+        display_cash_register_name: true,
         receipt_header: 'Header',
         footer_text: 'Footer',
         meal_vouchers_invoiced_to_issuer: true,
       });
     });
 
-    it('should keep optional fields undefined when not provided', () => {
+    it('should send footer_text as null when not provided', () => {
       const input: PemUpdateInput = {
         receiptFormat: 'narrow',
         displayCashierName: false,
+        displayCashRegisterName: false,
+        receiptHeader: 'Header',
         mealVouchersInvoicedToIssuer: false,
       };
 
@@ -132,8 +136,9 @@ describe('PemMapper', () => {
       expect(result).toEqual({
         receipt_format: 'narrow',
         display_cashier_name: false,
-        receipt_header: undefined,
-        footer_text: undefined,
+        display_cash_register_name: false,
+        receipt_header: 'Header',
+        footer_text: null,
         meal_vouchers_invoiced_to_issuer: false,
       });
     });
@@ -144,6 +149,7 @@ describe('PemMapper', () => {
       const output: PemUpdateApiOutput = {
         receipt_format: 'standard',
         display_cashier_name: true,
+        display_cash_register_name: true,
         receipt_header: 'Header',
         footer_text: 'Footer',
         meal_vouchers_invoiced_to_issuer: true,
@@ -154,16 +160,20 @@ describe('PemMapper', () => {
       expect(result).toEqual({
         receiptFormat: 'standard',
         displayCashierName: true,
+        displayCashRegisterName: true,
         receiptHeader: 'Header',
         footerText: 'Footer',
         mealVouchersInvoicedToIssuer: true,
       });
     });
 
-    it('should handle optional fields when missing', () => {
+    it('should map null footer_text to undefined', () => {
       const output: PemUpdateApiOutput = {
         receipt_format: 'narrow',
         display_cashier_name: false,
+        display_cash_register_name: false,
+        receipt_header: 'Header',
+        footer_text: null,
         meal_vouchers_invoiced_to_issuer: false,
       };
 
@@ -172,7 +182,8 @@ describe('PemMapper', () => {
       expect(result).toEqual({
         receiptFormat: 'narrow',
         displayCashierName: false,
-        receiptHeader: undefined,
+        displayCashRegisterName: false,
+        receiptHeader: 'Header',
         footerText: undefined,
         mealVouchersInvoicedToIssuer: false,
       });
