@@ -270,7 +270,8 @@ export class AxiosHttpAdapter implements IHttpPort {
   }
 
   async put<T>(url: string, data?: unknown, config?: HttpRequestConfig): Promise<HttpResponse<T>> {
-    const cleanedData = data && typeof data === 'object' ? clearObject(data) : data;
+    const cleanedData =
+      data && typeof data === 'object' && !config?.preserveEmptyValues ? clearObject(data) : data;
     if (await this.shouldUseMTLS(url, 'PUT')) {
       return this.makeMTLSRequest<T>(url, 'PUT', cleanedData, config);
     }

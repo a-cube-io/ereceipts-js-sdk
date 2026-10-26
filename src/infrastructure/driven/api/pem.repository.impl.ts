@@ -55,7 +55,8 @@ export class PemRepositoryImpl implements IPemRepository {
     const apiInput = PemMapper.toUpdateApiInput(input);
     const response = await this.http.put<PemUpdateApiOutput>(
       `/mf2/pems/${serialNumber}/configuration`,
-      apiInput
+      apiInput,
+      { preserveEmptyValues: true }
     );
     return PemMapper.fromUpdateApiOutput(response.data);
   }

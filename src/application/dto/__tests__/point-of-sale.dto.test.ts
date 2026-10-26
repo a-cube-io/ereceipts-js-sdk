@@ -113,6 +113,9 @@ describe('PointOfSaleMapper', () => {
         },
         journal_status: 'pending',
         registration_key: 'REG-KEY-ABC123',
+        meal_vouchers_invoiced_to_issuer: false,
+        meal_vouchers_iti_effective_at: null,
+        meal_vouchers_iti_changed_at: null,
       };
 
       const result = PointOfSaleMapper.fromDetailedApiOutput(output);
@@ -133,11 +136,62 @@ describe('PointOfSaleMapper', () => {
           province: 'TE',
         },
         journal_status: 'new',
+        meal_vouchers_invoiced_to_issuer: false,
+        meal_vouchers_iti_effective_at: null,
+        meal_vouchers_iti_changed_at: null,
       };
 
       const result = PointOfSaleMapper.fromDetailedApiOutput(output);
 
       expect(result.registrationKey).toBeUndefined();
+    });
+
+    it('should map meal vouchers fields', () => {
+      const output: PointOfSaleDetailedApiOutput = {
+        serial_number: 'POS-SN-004',
+        status: 'ONLINE',
+        address: {
+          street_address: 'Via Roma',
+          street_number: '10',
+          zip_code: '00100',
+          city: 'Roma',
+          province: 'RM',
+        },
+        journal_status: 'open',
+        meal_vouchers_invoiced_to_issuer: true,
+        meal_vouchers_iti_effective_at: '2026-11-01T00:00:00',
+        meal_vouchers_iti_changed_at: '2026-10-26T12:19:07',
+      };
+
+      const result = PointOfSaleMapper.fromDetailedApiOutput(output);
+
+      expect(result.mealVouchersInvoicedToIssuer).toBe(true);
+      expect(result.mealVouchersItiEffectiveAt).toBe('2026-11-01T00:00:00');
+      expect(result.mealVouchersItiChangedAt).toBe('2026-10-26T12:19:07');
+    });
+
+    it('should map null meal vouchers dates to undefined', () => {
+      const output: PointOfSaleDetailedApiOutput = {
+        serial_number: 'POS-SN-005',
+        status: 'ACTIVATED',
+        address: {
+          street_address: 'Via Roma',
+          street_number: '10',
+          zip_code: '00100',
+          city: 'Roma',
+          province: 'RM',
+        },
+        journal_status: 'closed',
+        meal_vouchers_invoiced_to_issuer: false,
+        meal_vouchers_iti_effective_at: null,
+        meal_vouchers_iti_changed_at: null,
+      };
+
+      const result = PointOfSaleMapper.fromDetailedApiOutput(output);
+
+      expect(result.mealVouchersInvoicedToIssuer).toBe(false);
+      expect(result.mealVouchersItiEffectiveAt).toBeUndefined();
+      expect(result.mealVouchersItiChangedAt).toBeUndefined();
     });
   });
 
