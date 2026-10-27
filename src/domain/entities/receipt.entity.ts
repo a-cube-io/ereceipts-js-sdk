@@ -2,22 +2,33 @@ import { GoodOrService, VatRateCode } from '@/domain/value-objects/vat-code.vo';
 
 export type ReceiptType = 'sale' | 'return' | 'void';
 
+export type VoucherPaymentType = 'meal_vouchers' | 'other_vouchers';
+
 export type PaymentType =
   | 'cash'
   | 'electronic'
-  | 'ticket'
+  | VoucherPaymentType
   | 'discount'
   | 'uncollected_goods'
   | 'uncollected_services'
   | 'rounding_up'
   | 'rounding_down';
 
-export interface PaymentDetail {
-  type: PaymentType;
+interface BasePaymentDetail {
   description?: string;
   amount: string;
-  ticketQuantity?: number;
 }
+
+// voucher payments require the number of tickets
+export type PaymentDetail =
+  | (BasePaymentDetail & {
+      type: Exclude<PaymentType, VoucherPaymentType>;
+      ticketQuantity?: never;
+    })
+  | (BasePaymentDetail & {
+      type: VoucherPaymentType;
+      ticketQuantity: number;
+    });
 
 export interface ReceiptItem {
   type?: GoodOrService;
