@@ -71,6 +71,7 @@ describe('CashRegisterMapper', () => {
             private_key: '-----BEGIN PRIVATE KEY-----\nMIIE...',
           },
           pkcs12: 'base64-pkcs12-content',
+          pkcs12_password: 'p12-password',
         },
       };
 
@@ -86,6 +87,7 @@ describe('CashRegisterMapper', () => {
             privateKey: '-----BEGIN PRIVATE KEY-----\nMIIE...',
           },
           pkcs12: 'base64-pkcs12-content',
+          pkcs12Password: 'p12-password',
         },
       });
     });
@@ -101,6 +103,7 @@ describe('CashRegisterMapper', () => {
             private_key: 'key',
           },
           pkcs12: 'p12',
+          pkcs12_password: 'pwd',
         },
       };
 
@@ -112,6 +115,7 @@ describe('CashRegisterMapper', () => {
       expect(result.mtlsCertificate.pem.certificate).toBe('cert');
       expect(result.mtlsCertificate.pem.privateKey).toBe('key');
       expect(result.mtlsCertificate.pkcs12).toBe('p12');
+      expect(result.mtlsCertificate.pkcs12Password).toBe('pwd');
     });
   });
 
