@@ -19,15 +19,15 @@ interface BasePaymentDetail {
   amount: string;
 }
 
-// voucher payments require the number of tickets
+// voucher payments require the number of vouchers
 export type PaymentDetail =
   | (BasePaymentDetail & {
       type: Exclude<PaymentType, VoucherPaymentType>;
-      ticketQuantity?: never;
+      vouchersQuantity?: never;
     })
   | (BasePaymentDetail & {
       type: VoucherPaymentType;
-      ticketQuantity: number;
+      vouchersQuantity: number;
     });
 
 export interface ReceiptItem {

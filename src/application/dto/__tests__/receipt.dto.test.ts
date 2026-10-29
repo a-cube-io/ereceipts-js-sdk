@@ -4,7 +4,7 @@ import { ReceiptMapper } from '../receipt.dto';
 
 describe('ReceiptMapper', () => {
   describe('paymentDetailToApiInput', () => {
-    it('should map a cash payment without ticket_quantity', () => {
+    it('should map a cash payment without vouchers_quantity', () => {
       const detail: PaymentDetail = {
         type: 'cash',
         amount: '10',
@@ -16,16 +16,16 @@ describe('ReceiptMapper', () => {
         type: 'cash',
         description: undefined,
         amount: '10.00',
-        ticket_quantity: undefined,
+        vouchers_quantity: undefined,
       });
     });
 
-    it('should map a meal_vouchers payment with ticket_quantity', () => {
+    it('should map a meal_vouchers payment with vouchers_quantity', () => {
       const detail: PaymentDetail = {
         type: 'meal_vouchers',
         description: 'Buoni pasto',
         amount: '16',
-        ticketQuantity: 2,
+        vouchersQuantity: 2,
       };
 
       const result = ReceiptMapper.paymentDetailToApiInput(detail);
@@ -34,15 +34,15 @@ describe('ReceiptMapper', () => {
         type: 'meal_vouchers',
         description: 'Buoni pasto',
         amount: '16.00',
-        ticket_quantity: 2,
+        vouchers_quantity: 2,
       });
     });
 
-    it('should map an other_vouchers payment with ticket_quantity', () => {
+    it('should map an other_vouchers payment with vouchers_quantity', () => {
       const detail: PaymentDetail = {
         type: 'other_vouchers',
         amount: '5.5',
-        ticketQuantity: 1,
+        vouchersQuantity: 1,
       };
 
       const result = ReceiptMapper.paymentDetailToApiInput(detail);
@@ -51,7 +51,7 @@ describe('ReceiptMapper', () => {
         type: 'other_vouchers',
         description: undefined,
         amount: '5.50',
-        ticket_quantity: 1,
+        vouchers_quantity: 1,
       });
     });
   });
