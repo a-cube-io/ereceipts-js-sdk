@@ -12,6 +12,7 @@ export interface MtlsCertificatePem {
 export interface MtlsCertificate {
   pem: MtlsCertificatePem;
   pkcs12: string;
+  pkcs12Password: string;
 }
 
 export interface CashRegisterDetailed extends CashRegister {

@@ -21,6 +21,7 @@ export interface MtlsCertificatePemApiOutput {
 export interface MtlsCertificateApiOutput {
   pem: MtlsCertificatePemApiOutput;
   pkcs12: string;
+  pkcs12_password: string;
 }
 
 export interface CashRegisterDetailedApiOutput extends CashRegisterApiOutput {
@@ -73,6 +74,7 @@ export class CashRegisterMapper {
           privateKey: output.mtls_certificate.pem.private_key,
         },
         pkcs12: output.mtls_certificate.pkcs12,
+        pkcs12Password: output.mtls_certificate.pkcs12_password,
       },
     };
   }

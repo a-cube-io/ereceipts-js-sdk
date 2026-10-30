@@ -37,7 +37,7 @@ export interface PaymentDetailApiInput {
   type: PaymentDetail['type'];
   description?: string;
   amount: string;
-  ticket_quantity?: number;
+  vouchers_quantity?: number;
 }
 
 export interface ReceiptApiInput {
@@ -139,7 +139,7 @@ export class ReceiptMapper {
       type: detail.type,
       description: detail.description,
       amount: formatDecimal(detail.amount) as string,
-      ticket_quantity: detail.ticketQuantity,
+      vouchers_quantity: detail.vouchersQuantity,
     };
   }
 
