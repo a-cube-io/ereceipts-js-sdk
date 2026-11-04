@@ -82,13 +82,37 @@ const pdfBlob = await sdk.receipts.getDetails('uuid', 'pdf');
 
 ### getReturnableItems(uuid)
 
-Ottiene articoli restituibili per uno scontrino.
+Ottiene gli articoli e gli importi ancora restituibili di uno scontrino di vendita.
 
 ```typescript
-const items = await sdk.receipts.getReturnableItems('receipt-uuid');
+const returnable = await sdk.receipts.getReturnableItems('receipt-uuid');
+
+for (const item of returnable.items) {
+  // quantity è la quantità originale, returnedQuantity quella già resa
+  const stillReturnable = Number(item.quantity) - Number(item.returnedQuantity);
+  console.log(`${item.description}: ${stillReturnable} restituibili`);
+}
+
+// Importi ancora restituibili per metodo di pagamento
+console.log(returnable.cashPaymentAmount, returnable.electronicPaymentAmount);
+console.log(returnable.ticket?.amount, returnable.ticket?.quantity);
 ```
 
-**Ritorna:** `Promise<ReturnableReceiptItem[]>`
+**Ritorna:** `Promise<ReturnableItems>`
+
+```typescript
+interface ReturnableItems {
+  items: ReturnableReceiptItem[];
+  lottery?: { twoDimensionalLotteryCode?: string; lotteryCode?: string };
+  summary: ReturnableSummary[]; // importi restituibili per blocco Riepilogo
+  cashPaymentAmount?: string;
+  electronicPaymentAmount?: string;
+  ticket?: { amount: string; quantity: number };
+  discountAmount?: string; // sconto a pagare, incluso l'arrotondamento per difetto
+  uncollectedGoodsAmount?: string;
+  uncollectedServicesAmount: string; // non riscossi servizi al lordo IVA, somma di tutti i summary
+}
+```
 
 ### voidReceipt(input)
 
@@ -139,13 +163,24 @@ await sdk.receipts.voidWithProof({
 
 ### returnItems(input)
 
-Effettua un reso di articoli.
+Effettua un reso di articoli (stesso PEM).
+
+`paymentDetails` è opzionale (`ReturnPaymentDetail[]`) e ha una struttura diversa dall'emissione:
+- `type`: `cash` | `electronic` | `ticket` | `discount` | `uncollected_goods` | `uncollected_services`
+- `amount`: importo lordo, max 2 decimali
+- `vouchersQuantity`: obbligatorio (≥ 1) solo per `ticket`
+- `description` non è supportato
+- i buoni pasto registrati con l'opzione buoni pasto attiva si rendono come `uncollected_services`; l'arrotondamento per difetto si rende come `discount`
 
 ```typescript
 const returnReceipt = await sdk.receipts.returnItems({
   documentNumber: '0001-0001-0001',
   items: [
     { id: 1, quantity: '1' },
+  ],
+  paymentDetails: [
+    { type: 'cash', amount: '10.00' },
+    { type: 'ticket', amount: '8.00', vouchersQuantity: 1 },
   ],
 });
 ```

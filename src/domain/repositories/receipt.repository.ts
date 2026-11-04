@@ -6,7 +6,7 @@ import {
   ReceiptReturnInput,
   ReturnViaDifferentDeviceInput,
   ReturnWithProofInput,
-  ReturnableReceiptItem,
+  ReturnableItems,
   VoidReceiptInput,
   VoidViaDifferentDeviceInput,
   VoidWithProofInput,
@@ -20,7 +20,7 @@ export interface IReceiptRepository {
   getDetails(receiptUuid: string, format: 'json'): Promise<ReceiptDetails>;
   getDetails(receiptUuid: string, format: 'pdf'): Promise<string>;
   getDetails(receiptUuid: string, format: 'json' | 'pdf'): Promise<ReceiptDetails | string>;
-  getReturnableItems(receiptUuid: string): Promise<ReturnableReceiptItem[]>;
+  getReturnableItems(receiptUuid: string): Promise<ReturnableItems>;
   voidReceipt(input: VoidReceiptInput): Promise<void>;
   voidViaDifferentDevice(input: VoidViaDifferentDeviceInput): Promise<void>;
   voidWithProof(input: VoidWithProofInput): Promise<void>;

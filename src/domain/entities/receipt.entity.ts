@@ -1,4 +1,4 @@
-import { GoodOrService, VatRateCode } from '@/domain/value-objects/vat-code.vo';
+import { GoodOrService, NatureCode, VatRateCode } from '@/domain/value-objects/vat-code.vo';
 
 export type ReceiptType = 'sale' | 'return' | 'void';
 
@@ -30,6 +30,36 @@ export type PaymentDetail =
       vouchersQuantity: number;
     });
 
+/**
+ * Payment types accepted when returning items from the same device (PEM).
+ * - `ticket` replaces `meal_vouchers` / `other_vouchers`: it returns what the sale
+ *   recorded as ticket (see returnable-items).
+ * - Meal vouchers with the meal-voucher option enabled are recorded in the sale as
+ *   uncollected services, so they are returned as `uncollected_services`.
+ * - The sale's rounding down is already part of the discount, so it is returned as
+ *   `discount`; rounding up has no corresponding entry.
+ */
+export type ReturnPaymentType =
+  | 'cash'
+  | 'electronic'
+  | 'ticket'
+  | 'discount'
+  | 'uncollected_goods'
+  | 'uncollected_services';
+
+// amount is gross, max 2 decimals; vouchersQuantity is required (>= 1) only for ticket
+export type ReturnPaymentDetail =
+  | {
+      type: Exclude<ReturnPaymentType, 'ticket'>;
+      amount: string;
+      vouchersQuantity?: never;
+    }
+  | {
+      type: 'ticket';
+      amount: string;
+      vouchersQuantity: number;
+    };
+
 export interface ReceiptItem {
   type?: GoodOrService;
   quantity: string;
@@ -52,11 +82,81 @@ export interface ReceiptReturnItem {
 export interface ReturnableReceiptItem {
   id: number;
   type?: GoodOrService;
+  /** Original quantity of the sale receipt item */
   quantity: string;
+  /** Quantity already returned. Still returnable: quantity - returnedQuantity */
   returnedQuantity: string;
   description: string;
   unitPrice: string;
+  /** Undefined with simplified VAT allocation (Ventilazione IVA) */
   vatRateCode?: VatRateCode;
+  simplifiedVatAllocation: boolean;
+  discount: string;
+  surcharge: string;
+  prepaidOrVoucher: boolean;
+  complimentary: boolean;
+  atecoCode?: string;
+}
+
+export interface ReturnableLottery {
+  twoDimensionalLotteryCode?: string;
+  lotteryCode?: string;
+}
+
+export interface ReturnableSummaryVat {
+  vatRate: string;
+  /** VAT amount still returnable for the summary */
+  totalVatAmount: string;
+}
+
+/**
+ * Amounts still returnable for a summary (Riepilogo) block of the sale receipt,
+ * i.e. net of the ones already returned. Amounts are net of VAT, except with
+ * simplified VAT allocation.
+ */
+export interface ReturnableSummary {
+  vat?: ReturnableSummaryVat;
+  nature?: NatureCode;
+  simplifiedVatAllocation: boolean;
+  totalTaxableAmount: string;
+  uncollectedGoodsSales: string;
+  uncollectedServices: string;
+  uncollectedInvoices: string;
+  uncollectedDcrSsn: string;
+  uncollectedComplimentary: string;
+  atecoCode?: string;
+  regulatoryReference?: string;
+}
+
+export interface ReturnableTicket {
+  amount: string;
+  quantity: number;
+}
+
+/**
+ * Items and amounts of a sale receipt that can still be returned
+ * GET /mf1/receipts/{uuid}/returnable-items
+ */
+export interface ReturnableItems {
+  items: ReturnableReceiptItem[];
+  lottery?: ReturnableLottery;
+  summary: ReturnableSummary[];
+  /** Amount paid in cash still returnable */
+  cashPaymentAmount?: string;
+  /** Amount paid electronically still returnable */
+  electronicPaymentAmount?: string;
+  /** Amount and quantity of tickets still returnable */
+  ticket?: ReturnableTicket;
+  /** Discount at payment time (including the mandatory rounding down) still returnable */
+  discountAmount?: string;
+  /** Amount for goods not collected yet (credit) still returnable */
+  uncollectedGoodsAmount?: string;
+  /**
+   * Amount for services not collected yet still returnable, including VAT
+   * (sum of the summaries' uncollectedServices plus their VAT): the maximum that
+   * can be returned as uncollected_services
+   */
+  uncollectedServicesAmount: string;
 }
 
 export interface Receipt {
@@ -94,9 +194,14 @@ export interface ReceiptInput {
   uncollectedDcrToSsn?: boolean;
 }
 
+/**
+ * Input for returning items from the same device (PEM)
+ * POST /mf1/receipts/return
+ */
 export interface ReceiptReturnInput {
   items: ReceiptReturnItem[];
   documentNumber: string;
+  paymentDetails?: ReturnPaymentDetail[];
 }
 
 /**

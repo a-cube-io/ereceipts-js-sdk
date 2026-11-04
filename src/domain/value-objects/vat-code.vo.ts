@@ -1,5 +1,7 @@
 export type GoodOrService = 'goods' | 'service';
 
+export type NatureCode = 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6';
+
 export type VatRateCode =
   | '4.00'
   | '5.00'

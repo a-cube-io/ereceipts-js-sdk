@@ -238,10 +238,11 @@ await sdk.receipts.voidWithProof({
 ### Verifica Articoli Restituibili
 
 ```typescript
-const returnableItems = await sdk.receipts.getReturnableItems('receipt-uuid');
+const returnable = await sdk.receipts.getReturnableItems('receipt-uuid');
 
-for (const item of returnableItems) {
-  console.log(`${item.description}: max ${item.quantity} restituibili`);
+for (const item of returnable.items) {
+  const stillReturnable = Number(item.quantity) - Number(item.returnedQuantity);
+  console.log(`${item.description}: max ${stillReturnable} restituibili`);
 }
 ```
 
@@ -261,14 +262,16 @@ console.log('Reso creato:', returnReceipt.uuid);
 ### Reso Completo
 
 ```typescript
-const returnableItems = await sdk.receipts.getReturnableItems('receipt-uuid');
+const returnable = await sdk.receipts.getReturnableItems('receipt-uuid');
 
 const returnReceipt = await sdk.receipts.returnItems({
   documentNumber: '0001-0001-0001',
-  items: returnableItems.map((item) => ({
-    id: item.id,
-    quantity: item.quantity,
-  })),
+  items: returnable.items
+    .map((item) => ({
+      id: item.id,
+      quantity: (Number(item.quantity) - Number(item.returnedQuantity)).toFixed(2),
+    }))
+    .filter((item) => Number(item.quantity) > 0),
 });
 ```
 

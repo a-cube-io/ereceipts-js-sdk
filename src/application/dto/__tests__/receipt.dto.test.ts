@@ -55,4 +55,158 @@ describe('ReceiptMapper', () => {
       });
     });
   });
+
+  describe('returnInputToApi', () => {
+    it('should omit payment_details when not provided', () => {
+      const result = ReceiptMapper.returnInputToApi({
+        documentNumber: '0001-0001',
+        items: [{ id: 1, quantity: '1' }],
+      });
+
+      expect(result).toEqual({
+        items: [{ id: 1, quantity: '1.00' }],
+        document_number: '0001-0001',
+        payment_details: undefined,
+      });
+    });
+
+    it('should map payment_details when provided', () => {
+      const result = ReceiptMapper.returnInputToApi({
+        documentNumber: '0001-0001',
+        items: [{ id: 1, quantity: '2' }],
+        paymentDetails: [
+          { type: 'cash', amount: '4' },
+          { type: 'ticket', amount: '8', vouchersQuantity: 1 },
+          { type: 'uncollected_services', amount: '3.5' },
+        ],
+      });
+
+      expect(result).toEqual({
+        items: [{ id: 1, quantity: '2.00' }],
+        document_number: '0001-0001',
+        payment_details: [
+          { type: 'cash', amount: '4.00', vouchers_quantity: undefined },
+          { type: 'ticket', amount: '8.00', vouchers_quantity: 1 },
+          { type: 'uncollected_services', amount: '3.50', vouchers_quantity: undefined },
+        ],
+      });
+    });
+
+    it('should not send description in payment_details', () => {
+      const result = ReceiptMapper.returnPaymentDetailToApiInput({ type: 'discount', amount: '1' });
+
+      expect(result).not.toHaveProperty('description');
+    });
+
+    it('should round amount to 2 decimals', () => {
+      const result = ReceiptMapper.returnPaymentDetailToApiInput({
+        type: 'electronic',
+        amount: '10.12345678',
+      });
+
+      expect(result.amount).toBe('10.12');
+    });
+  });
+
+  describe('returnableItemsFromApi', () => {
+    const baseItem = {
+      id: 1,
+      type: 'goods' as const,
+      quantity: '2.00',
+      returned_quantity: '1.00',
+      description: 'Prodotto',
+      unit_price: '10.00',
+      simplified_vat_allocation: false,
+      discount: '0',
+      surcharge: '0',
+      prepaid_or_voucher: false,
+      complimentary: false,
+    };
+
+    it('should map items, summary, payments and ticket', () => {
+      const result = ReceiptMapper.returnableItemsFromApi({
+        items: [{ ...baseItem, vat_rate_code: '22.00', ateco_code: '471100' }],
+        lottery: { two_dimensional_lottery_code: 'ABC', lottery_code: 'XYZ' },
+        summary: [
+          {
+            vat: { vat_rate: '22.00', total_vat_amount: '1.80' },
+            nature: null,
+            simplified_vat_allocation: false,
+            total_taxable_amount: '8.20',
+            uncollected_goods_sales: '0',
+            uncollected_services: '0',
+            uncollected_invoices: '0',
+            uncollected_dcr_ssn: '0',
+            uncollected_complimentary: '0',
+            ateco_code: null,
+            regulatory_reference: null,
+          },
+        ],
+        cash_payment_amount: '5.00',
+        electronic_payment_amount: null,
+        ticket: { amount: '5.00', quantity: 1 },
+        discount_amount: null,
+        uncollected_goods_amount: null,
+        uncollected_services_amount: '12.20',
+      });
+
+      expect(result).toEqual({
+        items: [
+          {
+            id: 1,
+            type: 'goods',
+            quantity: '2.00',
+            returnedQuantity: '1.00',
+            description: 'Prodotto',
+            unitPrice: '10.00',
+            vatRateCode: '22.00',
+            simplifiedVatAllocation: false,
+            discount: '0',
+            surcharge: '0',
+            prepaidOrVoucher: false,
+            complimentary: false,
+            atecoCode: '471100',
+          },
+        ],
+        lottery: { twoDimensionalLotteryCode: 'ABC', lotteryCode: 'XYZ' },
+        summary: [
+          {
+            vat: { vatRate: '22.00', totalVatAmount: '1.80' },
+            nature: undefined,
+            simplifiedVatAllocation: false,
+            totalTaxableAmount: '8.20',
+            uncollectedGoodsSales: '0',
+            uncollectedServices: '0',
+            uncollectedInvoices: '0',
+            uncollectedDcrSsn: '0',
+            uncollectedComplimentary: '0',
+            atecoCode: undefined,
+            regulatoryReference: undefined,
+          },
+        ],
+        cashPaymentAmount: '5.00',
+        electronicPaymentAmount: undefined,
+        ticket: { amount: '5.00', quantity: 1 },
+        discountAmount: undefined,
+        uncollectedGoodsAmount: undefined,
+        uncollectedServicesAmount: '12.20',
+      });
+    });
+
+    it('should map null vat_rate_code (Ventilazione IVA) and missing optional blocks to undefined', () => {
+      const result = ReceiptMapper.returnableItemsFromApi({
+        items: [{ ...baseItem, vat_rate_code: null, simplified_vat_allocation: true }],
+        lottery: null,
+        summary: [],
+        ticket: null,
+        uncollected_services_amount: '0.00',
+      });
+
+      expect(result.items[0]?.vatRateCode).toBeUndefined();
+      expect(result.items[0]?.simplifiedVatAllocation).toBe(true);
+      expect(result.lottery).toBeUndefined();
+      expect(result.ticket).toBeUndefined();
+      expect(result.cashPaymentAmount).toBeUndefined();
+    });
+  });
 });

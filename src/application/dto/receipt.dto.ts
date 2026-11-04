@@ -8,15 +8,18 @@ import {
   ReceiptProofType,
   ReceiptReturnInput,
   ReceiptReturnItem,
+  ReturnPaymentDetail,
   ReturnViaDifferentDeviceInput,
   ReturnWithProofInput,
+  ReturnableItems,
   ReturnableReceiptItem,
+  ReturnableSummary,
   VoidReceiptInput,
   VoidViaDifferentDeviceInput,
   VoidWithProofInput,
 } from '@/domain/entities/receipt.entity';
 import { Page } from '@/domain/value-objects/page.vo';
-import { GoodOrService, VatRateCode } from '@/domain/value-objects/vat-code.vo';
+import { GoodOrService, NatureCode, VatRateCode } from '@/domain/value-objects/vat-code.vo';
 import { formatDecimal } from '@/shared/utils';
 
 export interface ReceiptItemApiInput {
@@ -36,6 +39,12 @@ export interface ReceiptItemApiInput {
 export interface PaymentDetailApiInput {
   type: PaymentDetail['type'];
   description?: string;
+  amount: string;
+  vouchers_quantity?: number;
+}
+
+export interface ReturnPaymentDetailApiInput {
+  type: ReturnPaymentDetail['type'];
   amount: string;
   vouchers_quantity?: number;
 }
@@ -78,6 +87,7 @@ export interface ReceiptDetailsApiOutput extends ReceiptApiOutput {
 export interface ReceiptReturnApiInput {
   items: Array<{ id: number; quantity: string }>;
   document_number: string;
+  payment_details?: ReturnPaymentDetailApiInput[];
 }
 
 export interface VoidReceiptApiInput {
@@ -119,7 +129,42 @@ export interface ReturnableReceiptItemApiOutput {
   returned_quantity: string;
   description: string;
   unit_price: string;
-  vat_rate_code?: VatRateCode;
+  vat_rate_code?: VatRateCode | null;
+  simplified_vat_allocation: boolean;
+  discount: string;
+  surcharge: string;
+  prepaid_or_voucher: boolean;
+  complimentary: boolean;
+  ateco_code?: string | null;
+}
+
+export interface ReturnableSummaryApiOutput {
+  vat?: { vat_rate: string; total_vat_amount: string } | null;
+  nature?: NatureCode | null;
+  simplified_vat_allocation: boolean;
+  total_taxable_amount: string;
+  uncollected_goods_sales: string;
+  uncollected_services: string;
+  uncollected_invoices: string;
+  uncollected_dcr_ssn: string;
+  uncollected_complimentary: string;
+  ateco_code?: string | null;
+  regulatory_reference?: string | null;
+}
+
+export interface ReturnableItemsApiOutput {
+  items: ReturnableReceiptItemApiOutput[];
+  lottery?: {
+    two_dimensional_lottery_code?: string | null;
+    lottery_code?: string | null;
+  } | null;
+  summary: ReturnableSummaryApiOutput[];
+  cash_payment_amount?: string | null;
+  electronic_payment_amount?: string | null;
+  ticket?: { amount: string; quantity: number } | null;
+  discount_amount?: string | null;
+  uncollected_goods_amount?: string | null;
+  uncollected_services_amount: string;
 }
 
 export class ReceiptMapper {
@@ -217,6 +262,17 @@ export class ReceiptMapper {
     return {
       items: input.items.map((item) => this.returnItemToApiInput(item)),
       document_number: input.documentNumber,
+      payment_details: input.paymentDetails?.map((detail) =>
+        this.returnPaymentDetailToApiInput(detail)
+      ),
+    };
+  }
+
+  static returnPaymentDetailToApiInput(detail: ReturnPaymentDetail): ReturnPaymentDetailApiInput {
+    return {
+      type: detail.type,
+      amount: formatDecimal(detail.amount, 2) as string,
+      vouchers_quantity: detail.vouchersQuantity,
     };
   }
 
@@ -234,7 +290,52 @@ export class ReceiptMapper {
       returnedQuantity: item.returned_quantity,
       description: item.description,
       unitPrice: item.unit_price,
-      vatRateCode: item.vat_rate_code,
+      vatRateCode: item.vat_rate_code ?? undefined,
+      simplifiedVatAllocation: item.simplified_vat_allocation,
+      discount: item.discount,
+      surcharge: item.surcharge,
+      prepaidOrVoucher: item.prepaid_or_voucher,
+      complimentary: item.complimentary,
+      atecoCode: item.ateco_code ?? undefined,
+    };
+  }
+
+  static returnableSummaryFromApi(summary: ReturnableSummaryApiOutput): ReturnableSummary {
+    return {
+      vat: summary.vat
+        ? { vatRate: summary.vat.vat_rate, totalVatAmount: summary.vat.total_vat_amount }
+        : undefined,
+      nature: summary.nature ?? undefined,
+      simplifiedVatAllocation: summary.simplified_vat_allocation,
+      totalTaxableAmount: summary.total_taxable_amount,
+      uncollectedGoodsSales: summary.uncollected_goods_sales,
+      uncollectedServices: summary.uncollected_services,
+      uncollectedInvoices: summary.uncollected_invoices,
+      uncollectedDcrSsn: summary.uncollected_dcr_ssn,
+      uncollectedComplimentary: summary.uncollected_complimentary,
+      atecoCode: summary.ateco_code ?? undefined,
+      regulatoryReference: summary.regulatory_reference ?? undefined,
+    };
+  }
+
+  static returnableItemsFromApi(output: ReturnableItemsApiOutput): ReturnableItems {
+    return {
+      items: output.items.map((item) => this.returnableItemFromApi(item)),
+      lottery: output.lottery
+        ? {
+            twoDimensionalLotteryCode: output.lottery.two_dimensional_lottery_code ?? undefined,
+            lotteryCode: output.lottery.lottery_code ?? undefined,
+          }
+        : undefined,
+      summary: output.summary.map((summary) => this.returnableSummaryFromApi(summary)),
+      cashPaymentAmount: output.cash_payment_amount ?? undefined,
+      electronicPaymentAmount: output.electronic_payment_amount ?? undefined,
+      ticket: output.ticket
+        ? { amount: output.ticket.amount, quantity: output.ticket.quantity }
+        : undefined,
+      discountAmount: output.discount_amount ?? undefined,
+      uncollectedGoodsAmount: output.uncollected_goods_amount ?? undefined,
+      uncollectedServicesAmount: output.uncollected_services_amount,
     };
   }
 
