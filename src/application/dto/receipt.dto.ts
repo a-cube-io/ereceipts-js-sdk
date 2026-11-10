@@ -7,10 +7,10 @@ import {
   ReceiptListParams,
   ReceiptProofType,
   ReceiptReturnInput,
+  ReceiptReturnItem,
   ReceiptSortOrder,
   ReceiptStatus,
   ReceiptType,
-  ReceiptReturnItem,
   ReturnData,
   ReturnPaymentDetail,
   ReturnViaDifferentDeviceInput,
@@ -81,7 +81,10 @@ export interface ReceiptApiOutput {
   status: ReceiptStatus;
 }
 
-export interface ReceiptItemApiOutput extends Omit<ReceiptItemApiInput, 'vat_rate_code' | 'ateco_code'> {
+export interface ReceiptItemApiOutput extends Omit<
+  ReceiptItemApiInput,
+  'vat_rate_code' | 'ateco_code'
+> {
   vat_rate_code?: VatRateCode | null;
   ateco_code?: string | null;
 }
