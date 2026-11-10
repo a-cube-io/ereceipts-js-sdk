@@ -30,7 +30,6 @@ export type PaymentDetail =
       voucherCount: number;
     });
 
-
 export type ReturnPaymentType =
   | 'cash'
   | 'electronic'
