@@ -2,7 +2,7 @@ import {
   ReceiptApiOutput,
   ReceiptDetailsApiOutput,
   ReceiptMapper,
-  ReturnableItemsApiOutput,
+  ReturnDataApiOutput,
 } from '@/application/dto/receipt.dto';
 import { IHttpPort } from '@/application/ports/driven/http.port';
 import {
@@ -13,7 +13,7 @@ import {
   ReceiptReturnInput,
   ReturnViaDifferentDeviceInput,
   ReturnWithProofInput,
-  ReturnableItems,
+  ReturnData,
   VoidReceiptInput,
   VoidViaDifferentDeviceInput,
   VoidWithProofInput,
@@ -61,11 +61,11 @@ export class ReceiptRepositoryImpl implements IReceiptRepository {
     return ReceiptMapper.fromApiDetailsOutput(response.data);
   }
 
-  async getReturnableItems(receiptUuid: string): Promise<ReturnableItems> {
-    const response = await this.http.get<ReturnableItemsApiOutput>(
-      `/mf1/receipts/${receiptUuid}/returnable-items`
+  async getReturnData(receiptUuid: string): Promise<ReturnData> {
+    const response = await this.http.get<ReturnDataApiOutput>(
+      `/mf1/receipts/${receiptUuid}/return-data`
     );
-    return ReceiptMapper.returnableItemsFromApi(response.data);
+    return ReceiptMapper.returnDataFromApi(response.data);
   }
 
   async voidReceipt(input: VoidReceiptInput): Promise<void> {

@@ -8,10 +8,11 @@ import {
   ReceiptProofType,
   ReceiptReturnInput,
   ReceiptReturnItem,
+  ReturnData,
   ReturnPaymentDetail,
   ReturnViaDifferentDeviceInput,
   ReturnWithProofInput,
-  ReturnableItems,
+  ReturnablePaymentDetails,
   ReturnableReceiptItem,
   ReturnableSummary,
   VoidReceiptInput,
@@ -40,13 +41,13 @@ export interface PaymentDetailApiInput {
   type: PaymentDetail['type'];
   description?: string;
   amount: string;
-  vouchers_quantity?: number;
+  voucher_count?: number;
 }
 
 export interface ReturnPaymentDetailApiInput {
   type: ReturnPaymentDetail['type'];
   amount: string;
-  vouchers_quantity?: number;
+  voucher_count?: number;
 }
 
 export interface ReceiptApiInput {
@@ -149,22 +150,26 @@ export interface ReturnableSummaryApiOutput {
   uncollected_dcr_ssn: string;
   uncollected_complimentary: string;
   ateco_code?: string | null;
-  regulatory_reference?: string | null;
+  meal_vouchers_invoiced_to_issuer: boolean;
 }
 
-export interface ReturnableItemsApiOutput {
+export interface ReturnablePaymentDetailsApiOutput {
+  cash_payment_amount?: string | null;
+  electronic_payment_amount?: string | null;
+  vouchers?: { amount: string; count: number } | null;
+  discount_amount?: string | null;
+  uncollected_goods_gross_amount?: string | null;
+  uncollected_services_gross_amount: string;
+}
+
+export interface ReturnDataApiOutput {
   items: ReturnableReceiptItemApiOutput[];
   lottery?: {
     two_dimensional_lottery_code?: string | null;
     lottery_code?: string | null;
   } | null;
   summary: ReturnableSummaryApiOutput[];
-  cash_payment_amount?: string | null;
-  electronic_payment_amount?: string | null;
-  ticket?: { amount: string; quantity: number } | null;
-  discount_amount?: string | null;
-  uncollected_goods_amount?: string | null;
-  uncollected_services_amount: string;
+  payment_details: ReturnablePaymentDetailsApiOutput;
 }
 
 export class ReceiptMapper {
@@ -184,7 +189,7 @@ export class ReceiptMapper {
       type: detail.type,
       description: detail.description,
       amount: formatDecimal(detail.amount) as string,
-      vouchers_quantity: detail.vouchersQuantity,
+      voucher_count: detail.voucherCount,
     };
   }
 
@@ -272,7 +277,7 @@ export class ReceiptMapper {
     return {
       type: detail.type,
       amount: formatDecimal(detail.amount, 2) as string,
-      vouchers_quantity: detail.vouchersQuantity,
+      voucher_count: detail.voucherCount,
     };
   }
 
@@ -314,11 +319,26 @@ export class ReceiptMapper {
       uncollectedDcrSsn: summary.uncollected_dcr_ssn,
       uncollectedComplimentary: summary.uncollected_complimentary,
       atecoCode: summary.ateco_code ?? undefined,
-      regulatoryReference: summary.regulatory_reference ?? undefined,
+      mealVouchersInvoicedToIssuer: summary.meal_vouchers_invoiced_to_issuer,
     };
   }
 
-  static returnableItemsFromApi(output: ReturnableItemsApiOutput): ReturnableItems {
+  static returnablePaymentDetailsFromApi(
+    details: ReturnablePaymentDetailsApiOutput
+  ): ReturnablePaymentDetails {
+    return {
+      cashPaymentAmount: details.cash_payment_amount ?? undefined,
+      electronicPaymentAmount: details.electronic_payment_amount ?? undefined,
+      vouchers: details.vouchers
+        ? { amount: details.vouchers.amount, count: details.vouchers.count }
+        : undefined,
+      discountAmount: details.discount_amount ?? undefined,
+      uncollectedGoodsGrossAmount: details.uncollected_goods_gross_amount ?? undefined,
+      uncollectedServicesGrossAmount: details.uncollected_services_gross_amount,
+    };
+  }
+
+  static returnDataFromApi(output: ReturnDataApiOutput): ReturnData {
     return {
       items: output.items.map((item) => this.returnableItemFromApi(item)),
       lottery: output.lottery
@@ -328,14 +348,7 @@ export class ReceiptMapper {
           }
         : undefined,
       summary: output.summary.map((summary) => this.returnableSummaryFromApi(summary)),
-      cashPaymentAmount: output.cash_payment_amount ?? undefined,
-      electronicPaymentAmount: output.electronic_payment_amount ?? undefined,
-      ticket: output.ticket
-        ? { amount: output.ticket.amount, quantity: output.ticket.quantity }
-        : undefined,
-      discountAmount: output.discount_amount ?? undefined,
-      uncollectedGoodsAmount: output.uncollected_goods_amount ?? undefined,
-      uncollectedServicesAmount: output.uncollected_services_amount,
+      paymentDetails: this.returnablePaymentDetailsFromApi(output.payment_details),
     };
   }
 

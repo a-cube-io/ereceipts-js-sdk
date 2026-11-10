@@ -23,41 +23,33 @@ interface BasePaymentDetail {
 export type PaymentDetail =
   | (BasePaymentDetail & {
       type: Exclude<PaymentType, VoucherPaymentType>;
-      vouchersQuantity?: never;
+      voucherCount?: never;
     })
   | (BasePaymentDetail & {
       type: VoucherPaymentType;
-      vouchersQuantity: number;
+      voucherCount: number;
     });
 
-/**
- * Payment types accepted when returning items from the same device (PEM).
- * - `ticket` replaces `meal_vouchers` / `other_vouchers`: it returns what the sale
- *   recorded as ticket (see returnable-items).
- * - Meal vouchers with the meal-voucher option enabled are recorded in the sale as
- *   uncollected services, so they are returned as `uncollected_services`.
- * - The sale's rounding down is already part of the discount, so it is returned as
- *   `discount`; rounding up has no corresponding entry.
- */
+
 export type ReturnPaymentType =
   | 'cash'
   | 'electronic'
-  | 'ticket'
+  | 'vouchers'
   | 'discount'
   | 'uncollected_goods'
   | 'uncollected_services';
 
-// amount is gross, max 2 decimals; vouchersQuantity is required (>= 1) only for ticket
+// amount is gross, max 2 decimals; voucherCount is required (>= 1) only for vouchers
 export type ReturnPaymentDetail =
   | {
-      type: Exclude<ReturnPaymentType, 'ticket'>;
+      type: Exclude<ReturnPaymentType, 'vouchers'>;
       amount: string;
-      vouchersQuantity?: never;
+      voucherCount?: never;
     }
   | {
-      type: 'ticket';
+      type: 'vouchers';
       amount: string;
-      vouchersQuantity: number;
+      voucherCount: number;
     };
 
 export interface ReceiptItem {
@@ -125,38 +117,51 @@ export interface ReturnableSummary {
   uncollectedDcrSsn: string;
   uncollectedComplimentary: string;
   atecoCode?: string;
-  regulatoryReference?: string;
+  /**
+   * Whether the summary block of the sale receipt has RifNormativo "TICKET",
+   * i.e. its services were paid with meal vouchers invoiced to the issuer
+   */
+  mealVouchersInvoicedToIssuer: boolean;
 }
 
-export interface ReturnableTicket {
+export interface ReturnableVouchers {
+  /** Amount paid with vouchers still returnable */
   amount: string;
-  quantity: number;
+  /** Number of vouchers still returnable */
+  count: number;
 }
 
 /**
- * Items and amounts of a sale receipt that can still be returned
- * GET /mf1/receipts/{uuid}/returnable-items
+ * Amounts of the sale receipt still returnable for each type of the payment details
+ * of a return. All amounts are gross, i.e. they include VAT.
  */
-export interface ReturnableItems {
-  items: ReturnableReceiptItem[];
-  lottery?: ReturnableLottery;
-  summary: ReturnableSummary[];
+export interface ReturnablePaymentDetails {
   /** Amount paid in cash still returnable */
   cashPaymentAmount?: string;
   /** Amount paid electronically still returnable */
   electronicPaymentAmount?: string;
-  /** Amount and quantity of tickets still returnable */
-  ticket?: ReturnableTicket;
-  /** Discount at payment time (including the mandatory rounding down) still returnable */
+  /** Amount and number of vouchers still returnable */
+  vouchers?: ReturnableVouchers;
+  /** Discount applied at payment time (ScontoApagare) still returnable */
   discountAmount?: string;
   /** Amount for goods not collected yet (credit) still returnable */
-  uncollectedGoodsAmount?: string;
+  uncollectedGoodsGrossAmount?: string;
   /**
-   * Amount for services not collected yet still returnable, including VAT
-   * (sum of the summaries' uncollectedServices plus their VAT): the maximum that
-   * can be returned as uncollected_services
+   * Amount for services not collected yet still returnable, i.e. the sum for all
+   * the summaries of uncollectedServices plus its VAT
    */
-  uncollectedServicesAmount: string;
+  uncollectedServicesGrossAmount: string;
+}
+
+/**
+ * Items and amounts of a sale receipt that can still be returned
+ * GET /mf1/receipts/{uuid}/return-data
+ */
+export interface ReturnData {
+  items: ReturnableReceiptItem[];
+  lottery?: ReturnableLottery;
+  summary: ReturnableSummary[];
+  paymentDetails: ReturnablePaymentDetails;
 }
 
 export interface Receipt {

@@ -174,7 +174,7 @@ await sdk.receipts.voidReceipt({
 
 ```typescript
 // 1. Ottieni articoli restituibili
-const returnable = await sdk.receipts.getReturnableItems('receipt-uuid');
+const returnable = await sdk.receipts.getReturnData('receipt-uuid');
 
 // 2. Effettua il reso
 const returnReceipt = await sdk.receipts.returnItems({

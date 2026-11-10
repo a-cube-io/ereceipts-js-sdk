@@ -11,11 +11,15 @@ export interface PointOfSale {
   journalStatus: string;
 }
 
+export interface MealVouchersInvoicedToIssuer {
+  enabled: boolean;
+  lastSwitchedAt?: string;
+  nextSwitchAt?: string;
+}
+
 export interface PointOfSaleDetailed extends PointOfSale {
   registrationKey?: string;
-  mealVouchersInvoicedToIssuer: boolean;
-  mealVouchersItiNextSwitchAt?: string;
-  mealVouchersItiLastSwitchAt?: string;
+  mealVouchersInvoicedToIssuer: MealVouchersInvoicedToIssuer;
 }
 
 export interface PointOfSaleMf2 {

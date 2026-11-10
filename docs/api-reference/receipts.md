@@ -80,37 +80,41 @@ const pdfBlob = await sdk.receipts.getDetails('uuid', 'pdf');
 
 **Ritorna:** `Promise<ReceiptDetails | Blob>`
 
-### getReturnableItems(uuid)
+### getReturnData(uuid)
 
-Ottiene gli articoli e gli importi ancora restituibili di uno scontrino di vendita.
+Ottiene gli articoli e gli importi ancora restituibili di uno scontrino di vendita (`GET /mf1/receipts/{uuid}/return-data`).
 
 ```typescript
-const returnable = await sdk.receipts.getReturnableItems('receipt-uuid');
+const returnable = await sdk.receipts.getReturnData('receipt-uuid');
 
 for (const item of returnable.items) {
-  // quantity è la quantità originale, returnedQuantity quella già resa
   const stillReturnable = Number(item.quantity) - Number(item.returnedQuantity);
   console.log(`${item.description}: ${stillReturnable} restituibili`);
 }
 
-// Importi ancora restituibili per metodo di pagamento
-console.log(returnable.cashPaymentAmount, returnable.electronicPaymentAmount);
-console.log(returnable.ticket?.amount, returnable.ticket?.quantity);
+const { paymentDetails } = returnable;
+console.log(paymentDetails.cashPaymentAmount, paymentDetails.electronicPaymentAmount);
+console.log(paymentDetails.vouchers?.amount, paymentDetails.vouchers?.count);
 ```
 
-**Ritorna:** `Promise<ReturnableItems>`
+**Ritorna:** `Promise<ReturnData>`
 
 ```typescript
-interface ReturnableItems {
+interface ReturnData {
   items: ReturnableReceiptItem[];
   lottery?: { twoDimensionalLotteryCode?: string; lotteryCode?: string };
   summary: ReturnableSummary[]; // importi restituibili per blocco Riepilogo
+  paymentDetails: ReturnablePaymentDetails;
+}
+
+// importi ancora restituibili per tipo di payment detail del reso, tutti al lordo IVA
+interface ReturnablePaymentDetails {
   cashPaymentAmount?: string;
   electronicPaymentAmount?: string;
-  ticket?: { amount: string; quantity: number };
+  vouchers?: { amount: string; count: number };
   discountAmount?: string; // sconto a pagare, incluso l'arrotondamento per difetto
-  uncollectedGoodsAmount?: string;
-  uncollectedServicesAmount: string; // non riscossi servizi al lordo IVA, somma di tutti i summary
+  uncollectedGoodsGrossAmount?: string;
+  uncollectedServicesGrossAmount: string; // non riscossi servizi al lordo IVA, somma di tutti i summary
 }
 ```
 
@@ -166,11 +170,12 @@ await sdk.receipts.voidWithProof({
 Effettua un reso di articoli (stesso PEM).
 
 `paymentDetails` è opzionale (`ReturnPaymentDetail[]`) e ha una struttura diversa dall'emissione:
-- `type`: `cash` | `electronic` | `ticket` | `discount` | `uncollected_goods` | `uncollected_services`
+- `type`: `cash` | `electronic` | `vouchers` | `discount` | `uncollected_goods` | `uncollected_services`
 - `amount`: importo lordo, max 2 decimali
-- `vouchersQuantity`: obbligatorio (≥ 1) solo per `ticket`
+- `voucherCount`: obbligatorio (≥ 1) solo per `vouchers`
 - `description` non è supportato
-- i buoni pasto registrati con l'opzione buoni pasto attiva si rendono come `uncollected_services`; l'arrotondamento per difetto si rende come `discount`
+- `vouchers` rende quanto pagato con buoni fatturati da terzi (`meal_vouchers` e `other_vouchers`); l'arrotondamento per difetto si rende come `discount`
+- se omesso, l'importo reso viene ripartito proporzionalmente agli importi ancora restituibili
 
 ```typescript
 const returnReceipt = await sdk.receipts.returnItems({
@@ -180,7 +185,7 @@ const returnReceipt = await sdk.receipts.returnItems({
   ],
   paymentDetails: [
     { type: 'cash', amount: '10.00' },
-    { type: 'ticket', amount: '8.00', vouchersQuantity: 1 },
+    { type: 'vouchers', amount: '8.00', voucherCount: 1 },
   ],
 });
 ```

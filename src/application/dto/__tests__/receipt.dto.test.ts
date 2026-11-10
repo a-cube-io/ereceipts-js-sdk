@@ -4,7 +4,7 @@ import { ReceiptMapper } from '../receipt.dto';
 
 describe('ReceiptMapper', () => {
   describe('paymentDetailToApiInput', () => {
-    it('should map a cash payment without vouchers_quantity', () => {
+    it('should map a cash payment without voucher_count', () => {
       const detail: PaymentDetail = {
         type: 'cash',
         amount: '10',
@@ -16,16 +16,16 @@ describe('ReceiptMapper', () => {
         type: 'cash',
         description: undefined,
         amount: '10.00',
-        vouchers_quantity: undefined,
+        voucher_count: undefined,
       });
     });
 
-    it('should map a meal_vouchers payment with vouchers_quantity', () => {
+    it('should map a meal_vouchers payment with voucher_count', () => {
       const detail: PaymentDetail = {
         type: 'meal_vouchers',
         description: 'Buoni pasto',
         amount: '16',
-        vouchersQuantity: 2,
+        voucherCount: 2,
       };
 
       const result = ReceiptMapper.paymentDetailToApiInput(detail);
@@ -34,15 +34,15 @@ describe('ReceiptMapper', () => {
         type: 'meal_vouchers',
         description: 'Buoni pasto',
         amount: '16.00',
-        vouchers_quantity: 2,
+        voucher_count: 2,
       });
     });
 
-    it('should map an other_vouchers payment with vouchers_quantity', () => {
+    it('should map an other_vouchers payment with voucher_count', () => {
       const detail: PaymentDetail = {
         type: 'other_vouchers',
         amount: '5.5',
-        vouchersQuantity: 1,
+        voucherCount: 1,
       };
 
       const result = ReceiptMapper.paymentDetailToApiInput(detail);
@@ -51,7 +51,7 @@ describe('ReceiptMapper', () => {
         type: 'other_vouchers',
         description: undefined,
         amount: '5.50',
-        vouchers_quantity: 1,
+        voucher_count: 1,
       });
     });
   });
@@ -76,7 +76,7 @@ describe('ReceiptMapper', () => {
         items: [{ id: 1, quantity: '2' }],
         paymentDetails: [
           { type: 'cash', amount: '4' },
-          { type: 'ticket', amount: '8', vouchersQuantity: 1 },
+          { type: 'vouchers', amount: '8', voucherCount: 1 },
           { type: 'uncollected_services', amount: '3.5' },
         ],
       });
@@ -85,9 +85,9 @@ describe('ReceiptMapper', () => {
         items: [{ id: 1, quantity: '2.00' }],
         document_number: '0001-0001',
         payment_details: [
-          { type: 'cash', amount: '4.00', vouchers_quantity: undefined },
-          { type: 'ticket', amount: '8.00', vouchers_quantity: 1 },
-          { type: 'uncollected_services', amount: '3.50', vouchers_quantity: undefined },
+          { type: 'cash', amount: '4.00', voucher_count: undefined },
+          { type: 'vouchers', amount: '8.00', voucher_count: 1 },
+          { type: 'uncollected_services', amount: '3.50', voucher_count: undefined },
         ],
       });
     });
@@ -108,7 +108,7 @@ describe('ReceiptMapper', () => {
     });
   });
 
-  describe('returnableItemsFromApi', () => {
+  describe('returnDataFromApi', () => {
     const baseItem = {
       id: 1,
       type: 'goods' as const,
@@ -123,8 +123,8 @@ describe('ReceiptMapper', () => {
       complimentary: false,
     };
 
-    it('should map items, summary, payments and ticket', () => {
-      const result = ReceiptMapper.returnableItemsFromApi({
+    it('should map items, summary and payment details', () => {
+      const result = ReceiptMapper.returnDataFromApi({
         items: [{ ...baseItem, vat_rate_code: '22.00', ateco_code: '471100' }],
         lottery: { two_dimensional_lottery_code: 'ABC', lottery_code: 'XYZ' },
         summary: [
@@ -139,15 +139,17 @@ describe('ReceiptMapper', () => {
             uncollected_dcr_ssn: '0',
             uncollected_complimentary: '0',
             ateco_code: null,
-            regulatory_reference: null,
+            meal_vouchers_invoiced_to_issuer: true,
           },
         ],
-        cash_payment_amount: '5.00',
-        electronic_payment_amount: null,
-        ticket: { amount: '5.00', quantity: 1 },
-        discount_amount: null,
-        uncollected_goods_amount: null,
-        uncollected_services_amount: '12.20',
+        payment_details: {
+          cash_payment_amount: '5.00',
+          electronic_payment_amount: null,
+          vouchers: { amount: '5.00', count: 1 },
+          discount_amount: null,
+          uncollected_goods_gross_amount: null,
+          uncollected_services_gross_amount: '12.20',
+        },
       });
 
       expect(result).toEqual({
@@ -181,32 +183,37 @@ describe('ReceiptMapper', () => {
             uncollectedDcrSsn: '0',
             uncollectedComplimentary: '0',
             atecoCode: undefined,
-            regulatoryReference: undefined,
+            mealVouchersInvoicedToIssuer: true,
           },
         ],
-        cashPaymentAmount: '5.00',
-        electronicPaymentAmount: undefined,
-        ticket: { amount: '5.00', quantity: 1 },
-        discountAmount: undefined,
-        uncollectedGoodsAmount: undefined,
-        uncollectedServicesAmount: '12.20',
+        paymentDetails: {
+          cashPaymentAmount: '5.00',
+          electronicPaymentAmount: undefined,
+          vouchers: { amount: '5.00', count: 1 },
+          discountAmount: undefined,
+          uncollectedGoodsGrossAmount: undefined,
+          uncollectedServicesGrossAmount: '12.20',
+        },
       });
     });
 
     it('should map null vat_rate_code (Ventilazione IVA) and missing optional blocks to undefined', () => {
-      const result = ReceiptMapper.returnableItemsFromApi({
+      const result = ReceiptMapper.returnDataFromApi({
         items: [{ ...baseItem, vat_rate_code: null, simplified_vat_allocation: true }],
         lottery: null,
         summary: [],
-        ticket: null,
-        uncollected_services_amount: '0.00',
+        payment_details: {
+          vouchers: null,
+          uncollected_services_gross_amount: '0.00',
+        },
       });
 
       expect(result.items[0]?.vatRateCode).toBeUndefined();
       expect(result.items[0]?.simplifiedVatAllocation).toBe(true);
       expect(result.lottery).toBeUndefined();
-      expect(result.ticket).toBeUndefined();
-      expect(result.cashPaymentAmount).toBeUndefined();
+      expect(result.paymentDetails.vouchers).toBeUndefined();
+      expect(result.paymentDetails.cashPaymentAmount).toBeUndefined();
+      expect(result.paymentDetails.uncollectedServicesGrossAmount).toBe('0.00');
     });
   });
 });

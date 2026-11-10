@@ -116,6 +116,10 @@ interface PointOfSale {
 ```typescript
 interface PointOfSaleDetailed extends PointOfSale {
   registrationKey?: string;
+  mealVouchersInvoicedToIssuer: {
+    enabled: boolean;
+    lastSwitchedAt?: string;
+    nextSwitchAt?: string;
 }
 ```
 

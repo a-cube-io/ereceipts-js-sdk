@@ -238,7 +238,7 @@ await sdk.receipts.voidWithProof({
 ### Verifica Articoli Restituibili
 
 ```typescript
-const returnable = await sdk.receipts.getReturnableItems('receipt-uuid');
+const returnable = await sdk.receipts.getReturnData('receipt-uuid');
 
 for (const item of returnable.items) {
   const stillReturnable = Number(item.quantity) - Number(item.returnedQuantity);
@@ -262,7 +262,7 @@ console.log('Reso creato:', returnReceipt.uuid);
 ### Reso Completo
 
 ```typescript
-const returnable = await sdk.receipts.getReturnableItems('receipt-uuid');
+const returnable = await sdk.receipts.getReturnData('receipt-uuid');
 
 const returnReceipt = await sdk.receipts.returnItems({
   documentNumber: '0001-0001-0001',
