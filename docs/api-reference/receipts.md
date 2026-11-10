@@ -21,7 +21,7 @@ const receipt = await sdk.receipts.create({
       description: 'Prodotto esempio',
       quantity: '1',
       unitPrice: '10.00',
-      vatRateCode: '22',
+      vatRateCode: '22.00',
     },
   ],
 });
@@ -120,50 +120,50 @@ interface ReturnablePaymentDetails {
 
 ### voidReceipt(input)
 
-Annulla uno scontrino dallo stesso POS.
+Annulla uno scontrino dallo stesso PEM.
 
 ```typescript
-await sdk.receipts.voidReceipt({
-  documentNumber: '0001-0001-0001',
+const voidReceipt = await sdk.receipts.voidReceipt({
+  documentNumber: '0001-0001',
 });
 ```
 
 **Parametri:** `VoidReceiptInput`
 
-**Ritorna:** `Promise<void>`
+**Ritorna:** `Promise<Receipt>` (lo scontrino di annullo emesso)
 
 ### voidViaDifferentDevice(input)
 
 Annulla scontrino da un dispositivo diverso.
 
 ```typescript
-await sdk.receipts.voidViaDifferentDevice({
-  posId: 'pos-id',
+const voidReceipt = await sdk.receipts.voidViaDifferentDevice({
+  deviceId: 'E001-000001',
   documentNumber: '0001-0001-0001',
-  documentDatetime: '2024-01-15T10:30:00Z',
+  documentDatetime: '2024-01-15T10:30:00',
   items: [...],
 });
 ```
 
 **Parametri:** `VoidViaDifferentDeviceInput`
 
-**Ritorna:** `Promise<void>`
+**Ritorna:** `Promise<Receipt>` (lo scontrino di annullo emesso)
 
 ### voidWithProof(input)
 
 Annulla scontrino con prova documentale.
 
 ```typescript
-await sdk.receipts.voidWithProof({
+const voidReceipt = await sdk.receipts.voidWithProof({
   proof: 'POS',
-  documentDatetime: '2024-01-15T10:30:00Z',
+  documentDatetime: '2024-01-15T10:30:00',
   items: [...],
 });
 ```
 
 **Parametri:** `VoidWithProofInput`
 
-**Ritorna:** `Promise<void>`
+**Ritorna:** `Promise<Receipt>` (lo scontrino di annullo emesso)
 
 ### returnItems(input)
 
@@ -200,9 +200,9 @@ Reso da dispositivo diverso.
 
 ```typescript
 const returnReceipt = await sdk.receipts.returnViaDifferentDevice({
-  posId: 'pos-id',
+  deviceId: 'E001-000001',
   documentNumber: '0001-0001-0001',
-  documentDatetime: '2024-01-15T10:30:00Z',
+  documentDatetime: '2024-01-15T10:30:00',
   items: [...],
 });
 ```
@@ -218,7 +218,7 @@ Reso con prova documentale.
 ```typescript
 const returnReceipt = await sdk.receipts.returnWithProof({
   proof: 'POS',
-  documentDatetime: '2024-01-15T10:30:00Z',
+  documentDatetime: '2024-01-15T10:30:00',
   items: [...],
 });
 ```
@@ -235,14 +235,28 @@ const returnReceipt = await sdk.receipts.returnWithProof({
 interface Receipt {
   uuid: string;
   type: 'sale' | 'return' | 'void';
-  createdAt: string;
-  totalAmount: string;
+  totalAmount?: string; // assente per resi e annulli
   documentNumber: string;
-  documentDatetime?: string;
+  documentDatetime: string; // YYYY-MM-DDTHH:mm:ss
   isReturnable: boolean;
   isVoidable: boolean;
   pdfUrl?: string;
-  parentReceiptUuid?: string;
+  status: 'ready' | 'sent';
+  parentReceiptUuid?: string; // solo per resi/annulli di scontrini dello stesso PEM
+}
+```
+
+### ReceiptDetails
+
+```typescript
+interface ReceiptDetails extends Receipt {
+  customerLotteryCode?: string;
+  totalTaxableAmount: string;
+  totalUncollectedAmount: string;
+  totalVatAmount: string;
+  totalDiscount: string; // sconto a pagare
+  items: ReceiptItem[];
+  cashierName?: string; // assente se emesso dal merchant
 }
 ```
 
@@ -251,33 +265,32 @@ interface Receipt {
 ```typescript
 interface ReceiptInput {
   items: ReceiptItem[];
-  customerTaxCode?: string;
+  customerTaxCode?: string; // alternativo a customerLotteryCode
   customerLotteryCode?: string;
-  discount?: string;
+  paymentDetails?: PaymentDetail[];
   invoiceIssuing?: boolean;
   uncollectedDcrToSsn?: boolean;
-  servicesUncollectedAmount?: string;
-  goodsUncollectedAmount?: string;
-  cashPaymentAmount?: string;
-  electronicPaymentAmount?: string;
-  ticketRestaurantPaymentAmount?: string;
-  ticketRestaurantQuantity?: number;
+  additionalText?: string; // max 3 righe separate da \n
 }
 ```
+
+`additionalText` (max 3 righe) è accettato anche da tutti gli input di reso e annullo.
 
 ### ReceiptItem
 
 ```typescript
 interface ReceiptItem {
-  type?: 'G' | 'S';
+  type?: 'goods' | 'service'; // default: goods
   quantity: string;
   description: string;
-  unitPrice: string;
-  vatRateCode?: VatRateCode;
-  simplifiedVatAllocation?: boolean;
+  unitPrice: string; // lordo IVA
+  vatRateCode?: VatRateCode; // alternativo a simplifiedVatAllocation
+  simplifiedVatAllocation?: boolean; // Ventilazione IVA
   discount?: string;
-  isDownPaymentOrVoucherRedemption?: boolean;
+  surcharge?: string;
+  prepaidOrVoucher?: boolean;
   complimentary?: boolean;
+  atecoCode?: string;
 }
 ```
 
@@ -288,11 +301,14 @@ interface ReceiptListParams {
   serialNumber: string;
   page?: number;
   size?: number;
-  status?: 'ready' | 'sent';
-  sort?: 'descending' | 'ascending';
+  status?: 'ready' | 'sent'; // default: sent
+  sort?: 'descending' | 'ascending'; // ordine per numero documento, default: descending
+  type?: 'sale' | 'return' | 'void';
   documentNumber?: string;
-  documentDatetimeBefore?: string;
-  documentDatetimeAfter?: string;
+  documentDatetimeBefore?: string; // incluso
+  documentDatetimeStrictlyBefore?: string; // escluso
+  documentDatetimeAfter?: string; // incluso
+  documentDatetimeStrictlyAfter?: string; // escluso
 }
 ```
 
@@ -300,18 +316,16 @@ interface ReceiptListParams {
 
 ```typescript
 type VatRateCode =
-  | '22'
-  | '10'
-  | '5'
-  | '4'
+  | '4.00'
+  | '5.00'
+  | '10.00'
+  | '22.00'
   | 'N1'
   | 'N2'
   | 'N3'
   | 'N4'
   | 'N5'
-  | 'N6'
-  | 'VI'
-  | 'VF';
+  | 'N6';
 ```
 
 ## Esempi
@@ -325,17 +339,20 @@ const receipt = await sdk.receipts.create({
       description: 'Articolo 1',
       quantity: '2',
       unitPrice: '15.00',
-      vatRateCode: '22',
+      vatRateCode: '22.00',
     },
     {
       description: 'Articolo 2',
       quantity: '1',
       unitPrice: '25.00',
-      vatRateCode: '10',
+      vatRateCode: '10.00',
       discount: '5.00',
     },
   ],
-  discount: '2.00',
+  paymentDetails: [
+    { type: 'discount', amount: '2.00' },
+    { type: 'cash', amount: '60.70' },
+  ],
 });
 ```
 
@@ -346,13 +363,14 @@ const page = await sdk.receipts.findAll({
   serialNumber: 'POS-001',
   status: 'sent',
   sort: 'descending',
-  documentDatetimeAfter: '2024-01-01T00:00:00Z',
+  type: 'sale',
+  documentDatetimeAfter: '2024-01-01T00:00:00',
   page: 1,
   size: 50,
 });
 
 console.log('Totale:', page.total);
-console.log('Scontrini:', page.items.length);
+console.log('Scontrini:', page.members.length);
 ```
 
 ## Prossimi Passi

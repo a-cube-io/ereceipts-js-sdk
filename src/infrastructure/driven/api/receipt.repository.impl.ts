@@ -68,19 +68,28 @@ export class ReceiptRepositoryImpl implements IReceiptRepository {
     return ReceiptMapper.returnDataFromApi(response.data);
   }
 
-  async voidReceipt(input: VoidReceiptInput): Promise<void> {
+  async voidReceipt(input: VoidReceiptInput): Promise<Receipt> {
     const apiInput = ReceiptMapper.voidInputToApi(input);
-    await this.http.post('/mf1/receipts/void', apiInput);
+    const response = await this.http.post<ReceiptApiOutput>('/mf1/receipts/void', apiInput);
+    return ReceiptMapper.fromApiOutput(response.data);
   }
 
-  async voidViaDifferentDevice(input: VoidViaDifferentDeviceInput): Promise<void> {
+  async voidViaDifferentDevice(input: VoidViaDifferentDeviceInput): Promise<Receipt> {
     const apiInput = ReceiptMapper.voidViaDifferentDeviceToApi(input);
-    await this.http.post('/mf1/receipts/void-via-different-device', apiInput);
+    const response = await this.http.post<ReceiptApiOutput>(
+      '/mf1/receipts/void-via-different-device',
+      apiInput
+    );
+    return ReceiptMapper.fromApiOutput(response.data);
   }
 
-  async voidWithProof(input: VoidWithProofInput): Promise<void> {
+  async voidWithProof(input: VoidWithProofInput): Promise<Receipt> {
     const apiInput = ReceiptMapper.voidWithProofToApi(input);
-    await this.http.post('/mf1/receipts/void-with-proof', apiInput);
+    const response = await this.http.post<ReceiptApiOutput>(
+      '/mf1/receipts/void-with-proof',
+      apiInput
+    );
+    return ReceiptMapper.fromApiOutput(response.data);
   }
 
   async returnItems(input: ReceiptReturnInput): Promise<Receipt> {

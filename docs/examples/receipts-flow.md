@@ -191,10 +191,10 @@ console.log('Dettagli completi:', details);
 const receipt = await sdk.receipts.findById('receipt-uuid');
 
 if (receipt.isVoidable) {
-  await sdk.receipts.voidReceipt({
+  const voidReceipt = await sdk.receipts.voidReceipt({
     documentNumber: receipt.documentNumber,
   });
-  console.log('Scontrino annullato');
+  console.log('Scontrino annullato:', voidReceipt.documentNumber);
 }
 ```
 
@@ -202,7 +202,7 @@ if (receipt.isVoidable) {
 
 ```typescript
 await sdk.receipts.voidViaDifferentDevice({
-  posId: 'altro-pos-id',
+  deviceId: 'E001-000001',
   documentNumber: '0001-0001-0001',
   documentDatetime: '2024-01-15T10:30:00Z',
   items: [
@@ -279,7 +279,7 @@ const returnReceipt = await sdk.receipts.returnItems({
 
 ```typescript
 const returnReceipt = await sdk.receipts.returnViaDifferentDevice({
-  posId: 'altro-pos-id',
+  deviceId: 'E001-000001',
   documentNumber: '0001-0001-0001',
   documentDatetime: '2024-01-15T10:30:00Z',
   items: [

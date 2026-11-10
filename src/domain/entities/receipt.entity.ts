@@ -166,27 +166,24 @@ export interface ReturnData {
 export interface Receipt {
   uuid: string;
   type: ReceiptType;
-  createdAt: string;
-  totalAmount: string;
+  totalAmount?: string;
   documentNumber: string;
-  documentDatetime?: string;
+  documentDatetime: string;
   isReturnable: boolean;
   isVoidable: boolean;
-  pdfUrl: string;
+  pdfUrl?: string;
   status: ReceiptStatus;
   parentReceiptUuid?: string;
 }
 
 export interface ReceiptDetails extends Receipt {
   customerLotteryCode?: string;
-  vatNumber: string;
   totalTaxableAmount: string;
   totalUncollectedAmount: string;
   totalVatAmount: string;
   totalDiscount: string;
-  totalGrossDiscount: string;
-  discount: string;
-  items?: ReceiptItem[];
+  items: ReceiptItem[];
+  cashierName?: string;
 }
 
 export interface ReceiptInput {
@@ -196,6 +193,7 @@ export interface ReceiptInput {
   paymentDetails?: PaymentDetail[];
   invoiceIssuing?: boolean;
   uncollectedDcrToSsn?: boolean;
+  additionalText?: string;
 }
 
 /**
@@ -206,19 +204,21 @@ export interface ReceiptReturnInput {
   items: ReceiptReturnItem[];
   documentNumber: string;
   paymentDetails?: ReturnPaymentDetail[];
+  additionalText?: string;
 }
 
 /**
- * Input for voiding a receipt from the same POS
- * DELETE /mf1/receipts
+ * Input for voiding a receipt from the same device (PEM)
+ * POST /mf1/receipts/void
  */
 export interface VoidReceiptInput {
   documentNumber: string;
+  additionalText?: string;
 }
 
 /**
  * Input for voiding a receipt via a different device (PEM)
- * DELETE /mf1/receipts/void-via-different-device
+ * POST /mf1/receipts/void-via-different-device
  */
 export interface VoidViaDifferentDeviceInput {
   deviceId: string;
@@ -226,18 +226,20 @@ export interface VoidViaDifferentDeviceInput {
   documentNumber: string;
   documentDatetime: string;
   lotteryCode?: string;
+  additionalText?: string;
 }
 
 export type ReceiptProofType = 'POS' | 'VR' | 'ND';
 
 /**
  * Input for voiding a receipt with proof
- * DELETE /mf1/receipts/void-with-proof
+ * POST /mf1/receipts/void-with-proof
  */
 export interface VoidWithProofInput {
   items: ReceiptItem[];
   proof: ReceiptProofType;
   documentDatetime: string;
+  additionalText?: string;
 }
 
 /**
@@ -250,6 +252,7 @@ export interface ReturnViaDifferentDeviceInput {
   documentNumber: string;
   documentDatetime: string;
   lotteryCode?: string;
+  additionalText?: string;
 }
 
 /**
@@ -260,6 +263,7 @@ export interface ReturnWithProofInput {
   items: ReceiptItem[];
   proof: ReceiptProofType;
   documentDatetime: string;
+  additionalText?: string;
 }
 
 export const RECEIPT_READY = 'ready';
@@ -276,7 +280,10 @@ export interface ReceiptListParams {
   size?: number;
   status?: ReceiptStatus;
   sort?: ReceiptSortOrder;
+  type?: ReceiptType;
   documentNumber?: string;
   documentDatetimeBefore?: string;
+  documentDatetimeStrictlyBefore?: string;
   documentDatetimeAfter?: string | null;
+  documentDatetimeStrictlyAfter?: string;
 }

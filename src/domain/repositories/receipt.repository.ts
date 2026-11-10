@@ -21,9 +21,9 @@ export interface IReceiptRepository {
   getDetails(receiptUuid: string, format: 'pdf'): Promise<string>;
   getDetails(receiptUuid: string, format: 'json' | 'pdf'): Promise<ReceiptDetails | string>;
   getReturnData(receiptUuid: string): Promise<ReturnData>;
-  voidReceipt(input: VoidReceiptInput): Promise<void>;
-  voidViaDifferentDevice(input: VoidViaDifferentDeviceInput): Promise<void>;
-  voidWithProof(input: VoidWithProofInput): Promise<void>;
+  voidReceipt(input: VoidReceiptInput): Promise<Receipt>;
+  voidViaDifferentDevice(input: VoidViaDifferentDeviceInput): Promise<Receipt>;
+  voidWithProof(input: VoidWithProofInput): Promise<Receipt>;
   returnItems(input: ReceiptReturnInput): Promise<Receipt>;
   returnViaDifferentDevice(input: ReturnViaDifferentDeviceInput): Promise<Receipt>;
   returnWithProof(input: ReturnWithProofInput): Promise<Receipt>;
