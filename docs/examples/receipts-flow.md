@@ -191,10 +191,10 @@ console.log('Dettagli completi:', details);
 const receipt = await sdk.receipts.findById('receipt-uuid');
 
 if (receipt.isVoidable) {
-  await sdk.receipts.voidReceipt({
+  const voidReceipt = await sdk.receipts.voidReceipt({
     documentNumber: receipt.documentNumber,
   });
-  console.log('Scontrino annullato');
+  console.log('Scontrino annullato:', voidReceipt.documentNumber);
 }
 ```
 
@@ -202,7 +202,7 @@ if (receipt.isVoidable) {
 
 ```typescript
 await sdk.receipts.voidViaDifferentDevice({
-  posId: 'altro-pos-id',
+  deviceId: 'E001-000001',
   documentNumber: '0001-0001-0001',
   documentDatetime: '2024-01-15T10:30:00Z',
   items: [
@@ -238,10 +238,11 @@ await sdk.receipts.voidWithProof({
 ### Verifica Articoli Restituibili
 
 ```typescript
-const returnableItems = await sdk.receipts.getReturnableItems('receipt-uuid');
+const returnable = await sdk.receipts.getReturnData('receipt-uuid');
 
-for (const item of returnableItems) {
-  console.log(`${item.description}: max ${item.quantity} restituibili`);
+for (const item of returnable.items) {
+  const stillReturnable = Number(item.quantity) - Number(item.returnedQuantity);
+  console.log(`${item.description}: max ${stillReturnable} restituibili`);
 }
 ```
 
@@ -261,14 +262,16 @@ console.log('Reso creato:', returnReceipt.uuid);
 ### Reso Completo
 
 ```typescript
-const returnableItems = await sdk.receipts.getReturnableItems('receipt-uuid');
+const returnable = await sdk.receipts.getReturnData('receipt-uuid');
 
 const returnReceipt = await sdk.receipts.returnItems({
   documentNumber: '0001-0001-0001',
-  items: returnableItems.map((item) => ({
-    id: item.id,
-    quantity: item.quantity,
-  })),
+  items: returnable.items
+    .map((item) => ({
+      id: item.id,
+      quantity: (Number(item.quantity) - Number(item.returnedQuantity)).toFixed(2),
+    }))
+    .filter((item) => Number(item.quantity) > 0),
 });
 ```
 
@@ -276,7 +279,7 @@ const returnReceipt = await sdk.receipts.returnItems({
 
 ```typescript
 const returnReceipt = await sdk.receipts.returnViaDifferentDevice({
-  posId: 'altro-pos-id',
+  deviceId: 'E001-000001',
   documentNumber: '0001-0001-0001',
   documentDatetime: '2024-01-15T10:30:00Z',
   items: [

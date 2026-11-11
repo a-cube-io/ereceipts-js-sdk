@@ -21,9 +21,11 @@ export interface PointOfSaleApiOutput {
 
 export interface PointOfSaleDetailedApiOutput extends PointOfSaleApiOutput {
   registration_key?: string;
-  meal_vouchers_invoiced_to_issuer: boolean;
-  meal_vouchers_iti_next_switch_at: string | null;
-  meal_vouchers_iti_last_switch_at: string | null;
+  meal_vouchers_invoiced_to_issuer: {
+    enabled: boolean;
+    last_switched_at: string | null;
+    next_switch_at: string | null;
+  };
 }
 
 export interface ActivationRequestApiInput {
@@ -93,9 +95,11 @@ export class PointOfSaleMapper {
     return {
       ...this.fromApiOutput(output),
       registrationKey: output.registration_key,
-      mealVouchersInvoicedToIssuer: output.meal_vouchers_invoiced_to_issuer,
-      mealVouchersItiNextSwitchAt: output.meal_vouchers_iti_next_switch_at ?? undefined,
-      mealVouchersItiLastSwitchAt: output.meal_vouchers_iti_last_switch_at ?? undefined,
+      mealVouchersInvoicedToIssuer: {
+        enabled: output.meal_vouchers_invoiced_to_issuer.enabled,
+        lastSwitchedAt: output.meal_vouchers_invoiced_to_issuer.last_switched_at ?? undefined,
+        nextSwitchAt: output.meal_vouchers_invoiced_to_issuer.next_switch_at ?? undefined,
+      },
     };
   }
 

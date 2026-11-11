@@ -174,13 +174,13 @@ await sdk.receipts.voidReceipt({
 
 ```typescript
 // 1. Ottieni articoli restituibili
-const returnableItems = await sdk.receipts.getReturnableItems('receipt-uuid');
+const returnable = await sdk.receipts.getReturnData('receipt-uuid');
 
 // 2. Effettua il reso
 const returnReceipt = await sdk.receipts.returnItems({
   documentNumber: '0001-0001-0001',
   items: [
-    { id: returnableItems[0].id, quantity: '1' },
+    { id: returnable.items[0].id, quantity: '1' },
   ],
 });
 

@@ -65,7 +65,7 @@ export class AuthStrategy {
         return { mode: 'jwt' };
       }
 
-      if (this.isReturnableItemsEndpoint(url)) {
+      if (this.isReturnDataEndpoint(url)) {
         return { mode: 'mtls' };
       }
 
@@ -135,10 +135,10 @@ export class AuthStrategy {
     return url.includes('/receipts') || url.includes('/mf1/receipts');
   }
 
-  private isReturnableItemsEndpoint(url: string): boolean {
+  private isReturnDataEndpoint(url: string): boolean {
     return !!(
-      url.match(/\/receipts\/[a-f0-9-]+\/returnable-items$/) ||
-      url.match(/\/mf1\/receipts\/[a-f0-9-]+\/returnable-items$/)
+      url.match(/\/receipts\/[a-f0-9-]+\/return-data$/) ||
+      url.match(/\/mf1\/receipts\/[a-f0-9-]+\/return-data$/)
     );
   }
 
