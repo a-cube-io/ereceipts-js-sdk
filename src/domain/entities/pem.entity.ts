@@ -34,6 +34,14 @@ export interface PemUpdateInput {
 
 export type PemConfigurationOutput = PemUpdateInput;
 
+/**
+ * PNG image of the logo printed on the receipts.
+ * Binary data is sent as-is; a string is treated as base64 (a `data:image/png;base64,` prefix is allowed).
+ * The backend converts it to black and white for the current receipt format:
+ * changing `receiptFormat` deletes the logo, which must be uploaded again.
+ */
+export type PemLogoData = ArrayBuffer | Uint8Array | Blob | string;
+
 export interface PemLogoInput {
-  logo: string;
+  logo: PemLogoData;
 }
