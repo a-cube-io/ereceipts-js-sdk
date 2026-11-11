@@ -79,8 +79,10 @@ export class PemRepositoryImpl implements IPemRepository {
   }
 
   async updateLogo(serialNumber: string, input: PemLogoInput): Promise<void> {
-    const apiInput = PemMapper.toLogoApiInput(input);
-    await this.http.put(`/mf2/pems/${serialNumber}/configuration/logo`, apiInput);
+    const body = PemMapper.toLogoApiInput(input);
+    await this.http.put(`/mf2/pems/${serialNumber}/configuration/logo`, body, {
+      headers: { 'Content-Type': 'image/png' },
+    });
   }
 
   async deleteLogo(serialNumber: string): Promise<void> {

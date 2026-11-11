@@ -49,9 +49,7 @@ export interface PemUpdateApiOutput {
   meal_vouchers_invoiced_to_issuer: boolean;
 }
 
-export interface PemLogoApiInput {
-  logo: string;
-}
+export type PemLogoApiInput = ArrayBuffer | Uint8Array | Blob;
 
 export type PemConfigurationApiOutput = PemUpdateApiOutput;
 
@@ -118,9 +116,17 @@ export class PemMapper {
   }
 
   static toLogoApiInput(input: PemLogoInput): PemLogoApiInput {
-    return {
-      logo: input.logo,
-    };
+    const { logo } = input;
+    if (typeof logo !== 'string') {
+      return logo;
+    }
+    const base64 = logo.replace(/^data:[^;,]*;base64,/, '').replace(/\s/g, '');
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
   }
 
   static fromPointOfSaleMf2ApiOutput(output: PointOfSaleMf2ApiOutput): PointOfSaleMf2 {

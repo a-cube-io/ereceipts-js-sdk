@@ -191,16 +191,34 @@ describe('PemMapper', () => {
   });
 
   describe('toLogoApiInput', () => {
-    it('should map logo to api input', () => {
-      const input: PemLogoInput = {
-        logo: 'base64-logo',
-      };
+    // PNG signature bytes
+    const pngBytes = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+    const pngBase64 = 'iVBORw0KGgo=';
 
-      const result = PemMapper.toLogoApiInput(input);
+    it('should pass binary data through unchanged', () => {
+      const logo = new Uint8Array(pngBytes);
+      const input: PemLogoInput = { logo };
 
-      expect(result).toEqual({
-        logo: 'base64-logo',
-      });
+      expect(PemMapper.toLogoApiInput(input)).toBe(logo);
+    });
+
+    it('should pass an ArrayBuffer through unchanged', () => {
+      const logo = new Uint8Array(pngBytes).buffer;
+
+      expect(PemMapper.toLogoApiInput({ logo })).toBe(logo);
+    });
+
+    it('should decode a base64 string to bytes', () => {
+      const result = PemMapper.toLogoApiInput({ logo: pngBase64 });
+
+      expect(result).toBeInstanceOf(Uint8Array);
+      expect(Array.from(result as Uint8Array)).toEqual(pngBytes);
+    });
+
+    it('should decode a base64 data URL to bytes', () => {
+      const result = PemMapper.toLogoApiInput({ logo: `data:image/png;base64,${pngBase64}` });
+
+      expect(Array.from(result as Uint8Array)).toEqual(pngBytes);
     });
   });
 
