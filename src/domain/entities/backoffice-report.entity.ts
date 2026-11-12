@@ -1,6 +1,11 @@
 export type BackofficeReportStatus = 'queued' | 'processing' | 'ready' | 'failed';
 
-export type BackofficeReportType = 'journal_closure' | 'journal_reading' | 'telemetry' | 'details';
+export type BackofficeReportType =
+  | 'journal_closure'
+  | 'journal_reading'
+  | 'diagnostics'
+  | 'details'
+  | 'summary';
 
 export type BackofficeReportRequestStatus = 'queued' | 'processed' | 'failed';
 
@@ -84,9 +89,24 @@ export type QueueReceiptsBackofficeReportFilter =
   | DateIntervalFilter;
 
 /**
- * `details` is currently the only implemented report flavour.
+ * Line-item details of the receipt(s) in `filterBy`.
  */
-export interface QueueReceiptsBackofficeReportInput {
+export interface QueueDetailsReceiptsBackofficeReportInput {
   type: 'details';
   filterBy: QueueReceiptsBackofficeReportFilter;
 }
+
+/**
+ * Summary data of the receipts in `filterBy`, grouped by VAT treatment
+ * (and by ATECO code for multi-activity merchants).
+ * `filterBy` is either a document-number range (within a single journal)
+ * or a date interval covering already available daily reports.
+ */
+export interface QueueSummaryReceiptsBackofficeReportInput {
+  type: 'summary';
+  filterBy: DocumentNumberRangeFilter | DateIntervalFilter;
+}
+
+export type QueueReceiptsBackofficeReportInput =
+  | QueueDetailsReceiptsBackofficeReportInput
+  | QueueSummaryReceiptsBackofficeReportInput;
