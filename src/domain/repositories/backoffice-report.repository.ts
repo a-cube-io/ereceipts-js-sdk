@@ -14,9 +14,9 @@ export interface IBackofficeReportRepository {
     serialNumber: string,
     params?: BackofficeReportRequestsParams
   ): Promise<Page<BackofficeReportRequest>>;
-  downloadPdf(serialNumber: string, reportUuid: string): Promise<string>;
+  downloadPdf(serialNumber: string, reportUuid: string): Promise<ArrayBuffer>;
   queueJournalReading(serialNumber: string): Promise<BackofficeReportRequestQueued>;
-  queueTelemetry(serialNumber: string): Promise<BackofficeReportRequestQueued>;
+  queueDiagnostics(serialNumber: string): Promise<BackofficeReportRequestQueued>;
   queueReceiptsReport(
     serialNumber: string,
     input: QueueReceiptsBackofficeReportInput

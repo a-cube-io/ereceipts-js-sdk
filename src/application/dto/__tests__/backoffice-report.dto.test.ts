@@ -177,6 +177,44 @@ describe('BackofficeReportMapper', () => {
         filter_by: { starting_date: '2025-12-31', ending_date: '2026-02-15' },
       });
     });
+
+    it('should map a summary report with a DocumentNumberRangeFilter', () => {
+      const input: QueueReceiptsBackofficeReportInput = {
+        type: 'summary',
+        filterBy: { documentNumbers: { start: '0001-0001', end: '0001-0009' } },
+      };
+
+      const result = BackofficeReportMapper.toQueueReceiptsApiInput(input);
+
+      expect(result).toEqual({
+        type: 'summary',
+        filter_by: { document_numbers: { start: '0001-0001', end: '0001-0009' } },
+      });
+    });
+
+    it('should map a summary report with a DateIntervalFilter', () => {
+      const input: QueueReceiptsBackofficeReportInput = {
+        type: 'summary',
+        filterBy: { startingDate: '2025-12-31', endingDate: '2026-02-15' },
+      };
+
+      const result = BackofficeReportMapper.toQueueReceiptsApiInput(input);
+
+      expect(result).toEqual({
+        type: 'summary',
+        filter_by: { starting_date: '2025-12-31', ending_date: '2026-02-15' },
+      });
+    });
+
+    it('should not allow a summary report with a single DocumentNumberFilter', () => {
+      const input: QueueReceiptsBackofficeReportInput = {
+        type: 'summary',
+        // @ts-expect-error summary reports accept only ranges or date intervals
+        filterBy: { documentNumber: '1234-5678' },
+      };
+
+      expect(input.type).toBe('summary');
+    });
   });
 
   describe('toListSearchParams', () => {
@@ -196,19 +234,19 @@ describe('BackofficeReportMapper', () => {
     });
 
     it('should append a single type as one query param', () => {
-      const params: BackofficeReportsParams = { type: 'telemetry' };
+      const params: BackofficeReportsParams = { type: 'diagnostics' };
 
       const result = BackofficeReportMapper.toListSearchParams(params);
 
-      expect(result.getAll('type')).toEqual(['telemetry']);
+      expect(result.getAll('type')).toEqual(['diagnostics']);
     });
 
     it('should append multiple types as repeated query params', () => {
-      const params: BackofficeReportsParams = { type: ['journal_reading', 'telemetry'] };
+      const params: BackofficeReportsParams = { type: ['journal_reading', 'diagnostics'] };
 
       const result = BackofficeReportMapper.toListSearchParams(params);
 
-      expect(result.getAll('type')).toEqual(['journal_reading', 'telemetry']);
+      expect(result.getAll('type')).toEqual(['journal_reading', 'diagnostics']);
     });
 
     it('should map requestUuid to request_uuid', () => {
@@ -254,7 +292,7 @@ describe('BackofficeReportMapper', () => {
             uuid: 'r2',
             status: 'queued' as const,
             issuance_datetime: '2025-10-08 17:00:00',
-            type: 'telemetry' as const,
+            type: 'diagnostics' as const,
             request_uuid: 'req-2',
             request_datetime: '2025-10-08 16:59:59',
           },
@@ -300,21 +338,21 @@ describe('BackofficeReportMapper', () => {
     });
 
     it('should append a single type as one query param', () => {
-      const params: BackofficeReportRequestsParams = { type: 'telemetry' };
+      const params: BackofficeReportRequestsParams = { type: 'diagnostics' };
 
       const result = BackofficeReportMapper.toRequestsListSearchParams(params);
 
-      expect(result.getAll('type')).toEqual(['telemetry']);
+      expect(result.getAll('type')).toEqual(['diagnostics']);
     });
 
     it('should append multiple types as repeated query params', () => {
       const params: BackofficeReportRequestsParams = {
-        type: ['journal_reading', 'telemetry'],
+        type: ['journal_reading', 'diagnostics'],
       };
 
       const result = BackofficeReportMapper.toRequestsListSearchParams(params);
 
-      expect(result.getAll('type')).toEqual(['journal_reading', 'telemetry']);
+      expect(result.getAll('type')).toEqual(['journal_reading', 'diagnostics']);
     });
 
     it('should map request datetime filters to bracket notation', () => {
@@ -348,7 +386,7 @@ describe('BackofficeReportMapper', () => {
           },
           {
             request_uuid: 'req-2',
-            type: 'telemetry' as const,
+            type: 'diagnostics' as const,
             status: 'queued' as const,
             request_datetime: '2025-10-08 16:59:59',
             reports: null,

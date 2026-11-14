@@ -68,7 +68,7 @@ export type QueueReceiptsBackofficeReportFilterApiInput =
   | DateIntervalFilterApiInput;
 
 export interface QueueReceiptsBackofficeReportApiInput {
-  type: 'details';
+  type: 'details' | 'summary';
   filter_by: QueueReceiptsBackofficeReportFilterApiInput;
 }
 

@@ -39,8 +39,8 @@ export class BackofficeReportRepositoryImpl implements IBackofficeReportReposito
     return BackofficeReportMapper.requestsPageFromApi(response.data);
   }
 
-  async downloadPdf(serialNumber: string, reportUuid: string): Promise<string> {
-    const response = await this.http.get<string>(
+  async downloadPdf(serialNumber: string, reportUuid: string): Promise<ArrayBuffer> {
+    const response = await this.http.get<ArrayBuffer>(
       `/mf1/pems/${serialNumber}/backoffice-reports/${reportUuid}/pdf`,
       {
         headers: { Accept: 'application/pdf' },
@@ -57,9 +57,9 @@ export class BackofficeReportRepositoryImpl implements IBackofficeReportReposito
     return BackofficeReportMapper.requestQueuedFromApiOutput(response.data);
   }
 
-  async queueTelemetry(serialNumber: string): Promise<BackofficeReportRequestQueued> {
+  async queueDiagnostics(serialNumber: string): Promise<BackofficeReportRequestQueued> {
     const response = await this.http.post<BackofficeReportRequestQueuedApiOutput>(
-      `/mf1/pems/${serialNumber}/backoffice-reports/telemetry`
+      `/mf1/pems/${serialNumber}/backoffice-reports/diagnostics`
     );
     return BackofficeReportMapper.requestQueuedFromApiOutput(response.data);
   }

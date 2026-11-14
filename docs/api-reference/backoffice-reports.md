@@ -1,6 +1,6 @@
 # Back-office Report API
 
-Gestione dei documenti gestionali (back-office report) emessi da un PEM: lettura giornale, telemetria e report sugli scontrini.
+Gestione dei documenti gestionali (back-office report) emessi da un PEM: lettura giornale, diagnostica e report sugli scontrini (dettaglio e riepilogo).
 
 Ogni chiamata di "queueing" crea una **richiesta** (`request_uuid`) che genera uno o più **report** (`BackofficeReport`, ciascuno con il proprio `uuid`) associati a quella richiesta. Usa `findAllRequests`/`request_uuid` per seguire lo stato di avanzamento di una richiesta e `findAll` (filtrato per `requestUuid`) per recuperare i report effettivamente generati.
 
@@ -63,7 +63,7 @@ const pdf = await sdk.backofficeReports.downloadPdf('PEM-SN-001', 'report-uuid')
 - `serialNumber` - Numero seriale del PEM
 - `reportUuid` - UUID del report (non il `requestUuid` della richiesta)
 
-**Ritorna:** `Promise<Blob>`
+**Ritorna:** `Promise<ArrayBuffer>` (il PDF in binario)
 
 ### queueJournalReading(serialNumber)
 
@@ -78,12 +78,12 @@ const queued = await sdk.backofficeReports.queueJournalReading('PEM-SN-001');
 
 **Ritorna:** `Promise<BackofficeReportRequestQueued>`
 
-### queueTelemetry(serialNumber)
+### queueDiagnostics(serialNumber)
 
-Mette in coda la generazione del report di stato e telemetria del PEM. Restituisce 409 se il PEM non ha un giornale aperto.
+Mette in coda la generazione del report di stato e diagnostica del PEM. Restituisce 409 se il PEM non ha un giornale aperto.
 
 ```typescript
-const queued = await sdk.backofficeReports.queueTelemetry('PEM-SN-001');
+const queued = await sdk.backofficeReports.queueDiagnostics('PEM-SN-001');
 ```
 
 **Parametri:**
@@ -93,7 +93,10 @@ const queued = await sdk.backofficeReports.queueTelemetry('PEM-SN-001');
 
 ### queueReceiptsReport(serialNumber, input)
 
-Mette in coda la generazione di un report su uno o più scontrini. `filterBy` accetta uno tra tre filtri: un singolo scontrino (`DocumentNumberFilter`), un range di numeri documento (`DocumentNumberRangeFilter`) o un intervallo di date (`DateIntervalFilter`).
+Mette in coda la generazione di un report su uno o più scontrini. Due tipi:
+
+- `details` - dettaglio delle righe degli scontrini. `filterBy` accetta un singolo scontrino (`DocumentNumberFilter`), un range di numeri documento (`DocumentNumberRangeFilter`) o un intervallo di date (`DateIntervalFilter`).
+- `summary` - riepilogo degli scontrini raggruppato per trattamento IVA (aliquota, natura o ventilazione) e, per i merchant multi-attività, per codice ATECO. `filterBy` accetta solo un range di numeri documento (che deve appartenere a un unico giornale) o un intervallo di date coperto da report giornalieri già disponibili. Filtri non validi restituiscono 422.
 
 ```typescript
 // Un singolo scontrino
@@ -118,6 +121,15 @@ const queuedInterval = await sdk.backofficeReports.queueReceiptsReport('PEM-SN-0
   filterBy: {
     startingDate: '2025-12-31',
     endingDate: '2026-02-15',
+  },
+});
+
+// Riepilogo per intervallo di date
+const queuedSummary = await sdk.backofficeReports.queueReceiptsReport('PEM-SN-001', {
+  type: 'summary',
+  filterBy: {
+    startingDate: '2026-11-01',
+    endingDate: '2026-11-10',
   },
 });
 ```
@@ -159,7 +171,12 @@ type BackofficeReportStatus = 'queued' | 'processing' | 'ready' | 'failed';
 ### BackofficeReportType
 
 ```typescript
-type BackofficeReportType = 'journal_closure' | 'journal_reading' | 'telemetry' | 'details';
+type BackofficeReportType =
+  | 'journal_closure'
+  | 'journal_reading'
+  | 'diagnostics'
+  | 'details'
+  | 'summary';
 ```
 
 ### BackofficeReportsParams
@@ -233,9 +250,18 @@ interface BackofficeReportRequestQueued {
 ### QueueReceiptsBackofficeReportInput
 
 ```typescript
-interface QueueReceiptsBackofficeReportInput {
+type QueueReceiptsBackofficeReportInput =
+  | QueueDetailsReceiptsBackofficeReportInput
+  | QueueSummaryReceiptsBackofficeReportInput;
+
+interface QueueDetailsReceiptsBackofficeReportInput {
   type: 'details';
   filterBy: QueueReceiptsBackofficeReportFilter;
+}
+
+interface QueueSummaryReceiptsBackofficeReportInput {
+  type: 'summary';
+  filterBy: DocumentNumberRangeFilter | DateIntervalFilter;
 }
 
 type QueueReceiptsBackofficeReportFilter =
@@ -276,16 +302,16 @@ interface DateIntervalFilter {
 
 ## Esempi
 
-### Chiusura Giornata: Lettura e Telemetria
+### Chiusura Giornata: Lettura e Diagnostica
 
 ```typescript
 // Genera il report di lettura del giornale aperto
 const journalReading = await sdk.backofficeReports.queueJournalReading('PEM-SN-001');
 
-// Genera il report di telemetria corrente
-const telemetry = await sdk.backofficeReports.queueTelemetry('PEM-SN-001');
+// Genera il report di diagnostica corrente
+const diagnostics = await sdk.backofficeReports.queueDiagnostics('PEM-SN-001');
 
-console.log('Richieste in coda:', journalReading.requestUuid, telemetry.requestUuid);
+console.log('Richieste in coda:', journalReading.requestUuid, diagnostics.requestUuid);
 ```
 
 ### Report su uno Scontrino Specifico
@@ -317,7 +343,7 @@ if (request?.reports?.ready) {
 
 ```typescript
 const reports = await sdk.backofficeReports.findAll('PEM-SN-001', {
-  type: ['journal_reading', 'telemetry'],
+  type: ['journal_reading', 'diagnostics'],
   issuanceDatetimeAfter: '2024-01-01T00:00:00Z',
   issuanceDatetimeBefore: '2024-01-31T23:59:59Z',
 });
