@@ -11,6 +11,9 @@ export interface PemData {
 export interface PemCreateInput {
   merchantUuid: string;
   address?: Address;
+  /** Whether the PEM is on-premise (not in the cloud). The backend defaults to `false`. */
+  onPremise?: boolean;
+  configuration?: PemCreateConfigurationInput;
 }
 
 export interface PemCreateOutput {
@@ -33,6 +36,8 @@ export interface PemUpdateInput {
 }
 
 export type PemConfigurationOutput = PemUpdateInput;
+
+export type PemCreateConfigurationInput = Partial<PemUpdateInput>;
 
 /**
  * PNG image of the logo printed on the receipts.
