@@ -1,6 +1,7 @@
 import {
   PemCertificates,
   PemConfigurationOutput,
+  PemCreateConfigurationInput,
   PemCreateInput,
   PemCreateOutput,
   PemLogoInput,
@@ -19,7 +20,11 @@ export interface PemCreateApiInput {
     city: string;
     province: string;
   };
+  on_premise?: boolean;
+  configuration?: PemCreateConfigurationApiInput;
 }
+
+export type PemCreateConfigurationApiInput = Partial<PemUpdateApiInput>;
 
 export interface PemCreateApiOutput {
   serial_number: string;
@@ -76,6 +81,14 @@ export class PemMapper {
       };
     }
 
+    if (input.onPremise !== undefined) {
+      apiInput.on_premise = input.onPremise;
+    }
+
+    if (input.configuration) {
+      apiInput.configuration = PemMapper.toCreateConfigurationApiInput(input.configuration);
+    }
+
     return apiInput;
   }
 
@@ -91,6 +104,23 @@ export class PemMapper {
       mtlsCertificate: output.mtls_certificate,
       activationXmlResponse: output.activation_xml_response,
     };
+  }
+
+  static toCreateConfigurationApiInput(
+    input: PemCreateConfigurationInput
+  ): PemCreateConfigurationApiInput {
+    const apiInput: PemCreateConfigurationApiInput = {
+      receipt_format: input.receiptFormat,
+      display_cashier_name: input.displayCashierName,
+      display_cash_register_name: input.displayCashRegisterName,
+      receipt_header: input.receiptHeader,
+      footer_text: input.footerText,
+      meal_vouchers_invoiced_to_issuer: input.mealVouchersInvoicedToIssuer,
+    };
+
+    return Object.fromEntries(
+      Object.entries(apiInput).filter(([, value]) => value !== undefined)
+    ) as PemCreateConfigurationApiInput;
   }
 
   static toUpdateApiInput(input: PemUpdateInput): PemUpdateApiInput {

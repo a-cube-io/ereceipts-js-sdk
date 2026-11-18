@@ -54,6 +54,63 @@ describe('PemMapper', () => {
 
       expect(result.address).toBeUndefined();
     });
+
+    it('should map onPremise to on_premise when provided', () => {
+      expect(
+        PemMapper.toCreateApiInput({ merchantUuid: 'merchant-uuid', onPremise: true })
+      ).toEqual({ merchant_uuid: 'merchant-uuid', on_premise: true });
+
+      expect(
+        PemMapper.toCreateApiInput({ merchantUuid: 'merchant-uuid', onPremise: false }).on_premise
+      ).toBe(false);
+    });
+
+    it('should not include on_premise when not provided', () => {
+      const result = PemMapper.toCreateApiInput({ merchantUuid: 'merchant-uuid' });
+
+      expect(result).not.toHaveProperty('on_premise');
+    });
+
+    it('should map a full configuration to snake_case', () => {
+      const result = PemMapper.toCreateApiInput({
+        merchantUuid: 'merchant-uuid',
+        configuration: {
+          receiptFormat: 'narrow',
+          displayCashierName: true,
+          displayCashRegisterName: false,
+          receiptHeader: 'Header',
+          footerText: 'Footer',
+          mealVouchersInvoicedToIssuer: true,
+        },
+      });
+
+      expect(result.configuration).toEqual({
+        receipt_format: 'narrow',
+        display_cashier_name: true,
+        display_cash_register_name: false,
+        receipt_header: 'Header',
+        footer_text: 'Footer',
+        meal_vouchers_invoiced_to_issuer: true,
+      });
+    });
+
+    it('should send only the configuration fields that are provided', () => {
+      const result = PemMapper.toCreateApiInput({
+        merchantUuid: 'merchant-uuid',
+        configuration: { receiptFormat: 'standard', displayCashierName: false },
+      });
+
+      expect(result.configuration).toEqual({
+        receipt_format: 'standard',
+        display_cashier_name: false,
+      });
+    });
+
+    it('should not include configuration when not provided', () => {
+      const result = PemMapper.toCreateApiInput({ merchantUuid: 'merchant-uuid' });
+
+      expect(result).not.toHaveProperty('configuration');
+    });
   });
 
   describe('fromCreateApiOutput', () => {
