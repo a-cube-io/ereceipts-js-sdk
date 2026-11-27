@@ -5,7 +5,8 @@ export type BackofficeReportType =
   | 'journal_reading'
   | 'diagnostics'
   | 'details'
-  | 'summary';
+  | 'summary'
+  | 'maintenance_operations';
 
 export type BackofficeReportRequestStatus = 'queued' | 'processed' | 'failed';
 
@@ -110,3 +111,12 @@ export interface QueueSummaryReceiptsBackofficeReportInput {
 export type QueueReceiptsBackofficeReportInput =
   | QueueDetailsReceiptsBackofficeReportInput
   | QueueSummaryReceiptsBackofficeReportInput;
+
+/**
+ * Maintenance operations on the PEM (integrity issue resolutions, unresolvable
+ * integrity issues, software crashes, security incidents) and its software updates
+ * between `filterBy.startingDate` and `filterBy.endingDate` (both included).
+ */
+export interface QueueMaintenanceOperationsBackofficeReportInput {
+  filterBy: DateIntervalFilter;
+}

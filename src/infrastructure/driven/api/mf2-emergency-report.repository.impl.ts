@@ -10,6 +10,11 @@ import {
 } from '@/domain/entities/point-of-sale.entity';
 import { IMf2EmergencyReportRepository } from '@/domain/repositories/mf2-emergency-report';
 
+const XML_CONFIG = {
+  headers: { Accept: 'application/xml' },
+  responseType: 'text' as const,
+};
+
 // this repository is used for MF2 emergency report endpoints
 export class Mf2EmergencyReportRepositoryImpl implements IMf2EmergencyReportRepository {
   constructor(private readonly http: IHttpPort) {}
@@ -39,5 +44,21 @@ export class Mf2EmergencyReportRepositoryImpl implements IMf2EmergencyReportRepo
       `/mf2/pems/${serialNumber}/emergency-reports/${id}`
     );
     return EmergencyReportMapper.fromApiOutput(response.data);
+  }
+
+  async download(serialNumber: string, id: number): Promise<string> {
+    const response = await this.http.get<string>(
+      `/mf2/pems/${serialNumber}/emergency-reports/${id}/download`,
+      XML_CONFIG
+    );
+    return response.data;
+  }
+
+  async downloadResult(serialNumber: string, id: number): Promise<string> {
+    const response = await this.http.get<string>(
+      `/mf2/pems/${serialNumber}/emergency-reports/${id}/result`,
+      XML_CONFIG
+    );
+    return response.data;
   }
 }

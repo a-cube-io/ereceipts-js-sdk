@@ -15,6 +15,7 @@ import { IBackofficeReportRepository } from '@/domain/repositories/backoffice-re
 import { ICashRegisterRepository } from '@/domain/repositories/cash-register.repository';
 import { ICashierRepository } from '@/domain/repositories/cashier.repository';
 import { IDailyReportRepository } from '@/domain/repositories/daily-report.repository';
+import { IDeviceEventRepository } from '@/domain/repositories/device-event.repository';
 import { IJournalRepository } from '@/domain/repositories/journal.repository';
 import { IMerchantRepository } from '@/domain/repositories/merchant.repository';
 import { IMf2EmergencyReportRepository } from '@/domain/repositories/mf2-emergency-report';
@@ -81,6 +82,7 @@ export interface ManagedServices {
   journals: IJournalRepository;
   mf2EmergencyReports: IMf2EmergencyReportRepository;
   backofficeReports: IBackofficeReportRepository;
+  deviceEvents: IDeviceEventRepository;
   telemetry: TelemetryOperations;
   login: (credentials: AuthCredentials) => Promise<User>;
   logout: () => Promise<void>;
@@ -430,6 +432,7 @@ export class SDKManager {
       journals: sdk.journals,
       mf2EmergencyReports: sdk.mf2EmergencyReports,
       backofficeReports: sdk.backofficeReports,
+      deviceEvents: sdk.deviceEvents,
       telemetry: {
         startPollingAuto: (): Promise<boolean> => this.startTelemetryPollingAuto(),
         startPolling: (): void => telemetryService.startPolling(),

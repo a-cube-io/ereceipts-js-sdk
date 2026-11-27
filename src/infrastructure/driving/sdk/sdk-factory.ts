@@ -6,6 +6,7 @@ import { IBackofficeReportRepository } from '@/domain/repositories/backoffice-re
 import { ICashRegisterRepository } from '@/domain/repositories/cash-register.repository';
 import { ICashierRepository } from '@/domain/repositories/cashier.repository';
 import { IDailyReportRepository } from '@/domain/repositories/daily-report.repository';
+import { IDeviceEventRepository } from '@/domain/repositories/device-event.repository';
 import { IJournalRepository } from '@/domain/repositories/journal.repository';
 import { IMerchantRepository } from '@/domain/repositories/merchant.repository';
 import { IMf2EmergencyReportRepository } from '@/domain/repositories/mf2-emergency-report';
@@ -20,6 +21,7 @@ import {
   CashRegisterRepositoryImpl,
   CashierRepositoryImpl,
   DailyReportRepositoryImpl,
+  DeviceEventRepositoryImpl,
   JournalRepositoryImpl,
   MerchantRepositoryImpl,
   Mf2EmergencyReportRepositoryImpl,
@@ -61,6 +63,7 @@ export interface SDKServices {
   telemetry: ITelemetryRepository;
   mf2EmergencyReports: IMf2EmergencyReportRepository;
   backofficeReports: IBackofficeReportRepository;
+  deviceEvents: IDeviceEventRepository;
 }
 
 export class SDKFactory {
@@ -142,6 +145,11 @@ export class SDKFactory {
       return new BackofficeReportRepositoryImpl(http);
     });
 
+    container.registerFactory(DI_TOKENS.DEVICE_EVENT_REPOSITORY, () => {
+      const http = container.get<IHttpPort>(DI_TOKENS.HTTP_PORT);
+      return new DeviceEventRepositoryImpl(http);
+    });
+
     return container;
   }
 
@@ -183,6 +191,7 @@ export class SDKFactory {
       backofficeReports: container.get<IBackofficeReportRepository>(
         DI_TOKENS.BACKOFFICE_REPORT_REPOSITORY
       ),
+      deviceEvents: container.get<IDeviceEventRepository>(DI_TOKENS.DEVICE_EVENT_REPOSITORY),
     };
 
     if (container.has(DI_TOKENS.TOKEN_STORAGE_PORT)) {

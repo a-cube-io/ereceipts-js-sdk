@@ -10,3 +10,4 @@ export * from './daily-report.entity';
 export * from './journal.entity';
 export * from './notification.entity';
 export * from './telemetry.entity';
+export * from './device-event.entity';
