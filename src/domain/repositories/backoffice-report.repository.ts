@@ -4,6 +4,7 @@ import {
   BackofficeReportRequestQueued,
   BackofficeReportRequestsParams,
   BackofficeReportsParams,
+  QueueMaintenanceOperationsBackofficeReportInput,
   QueueReceiptsBackofficeReportInput,
 } from '@/domain/entities/backoffice-report.entity';
 import { Page } from '@/domain/value-objects/page.vo';
@@ -20,5 +21,9 @@ export interface IBackofficeReportRepository {
   queueReceiptsReport(
     serialNumber: string,
     input: QueueReceiptsBackofficeReportInput
+  ): Promise<BackofficeReportRequestQueued>;
+  queueMaintenanceOperationsReport(
+    serialNumber: string,
+    input: QueueMaintenanceOperationsBackofficeReportInput
   ): Promise<BackofficeReportRequestQueued>;
 }

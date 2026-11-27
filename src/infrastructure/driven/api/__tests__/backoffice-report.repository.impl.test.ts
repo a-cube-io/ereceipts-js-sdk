@@ -55,6 +55,20 @@ describe('BackofficeReportRepositoryImpl', () => {
     expect(result).toEqual({ requestUuid: 'request-uuid' });
   });
 
+  it('queueMaintenanceOperationsReport should POST a date interval to /maintenance-operations', async () => {
+    const http = createHttpMock();
+    const repository = new BackofficeReportRepositoryImpl(http);
+
+    const result = await repository.queueMaintenanceOperationsReport(serialNumber, {
+      filterBy: { startingDate: '2026-11-01', endingDate: '2026-11-25' },
+    });
+
+    expect(http.post).toHaveBeenCalledWith(`${base}/maintenance-operations`, {
+      filter_by: { starting_date: '2026-11-01', ending_date: '2026-11-25' },
+    });
+    expect(result).toEqual({ requestUuid: 'request-uuid' });
+  });
+
   it('downloadPdf should request the PDF as arraybuffer', async () => {
     const http = createHttpMock();
     const pdf = new ArrayBuffer(4);

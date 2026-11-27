@@ -11,3 +11,4 @@ export * from './journal.repository.impl';
 export * from './notification.repository.impl';
 export * from './telemetry.repository.impl';
 export * from './mf2-emergency-report.repository.impl';
+export * from './device-event.repository.impl';

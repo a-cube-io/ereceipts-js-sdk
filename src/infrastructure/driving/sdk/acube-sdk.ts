@@ -12,6 +12,7 @@ import { IBackofficeReportRepository } from '@/domain/repositories/backoffice-re
 import { ICashRegisterRepository } from '@/domain/repositories/cash-register.repository';
 import { ICashierRepository } from '@/domain/repositories/cashier.repository';
 import { IDailyReportRepository } from '@/domain/repositories/daily-report.repository';
+import { IDeviceEventRepository } from '@/domain/repositories/device-event.repository';
 import { IJournalRepository } from '@/domain/repositories/journal.repository';
 import { IMerchantRepository } from '@/domain/repositories/merchant.repository';
 import { IMf2EmergencyReportRepository } from '@/domain/repositories/mf2-emergency-report';
@@ -316,6 +317,11 @@ export class ACubeSDK {
   get backofficeReports(): IBackofficeReportRepository {
     this.ensureInitialized();
     return this.container!.get<IBackofficeReportRepository>(DI_TOKENS.BACKOFFICE_REPORT_REPOSITORY);
+  }
+
+  get deviceEvents(): IDeviceEventRepository {
+    this.ensureInitialized();
+    return this.container!.get<IDeviceEventRepository>(DI_TOKENS.DEVICE_EVENT_REPOSITORY);
   }
 
   async login(credentials: AuthCredentials): Promise<User> {

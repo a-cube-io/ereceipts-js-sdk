@@ -8,6 +8,7 @@ import {
   BackofficeReportStatus,
   BackofficeReportType,
   BackofficeReportsParams,
+  QueueMaintenanceOperationsBackofficeReportInput,
   QueueReceiptsBackofficeReportFilter,
   QueueReceiptsBackofficeReportInput,
 } from '@/domain/entities/backoffice-report.entity';
@@ -72,6 +73,10 @@ export interface QueueReceiptsBackofficeReportApiInput {
   filter_by: QueueReceiptsBackofficeReportFilterApiInput;
 }
 
+export interface QueueMaintenanceOperationsBackofficeReportApiInput {
+  filter_by: DateIntervalFilterApiInput;
+}
+
 export class BackofficeReportMapper {
   static fromApiOutput(output: BackofficeReportApiOutput): BackofficeReport {
     return {
@@ -124,6 +129,17 @@ export class BackofficeReportMapper {
     return {
       type: input.type,
       filter_by: BackofficeReportMapper.filterByToApiInput(input.filterBy),
+    };
+  }
+
+  static toQueueMaintenanceOperationsApiInput(
+    input: QueueMaintenanceOperationsBackofficeReportInput
+  ): QueueMaintenanceOperationsBackofficeReportApiInput {
+    return {
+      filter_by: {
+        starting_date: input.filterBy.startingDate,
+        ending_date: input.filterBy.endingDate,
+      },
     };
   }
 

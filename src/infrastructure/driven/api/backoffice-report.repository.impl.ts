@@ -11,6 +11,7 @@ import {
   BackofficeReportRequestQueued,
   BackofficeReportRequestsParams,
   BackofficeReportsParams,
+  QueueMaintenanceOperationsBackofficeReportInput,
   QueueReceiptsBackofficeReportInput,
 } from '@/domain/entities/backoffice-report.entity';
 import { IBackofficeReportRepository } from '@/domain/repositories/backoffice-report.repository';
@@ -71,6 +72,18 @@ export class BackofficeReportRepositoryImpl implements IBackofficeReportReposito
     const apiInput = BackofficeReportMapper.toQueueReceiptsApiInput(input);
     const response = await this.http.post<BackofficeReportRequestQueuedApiOutput>(
       `/mf1/pems/${serialNumber}/backoffice-reports/receipts`,
+      apiInput
+    );
+    return BackofficeReportMapper.requestQueuedFromApiOutput(response.data);
+  }
+
+  async queueMaintenanceOperationsReport(
+    serialNumber: string,
+    input: QueueMaintenanceOperationsBackofficeReportInput
+  ): Promise<BackofficeReportRequestQueued> {
+    const apiInput = BackofficeReportMapper.toQueueMaintenanceOperationsApiInput(input);
+    const response = await this.http.post<BackofficeReportRequestQueuedApiOutput>(
+      `/mf1/pems/${serialNumber}/backoffice-reports/maintenance-operations`,
       apiInput
     );
     return BackofficeReportMapper.requestQueuedFromApiOutput(response.data);

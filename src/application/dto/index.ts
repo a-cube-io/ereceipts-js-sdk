@@ -10,3 +10,4 @@ export * from './daily-report.dto';
 export * from './journal.dto';
 export * from './notification.dto';
 export * from './telemetry.dto';
+export * from './device-event.dto';
